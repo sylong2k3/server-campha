@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Runner không có `.env` (đã gitignore), trong khi tokenManager.util validate
+    # JWT secret ngay lúc require → thiếu 2 biến này là mọi suite chạm auth/MFA
+    # fail ở bước load module. Giá trị dưới đây là rác dùng riêng cho CI: chỉ cần
+    # đủ 32 ký tự và không khớp /^your_|^change_me/. Secret thật KHÔNG đặt ở đây.
+    env:
+      JWT_SECRET: ci-throwaway-value-not-a-real-secret-access
+      JWT_SECRET_REFRESH: ci-throwaway-value-not-a-real-secret-refresh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test -- --runInBand
+      - run: npm run test:coverage -- --runInBand
+      - name: Validate OpenAPI YAML and unique operationId
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const YAML = require('yaml');
+          const doc = YAML.parse(fs.readFileSync('docs/api/openapi.yaml', 'utf8'));
+          if (doc.openapi !== '3.1.0') throw new Error('OpenAPI 3.1.0 required');
+          const ids = [];
+          for (const item of Object.values(doc.paths)) {
+            for (const op of Object.values(item)) if (op?.operationId) ids.push(op.operationId);
+          }
+          if (ids.length !== new Set(ids).size) throw new Error('Duplicate operationId');
+          NODE
+      - run: npm audit --omit=dev --audit-level=high
+
+  semgrep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - run: semgrep scan --config auto --error
+
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

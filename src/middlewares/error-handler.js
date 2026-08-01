@@ -1,0 +1,129 @@
+const { BaseError } = require('../core/error.response');
+const { t } = require('../utils/i18n.util');
+const systemLogger = require('../utils/systemLogger.util');
+const multer = require('multer');
+
+const notFoundHandler = (req, res) => {
+    return res.status(404).json({
+        success: false,
+        message: `Route ${req.method} ${req.originalUrl} not found`,
+        errors: ['NOT_FOUND'],
+    });
+};
+
+const errorHandler = (err, req, res, next) => {
+    if (res.headersSent) {return next(err);}
+
+    if (err instanceof BaseError) {
+        return res.status(err.status).json({
+            success: false,
+            message: err.message,
+            errors: err.errors || [],
+            ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+        });
+    }
+
+    if (err instanceof multer.MulterError) {
+        let message;
+        switch (err.code) {
+            case 'LIMIT_FILE_SIZE':
+                message = t('upload_file_too_large', req.lang);
+                break;
+            case 'LIMIT_FILE_COUNT':
+            case 'LIMIT_UNEXPECTED_FILE':
+                message = t('upload_too_many_files', req.lang);
+                break;
+            default:
+                message = t('upload_failed', req.lang);
+        }
+        return res.status(400).json({
+            success: false,
+            message,
+            errors: [err.code, err.field].filter(Boolean),
+        });
+    }
+
+    if (err.isJoi) {
+        const messages = err.details.map((d) => d.message);
+        return res.status(400).json({
+            success: false,
+            message: t('invalid_data', req.lang),
+            errors: messages,
+        });
+    }
+
+    if (err.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+            success: false,
+            message: t('invalid_token', req.lang),
+            errors: ['INVALID_TOKEN'],
+        });
+    }
+
+    if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({
+            success: false,
+            message: t('token_expired', req.lang),
+            errors: ['TOKEN_EXPIRED'],
+        });
+    }
+
+    if (err.message && err.message.includes('CORS')) {
+        return res.status(403).json({
+            success: false,
+            message: err.message,
+            errors: ['CORS_ERROR'],
+        });
+    }
+
+    // PostgreSQL error mapping (SQLSTATE codes) → trả lỗi 4xx rõ ràng thay vì 500
+    const PG_ERROR_MAP = {
+        '23505': { status: 409, key: 'resource_conflict', code: 'UNIQUE_VIOLATION' },     // unique_violation
+        '23503': { status: 400, key: 'invalid_reference', code: 'FK_VIOLATION' },          // foreign_key_violation
+        '23502': { status: 400, key: 'invalid_data', code: 'NOT_NULL_VIOLATION' },         // not_null_violation
+        '23514': { status: 400, key: 'invalid_data', code: 'CHECK_VIOLATION' },            // check_violation
+        '22P02': { status: 400, key: 'invalid_data', code: 'INVALID_TEXT_REPRESENTATION' },// invalid_text_representation
+        '22003': { status: 400, key: 'invalid_data', code: 'NUMERIC_OUT_OF_RANGE' },       // numeric_value_out_of_range
+        '22007': { status: 400, key: 'invalid_data', code: 'INVALID_DATETIME' },           // invalid_datetime_format
+    };
+
+    if (typeof err.code === 'string' && PG_ERROR_MAP[err.code]) {
+        const mapped = PG_ERROR_MAP[err.code];
+        return res.status(mapped.status).json({
+            success: false,
+            message: t(mapped.key, req.lang),
+            errors: [mapped.code],
+        });
+    }
+
+
+
+    const statusCode = err.status || err.statusCode || 500;
+    console.error('[ERROR]', {
+        method: req.method,
+        url: req.originalUrl,
+        status: statusCode,
+        message: err.message,
+        stack: err.stack,
+    });
+
+    systemLogger.logError('http', `${req.method} ${req.originalUrl} → ${statusCode}: ${err.message}`, {
+        stack: err.stack,
+        userId: req.user?.id || null,
+        ipAddress: req.ip,
+    });
+
+    return res.status(statusCode).json({
+        success: false,
+        message: process.env.NODE_ENV === 'production'
+            ? 'Internal Server Error'
+            : err.message || 'Internal Server Error',
+        errors: ['INTERNAL_ERROR'],
+        ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    });
+};
+
+module.exports = {
+    notFoundHandler,
+    errorHandler,
+};

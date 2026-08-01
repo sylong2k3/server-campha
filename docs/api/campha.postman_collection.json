@@ -1,0 +1,74 @@
+{
+  "info": {
+    "_postman_id": "6e53c6b1-68ae-4e60-b780-e3e46caac001",
+    "name": "Cẩm Phả GIS API - Sprint 0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "pm.expect(pm.response.json().status).to.eql('OK');"] } }]
+    },
+    {
+      "name": "Login system_admin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{testPassword}}\"}" },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('login admin 200', () => pm.response.to.have.status(200));", "pm.environment.set('adminToken', pm.response.json().data.accessToken);"] } }]
+    },
+    {
+      "name": "Admin me",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{baseUrl}}/api/v1/auth/me"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('admin me 200', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "Missing token rejected",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/me" },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 without token', () => pm.response.to.have.status(401));"] } }]
+    },
+    {
+      "name": "system_admin reads logs with DB permission",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": "{{baseUrl}}/api/v1/admin/system-logs"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 with DB permission', () => pm.response.to.have.status(200));"] } }]
+    },
+    {
+      "name": "Login citizen for RBAC test",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"email\":\"{{citizenEmail}}\",\"password\":\"{{testPassword}}\"}" },
+        "url": "{{baseUrl}}/api/v1/auth/login"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('citizen login 200', () => pm.response.to.have.status(200));", "pm.environment.set('citizenToken', pm.response.json().data.accessToken);"] } }]
+    },
+    {
+      "name": "Citizen permission denied",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{citizenToken}}" }],
+        "url": "{{baseUrl}}/api/v1/admin/system-logs"
+      },
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 without DB permission', () => pm.response.to.have.status(403));"] } }]
+    },
+    {
+      "name": "Login remaining roles",
+      "item": [
+        { "name": "UBND", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{ubndEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/api/v1/auth/login" } },
+        { "name": "TNMT", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{tnmtEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/api/v1/auth/login" } },
+        { "name": "Xây dựng", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{xdEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/api/v1/auth/login" } }
+      ]
+    }
+  ]
+}

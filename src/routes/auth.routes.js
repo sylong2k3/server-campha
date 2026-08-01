@@ -1,0 +1,96 @@
+const { Router } = require('express');
+const passport = require('passport');
+const rateLimit = require('express-rate-limit');
+const asyncHandler = require('../helpers/async-handler');
+const authController = require('../controllers/auth.controller');
+const { verifyToken } = require('../middlewares/auth.middleware');
+const { validate } = require('../middlewares/validate.middleware');
+const { t } = require('../utils/i18n.util');
+const {
+    registerSchema,
+    loginSchema,
+    ldapLoginSchema,
+    refreshSchema,
+    changePasswordSchema,
+    setPasswordSchema,
+    logoutSchema,
+    googleMobileSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema,
+    oauthExchangeSchema,
+    verifyEmailSchema,
+    resendVerificationSchema,
+    updateProfileSchema,
+    mfaSetupSchema,
+    mfaConfirmSchema,
+    mfaVerifySchema,
+    sessionIdSchema,
+} = require('../validators/auth.validator');
+
+const { uploadImage, handleUploadError } = require('../middlewares/upload.middleware');
+
+const router = Router();
+const getLang = () => process.env.APP_LANG || process.env.LANG || 'vi';
+const tooManyRequestsMessage = () => ({
+    success: false,
+    message: t('too_many_requests', getLang()),
+    errors: ['TOO_MANY_REQUESTS'],
+});
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: parseInt(process.env.AUTH_RATE_LIMIT, 10) || 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: tooManyRequestsMessage,
+});
+
+const ldapAuthLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: parseInt(process.env.LDAP_AUTH_RATE_LIMIT, 10) || 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: tooManyRequestsMessage,
+});
+
+const passwordResetLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: parseInt(process.env.RESET_RATE_LIMIT, 10) || 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: tooManyRequestsMessage,
+});
+
+router.post('/register', authLimiter, validate(registerSchema), asyncHandler(authController.register));
+router.post('/login', authLimiter, validate(loginSchema), asyncHandler(authController.login));
+router.post('/ldap/login', ldapAuthLimiter, validate(ldapLoginSchema), asyncHandler(authController.ldapLogin));
+router.post('/refresh', validate(refreshSchema), asyncHandler(authController.refreshToken));
+router.post('/forgot-password', passwordResetLimiter, validate(forgotPasswordSchema), asyncHandler(authController.forgotPassword));
+router.post('/reset-password', passwordResetLimiter, validate(resetPasswordSchema), asyncHandler(authController.resetPassword));
+router.post('/verify-email', authLimiter, validate(verifyEmailSchema), asyncHandler(authController.verifyEmail));
+router.post('/resend-verification', passwordResetLimiter, validate(resendVerificationSchema), asyncHandler(authController.resendVerification));
+router.post('/mfa/setup', authLimiter, validate(mfaSetupSchema), asyncHandler(authController.mfaSetup));
+router.post('/mfa/confirm', authLimiter, validate(mfaConfirmSchema), asyncHandler(authController.mfaConfirm));
+router.post('/mfa/verify', authLimiter, validate(mfaVerifySchema), asyncHandler(authController.mfaVerify));
+
+router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'], session: false }));
+router.get('/google/callback',
+    passport.authenticate('google', {
+        session: false,
+        failureRedirect: `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000'}/auth/login?error=google_auth_failed`,
+    }),
+    asyncHandler(authController.googleCallback)
+);
+router.post('/google/mobile', authLimiter, validate(googleMobileSchema), asyncHandler(authController.googleMobileLogin));
+router.post('/oauth/exchange', authLimiter, validate(oauthExchangeSchema), asyncHandler(authController.oauthExchange));
+
+router.post('/logout', verifyToken, validate(logoutSchema), asyncHandler(authController.logout));
+router.post('/change-password', verifyToken, validate(changePasswordSchema), asyncHandler(authController.changePassword));
+router.post('/set-password', verifyToken, validate(setPasswordSchema), asyncHandler(authController.setPassword));
+router.get('/me', verifyToken, asyncHandler(authController.getMe));
+router.patch('/me', verifyToken, uploadImage.single('avatar'), handleUploadError, validate(updateProfileSchema), asyncHandler(authController.updateMe));
+router.get('/sessions', verifyToken, asyncHandler(authController.getSessions));
+router.delete('/sessions/:id', verifyToken, validate(sessionIdSchema, 'params'), asyncHandler(authController.revokeSession));
+router.delete('/sessions', verifyToken, asyncHandler(authController.revokeAllSessions));
+
+module.exports = router;
