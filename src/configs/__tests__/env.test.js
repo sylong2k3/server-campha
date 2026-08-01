@@ -73,7 +73,8 @@ describe('environment configuration', () => {
         const secret = 'do-not-print-this-password';
         let caught;
         try {
-            validateEnv(validEnv({ DB_PASSWORD: secret, JWT_SECRET: secret }), { checkFiles: false });
+            // MFA_ENCRYPTION_KEY sai pattern -> Joi in ca gia tri ra message, phai bi che.
+            validateEnv(validEnv({ DB_PASSWORD: secret, MFA_ENCRYPTION_KEY: secret }), { checkFiles: false });
         } catch (error) {
             caught = error;
         }

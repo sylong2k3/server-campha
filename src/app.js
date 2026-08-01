@@ -41,7 +41,7 @@ if (trustProxy === "true") {
   app.set("trust proxy", true);
 } else if (/^\d+$/.test(trustProxy || "")) {
   app.set("trust proxy", Number(trustProxy));
-} else if (trustProxy) {
+} else if (trustProxy && trustProxy !== "false") {
   app.set(
     "trust proxy",
     trustProxy

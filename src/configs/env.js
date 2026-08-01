@@ -15,7 +15,7 @@ const duration = Joi.string().pattern(/^\d+(?:ms|s|m|h|d|w|y)$/i);
 const ENV_SCHEMA_KEYS = {
     NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
     HOST: Joi.string().trim().min(1).default('0.0.0.0'),
-    PORT: port.default(3005),
+    PORT: port.default(3006),
     APP_LANG: Joi.string().valid('vi', 'en').default('vi'),
     TZ: Joi.string().trim().min(1).default('Asia/Ho_Chi_Minh'),
     APP_NAME: Joi.string().trim().min(1).required(),
@@ -25,7 +25,7 @@ const ENV_SCHEMA_KEYS = {
     TRUST_PROXY: Joi.string().trim().min(1).default('false'),
     REQUEST_BODY_LIMIT: Joi.string().pattern(/^\d+(?:b|kb|mb|gb)$/i).default('2mb'),
     RATE_LIMIT_MAX: positiveInteger.default(1000),
-    API_BASE_URL: httpUrl.default('http://127.0.0.1:3005'),
+    API_BASE_URL: httpUrl.default('http://127.0.0.1:3006'),
 
     DB_HOST: Joi.string().trim().min(1).required(),
     DB_PORT: port.default(5432),
@@ -199,6 +199,23 @@ const checkReadableFile = (value, name, errors, checkFiles) => {
     }
 };
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1', '[::1]']);
+
+const isLoopbackUrl = (url) => {
+    try {
+        return LOOPBACK_HOSTS.has(new URL(url).hostname.toLowerCase());
+    } catch {
+        return false;
+    }
+};
+
+const validateProductionUrls = (value, errors) => {
+    if (value.NODE_ENV !== 'production') {return;}
+    for (const name of ['APP_URL', 'FRONTEND_URL', 'API_BASE_URL']) {
+        if (isLoopbackUrl(value[name])) {errors.push(`${name} cannot use a loopback host in production`);}
+    }
+};
+
 const validateCors = (value, errors) => {
     const origins = value.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
     if (!origins.length) {errors.push('CORS_ORIGINS must contain at least one origin'); return;}
@@ -213,6 +230,10 @@ const validateCors = (value, errors) => {
             if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {throw new Error();}
         } catch {
             errors.push(`CORS_ORIGINS contains an invalid origin: ${origin}`);
+            continue;
+        }
+        if (value.NODE_ENV === 'production' && isLoopbackUrl(origin)) {
+            errors.push(`CORS_ORIGINS cannot use a loopback host in production: ${origin}`);
         }
     }
     if (!origins.includes('*') && !origins.includes(new URL(value.FRONTEND_URL).origin)) {
@@ -237,6 +258,7 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
             errors.push('WEATHER_WIND_GRID_SIZE cannot exceed WEATHER_WIND_GRID_MAX');
         }
 
+        validateProductionUrls(value, errors);
         validateCors(value, errors);
         requireNames(value, 'MFA_ENABLED', ['MFA_ENCRYPTION_KEY'], errors);
         requireNames(value, 'LDAP_ENABLED', [

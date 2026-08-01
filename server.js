@@ -30,40 +30,40 @@ const IS_SINGLETON_WORKER =
 let server;
 let isShuttingDown = false;
 
-function formatField(label, value) {
-  return `${label.padEnd(14)}: ${value}`;
-}
-
 function printStartupBanner({ dbStatus, minioStatus, earthEngineStatus, geoserverStatus }) {
   const publicHost = HOST === "0.0.0.0" ? "localhost" : HOST;
-  const lines = [
-    "APP QUẢN LÝ GIS CẨM PHẢ",
-    formatField("HTTP", `http://${publicHost}:${PORT}`),
-    formatField("WebSocket", `ws://${publicHost}:${PORT}${WS_PATH}`),
-    formatField("Environment", process.env.NODE_ENV || "development"),
-    formatField("Database", process.env.DB_NAME || "(not configured)"),
-    formatField("DB Host",
-      `${process.env.DB_HOST || "(not configured)"}:${process.env.DB_PORT || "(not configured)"}`,
-    ),
-    formatField("PostgreSQL", dbStatus),
-    formatField("MinIO",      minioStatus),
-    formatField("Earth Engine", earthEngineStatus),
-    formatField("GeoServer",    geoserverStatus),
+  const env = process.env.NODE_ENV || "development";
+  const appName = process.env.APP_NAME || "WebGIS Cẩm Phả";
+
+  const COL = 13;
+  const row = (label, value) => `  ${label.padEnd(COL)}: ${value}`;
+  const sep = (border, left, mid, right) => `${left}${border}${right}`;
+
+  const appRows = [
+    row("HTTP",        `http://${publicHost}:${PORT}`),
+    row("WebSocket",   `ws://${publicHost}:${PORT}${WS_PATH}`),
+    row("Environment", env),
+  ];
+  const svcRows = [
+    row("PostgreSQL",    dbStatus),
+    row("MinIO",         minioStatus),
+    row("GeoServer",     geoserverStatus),
+    row("Earth Engine",  earthEngineStatus),
   ];
 
-  const width = Math.max(...lines.map((line) => line.length), 48);
-  const border = "─".repeat(width + 2);
+  const allRows = [appName, ...appRows, null, ...svcRows];
+  const width = Math.max(...allRows.filter(Boolean).map((l) => l.length), 48);
+  const bar = "─".repeat(width + 2);
 
-  console.log(`\n┌${border}┐`);
+  const ln = (content) => console.log(`│ ${content.padEnd(width)} │`);
 
-  lines.forEach((line, index) => {
-    console.log(`│ ${line.padEnd(width)} │`);
-    if (index === 0) {
-      console.log(`├${border}┤`);
-    }
-  });
-
-  console.log(`└${border}┘`);
+  console.log(`\n┌${bar}┐`);
+  ln(`  ${appName}`);
+  console.log(`├${bar}┤`);
+  appRows.forEach(ln);
+  console.log(`├${bar}┤`);
+  svcRows.forEach(ln);
+  console.log(`└${bar}┘\n`);
 }
 
 async function getDatabaseStartupStatus() {
@@ -87,16 +87,10 @@ async function getServiceConnectionStatuses() {
     geoserverEnabled ? geoserverClient.healthCheck() : false,
   ]);
 
-  const minioStatus = !storageEnabled
-    ? 'Disabled'
-    : minioOk
-      ? `✓ Connected (${process.env.MINIO_ENDPOINT || 'localhost'}:${process.env.MINIO_PORT || 9000})`
-      : `⚠ Unavailable (${process.env.MINIO_ENDPOINT || 'localhost'}:${process.env.MINIO_PORT || 9000})`;
-  const geoserverStatus = !geoserverEnabled
-    ? 'Disabled'
-    : geoserverOk
-      ? `✓ Connected (${process.env.GEOSERVER_URL || 'http://localhost:8080/geoserver'})`
-      : `⚠ Unavailable (${process.env.GEOSERVER_URL || 'http://localhost:8080/geoserver'})`;
+  const minioStatus = !storageEnabled ? '— Disabled'
+    : minioOk ? '✓ Connected' : '✗ Unavailable';
+  const geoserverStatus = !geoserverEnabled ? '— Disabled'
+    : geoserverOk ? '✓ Connected' : '✗ Unavailable';
 
   return { dbStatus, minioStatus, geoserverStatus };
 }
