@@ -29,7 +29,7 @@ const SIGNATURES = Object.freeze({
 const CATEGORY_EXTENSIONS = Object.freeze({
     layers: new Set(['.zip', '.json', '.geojson', '.csv', '.xlsx']),
     raster: new Set(['.tif', '.tiff']),
-    documents: new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip']),
+    documents: new Set(['.pdf', '.doc', '.docx', '.xml', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.csv', '.zip']),
     'field-photos': new Set(['.jpg', '.jpeg', '.png']),
 });
 
@@ -43,6 +43,12 @@ const textMime = (extension, buffer) => {
         if (first !== '{' && first !== '[') {return null;}
         return 'application/geo+json';
     }
+    if (extension === '.xml') {
+        const trimmed = text.trimStart();
+        if (!trimmed.startsWith('<?xml') && !/^<[A-Za-z_]/.test(trimmed)) {return null;}
+        if (/<!DOCTYPE|<!ENTITY/i.test(text)) {return null;}
+        return 'application/xml';
+    }
     return extension === '.csv' ? 'text/csv' : 'text/plain';
 };
 
@@ -50,7 +56,7 @@ const detectFileType = ({ originalName, category, head }) => {
     const extension = require('path').extname(originalName || '').toLowerCase();
     const allowed = CATEGORY_EXTENSIONS[category];
     if (!allowed?.has(extension)) {return null;}
-    if (['.txt', '.csv', '.json', '.geojson'].includes(extension)) {
+    if (['.txt', '.csv', '.xml', '.json', '.geojson'].includes(extension)) {
         return textMime(extension, head);
     }
     const rules = SIGNATURES[extension] || [];

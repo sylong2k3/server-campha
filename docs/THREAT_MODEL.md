@@ -38,6 +38,10 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 | Queue replay/trùng job | Chưa có queue nghiệp vụ | Khi có job dài: PostgreSQL `FOR UPDATE SKIP LOCKED` + idempotency; chỉ thêm Redis nếu đo được nút nghẽn |
 | Lộ secret | `.env` ignored; credential MinIO/GeoServer đọc từ `.secrets/`; `.env.example` chỉ chứa path | Secret manager/rotation production |
 | Xóa log che dấu hành vi | Cleanup yêu cầu DB permission, ghi audit riêng | WORM/export log production |
+| Stored XSS CMS/bình luận | News plain text/Markdown; comment plain text, từ chối markup; CSP Helmet | Chỉ thêm rich HTML với maintained allowlist sanitizer |
+| Lộ tài liệu nội bộ/IDOR | `visibility` lọc trong SQL; unauthorized trả 404; file metadata không lộ object key | Ma trận integration mọi role |
+| Spam bình luận | Login bắt buộc, trạng thái pending, rate limit 10/15 phút | CAPTCHA/moderation analytics khi có abuse thật |
+| File CMS/XXE/presigned leak | Quarantine + magic bytes + ClamAV fail-closed; XML cấm DTD/entity; URL ký 60–900 giây | Live MinIO/ClamAV UAT với fixtures thật |
 
 ## Giả định cần kiểm tra
 

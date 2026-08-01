@@ -18,6 +18,7 @@ tags:
   - name: Storage
   - name: Maps
   - name: Web Map
+  - name: CMS
   - name: Layer Management
 paths:
   /health:
@@ -408,6 +409,121 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { description: Source object is not an owned ready/clean layer file }
+  /api/v1/cms/news:
+    get:
+      tags: [CMS]
+      operationId: listPublicNews
+      security: []
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200': { description: Published public news }
+  /api/v1/cms/news/{id}:
+    get:
+      tags: [CMS]
+      operationId: getPublicNews
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { description: Published public news detail }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/cms/news/{id}/comments:
+    get:
+      tags: [CMS]
+      operationId: listApprovedNewsComments
+      security: []
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { description: Approved comments }
+    post:
+      tags: [CMS]
+      operationId: createNewsComment
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [content]
+              properties: { content: { type: string, minLength: 1, maxLength: 2000 } }
+      responses:
+        '201': { description: Pending comment created }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/cms/documents:
+    get:
+      tags: [CMS]
+      operationId: listCmsDocuments
+      security: []
+      responses:
+        '200': { description: Public documents; internal documents only when JWT permits }
+  /api/v1/cms/documents/{id}/download-url:
+    get:
+      tags: [CMS]
+      operationId: getDocumentDownloadUrl
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { name: expireSeconds, in: query, schema: { type: integer, minimum: 60, maximum: 900, default: 300 } }
+      responses:
+        '200': { description: Short-lived MinIO presigned URL after visibility/RBAC check }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/cms/pdf-maps:
+    get:
+      tags: [CMS]
+      operationId: listPublicPdfMaps
+      security: []
+      responses:
+        '200': { description: Public PDF maps }
+  /api/v1/cms/pdf-maps/{id}/download-url:
+    get:
+      tags: [CMS]
+      operationId: getPdfMapDownloadUrl
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1 } }
+        - { name: expireSeconds, in: query, schema: { type: integer, minimum: 60, maximum: 900, default: 300 } }
+      responses:
+        '200': { description: Short-lived PDF map URL }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/v1/admin/cms/news:
+    get:
+      tags: [CMS]
+      operationId: listAdminNews
+      responses:
+        '200': { description: News management list }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [CMS]
+      operationId: createAdminNews
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CmsNewsWrite' }
+      responses:
+        '201': { description: News created }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/admin/cms/documents:
+    post:
+      tags: [CMS]
+      operationId: createAdminDocument
+      responses:
+        '201': { description: Ready scanned document linked to CMS metadata }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/admin/cms/pdf-maps:
+    post:
+      tags: [CMS]
+      operationId: createAdminPdfMap
+      responses:
+        '201': { description: Ready scanned PDF linked to map metadata }
+        '403': { $ref: '#/components/responses/Forbidden' }
   /api/v1/admin/layers/imports/{jobId}:
     get:
       tags: [Layer Management]
@@ -630,6 +746,17 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 1, writeOnly: true }
+    CmsNewsWrite:
+      type: object
+      additionalProperties: false
+      required: [title, content]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 300 }
+        summary: { type: [string, 'null'], maxLength: 1000 }
+        content: { type: string, minLength: 1, maxLength: 100000, description: Plain text or Markdown; arbitrary HTML is rejected }
+        visibility: { type: string, enum: [public, internal], default: public }
+        status: { type: string, enum: [draft, published, archived], default: draft }
+        publishedAt: { type: [string, 'null'], format: date-time }
     MfaChallengeRequest:
       type: object
       additionalProperties: false

@@ -1,0 +1,71 @@
+'use strict';
+
+const Joi = require('joi');
+
+const noHtml = (value, helpers) => /[<>]/.test(value) ? helpers.error('string.html') : value;
+const plain = (max) => Joi.string().trim().min(1).max(max).custom(noHtml);
+const optionalPlain = (max) => Joi.string().trim().max(max).allow('', null).custom(noHtml);
+const idParamsSchema = Joi.object({ id: Joi.number().integer().positive().required() });
+const commentParamsSchema = Joi.object({ commentId: Joi.number().integer().positive().required() });
+const pagination = {
+    q: Joi.string().trim().min(1).max(100).optional(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+};
+const publicListSchema = Joi.object(pagination);
+const newsAdminListSchema = Joi.object({
+    ...pagination,
+    status: Joi.string().valid('draft', 'published', 'archived').optional(),
+    visibility: Joi.string().valid('public', 'internal').optional(),
+});
+const newsCreateSchema = Joi.object({
+    title: plain(300).required(),
+    summary: optionalPlain(1000).optional(),
+    content: plain(100000).required(),
+    visibility: Joi.string().valid('public', 'internal').default('public'),
+    status: Joi.string().valid('draft', 'published', 'archived').default('draft'),
+    publishedAt: Joi.date().iso().allow(null).optional(),
+});
+const newsUpdateSchema = newsCreateSchema.fork(['title', 'content'], (field) => field.optional()).keys({
+    expectedUpdatedAt: Joi.date().iso().required(),
+}).min(2);
+const commentCreateSchema = Joi.object({ content: plain(2000).required() });
+const commentListSchema = Joi.object({
+    page: pagination.page, limit: pagination.limit,
+    status: Joi.string().valid('pending', 'approved', 'rejected').optional(),
+});
+const commentModerateSchema = Joi.object({ status: Joi.string().valid('approved', 'rejected').required() });
+const documentCreateSchema = Joi.object({
+    title: plain(300).required(),
+    documentCode: plain(100).required(),
+    issuingAgency: plain(300).required(),
+    issuedAt: Joi.date().iso().allow(null).optional(),
+    description: optionalPlain(5000).optional(),
+    visibility: Joi.string().valid('public', 'internal').default('public'),
+    fileObjectId: Joi.number().integer().positive().required(),
+});
+const visibilityListSchema = Joi.object({
+    ...pagination,
+    visibility: Joi.string().valid('public', 'internal').optional(),
+});
+const pdfMapCreateSchema = Joi.object({
+    title: plain(300).required(),
+    scaleLabel: plain(100).required(),
+    mapYear: Joi.number().integer().min(1900).max(2200).required(),
+    preparingAgency: plain(300).required(),
+    description: optionalPlain(5000).optional(),
+    visibility: Joi.string().valid('public', 'internal').default('public'),
+    fileObjectId: Joi.number().integer().positive().required(),
+});
+const pdfMapUpdateSchema = pdfMapCreateSchema.fork(
+    ['title', 'scaleLabel', 'mapYear', 'preparingAgency', 'fileObjectId'], (field) => field.optional()
+).keys({ expectedUpdatedAt: Joi.date().iso().required() }).min(2);
+const deleteQuerySchema = Joi.object({ expectedUpdatedAt: Joi.date().iso().required() });
+const downloadQuerySchema = Joi.object({ expireSeconds: Joi.number().integer().min(60).max(900).default(300) });
+
+module.exports = {
+    idParamsSchema, commentParamsSchema, publicListSchema, newsAdminListSchema,
+    newsCreateSchema, newsUpdateSchema, commentCreateSchema, commentListSchema,
+    commentModerateSchema, documentCreateSchema, visibilityListSchema,
+    pdfMapCreateSchema, pdfMapUpdateSchema, deleteQuerySchema, downloadQuerySchema,
+};

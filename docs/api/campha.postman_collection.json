@@ -316,6 +316,255 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Sprint 5 - CMS",
+      "item": [
+        {
+          "name": "Public news list",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cms/news?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cms",
+                "news?page=1&limit=20"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Public news detail",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cms/news/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cms",
+                "news",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create pending comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"N?i dung b?nh lu?n\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cms/news/1/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cms",
+                "news",
+                "1",
+                "comments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Public documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cms/documents?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cms",
+                "documents?page=1&limit=20"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Document download URL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cms/documents/1/download-url?expireSeconds=300",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cms",
+                "documents",
+                "1",
+                "download-url?expireSeconds=300"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Public PDF maps",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/cms/pdf-maps?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "cms",
+                "pdf-maps?page=1&limit=20"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create admin news",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Th?ng b?o C?m Ph?\",\n  \"content\": \"N?i dung\",\n  \"visibility\": \"public\",\n  \"status\": \"draft\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cms/news",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "cms",
+                "news"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create admin document",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"B?o c?o\",\n  \"documentCode\": \"BC-01\",\n  \"issuingAgency\": \"UBND TP C?m Ph?\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cms/documents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "cms",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create admin PDF map",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"B?n ?? quy ho?ch\",\n  \"scaleLabel\": \"1:10.000\",\n  \"mapYear\": 2026,\n  \"preparingAgency\": \"UBND TP C?m Ph?\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "cms",
+                "pdf-maps"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }
