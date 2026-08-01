@@ -73,6 +73,7 @@ const ENV_SCHEMA_KEYS = {
     FIREBASE_SERVICE_ACCOUNT_BASE64: Joi.string().allow(''),
     FIREBASE_SERVICE_ACCOUNT: Joi.string().trim().allow(''),
     GOOGLE_APPLICATION_CREDENTIALS: Joi.string().trim().allow(''),
+    DEVICE_TOKEN_ENCRYPTION_KEY: Joi.string().pattern(/^[a-f0-9]{64}$/i).allow(''),
 
     LAYER_WORKER_ENABLED: boolean.default('false'),
     LAYER_WORKER_CONCURRENCY: positiveInteger.max(16).default(1),
@@ -276,6 +277,7 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
             && !value.GOOGLE_APPLICATION_CREDENTIALS) {
             errors.push('PUSH_ENABLED=true requires Firebase credentials');
         }
+        requireNames(value, 'PUSH_ENABLED', ['DEVICE_TOKEN_ENCRYPTION_KEY'], errors);
 
         for (const name of ['MINIO_ACCESS_KEY_FILE', 'MINIO_SECRET_KEY_FILE', 'GEOSERVER_PASSWORD_FILE']) {
             if ((value.STORAGE_ENABLED === 'true' && name.startsWith('MINIO'))

@@ -32,7 +32,10 @@
     { "key": "pdfMapId", "value": "1", "type": "string" },
     { "key": "newsUpdatedAt", "value": "", "type": "string" },
     { "key": "documentUpdatedAt", "value": "", "type": "string" },
-    { "key": "pdfMapUpdatedAt", "value": "", "type": "string" }
+    { "key": "pdfMapUpdatedAt", "value": "", "type": "string" },
+    { "key": "statisticsSourceId", "value": "", "type": "string" },
+    { "key": "statisticsSourceUpdatedAt", "value": "", "type": "string" },
+    { "key": "beforeStatisticsSourceId", "value": "", "type": "string" }
   ],
   "item": [
     {

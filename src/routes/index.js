@@ -8,6 +8,8 @@ const layerRoutes = require('./layer.routes');
 const webMapRoutes = require('./web-map.routes');
 const cmsRoutes = require('./cms.routes');
 const remoteSensingRoutes = require('./remote-sensing.routes');
+const spatialStatisticsRoutes = require('./spatial-statistics.routes');
+const fieldReportRoutes = require('./field-report.routes');
 
 const router = Router();
 
@@ -22,5 +24,10 @@ router.use('/cms', cmsRoutes.publicRouter);
 router.use('/admin/cms', cmsRoutes.adminRouter);
 router.use('/remote-sensing', remoteSensingRoutes.publicRouter);
 router.use('/admin/remote-sensing', remoteSensingRoutes.adminRouter);
+router.use('/statistics', spatialStatisticsRoutes.publicRouter);
+router.use('/admin/statistics', spatialStatisticsRoutes.adminRouter);
+router.use('/field-reports', fieldReportRoutes.publicRouter);
+router.use('/admin/field-reports', fieldReportRoutes.adminRouter);
+router.use('/devices', fieldReportRoutes.deviceRouter);
 
 module.exports = router;

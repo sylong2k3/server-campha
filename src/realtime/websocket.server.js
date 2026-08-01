@@ -5,8 +5,10 @@ const clients = new Set();
 const MAX_CHANNELS = parseInt(process.env.WS_MAX_CHANNELS, 10) || 20;
 const MAX_MESSAGES_PER_MINUTE = parseInt(process.env.WS_MAX_MESSAGES_PER_MINUTE, 10) || 60;
 const MAX_CHANNEL_LENGTH = 100;
+const PUBLIC_CHANNELS = new Set(['public:field-reports']);
 let wss = null;
 let upgradeHandler = null;
+let httpServer = null;
 
 function createMessage(event, data) {
     return JSON.stringify({
@@ -71,7 +73,7 @@ function setupSocketState(ws, req) {
                 const requested = message.channels
                     .map((ch) => String(ch).trim())
                     .filter((ch) => ch && ch.length <= MAX_CHANNEL_LENGTH)
-                    .filter((ch) => !ch.startsWith('role:') || ch === `role:${ws._wsState.role}`);
+                    .filter((ch) => ch === `role:${ws._wsState.role}` || PUBLIC_CHANNELS.has(ch));
 
                 for (const channel of requested) {
                     if (ws._wsState.channels.size >= MAX_CHANNELS) { break; }
@@ -97,6 +99,7 @@ function initWebSocketServer(server, options = {}) {
     const path = options.path || '/ws';
 
     if (wss) {return;}
+    httpServer = server;
 
     // CORS_ORIGINS never changes at runtime — compute once per server start,
     // not on every incoming upgrade request.
@@ -189,6 +192,9 @@ function closeWebSocketServer() {
         wss.close();
         wss = null;
     }
+    if (httpServer && upgradeHandler) {httpServer.off('upgrade', upgradeHandler);}
+    upgradeHandler = null;
+    httpServer = null;
 }
 
 module.exports = {

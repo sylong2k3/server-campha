@@ -23,10 +23,11 @@ const MAX_BYTES = Object.freeze({
     'field-photos': Number(process.env.STORAGE_MAX_FIELD_PHOTO_MB || 10) * 1024 * 1024,
 });
 
-const assertExtension = (category, originalName) => {
+const assertExtension = (category, originalName, contentType) => {
     const extension = path.extname(originalName).toLowerCase();
-    if (!CATEGORY_EXTENSIONS[category]?.has(extension)) {
-        throw new Api422Error('Loại file không được phép', ['FILE_EXTENSION_NOT_ALLOWED']);
+    if (!CATEGORY_EXTENSIONS[category]?.has(extension)
+        || (category === 'field-photos' && !['image/png', 'image/webp'].includes(contentType))) {
+        throw new Api422Error('Loại file không được phép', ['FILE_EXTENSION_OR_MIME_NOT_ALLOWED']);
     }
 };
 
@@ -39,7 +40,7 @@ const assertCreatePermission = (category, actor) => {
 
 const createPresignedUpload = async (input, actor) => {
     assertCreatePermission(input.category, actor);
-    assertExtension(input.category, input.originalName);
+    assertExtension(input.category, input.originalName, input.contentType);
     const nonce = randomUUID();
     const objectKey = minioService.buildObjectKey(nonce, input.originalName, input.category);
     const quarantineKey = `quarantine/${actor.id}/${nonce}/${path.basename(objectKey)}`;

@@ -25,6 +25,9 @@ describe('Cẩm Phả foundation database', () => {
             '009_webgis_frontend_api.sql',
             '010_cms_content.sql',
             '020_satellite_catalog.sql',
+            '021_spatial_statistics.sql',
+            '022_spatial_statistics_rbac.sql',
+            '023_field_reports.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });

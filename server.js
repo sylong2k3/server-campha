@@ -17,6 +17,7 @@ const {
 } = require("./src/realtime/websocket.server");
 const systemLogger = require("./src/utils/systemLogger.util");
 const layerWorkerManager = require('./src/workers/layer-worker.manager');
+const fieldReportListener = require('./src/realtime/field-report-listener');
 require("dotenv").config();
 
 const PORT = process.env.PORT || 8881;
@@ -104,6 +105,7 @@ async function gracefulShutdown(signal) {
 
   tokenCleanupJob.stop();
   closeWebSocketServer();
+  await fieldReportListener.stop();
   await layerWorkerManager.stop();
 
   if (server) {
@@ -148,6 +150,7 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
   // Kích hoạt WebSocket realtime (dùng chung HTTP server qua sự kiện 'upgrade').
   initWebSocketServer(server, { path: WS_PATH });
 
+  fieldReportListener.start({ sendPush: IS_SINGLETON_WORKER });
   if (IS_SINGLETON_WORKER) {
     tokenCleanupJob.start();
     layerWorkerManager.start();
