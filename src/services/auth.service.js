@@ -3,17 +3,14 @@ const tokenRepository = require('../repositories/token.repository');
 const socialRepository = require('../repositories/social.repository');
 const { hashPassword, comparePassword, hashToken, generateRandomToken } = require('../utils/cryptoHelper.util');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/tokenManager.util');
-const { Api400Error, Api401Error, Api403Error, Api409Error, Api404Error, Api503Error } = require('../core/error.response');
+const { Api400Error, Api401Error, Api403Error, Api409Error, Api404Error } = require('../core/error.response');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mailer.util');
 const { t } = require('../utils/i18n.util');
 const { PG_UNIQUE_VIOLATION } = require('../core/pg-error-codes');
 const activityLogger = require('../utils/activityLogger.util');
 const mfaService = require('./mfa.service');
-const ldapService = require('./ldap.service');
-const ldapRepository = require('../repositories/ldap.repository');
 
 const MAX_LOGIN_ATTEMPTS = 5;
-const LDAP_MAX_LOGIN_ATTEMPTS = parseInt(process.env.LDAP_MAX_LOGIN_ATTEMPTS, 10) || 3;
 const LOCK_MINUTES = 15;
 const RESET_TOKEN_EXPIRES_MINUTES = parseInt(process.env.RESET_TOKEN_EXPIRES_MINUTES, 10) || 15;
 const RESET_MAX_REQUESTS_PER_WINDOW = parseInt(process.env.RESET_MAX_REQUESTS, 10) || 3;
@@ -131,11 +128,6 @@ const login = async ({ email, password }, context = {}) => {
         throw new Api401Error(t('account_locked_mins', context.lang, { mins: remainingMinutes }));
     }
 
-    if (await ldapRepository.findByUserId(user.id)) {
-        await _logActivity(user.id, 'login_failed', 'failure', context, { reason: 'ldap_local_downgrade_blocked' });
-        throw new Api401Error(t('incorrect_credentials', context.lang));
-    }
-
     if (!user.password_hash) {
         await _logActivity(user.id, 'login_failed', 'failure', context, { reason: 'google_only' });
         throw new Api401Error(t('incorrect_credentials', context.lang));
@@ -174,47 +166,6 @@ const login = async ({ email, password }, context = {}) => {
     return _completeLogin(user, context, { provider: 'local' });
 };
 
-const ldapLogin = async ({ username, password }, context = {}) => {
-    let prepared;
-    try {
-        prepared = await ldapService.prepareLogin(username);
-    } catch (error) {
-        await _logActivity(null, 'login_failed', 'failure', context, { provider: 'ldap' });
-        if (error instanceof ldapService.LdapUnavailableError) {
-            throw new Api503Error(t('ldap_unavailable', context.lang), ['LDAP_UNAVAILABLE']);
-        }
-        throw new Api401Error(t('ldap_incorrect_credentials', context.lang));
-    }
-
-    const { user, directoryUser } = prepared;
-    if (!user.is_active || (user.locked_until && new Date(user.locked_until) > new Date())) {
-        await _logActivity(user.id, 'login_failed', 'failure', context, { provider: 'ldap', reason: 'local_policy' });
-        throw new Api401Error(t('ldap_incorrect_credentials', context.lang));
-    }
-
-    try {
-        await ldapService.verifyPassword(directoryUser.distinguishedName, password);
-    } catch (error) {
-        if (error instanceof ldapService.LdapUnavailableError) {
-            await _logActivity(user.id, 'login_failed', 'failure', context, { provider: 'ldap', reason: 'unavailable' });
-            throw new Api503Error(t('ldap_unavailable', context.lang), ['LDAP_UNAVAILABLE']);
-        }
-        const result = await userRepository.incrementLoginAttempts(
-            user.id,
-            LDAP_MAX_LOGIN_ATTEMPTS,
-            LOCK_MINUTES
-        );
-        await _logActivity(user.id, 'login_failed', 'failure', context, { provider: 'ldap', reason: 'invalid_credentials' });
-        if (result?.locked_until) {
-            await _logActivity(user.id, 'account_locked', 'success', context, { provider: 'ldap' });
-        }
-        throw new Api401Error(t('ldap_incorrect_credentials', context.lang));
-    }
-
-    await ldapRepository.touchVerified(user.id, directoryUser);
-    return _completeLogin(user, context, { provider: 'ldap' });
-};
-
 const refresh = async (refreshToken, context = {}) => {
     let decoded;
     try {
@@ -241,23 +192,6 @@ const refresh = async (refreshToken, context = {}) => {
     if (!user || !user.is_active || decoded.tokenVersion !== user.token_version) {
         await tokenRepository.deleteRefreshToken(tokenHash);
         throw new Api401Error(t('account_disabled', context.lang));
-    }
-
-    try {
-        const ldapActive = await ldapService.verifyLinkedAccountActive(user.id);
-        if (!ldapActive) {
-            await Promise.all([
-                tokenRepository.deleteAllUserTokens(user.id),
-                userRepository.incrementTokenVersion(user.id),
-            ]);
-            throw new Api401Error(t('account_disabled', context.lang));
-        }
-    } catch (error) {
-        if (error instanceof Api401Error) {throw error;}
-        if (error instanceof ldapService.LdapUnavailableError) {
-            throw new Api503Error(t('ldap_unavailable', context.lang), ['LDAP_UNAVAILABLE']);
-        }
-        throw error;
     }
 
     await tokenRepository.deleteRefreshToken(tokenHash);
@@ -308,10 +242,6 @@ const changePassword = async (userId, { oldPassword, newPassword }, context = {}
         throw new Api404Error(t('user_not_found', context.lang));
     }
 
-    if (await ldapRepository.findByUserId(userId)) {
-        throw new Api400Error(t('ldap_password_managed', context.lang));
-    }
-
     if (!user.password_hash) {
         throw new Api400Error(t('google_no_password', context.lang));
     }
@@ -348,10 +278,6 @@ const setPassword = async (userId, { newPassword }, context = {}) => {
         throw new Api401Error(t('account_disabled', context.lang));
     }
 
-    if (await ldapRepository.findByUserId(userId)) {
-        throw new Api400Error(t('ldap_password_managed', context.lang));
-    }
-
     if (user.password_hash) {
         throw new Api400Error(t('password_already_set', context.lang));
     }
@@ -384,11 +310,6 @@ const forgotPassword = async ({ email }, context = {}) => {
             email,
             reason: user ? 'inactive' : 'not_found',
         });
-        return { message: genericMessage };
-    }
-
-    if (await ldapRepository.findByUserId(user.id)) {
-        await _logActivity(user.id, 'password_reset_request', 'failure', context, { reason: 'ldap_managed' });
         return { message: genericMessage };
     }
 
@@ -445,8 +366,8 @@ const resetPassword = async ({ token, newPassword }, context = {}) => {
     }
 
     const user = await userRepository.findById(resetToken.user_id);
-    if (!user || !user.is_active || await ldapRepository.findByUserId(resetToken.user_id)) {
-        await _logActivity(resetToken.user_id, 'password_reset_failed', 'failure', context, { reason: 'inactive_or_ldap' });
+    if (!user || !user.is_active) {
+        await _logActivity(resetToken.user_id, 'password_reset_failed', 'failure', context, { reason: 'inactive' });
         throw new Api400Error(t('invalid_reset_token', context.lang));
     }
 
@@ -529,11 +450,6 @@ const googleAuthCallback = async (googleProfile, context = {}) => {
         });
     } else {
         user = await userRepository.findByEmail(googleProfile.email);
-
-        if (user && await ldapRepository.findByUserId(user.id)) {
-            await _logActivity(user.id, 'login_failed', 'failure', context, { reason: 'ldap_google_downgrade_blocked' });
-            throw new Api401Error(t('incorrect_credentials', context.lang));
-        }
 
         if (user) {
             await socialRepository.create({
@@ -815,7 +731,6 @@ const invalidateSessions = (userId) => userRepository.incrementTokenVersion(user
 module.exports = {
     register,
     login,
-    ldapLogin,
     refresh,
     logout,
     changePassword,

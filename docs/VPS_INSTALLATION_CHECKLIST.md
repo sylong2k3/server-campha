@@ -46,8 +46,6 @@ Secret files dự kiến:
 /etc/campha/secrets/minio-access-key
 /etc/campha/secrets/minio-secret-key
 /etc/campha/secrets/geoserver-password
-/etc/campha/secrets/ldap-bind-password
-/etc/campha/secrets/ldap-ca.pem
 /etc/campha/secrets/firebase-service-account.json
 /etc/campha/secrets/gge-service-account.json
 ```
@@ -87,7 +85,7 @@ GOOGLE_CALLBACK_URL=https://api.example.vn/api/v1/auth/google/callback
 FRONTEND_URL=https://app.example.vn
 ```
 
-Bổ sung biến DB, JWT, SMTP, MinIO, GeoServer, Firebase, GEE, OpenWeather và LDAP từ secret store.
+Bổ sung biến DB, JWT, SMTP, MinIO, GeoServer, Firebase, GEE và OpenWeather từ secret store.
 
 ## 4. Systemd cho API
 
@@ -257,38 +255,11 @@ ImageMosaic
 Không dùng WFS-T
 ```
 
-## 10. LDAP/Active Directory
+## 10. Xác thực người dùng
 
-Backend dùng Microsoft AD và `objectGUID`. **Không dùng OpenLDAP thuần để thay AD.**
+Sản phẩm dùng email/password nội bộ và Google OAuth. LDAP/Active Directory đã được loại khỏi phạm vi vì VPS dùng chung cho nhiều dự án; không cài domain controller, Samba AD DC, OpenLDAP hoặc mở cổng directory trên máy này.
 
-Khuyến nghị AD ở máy/private network riêng. VPS API cần:
-
-```text
-LDAPS endpoint `ldaps://...:636`
-CA PEM tin cậy
-Read-only bind account
-Private route/VPN
-UAT users pre-provision trong PostgreSQL
-```
-
-Node dùng `ldapts`; VPS không cần LDAP native client. Chỉ cần `ca-certificates`, CA PEM và private route.
-
-Nếu phải dựng AD-compatible trên Linux, dùng **Samba AD DC** trên máy/VPS riêng:
-
-```text
-samba
-samba-dsdb-modules
-samba-vfs-modules
-winbind
-krb5-user
-dnsutils
-```
-
-Không public LDAP/LDAPS ra internet. Chạy đầy đủ [LDAP_AD_RUNBOOK.md](./LDAP_AD_RUNBOOK.md), sau đó mới bật:
-
-```env
-LDAP_ENABLED=true
-```
+Các kiểm soát bắt buộc vẫn gồm rate limit, khóa lũy tiến, JWT access ngắn hạn, refresh rotation/replay detection, RBAC PostgreSQL và email verification.
 
 ## 11. Google OAuth, Firebase, GEE, OpenWeather
 
@@ -367,7 +338,6 @@ Private/loopback:
 9000 MinIO API
 9001 MinIO Console
 GeoServer port
-636 LDAPS
 ```
 
 Ví dụ UFW:
@@ -412,7 +382,6 @@ Backup phải được đồng bộ ra nơi độc lập với VPS. Phải test 
 [ ] ClamAV + FreshClam + clean/EICAR/down UAT
 [ ] MinIO + 5 private buckets + lifecycle
 [ ] GeoServer + PostGIS + ImageMosaic + read-only WMS/WFS UAT
-[ ] AD/LDAPS private + CA + read-only bind + LDAP UAT
 [ ] Google OAuth production callback UAT
 [ ] Firebase/GEE/OpenWeather secrets
 [ ] Firewall chỉ public 22/80/443
@@ -430,5 +399,4 @@ Redis
 Docker
 PM2 nếu dùng systemd
 QGIS trên VPS
-OpenLDAP thuần để thay Microsoft AD
 ```

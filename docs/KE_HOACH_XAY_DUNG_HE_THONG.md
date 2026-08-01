@@ -102,7 +102,7 @@ Ba sprint ở mức 1,6–1,9× năng lực (S6, S9, S10) được **tách đôi
 | Thành phần | File | Trạng thái |
 |---|---|---|
 | Express app + middleware chain | `src/app.js`, `server.js` | Dùng được |
-| Xác thực JWT + refresh + blacklist jti | `src/services/auth.service.js`, `src/utils/tokenManager.util.js` | Dùng được, cần bổ sung LDAP/AD |
+| Xác thực JWT + refresh + blacklist jti | `src/services/auth.service.js`, `src/utils/tokenManager.util.js` | Dùng được; hỗ trợ local password + Google OAuth; LDAP/AD đã retire |
 | RBAC theo `permissions` JSONB | `src/middlewares/auth.middleware.js` | **Đã bỏ bypass `system_admin`; mọi role dùng quyền DB** |
 | Social login (Google) | `src/configs/passport.js` | Dùng được |
 | Schema nền `core`, `auth`, `gis.layers`, ACL lớp | migrations `000`–`002` | Dùng được; nghiệp vụ GIS khác xây tiếp theo sprint |
@@ -177,7 +177,7 @@ Chưa có (phải xây mới toàn bộ):
 ┌───┴──────────┐   ┌──────────────┐   ┌─────────────────┐
 │ Redis        │   │ Worker       │   │ Dịch vụ ngoài   │
 │ cache/queue  │◄──┤ BullMQ       │──►│ GEE, KTTV, SMTP │
-└──────────────┘   └──────────────┘   │ FCM, LDAP/AD    │
+└──────────────┘   └──────────────┘   │ FCM             │
                                        └─────────────────┘
 ```
 
@@ -664,7 +664,7 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-1.5 | Tìm kiếm theo email/họ tên/tên đăng nhập, phân trang (A.1-3(3),(6)) |
 | US-1.6 | Khóa/mở khóa tài khoản (A.1-3(4)) |
 | US-1.7 | Cấp lại mật khẩu + buộc đổi lần đăng nhập kế (A.1-3(5)) |
-| US-1.8 | Tích hợp LDAP/Active Directory (tài liệu A.2-8 yêu cầu) |
+| US-1.8 | **Removed by product decision:** không triển khai LDAP/Active Directory trên VPS dùng chung; runtime/schema retire bằng migration 008 |
 | US-1.9 | Chống dò mật khẩu: khóa lũy tiến + rate limit theo IP và theo tài khoản |
 | US-1.10 | Tích hợp MFA (TOTP / Google Authenticator) cho tài khoản quản trị (`so_tnmt`, `system_admin`), bao gồm luồng thiết lập, mã khôi phục và test tự động |
 
@@ -1062,7 +1062,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 
 | Tài sản | Mối đe dọa chính | Biện pháp |
 |---|---|---|
-| Tài khoản cơ quan nhà nước | Chiếm quyền, dò mật khẩu | MFA cho TNMT/QT, khóa lũy tiến, LDAP/AD, mật khẩu mạnh |
+| Tài khoản cơ quan nhà nước | Chiếm quyền, dò mật khẩu | MFA cho TNMT/QT khi được bật, khóa lũy tiến, mật khẩu mạnh, JWT rotation/replay detection |
 | Dữ liệu bản đồ gốc | Sửa/xóa trái phép (đặc biệt qua mobile B-1(8)) | ACL theo lớp, lịch sử phiên bản hình học, nhật ký đầy đủ |
 | Bộ tham số & kết quả mô hình | Giả mạo kết quả cảnh báo thiên tai | Append-only sau ban hành, checksum, tách quyền lập/ban hành |
 | Khóa API dịch vụ ngoài (GEE, KTTV) | Rò rỉ, lạm dụng hạn mức | Mã hóa lưu trữ, không hiển thị nguyên văn, hạn mức, xoay vòng |
@@ -1252,7 +1252,7 @@ Bổ sung từ phân tích kỹ thuật:
 
 5. **Engine mô hình thủy văn–thủy lực dùng phần mềm nào?** (SWMM, HEC-RAS, MIKE, TUFLOW…). Quyết định này ảnh hưởng toàn bộ Sprint 11–12: định dạng file tham số, cách gọi, giấy phép, hạ tầng tính toán. **Chưa chốt thì không thể ước lượng chính xác Sprint 12.**
 6. **Realtime dùng Socket.io hay giữ `ws`?** Tài liệu chỉ đích danh Socket.io; codebase đang dùng `ws`.
-7. **LDAP/Active Directory:** đơn vị chủ quản đã có chưa, phiên bản nào, có cho phép truy cập từ máy chủ ứng dụng không?
+7. **Xác thực tài khoản cơ quan:** đã chốt local password + Google OAuth; không triển khai LDAP/AD trên VPS dùng chung.
 8. **Hạ tầng triển khai:** máy chủ vật lý tại đơn vị hay thuê cloud? Ảnh hưởng phương án sao lưu, chứng thư số, và khả năng dùng Redis/worker riêng.
 9. **Mâu thuẫn mới phát hiện — UB có được chạy mô hình không?** Bảng A.1-9 ghi UB **chỉ được xem** bộ tham số và kết quả kiểm định ("Nhập, chỉnh sửa, chạy thử, hiệu chỉnh: TNMT, XD, QT"), nhưng bảng A.2-10 lại ghi "Chạy mô hình, lưu kịch bản: **UB**, TNMT, XD, QT". Hai ô này nói về cùng một hành vi ở hai màn hình khác nhau. Kế hoạch tạm theo A.2-10 cho module dự báo và theo A.1-9 cho module tham số, đánh dấu trong CSV — cần chốt để tránh lỗ hổng phân quyền.
 10. **Mâu thuẫn nhỏ — QT có được gửi ảnh giám sát hiện trạng không?** B-2 liệt kê "ND, UB, TNMT, XD" (không có QT), trong khi A.1-8 cho QT xem và thống kê nhưng không duyệt. Cần xác nhận QT chỉ có vai trò kỹ thuật, không tham gia nghiệp vụ.

@@ -22,7 +22,6 @@ const validEnv = (overrides = {}) => ({
     JWT_SECRET: 'a'.repeat(48),
     JWT_SECRET_REFRESH: 'b'.repeat(48),
     LAYER_WORK_DIR: 'C:/campha/.runtime/layer-worker',
-    LDAP_ENABLED: 'false',
     MFA_ENABLED: 'false',
     PUSH_ENABLED: 'false',
     LAYER_WORKER_ENABLED: 'false',

@@ -12,7 +12,6 @@ module.exports = {
         'src/services/systemLog.service.js',
         'src/services/user.service.js',
         'src/services/mfa.service.js',
-        'src/services/ldap.service.js',
         'src/services/storage.service.js',
         'src/services/clamav.service.js',
         'src/services/map-proxy.service.js',

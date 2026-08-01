@@ -21,6 +21,7 @@ describe('Cẩm Phả foundation database', () => {
             '005_ldap_auth.sql',
             '006_spatial_infrastructure.sql',
             '007_layer_management.sql',
+            '008_remove_ldap_auth.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
@@ -81,7 +82,7 @@ describe('Cẩm Phả foundation database', () => {
               to_regclass('auth.mfa_credentials') IS NOT NULL AS mfa_credentials,
               to_regclass('auth.mfa_recovery_codes') IS NOT NULL AS mfa_recovery_codes,
               to_regclass('auth.mfa_challenges') IS NOT NULL AS mfa_challenges,
-              to_regclass('auth.ldap_identities') IS NOT NULL AS ldap_identities,
+              to_regclass('auth.ldap_identities') IS NULL AS ldap_removed,
               EXISTS (
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'org_id'
@@ -106,7 +107,7 @@ describe('Cẩm Phả foundation database', () => {
             mfa_credentials: true,
             mfa_recovery_codes: true,
             mfa_challenges: true,
-            ldap_identities: true,
+            ldap_removed: true,
             users_org_id: true,
             token_version: true,
             lockout_level: true,

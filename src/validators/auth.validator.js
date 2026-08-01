@@ -23,17 +23,6 @@ const loginSchema = Joi.object({
         .required(),
 });
 
-const ldapLoginSchema = Joi.object({
-    username: Joi.string()
-        .trim()
-        .max(255)
-        .pattern(/^[A-Za-z0-9][A-Za-z0-9._@-]*$/)
-        .required(),
-    password: Joi.string()
-        .max(256)
-        .required(),
-});
-
 const refreshSchema = Joi.object({
     refreshToken: Joi.string()
         .required(),
@@ -124,7 +113,6 @@ const sessionIdSchema = Joi.object({
 module.exports = {
     registerSchema,
     loginSchema,
-    ldapLoginSchema,
     refreshSchema,
     changePasswordSchema,
     setPasswordSchema,

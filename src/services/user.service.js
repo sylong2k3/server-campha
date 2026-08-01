@@ -1,12 +1,10 @@
 const userRepository = require('../repositories/user.repository');
 const tokenRepository = require('../repositories/token.repository');
 const { hashPassword } = require('../utils/cryptoHelper.util');
-const { Api400Error, Api403Error, Api404Error, Api409Error, Api503Error } = require('../core/error.response');
+const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
 const { PG_UNIQUE_VIOLATION } = require('../core/pg-error-codes');
 const activityLogger = require('../utils/activityLogger.util');
-const ldapService = require('./ldap.service');
-const ldapRepository = require('../repositories/ldap.repository');
 
 const _hasUserPermission = (actor, action) => actor?.permissions?.users?.[action] === true;
 
@@ -74,11 +72,9 @@ const listUsers = async (filter, actor) => {
 };
 
 const createUser = async ({
-    authProvider = 'local',
     email,
     password,
     fullName,
-    directoryUsername,
     phone,
     roleCode = 'citizen',
 }, actor) => {
@@ -89,49 +85,21 @@ const createUser = async ({
     const role = await userRepository.findRoleByCode(roleCode);
     if (!role) {throw new Api400Error(t('invalid_data', actor.lang));}
 
-    let directoryUser;
-    if (authProvider === 'ldap') {
-        try {
-            directoryUser = await ldapService.findForProvision(directoryUsername);
-        } catch (error) {
-            if (error instanceof ldapService.LdapUnavailableError) {
-                throw new Api503Error(t('ldap_unavailable', actor.lang), ['LDAP_UNAVAILABLE']);
-            }
-            throw new Api400Error(t('invalid_data', actor.lang));
-        }
-        if (!directoryUser.email) {throw new Api400Error(t('invalid_data', actor.lang));}
-        email = directoryUser.email;
-        fullName = directoryUser.fullName;
-    }
-
     const existing = await userRepository.findByEmail(email);
     if (existing) {throw new Api409Error(t('email_in_use', actor.lang));}
 
     let user;
     try {
-        if (authProvider === 'ldap') {
-            const userId = await ldapRepository.provision({
-                email,
-                fullName,
-                roleCode,
-                orgId: actor.orgId,
-                externalId: directoryUser.externalId,
-                loginName: directoryUser.loginName,
-                distinguishedName: directoryUser.distinguishedName,
-            });
-            user = await userRepository.findById(userId);
-        } else {
-            const passwordHash = await hashPassword(password);
-            user = await userRepository.create({
-                email,
-                passwordHash,
-                fullName,
-                phone: _normalizeNullable(phone),
-                roleCode,
-                orgId: actor.orgId,
-                emailVerified: true,
-            });
-        }
+        const passwordHash = await hashPassword(password);
+        user = await userRepository.create({
+            email,
+            passwordHash,
+            fullName,
+            phone: _normalizeNullable(phone),
+            roleCode,
+            orgId: actor.orgId,
+            emailVerified: true,
+        });
     } catch (err) {
         if (err.code === PG_UNIQUE_VIOLATION) {
             throw new Api409Error(t('email_in_use', actor.lang));
@@ -142,7 +110,7 @@ const createUser = async ({
     await _logAdminActivity(actor, 'user_create', user.id, {
         roleCode,
         orgId: actor.orgId,
-        authProvider,
+        authProvider: 'local',
     });
     return _sanitize(user);
 };
@@ -189,9 +157,6 @@ const setUserActive = async (userId, isActive, actor) => {
 const resetUserPassword = async (userId, newPassword, actor) => {
     const user = await _getOrThrow(userId, actor.lang);
     _assertSameOrganization(actor, user);
-    if (await ldapRepository.findByUserId(userId)) {
-        throw new Api400Error(t('ldap_password_managed', actor.lang));
-    }
     const passwordHash = await hashPassword(newPassword);
     await Promise.all([
         userRepository.updateTemporaryPassword(userId, passwordHash),

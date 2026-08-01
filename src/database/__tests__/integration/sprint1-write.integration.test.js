@@ -12,7 +12,6 @@ jest.mock('../../../utils/mailer.util', () => ({
 
 const db = require('../../../configs/database');
 const userRepository = require('../../../repositories/user.repository');
-const ldapRepository = require('../../../repositories/ldap.repository');
 const authService = require('../../../services/auth.service');
 const userService = require('../../../services/user.service');
 const mfaService = require('../../../services/mfa.service');
@@ -131,31 +130,38 @@ describe('Sprint 1 write integration', () => {
         expect((await userRepository.findById(otherOrg.id)).role).toBe('citizen');
     });
 
-    test('LDAP identity provision passwordless, lookup giữ đúng local user id và chặn local login', async () => {
-        const { rows: [org] } = await db.query(
-            'SELECT id FROM auth.organizations WHERE code = $1',
-            ['so_xd_qn']
-        );
-        const email = `${PREFIX}ldap@campha.test`;
-        const userId = await ldapRepository.provision({
+    test('admin tạo local user đúng organization và reset password thu hồi session', async () => {
+        const actorUser = await createUser({
+            email: `${PREFIX}local.actor@campha.test`, roleCode: 'so_tnmt', orgCode: 'so_tnmt_qn',
+        });
+        const actor = {
+            id: actorUser.id,
+            role: actorUser.role,
+            orgId: actorUser.org_id,
+            permissions: actorUser.role_permissions,
+            lang: 'vi',
+            ipAddress: context.ipAddress,
+            userAgent: context.userAgent,
+        };
+        const email = `${PREFIX}local@campha.test`;
+        const created = await userService.createUser({
             email,
-            fullName: 'Integration LDAP',
+            password: PASSWORD,
+            fullName: 'Integration Local',
             roleCode: 'so_xd',
-            orgId: org.id,
-            externalId: '00112233445566778899aabbccddeeff',
-            loginName: 'it.ldap',
-            distinguishedName: 'CN=Integration LDAP,OU=Users,DC=campha,DC=test',
-        });
-        const identity = await ldapRepository.findByExternalId('00112233445566778899aabbccddeeff');
-        expect(identity).toMatchObject({
-            id: userId,
-            user_id: userId,
-            email,
-            role: 'so_xd',
-            org_code: 'so_xd_qn',
-            password_hash: null,
-        });
-        await expect(authService.login({ email, password: PASSWORD }, context))
+        }, actor);
+        expect(created).toMatchObject({ email, role: 'so_xd', org_id: actor.orgId });
+        expect((await userRepository.findById(created.id)).password_hash).toBeTruthy();
+
+        const login = await authService.login({ email, password: PASSWORD }, context);
+        expect(login.refreshToken).toBeTruthy();
+        await userService.resetUserPassword(created.id, 'NewCamPha@2026', actor);
+        const { rows: [sessions] } = await db.query(
+            'SELECT COUNT(*)::int AS count FROM auth.refresh_tokens WHERE user_id = $1',
+            [created.id]
+        );
+        expect(sessions.count).toBe(0);
+        await expect(authService.refresh(login.refreshToken, context))
             .rejects.toMatchObject({ status: 401 });
     });
 

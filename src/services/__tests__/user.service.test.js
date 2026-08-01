@@ -1,7 +1,5 @@
 jest.mock('../../repositories/user.repository');
 jest.mock('../../repositories/token.repository');
-jest.mock('../../repositories/ldap.repository');
-jest.mock('../ldap.service');
 jest.mock('../../utils/cryptoHelper.util');
 jest.mock('../../utils/activityLogger.util', () => ({ logActivity: jest.fn() }));
 
@@ -9,8 +7,6 @@ const userRepository = require('../../repositories/user.repository');
 const tokenRepository = require('../../repositories/token.repository');
 const cryptoHelper = require('../../utils/cryptoHelper.util');
 const activityLogger = require('../../utils/activityLogger.util');
-const ldapRepository = require('../../repositories/ldap.repository');
-const ldapService = require('../ldap.service');
 const userService = require('../user.service');
 const {
     Api400Error,
@@ -129,31 +125,6 @@ describe('user creation', () => {
         expect(result).not.toHaveProperty('password_hash');
     });
 
-    test('provision LDAP lấy identity từ AD nhưng role/org từ actor', async () => {
-        userRepository.findRoleByCode.mockResolvedValue({ code: 'so_xd' });
-        userRepository.findByEmail.mockResolvedValue(null);
-        ldapService.findForProvision.mockResolvedValue({
-            email: 'staff@campha.gov.vn',
-            fullName: 'LDAP Staff',
-            externalId: '00112233',
-            loginName: 'staff',
-            distinguishedName: 'CN=Staff,OU=Users,DC=campha,DC=local',
-        });
-        ldapRepository.provision.mockResolvedValue(22);
-        userRepository.findById.mockResolvedValue({ ...citizen, id: 22, email: 'staff@campha.gov.vn' });
-
-        await userService.createUser({
-            authProvider: 'ldap', directoryUsername: 'staff', roleCode: 'so_xd',
-        }, actor);
-
-        expect(ldapRepository.provision).toHaveBeenCalledWith(expect.objectContaining({
-            externalId: '00112233',
-            roleCode: 'so_xd',
-            orgId: 42,
-        }));
-        expect(cryptoHelper.hashPassword).not.toHaveBeenCalled();
-    });
-
     test('chuyển unique violation thành conflict, lỗi khác giữ nguyên', async () => {
         userRepository.findByEmail.mockResolvedValue(null);
         userRepository.findRoleByCode.mockResolvedValue({ code: 'citizen' });
@@ -238,13 +209,6 @@ describe('user administration mutations', () => {
         expect(tokenRepository.deleteAllUserTokens).toHaveBeenCalledWith(20);
         expect(userRepository.incrementTokenVersion).toHaveBeenCalledWith(20);
         expect(result.message).toBeTruthy();
-    });
-
-    test('reset password account LDAP bị chặn', async () => {
-        ldapRepository.findByUserId.mockResolvedValue({ user_id: 20 });
-        await expect(userService.resetUserPassword(20, 'NewPass123!', actor))
-            .rejects.toBeInstanceOf(Api400Error);
-        expect(userRepository.updateTemporaryPassword).not.toHaveBeenCalled();
     });
 
     test('không tự xóa; bảo vệ admin cuối; xóa hợp lệ thu hồi token', async () => {

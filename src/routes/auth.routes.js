@@ -9,7 +9,6 @@ const { t } = require('../utils/i18n.util');
 const {
     registerSchema,
     loginSchema,
-    ldapLoginSchema,
     refreshSchema,
     changePasswordSchema,
     setPasswordSchema,
@@ -45,14 +44,6 @@ const authLimiter = rateLimit({
     message: tooManyRequestsMessage,
 });
 
-const ldapAuthLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: parseInt(process.env.LDAP_AUTH_RATE_LIMIT, 10) || 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: tooManyRequestsMessage,
-});
-
 const passwordResetLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: parseInt(process.env.RESET_RATE_LIMIT, 10) || 5,
@@ -63,7 +54,6 @@ const passwordResetLimiter = rateLimit({
 
 router.post('/register', authLimiter, validate(registerSchema), asyncHandler(authController.register));
 router.post('/login', authLimiter, validate(loginSchema), asyncHandler(authController.login));
-router.post('/ldap/login', ldapAuthLimiter, validate(ldapLoginSchema), asyncHandler(authController.ldapLogin));
 router.post('/refresh', validate(refreshSchema), asyncHandler(authController.refreshToken));
 router.post('/forgot-password', passwordResetLimiter, validate(forgotPasswordSchema), asyncHandler(authController.forgotPassword));
 router.post('/reset-password', passwordResetLimiter, validate(resetPasswordSchema), asyncHandler(authController.resetPassword));

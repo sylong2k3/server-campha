@@ -30,6 +30,7 @@ Nhập Shapefile ZIP/Excel vào PostGIS, quản trị metadata/ACL/xóa nền, t
 - Layer API: import async/status/error pagination, list/filter/sort/page-size, detail, patch optimistic lock, ACL replace, publish retry, delete.
 - Role contract giữ migration `002`: `system_admin`/`so_xd` create/read; chỉ `so_tnmt` update/delete/grant.
 - Strict body/query validation; generated SQL identifiers allowlisted; per-row errors giới hạn/paginated.
+- LDAP/AD đã retire ở migration `008`; không thuộc scope hoặc exit gate Sprint 3.
 
 ## Acceptance Evidence
 
@@ -38,7 +39,7 @@ ESLint:                    passed
 Unit:                      137/137 passed; 6 GDAL-local tests skipped in generic run
 Focused Sprint 3 unit:     16/16 passed with QGIS GDAL environment
 DB integration:            12/12 passed on campha_test
-Migration 000-007:         checksum OK on campha_test
+Migration 000-008:         checksum OK on campha_test
 GDAL PostgreSQL driver:    1 feature / EPSG:4326 / ST_Point passed
 Shapefile importer:        2 features / EPSG:4326 / MULTIPOINT passed
 Excel importer:            2 rows / EPSG:4326 / POINT passed
@@ -50,10 +51,10 @@ ZIP local-header mismatch: rejected
 
 - US-3.7: chưa có 7 lớp nền địa lý Cẩm Phả và ranh giới phường/xã có mã hành chính; không thể nghiệm thu dữ liệu thật.
 - US-3.8: không tự bịa SP/deadline đồng thuận. Owner A và Owner B cần Planning Poker sau khi xem kết quả Sprint 3.
-- Production DB `campha` chưa áp migration `007`; chỉ `campha_test` đã migrate.
+- Production DB `campha` chưa áp migration `007` (layer) và `008` (retire LDAP); chỉ `campha_test` đã migrate.
 - Worker live với MinIO + GeoServer trên VPS chưa bật; `.env` mặc định `LAYER_WORKER_ENABLED=false`.
 - QGIS visual UAT chờ layer nghiệp vụ thật.
 
 ## Exit Gate
 
-Sprint 3 **Done kỹ thuật có điều kiện**. Đóng hoàn toàn khi: áp migration `007` production sau backup, bật worker native VPS, UAT end-to-end MinIO → GDAL → PostGIS → GeoServer → QGIS, nạp dữ liệu thật US-3.7, hoàn tất Planning Poker US-3.8.
+Sprint 3 **Done kỹ thuật có điều kiện**. Đóng hoàn toàn khi: backup rồi áp migration `007` và `008` production, bật worker native VPS, UAT end-to-end MinIO → GDAL → PostGIS → GeoServer → QGIS, nạp dữ liệu thật US-3.7, hoàn tất Planning Poker US-3.8. LDAP/AD không phải điều kiện nghiệm thu.

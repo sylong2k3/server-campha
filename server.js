@@ -16,7 +16,6 @@ const {
   closeWebSocketServer,
 } = require("./src/realtime/websocket.server");
 const systemLogger = require("./src/utils/systemLogger.util");
-const ldapConfig = require('./src/configs/ldap');
 const layerWorkerManager = require('./src/workers/layer-worker.manager');
 require("dotenv").config();
 
@@ -169,15 +168,6 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
 }
 
 const initializeAndStartServer = async () => {
-  try {
-    if (ldapConfig.isEnabled()) {
-        ldapConfig.getConfig();
-    }
-  } catch (err) {
-    console.error("Failed to validate LDAP configuration:", err.message);
-    process.exit(1);
-  }
-
   console.log("Đang khởi tạo Earth Engine...");
 
   // Earth Engine auth (network round-trip + retry/backoff) is independent of

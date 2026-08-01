@@ -2,7 +2,7 @@
 
 ## Sprint Goal
 
-Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy tiến; MFA giữ dưới feature flag; LDAP/AD tích hợp kỹ thuật, chờ hạ tầng để live UAT.
+Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy tiến; MFA giữ dưới feature flag. LDAP/AD đã được loại khỏi phạm vi theo quyết định hạ tầng VPS dùng chung.
 
 ## Commitment
 
@@ -12,9 +12,9 @@ Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy
 | US-1.3–1.7 | CRUD/search/role/status/temp password theo organization | 8 | Done |
 | US-1.9 | Progressive account lock + rate limit | 5 | Done |
 | US-1.10 | MFA TOTP enrollment/login/recovery | 13 | Done kỹ thuật; `MFA_ENABLED=false`, defer UAT |
-| US-1.8 | Microsoft AD qua LDAPS | — | Done code/test/migration; `LDAP_ENABLED=false`, chờ live UAT |
+| US-1.8 | Microsoft AD qua LDAPS | — | Removed by product decision; runtime/dependency/schema được retire bằng migration `008` |
 
-Backend LDAP đã có endpoint, provisioning, refresh revalidation và migration 005. Chưa bật runtime khi hạ tầng AD thật chưa đạt rollout gate.
+Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Không còn endpoint, provisioning, dependency hoặc UAT LDAP/AD.
 
 ## Definition of Ready
 
@@ -24,8 +24,7 @@ Backend LDAP đã có endpoint, provisioning, refresh revalidation và migration
 - [x] Không Docker, Redis, BullMQ, Newman, Testcontainers.
 - [x] PO chốt quyền ảnh vệ tinh: UB, TNMT, XD, QT được thêm/xóa/phân loại theo mục 2.1.
 - [ ] Data owner/deadline Phụ lục 2.
-- [x] Thiết kế LDAP security được duyệt: Microsoft AD, LDAPS-only, local RBAC, pre-provision.
-- [ ] Hạ tầng AD thật: endpoint, CA, private route, service account, UAT accounts.
+- [x] US-1.8 được loại khỏi scope; không dựng domain controller/LDAPS trên VPS dùng chung.
 
 ## Tasks
 
@@ -46,19 +45,14 @@ Backend LDAP đã có endpoint, provisioning, refresh revalidation và migration
 - [x] Password/Google privileged-role gate.
 - [x] Challenge/factor/recovery/session atomic transaction + rollback self-check.
 - [x] Service unit tests + read-only DB catalog integration.
-- [x] Write integration trên `campha_test`: auth/refresh/MFA 3/3.
+- [x] Write integration trên `campha_test`: auth/refresh, cross-org, local create/reset, MFA 4/4.
 
-### LDAP/Active Directory
+### LDAP/Active Directory — Retired
 
-- [x] Dependency `ldapts`; structured LDAP filters chống injection.
-- [x] LDAPS-only, CA/hostname verification, TLS ≥1.2, secret files, fail-fast config.
-- [x] Pre-provision identity; role/org từ PostgreSQL; không JIT hoặc email auto-link.
-- [x] Endpoint LDAP riêng; IP limit + progressive account lock.
-- [x] Không local password/Google fallback cho LDAP identity.
-- [x] Refresh revalidate AD; disabled/deleted thu hồi session; outage fail closed.
-- [x] Migration 005 trên `campha_test`; checksum/integration đạt.
-- [x] Unit test TLS, injection, 0/2 result, disabled, invalid credential, outage, unbind.
-- [ ] Live AD UAT và production rollout.
+- [x] Quyết định sản phẩm: không triển khai AD/LDAP trên VPS dùng chung.
+- [x] Xóa endpoint, provisioning, refresh revalidation, dependency `ldapts`, cấu hình và runbook.
+- [x] Migration `008` thu hồi session, vô hiệu hóa LDAP-only user và drop `auth.ldap_identities`.
+- [x] OpenAPI/user-create contract chuyển local-only; Google OAuth giữ nguyên.
 
 ### User/session
 
@@ -75,31 +69,28 @@ Backend LDAP đã có endpoint, provisioning, refresh revalidation và migration
 
 - [x] OpenAPI Sprint 1 refresh/MFA/session operations/schemas/errors; parse OK.
 - [x] Authenticated runtime smoke: sample citizen `/auth/me` 200 với `tokenVersion`.
-- [x] Lint sạch; 81/81 unit; branch 77,97%; audit 0 High/Critical.
+- [x] Lint, unit, coverage và security audit đạt; số liệu hiện hành ở Acceptance Evidence.
 - [x] Migration 004 áp dụng VPS `campha`; integration read-only 3/3.
 - [x] Postman MFA UAT được defer theo quyết định chưa sử dụng MFA; `MFA_ENABLED=false`.
-- [x] `campha_test` migration rehearsal + write-capable integration suite 6/6.
+- [x] `campha_test` migration rehearsal + write-capable integration suite 12/12.
 
 ## Acceptance Evidence
 
-- Unit: RFC vectors, AES tamper, challenge expiry/reuse, recovery reuse, role/status/session invalidation.
-- Transaction: injected recovery insert failure dẫn tới `ROLLBACK`, không `COMMIT`, client được release.
-- Integration write: register/unverified/verify single-use, refresh rotate/replay, cross-org denial, MFA enrollment/recovery reuse.
-- Integration DB tổng: foundation 3/3 + Sprint 1 write 3/3 trên `campha_test`.
+- Unit: `127/127` passed (`6` GDAL-local tests skipped trong generic run).
+- Coverage branches: `77.15%` (ngưỡng ≥75%).
+- Lint: passed.
+- Security audit production: 0 vulnerabilities.
+- Integration write: register/unverified/verify single-use, refresh rotate/replay, cross-org denial, local create/reset session revoke, MFA enrollment/recovery reuse.
+- Integration DB tổng: foundation + Sprint 1 + Sprint 3, `12/12` trên `campha_test`.
 - Runtime: `GET /api/v1/auth/me` trả 200 với JWT có `tokenVersion` và fresh DB lookup.
-- Security: MFA/JWT secrets sinh local trong `.env`; LDAP bind password/CA chỉ được đọc từ file ngoài source.
-- LDAP unit: structured filter, invalid username, 0/2 entries, disabled account, wrong credential/outage, guaranteed unbind.
-- LDAP DB: migration 005 checksum OK; `auth.ldap_identities` tồn tại trên `campha_test`.
+- Security: MFA/JWT secrets sinh local trong `.env`; Google OAuth secret không đưa vào source/log.
+- LDAP removal: migration `005` giữ nguyên lịch sử checksum; migration `008` retire schema forward-only.
 
 ## Blockers
 
-### LDAP/AD live UAT
-
-Code/migration/test đã đóng. Runtime vẫn `LDAP_ENABLED=false`. Cần AD endpoint, CA, service account chỉ đọc, private VPS→DC route, lockout policy, identity-role-org mapping được data owner duyệt và UAT accounts. Theo [LDAP_AD_RUNBOOK.md](file:///C:/Users/SunSun/Documents/DuAN_20226/campha/server-campha/docs/LDAP_AD_RUNBOOK.md).
-
 ### DB integration
 
-Đã đóng. `campha_test` áp dụng 000–005 checksum OK; foundation và write integration 6/6. Suite fail-fast nếu `DB_NAME` khác `campha_test`.
+Migration `008` đã áp và checksum OK trên `campha_test`; suite xác minh `auth.ldap_identities` không còn tồn tại và local user lifecycle đạt. Production `campha` vẫn pending migration `007` và `008`; chỉ chạy sau backup. Suite write fail-fast nếu `DB_NAME` khác `campha_test`.
 
 ### Product ownership
 

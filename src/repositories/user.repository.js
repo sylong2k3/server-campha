@@ -155,9 +155,6 @@ const _buildUserFilter = ({ roleCode, roleCodes, orgId, isActive, q, email }, st
         const qi = idx++;
         params.push(likeValue);
 
-        // "Tên đăng nhập" của tài khoản AD nằm ở auth.ldap_identities.login_name.
-        // Dùng EXISTS thay vì JOIN để countAll/COUNT(*) OVER() không phải lo trùng dòng.
-        // Không lọc li.is_active: link bị vô hiệu hóa thì user vẫn phải tra cứu được.
         conditions.push(`(
             CAST(u.id AS TEXT) ILIKE $${qi} ESCAPE '\\'
             OR LOWER(u.email) LIKE $${qi} ESCAPE '\\'
@@ -166,11 +163,6 @@ const _buildUserFilter = ({ roleCode, roleCodes, orgId, isActive, q, email }, st
             OR LOWER(COALESCE(r.code, '')) LIKE $${qi} ESCAPE '\\'
             OR LOWER(COALESCE(r.name_vi, '')) LIKE $${qi} ESCAPE '\\'
             OR LOWER(COALESCE(r.name_en, '')) LIKE $${qi} ESCAPE '\\'
-            OR EXISTS (
-                SELECT 1 FROM auth.ldap_identities li
-                WHERE li.user_id = u.id
-                  AND LOWER(li.login_name) LIKE $${qi} ESCAPE '\\'
-            )
         )`);
     }
 

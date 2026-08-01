@@ -4,14 +4,9 @@ const { emailSchema, phoneSchema, strongPasswordSchema } = require('./common.val
 const VALID_ROLES = ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd', 'citizen'];
 
 const createUserSchema = Joi.object({
-    authProvider: Joi.string().valid('local', 'ldap').default('local'),
-    email: emailSchema.when('authProvider', { is: 'local', then: Joi.required(), otherwise: Joi.forbidden() }),
-    password: strongPasswordSchema.when('authProvider', { is: 'local', then: Joi.required(), otherwise: Joi.forbidden() }),
-    fullName: Joi.string().min(2).max(255).trim()
-        .when('authProvider', { is: 'local', then: Joi.required(), otherwise: Joi.forbidden() }),
-    directoryUsername: Joi.string().trim().max(255)
-        .pattern(/^[A-Za-z0-9][A-Za-z0-9._@-]*$/)
-        .when('authProvider', { is: 'ldap', then: Joi.required(), otherwise: Joi.forbidden() }),
+    email: emailSchema.required(),
+    password: strongPasswordSchema.required(),
+    fullName: Joi.string().min(2).max(255).trim().required(),
     phone: phoneSchema.optional().allow(null, ''),
     roleCode: Joi.string().valid(...VALID_ROLES).default('citizen'),
 });

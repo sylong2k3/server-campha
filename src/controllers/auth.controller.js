@@ -22,13 +22,6 @@ const login = async (req, res) => {
     OK(res, t('login_success', req.lang), result);
 };
 
-const ldapLogin = async (req, res) => {
-    const { username, password } = req.body;
-    const context = getRequestContext(req);
-    const result = await authService.ldapLogin({ username, password }, context);
-    OK(res, t('login_success', req.lang), result);
-};
-
 const refreshToken = async (req, res) => {
     const { refreshToken } = req.body;
     const context = getRequestContext(req);
@@ -157,7 +150,6 @@ const revokeAllSessions = async (req, res) => {
 module.exports = {
     register,
     login,
-    ldapLogin,
     refreshToken,
     logout,
     changePassword,

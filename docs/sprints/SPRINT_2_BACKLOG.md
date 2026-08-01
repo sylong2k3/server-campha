@@ -44,6 +44,8 @@ High/Critical audit:    0
 
 ## Deferred / Not Done
 
+> LDAP/AD không thuộc phạm vi sản phẩm và không phải blocker Sprint 2. Xác thực dùng local password + Google OAuth.
+
 - `CLAMAV_ENABLED=false`: chưa có native `clamd`; malware live UAT chưa chạy. Commit API cố ý fail closed.
 - GeoServer/MinIO network ports và WMS/WFS direct access: người vận hành chấp nhận tạm thời, sẽ đóng sau.
 - COG S3 plugin không được phát hiện trên GeoServer 3.0.0; chưa đủ điều kiện chọn direct S3.

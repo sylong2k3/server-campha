@@ -55,21 +55,6 @@ const ENV_SCHEMA_KEYS = {
     MFA_ENABLED: boolean.default('false'),
     MFA_ENCRYPTION_KEY: Joi.string().pattern(/^[a-f0-9]{64}$/i).allow(''),
 
-    LDAP_ENABLED: boolean.default('false'),
-    LDAP_URL: Joi.string().uri({ scheme: ['ldaps'] }).allow(''),
-    LDAP_BASE_DN: Joi.string().trim().allow(''),
-    LDAP_BIND_DN: Joi.string().trim().allow(''),
-    LDAP_BIND_PASSWORD_FILE: Joi.string().trim().allow(''),
-    LDAP_CA_FILE: Joi.string().trim().allow(''),
-    LDAP_LOGIN_ATTRIBUTE: Joi.string().pattern(/^[A-Za-z][A-Za-z0-9-]{0,63}$/).default('sAMAccountName'),
-    LDAP_ID_ATTRIBUTE: Joi.string().pattern(/^[A-Za-z][A-Za-z0-9-]{0,63}$/).default('objectGUID'),
-    LDAP_EMAIL_ATTRIBUTE: Joi.string().pattern(/^[A-Za-z][A-Za-z0-9-]{0,63}$/).default('mail'),
-    LDAP_NAME_ATTRIBUTE: Joi.string().pattern(/^[A-Za-z][A-Za-z0-9-]{0,63}$/).default('displayName'),
-    LDAP_CONNECT_TIMEOUT_MS: positiveInteger.default(5000),
-    LDAP_OPERATION_TIMEOUT_MS: positiveInteger.default(5000),
-    LDAP_AUTH_RATE_LIMIT: positiveInteger.default(10),
-    LDAP_MAX_LOGIN_ATTEMPTS: positiveInteger.default(3),
-
     GOOGLE_CLIENT_ID: Joi.string().trim().allow(''),
     GOOGLE_CLIENT_SECRET: Joi.string().allow(''),
     GOOGLE_CALLBACK_URL: httpUrl.allow(''),
@@ -261,9 +246,6 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
         validateProductionUrls(value, errors);
         validateCors(value, errors);
         requireNames(value, 'MFA_ENABLED', ['MFA_ENCRYPTION_KEY'], errors);
-        requireNames(value, 'LDAP_ENABLED', [
-            'LDAP_URL', 'LDAP_BASE_DN', 'LDAP_BIND_DN', 'LDAP_BIND_PASSWORD_FILE', 'LDAP_CA_FILE',
-        ], errors);
         requireNames(value, 'STORAGE_ENABLED', [
             'MINIO_ENDPOINT', 'MINIO_ACCESS_KEY_FILE', 'MINIO_SECRET_KEY_FILE', 'MINIO_BUCKET_LAYERS',
             'MINIO_BUCKET_RASTER', 'MINIO_BUCKET_DOCUMENTS', 'MINIO_BUCKET_FIELD_PHOTOS',
@@ -300,10 +282,6 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
                 || (value.GEOSERVER_ENABLED === 'true' && name.startsWith('GEOSERVER'))) {
                 checkReadableFile(value, name, errors, checkFiles);
             }
-        }
-        if (value.LDAP_ENABLED === 'true') {
-            checkReadableFile(value, 'LDAP_BIND_PASSWORD_FILE', errors, checkFiles);
-            checkReadableFile(value, 'LDAP_CA_FILE', errors, checkFiles);
         }
         if (value.FIREBASE_SERVICE_ACCOUNT) {
             checkReadableFile(value, 'FIREBASE_SERVICE_ACCOUNT', errors, checkFiles);

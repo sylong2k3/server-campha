@@ -2,9 +2,6 @@ const locales = {
     vi: {
         email_in_use: 'Email đã được sử dụng',
         incorrect_credentials: 'Email hoặc mật khẩu không đúng',
-        ldap_incorrect_credentials: 'Tên đăng nhập hoặc mật khẩu không đúng',
-        ldap_unavailable: 'Dịch vụ xác thực cơ quan tạm thời không khả dụng. Vui lòng thử lại sau',
-        ldap_password_managed: 'Mật khẩu tài khoản cơ quan phải được thay đổi trong Active Directory',
         account_disabled: 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên',
         account_locked_mins: 'Tài khoản tạm khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau {mins} phút',
         google_only: 'Tài khoản này chỉ đăng nhập qua Google. Vui lòng sử dụng đăng nhập Google',
@@ -410,9 +407,6 @@ const locales = {
      en: {
         email_in_use: 'Email is already in use',
         incorrect_credentials: 'Incorrect email or password',
-        ldap_incorrect_credentials: 'Incorrect username or password',
-        ldap_unavailable: 'Organization authentication is temporarily unavailable. Please try again later',
-        ldap_password_managed: 'Organization account passwords must be changed in Active Directory',
         account_disabled: 'Account has been disabled. Please contact the administrator',
         account_locked_mins: 'Account temporarily locked due to too many failed login attempts. Please try again after {mins} minutes',
         google_only: 'This account only logs in via Google. Please use Google login',

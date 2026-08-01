@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API quản lý dữ liệu GIS và ngập lụt TP Cẩm Phả.
 servers:
-  - url: http://localhost:3005
+  - url: http://localhost:3006
     description: Local development
   - url: / 
     description: Current host
@@ -55,31 +55,6 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
-  /api/v1/auth/ldap/login:
-    post:
-      tags: [Auth]
-      operationId: ldapLogin
-      summary: Authenticate a pre-provisioned organization account through LDAPS
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/LdapLoginRequest' }
-      responses:
-        '200':
-          description: AD authentication succeeded and JWT tokens were issued
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/SuccessResponse' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-        '429': { $ref: '#/components/responses/TooManyRequests' }
-        '503':
-          description: Organization directory temporarily unavailable
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
   /api/v1/auth/refresh:
     post:
       tags: [Auth]
@@ -193,7 +168,7 @@ paths:
         - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
         - { name: roleCode, in: query, schema: { $ref: '#/components/schemas/RoleCode' } }
-        - { name: q, in: query, description: 'Tìm theo id, email, họ tên, số điện thoại, vai trò, hoặc tên đăng nhập AD (auth.ldap_identities.login_name)', schema: { type: string, maxLength: 255 } }
+        - { name: q, in: query, description: 'Tìm theo id, email, họ tên, số điện thoại hoặc vai trò', schema: { type: string, maxLength: 255 } }
       responses:
         '200':
           description: Organization-scoped users
@@ -571,16 +546,6 @@ components:
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 1, writeOnly: true }
-    LdapLoginRequest:
-      type: object
-      additionalProperties: false
-      required: [username, password]
-      properties:
-        username:
-          type: string
-          maxLength: 255
-          pattern: '^[A-Za-z0-9][A-Za-z0-9._@-]*$'
-        password: { type: string, minLength: 1, maxLength: 256, writeOnly: true }
     MfaChallengeRequest:
       type: object
       additionalProperties: false
@@ -601,27 +566,15 @@ components:
         - required: [recoveryCode]
           not: { required: [code] }
     CreateUserRequest:
-      oneOf:
-        - type: object
-          additionalProperties: false
-          required: [email, password, fullName]
-          properties:
-            authProvider: { type: string, const: local, default: local }
-            email: { type: string, format: email }
-            password: { type: string, minLength: 8, maxLength: 128, writeOnly: true }
-            fullName: { type: string, minLength: 2, maxLength: 255 }
-            phone: { type: [string, 'null'] }
-            roleCode: { $ref: '#/components/schemas/RoleCode' }
-        - type: object
-          additionalProperties: false
-          required: [authProvider, directoryUsername]
-          properties:
-            authProvider: { type: string, const: ldap }
-            directoryUsername:
-              type: string
-              maxLength: 255
-              pattern: '^[A-Za-z0-9][A-Za-z0-9._@-]*$'
-            roleCode: { $ref: '#/components/schemas/RoleCode' }
+      type: object
+      additionalProperties: false
+      required: [email, password, fullName]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8, maxLength: 128, writeOnly: true }
+        fullName: { type: string, minLength: 2, maxLength: 255 }
+        phone: { type: [string, 'null'] }
+        roleCode: { $ref: '#/components/schemas/RoleCode' }
     ShapefileImportRequest:
       type: object
       additionalProperties: false
