@@ -37,7 +37,6 @@ function printStartupBanner({ dbStatus, minioStatus, earthEngineStatus, geoserve
 
   const COL = 13;
   const row = (label, value) => `  ${label.padEnd(COL)}: ${value}`;
-  const sep = (border, left, mid, right) => `${left}${border}${right}`;
 
   const appRows = [
     row("HTTP",        `http://${publicHost}:${PORT}`),
