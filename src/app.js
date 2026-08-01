@@ -1,5 +1,3 @@
-const fs = require("fs");
-const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -8,8 +6,6 @@ const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
-const swaggerUi = require("swagger-ui-express");
-const YAML = require("yaml");
 require("dotenv").config();
 
 const routes = require("./routes");
@@ -167,12 +163,6 @@ app.use("/api/", limiter);
 app.get("/health", (req, res) => {
   res.json({ status: "OK", timestamp: new Date().toISOString() });
 });
-
-if (process.env.NODE_ENV !== "production") {
-  const openapiPath = path.join(__dirname, "../docs/api/openapi.yaml");
-  const openapiDocument = YAML.parse(fs.readFileSync(openapiPath, "utf8"));
-  app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
-}
 
 app.use("/api/v1", routes);
 

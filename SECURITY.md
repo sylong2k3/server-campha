@@ -20,7 +20,7 @@ Mục tiêu phản hồi: Critical 4 giờ, High 1 ngày làm việc, Medium 3 n
 - Không commit `.env`, token, khóa dịch vụ hoặc tài khoản VPS.
 - Thay toàn bộ mật khẩu seed trước production.
 - GeoServer, MinIO, Redis, PostgreSQL chỉ bind private/local interface; Nginx là cửa vào công khai.
-- `/api/docs` không xuất hiện khi `NODE_ENV=production`.
+- Hợp đồng API duy trì duy nhất trong Postman collection; runtime không phục vụ `/api/docs`.
 - Không sửa migration đã chạy; chỉ tạo migration forward-only.
 - Mọi endpoint ghi/xóa phải có RBAC, organization scope và audit log.
 - Lỗ hổng High/Critical phải được xử lý trước release.

@@ -67,7 +67,7 @@ Cung cấp API đọc bản đồ cho khách và năm role DB: catalog lớp the
 - [x] Migration `009` idempotent và checksum OK trên `campha_test`.
 - [x] Unit/validator/service: 135 passed; global branch 77.3%, `web-map.service` branch 80%.
 - [x] Integration PostgreSQL/PostGIS + Supertest: 23 passed; anonymous + 5 role DB matrix.
-- [x] OpenAPI + Postman cập nhật, parse hợp lệ.
+- [x] Postman cập nhật, parse hợp lệ; OpenAPI lịch sử retired tại Sprint 6a.
 - [x] Lint, npm production audit (`0 vulnerabilities`), runtime import, `git diff --check` xanh.
 - [x] Không áp migration production `campha` trong development; production vẫn pending `007/008/009`.
 - [ ] Live MinIO terrain/DEM + WebGIS/QGIS visual 3D UAT — deferred vì chưa có DEM thật.

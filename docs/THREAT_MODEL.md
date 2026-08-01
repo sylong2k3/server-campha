@@ -42,6 +42,10 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 | Lộ tài liệu nội bộ/IDOR | `visibility` lọc trong SQL; unauthorized trả 404; file metadata không lộ object key | Ma trận integration mọi role |
 | Spam bình luận | Login bắt buộc, trạng thái pending, rate limit 10/15 phút | CAPTCHA/moderation analytics khi có abuse thật |
 | File CMS/XXE/presigned leak | Quarantine + magic bytes + ClamAV fail-closed; XML cấm DTD/entity; URL ký 60–900 giây | Live MinIO/ClamAV UAT với fixtures thật |
+| Raster lớn gây cạn tài nguyên | Upload quarantine, giới hạn 2 GiB, GeoTIFF magic bytes, ClamAV fail-closed | Đo tải/live UAT với cảnh cắt nhỏ |
+| Satellite IDOR/lộ object key | Metadata API không serialize bucket/object key; file phải owner-owned/ready/clean; download RBAC | Integration anonymous + 5 role DB |
+| Presigned replay/tải hàng loạt | Compare URL 60 giây; download 60–900 giây và giới hạn 20/15 phút theo user | Shared limiter store khi chạy nhiều process |
+| Metadata injection/query abuse | Joi strict; SQL tham số; sort/platform allowlist; page limit ≤100 | Postman/Supertest negative cases |
 
 ## Giả định cần kiểm tra
 

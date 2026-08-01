@@ -514,7 +514,7 @@ Middleware mới: `requireLayerAccess('view'|'edit'|'delete')` đọc `req.param
 **Hệ quả bắt buộc phải chấp nhận:**
 
 1. **Sprint Review không demo được giao diện.** Nghiệm thu ở mức API — xem E.4a. Mọi câu "demo" trong Phần F đều hiểu theo nghĩa này.
-2. **API phân hệ di động (B-1…B-6) được thiết kế khi chưa có bên tiêu thụ.** Đây là rủi ro thật (R10): hợp đồng API không có client thực nghiệm thường phải sửa lại khi tích hợp. Giảm thiểu bằng cách chốt OpenAPI trước khi code và dành quỹ sửa đổi ở E.8.
+2. **API phân hệ di động (B-1…B-6) được thiết kế khi chưa có bên tiêu thụ.** Đây là rủi ro thật (R10): hợp đồng API không có client thực nghiệm thường phải sửa lại khi tích hợp. Giảm thiểu bằng cách chốt request/response trong Postman collection trước khi code và dành quỹ sửa đổi ở E.8.
 3. **21 màn hình web (10 quản trị A.1-* + 11 người dùng A.2-*) hiện không có ai làm.** Tài liệu yêu cầu ghi rõ A.2-1 xây trên **Leaflet**. Khối lượng ước tính 350–450 SP — xấp xỉ **một nửa** phần server. Đây không phải hạng mục phụ; cần chốt nhà thầu/đội thực hiện trước khi server tới S4, nếu không phần A.2 sẽ hoàn thành mà không ai kiểm chứng được.
 
 ## E.1. Tổ chức nhóm
@@ -549,7 +549,7 @@ Story chỉ vào sprint khi:
 - [ ] Viết dạng: *Là <tác nhân>, tôi muốn <hành động>, để <giá trị>*.
 - [ ] Có tiêu chí chấp nhận dạng Given/When/Then, tối thiểu 1 ca thành công + 1 ca lỗi + 1 ca **từ chối quyền**.
 - [ ] Đã xác định vai trò nào được/không được thực hiện (đối chiếu `MA_TRAN_PHAN_QUYEN.csv`).
-- [ ] Có hợp đồng API (đường dẫn, request/response, mã lỗi) trong OpenAPI nháp.
+- [ ] Có hợp đồng API (đường dẫn, request/response, mã lỗi) trong Postman collection nháp.
 - [ ] Dữ liệu đầu vào cần thiết đã sẵn có hoặc có dữ liệu mẫu thay thế.
 - [ ] Ước lượng ≤ 13 SP (lớn hơn phải tách).
 
@@ -562,7 +562,7 @@ Story chỉ được coi là xong khi:
 - [ ] Integration test qua `supertest` chạy trên PostgreSQL+PostGIS staging/test thật, tách biệt bằng database/schema test.
 - [ ] **Test phân quyền tự động** cho đủ tác nhân áp dụng trên mọi endpoint mới: 5 role DB; thêm KH anonymous và GEE service account khi endpoint hỗ trợ (bắt buộc, không miễn trừ).
 - [ ] Migration idempotent, chạy được cả `up` và trên DB đã có dữ liệu.
-- [ ] OpenAPI cập nhật; response tuân thủ `core/success.response.js` và `core/error.response.js`.
+- [ ] Postman collection cập nhật; response tuân thủ `core/success.response.js` và `core/error.response.js`.
 - [ ] Thông điệp i18n vi + en đầy đủ.
 - [ ] Ghi `system_logs` cho mọi hành động ghi/xóa.
 - [ ] CI xanh: lint, test, `npm audit --audit-level=high`, Semgrep, gitleaks.
@@ -576,9 +576,8 @@ Vì phạm vi chỉ là server (E.0), "demo" ở Sprint Review **không phải**
 | # | Bằng chứng | Hình thức |
 |---|---|---|
 | 1 | **Postman collection chạy được** cho mọi endpoint của story, có sẵn biến môi trường staging và tài khoản mẫu của từng vai trò | File `.postman_collection.json` trong `docs/api/`; CI chạy smoke test tương đương bằng Node 24 `fetch` để tránh thêm CLI dependency lỗi thời |
-| 2 | **OpenAPI đã cập nhật**, xem được tại `/api/docs` trên staging | Đường dẫn cụ thể |
-| 3 | **Báo cáo test tự động**: unit + integration + ma trận phân quyền 7 tác nhân/5 role DB | Kết xuất từ CI, đính vào story |
-| 4 | **Bằng chứng dữ liệu**: truy vấn SQL hoặc ảnh chụp kết quả trong DB/MinIO/GeoServer chứng minh dữ liệu thật đã được ghi đúng | Ảnh chụp hoặc kết xuất truy vấn |
+| 2 | **Báo cáo test tự động**: unit + integration + ma trận phân quyền 7 tác nhân/5 role DB | Kết xuất từ CI, đính vào story |
+| 3 | **Bằng chứng dữ liệu**: truy vấn SQL hoặc ảnh chụp kết quả trong DB/MinIO/GeoServer chứng minh dữ liệu thật đã được ghi đúng | Ảnh chụp hoặc kết xuất truy vấn |
 
 Với story không gian, bổ sung điều kiện thứ 5: **mở lớp kết quả bằng QGIS** kết nối trực tiếp vào PostGIS hoặc qua WMS của GeoServer, chụp màn hình. Đây là cách xem được bản đồ thật mà không cần chờ WebGIS SPA — và cũng là công cụ mà cán bộ GIS của Sở đã quen dùng, nên PO nghiệm thu được ngay.
 
@@ -640,7 +639,7 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | 0.5 | Hoàn thiện `systemLog`, endpoint quản trị và audit cleanup | **Đã triển khai; migration 003** |
 | 0.6 | Khung Jest + Supertest; integration test kết nối PostgreSQL/PostGIS staging thật qua biến môi trường | Nền kiểm thử native VPS |
 | 0.7 | CI GitHub Actions: lint → test → coverage → `npm audit` → Semgrep → gitleaks | Cổng chất lượng |
-| 0.8 | OpenAPI 3.1 skeleton + `swagger-ui` tại `/api/docs` (chặn ở production) | Hợp đồng API |
+| 0.8 | Postman collection + environment làm hợp đồng API duy nhất; không triển khai Swagger/OpenAPI | Hợp đồng API |
 | 0.9 | Chốt `MA_TRAN_PHAN_QUYEN.csv` (27 module × 7 tác nhân/5 role DB) với PO | **BLOCKER: còn dòng `ASSUMPTION`** |
 | 0.10 | **Hoãn Redis theo YAGNI**; khi có job dài, dùng queue PostgreSQL `FOR UPDATE SKIP LOCKED`, chỉ thêm Redis khi có số liệu nút nghẽn | Quyết định kiến trúc đã chốt |
 | 0.11 | Gán người chịu trách nhiệm + hạn chót cho toàn bộ dòng ở Phụ lục 2 | **BLOCKER: cần tên người thật** |
@@ -1108,7 +1107,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 | API6 | Unrestricted Access to Sensitive Business Flows | Hạn chế tần suất gửi phản ánh, chống spam bình luận |
 | API7 | SSRF | Sprint 10a (US-10a.4): allowlist tên miền, chặn IP nội bộ, không theo redirect |
 | API8 | Security Misconfiguration | Kiểm tra cấu hình trong CI; GeoServer/MinIO hardening checklist |
-| API9 | Improper Inventory Management | OpenAPI là bắt buộc trong DoD; `/api/docs` chặn ở production; registry API có vòng đời rõ ràng |
+| API9 | Improper Inventory Management | Postman collection là bắt buộc trong DoD; registry API có vòng đời rõ ràng; Supertest đối chiếu route/role |
 | API10 | Unsafe Consumption of APIs | Kiểm tra kiểu/miền giá trị dữ liệu KTTV trả về trước khi ghi DB |
 
 ## G.4. Lịch hoạt động bảo mật
@@ -1134,7 +1133,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 |---|---|---|---|
 | Unit (service, util, validator) | Jest | ~60% | Mỗi commit |
 | Integration (route → DB thật) | Supertest + PostgreSQL/PostGIS staging/test tách biệt | ~30% | Mỗi PR/staging gate |
-| Contract (OpenAPI) | `jest-openapi` / Dredd | ~5% | Mỗi PR |
+| Contract (Postman) | Collection JSON parse + Node smoke/Supertest | ~5% | Mỗi PR |
 | E2E nghiệp vụ | Kịch bản đa vai trò qua API | ~4% | Hằng đêm |
 | Tải & chịu đựng | k6 | ~1% | Cuối sprint chẵn |
 
@@ -1157,13 +1156,13 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 
 ## H.4. Kiểm thử phân quyền tự động (bắt buộc)
 
-Sinh test từ `MA_TRAN_PHAN_QUYEN.csv` ánh xạ tới OpenAPI `operationId`: với mỗi (`operationId`, `role`), khẳng định mã trạng thái mong đợi (401 khi không có token, 403 khi vai trò không có quyền, 2xx / mã mong đợi theo tài liệu API). Đồng thời tự động kiểm tra ca cách ly dữ liệu đa tổ chức (`org_id`) và ACL theo lớp (`gis.layer_permissions`).
+Sinh test từ `MA_TRAN_PHAN_QUYEN.csv` ánh xạ tới request trong Postman collection: với mỗi (`requestName`, `role`), khẳng định mã trạng thái mong đợi (401 khi không có token, 403 khi vai trò không có quyền, 2xx / mã mong đợi theo tài liệu API). Đồng thời tự động kiểm tra ca cách ly dữ liệu đa tổ chức (`org_id`) và ACL theo lớp (`gis.layer_permissions`).
 
 ```js
 // tests/authz/matrix.test.js — phác thảo
-describe.each(loadMatrixWithOpenAPI('docs/MA_TRAN_PHAN_QUYEN.csv', 'docs/openapi.json'))(
-  '$operationId ($method $path)',
-  ({ operationId, method, path, expected }) => {
+describe.each(loadMatrixWithPostman('docs/MA_TRAN_PHAN_QUYEN.csv', 'docs/api/campha.postman_collection.json'))(
+  '$requestName ($method $path)',
+  ({ requestName, method, path, expected }) => {
     it.each(Object.entries(expected))('vai trò %s → mã %s', async (role, code) => {
       const token = await tokenFor(role);
       const res = await request(app)[method](path).set('Authorization', `Bearer ${token}`);
@@ -1173,7 +1172,7 @@ describe.each(loadMatrixWithOpenAPI('docs/MA_TRAN_PHAN_QUYEN.csv', 'docs/openapi
 );
 ```
 
-Giá trị: khi ma trận quyền hoặc hợp đồng OpenAPI thay đổi (rất dễ xảy ra với 27 module), test tự động phát hiện sai lệch thay vì phải rà thủ công.
+Giá trị: khi ma trận quyền hoặc Postman contract thay đổi (rất dễ xảy ra với 27 module), test tự động phát hiện sai lệch thay vì phải rà thủ công.
 
 ## H.5. Tiêu chí chất lượng cho mỗi release
 
@@ -1270,7 +1269,7 @@ Bổ sung từ phân tích kỹ thuật:
 | R7 | Ma trận phân quyền thay đổi muộn | Trung bình | Trung bình | Sinh test từ CSV → thay đổi phát hiện tự động |
 | R8 | Đội chưa quen PostGIS/GeoServer | Trung bình | Trung bình | Sprint 0 dành 20% thời gian đào tạo; 1 GIS engineer chuyên trách |
 | R9 | Dữ liệu cá nhân trong phản ánh vi phạm Luật 91/2025/QH15 & NĐ 356/2025 | Thấp | Cao (pháp lý) | Thiết kế riêng tư từ đầu ở Sprint 8; rà soát pháp lý trước UAT |
-| **R10** | **API thiết kế khi chưa có bên tiêu thụ.** App di động do chủ dự án tự làm *sau khi* backend xong (E.0); web client chưa có ai làm. Hợp đồng API không được client thực nghiệm thường phải sửa lại khi tích hợp | Cao | Trung bình | Chốt OpenAPI **trước** khi code (đã có trong DoR); Postman collection đóng vai client thay thế (E.4a); dành quỹ sửa hợp đồng API ở S12b; mời cán bộ nghiệp vụ dự Review từ S5 |
+| **R10** | **API thiết kế khi chưa có bên tiêu thụ.** App di động do chủ dự án tự làm *sau khi* backend xong (E.0); web client chưa có ai làm. Hợp đồng API không được client thực nghiệm thường phải sửa lại khi tích hợp | Cao | Trung bình | Chốt Postman collection **trước** khi code; collection đóng vai client thay thế (E.4a); dành quỹ sửa hợp đồng API ở S12b; mời cán bộ nghiệp vụ dự Review từ S5 |
 | **R11** | **21 màn hình web (A.1-* + A.2-*) chưa có đơn vị thực hiện.** Khối lượng ~350–450 SP, xấp xỉ nửa phần server | Cao | **Rất cao** — hệ thống không dùng được dù server hoàn thành | Chốt nhà thầu/đội web **trước khi server tới S4**; nếu không kịp, đàm phán lại phạm vi nghiệm thu và mốc bàn giao với chủ đầu tư ngay từ bây giờ, đừng để tới lúc thanh quyết toán |
 | **R12** | **Ước lượng chưa do đội thực hiện lập** (xem A.1b); velocity 45 SP/sprint là giả định | Cao | Trung bình | Biên độ ±20% khi trao đổi tiến độ; hiệu chỉnh bắt buộc ở US-3.8 cuối Sprint 3 |
 

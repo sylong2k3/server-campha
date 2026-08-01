@@ -17,6 +17,7 @@ module.exports = {
         'src/services/map-proxy.service.js',
         'src/services/web-map.service.js',
         'src/services/cms.service.js',
+        'src/services/remote-sensing.service.js',
         'src/utils/file-signature.util.js',
         'src/geo/srid.util.js',
         'src/utils/totp.util.js',

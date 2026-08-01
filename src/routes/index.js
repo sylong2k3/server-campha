@@ -7,6 +7,7 @@ const mapProxyRoutes = require('./map-proxy.routes');
 const layerRoutes = require('./layer.routes');
 const webMapRoutes = require('./web-map.routes');
 const cmsRoutes = require('./cms.routes');
+const remoteSensingRoutes = require('./remote-sensing.routes');
 
 const router = Router();
 
@@ -19,5 +20,7 @@ router.use('/admin/layers', layerRoutes);
 router.use('/web-map', webMapRoutes);
 router.use('/cms', cmsRoutes.publicRouter);
 router.use('/admin/cms', cmsRoutes.adminRouter);
+router.use('/remote-sensing', remoteSensingRoutes.publicRouter);
+router.use('/admin/remote-sensing', remoteSensingRoutes.adminRouter);
 
 module.exports = router;

@@ -24,17 +24,22 @@ describe('Cẩm Phả foundation database', () => {
             '008_remove_ldap_auth.sql',
             '009_webgis_frontend_api.sql',
             '010_cms_content.sql',
+            '020_satellite_catalog.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
 
-    test('5 role DB, chỉ TNMT đổi role và quyền raster khớp mục 2.1', async () => {
+    test('5 role DB và toàn bộ quyền raster Sprint 6a khớp ma trận', async () => {
         const { rows } = await db.query(`
             SELECT code,
                    permissions #>> '{users,change_role}' AS can_change_role,
                    permissions #>> '{raster,create}' AS raster_create,
                    permissions #>> '{raster,delete}' AS raster_delete,
-                   permissions #>> '{raster,categorize}' AS raster_categorize
+                   permissions #>> '{raster,categorize}' AS raster_categorize,
+                   permissions #>> '{raster,read}' AS raster_read,
+                   permissions #>> '{raster,compare}' AS raster_compare,
+                   permissions #>> '{raster,search}' AS raster_search,
+                   permissions #>> '{raster,download}' AS raster_download
             FROM auth.roles
             WHERE is_active = true
             ORDER BY code
@@ -44,12 +49,17 @@ describe('Cẩm Phả foundation database', () => {
         ]);
         expect(rows.filter((row) => row.can_change_role === 'true').map((row) => row.code))
             .toEqual(['so_tnmt']);
-        const rasterManagers = rows.filter((row) =>
-            row.raster_create === 'true'
-            && row.raster_delete === 'true'
-            && row.raster_categorize === 'true'
-        ).map((row) => row.code);
+        const adminActions = ['raster_create', 'raster_delete', 'raster_categorize', 'raster_read'];
+        const rasterManagers = rows.filter((row) => adminActions.every((action) => row[action] === 'true'))
+            .map((row) => row.code);
         expect(rasterManagers).toEqual(['so_tnmt', 'so_xd', 'system_admin', 'ubnd_tp']);
+        expect(rows.filter((row) => ['raster_compare', 'raster_search', 'raster_download']
+            .every((action) => row[action] === 'true')).map((row) => row.code)).toEqual([
+            'citizen', 'so_tnmt', 'so_xd', 'system_admin', 'ubnd_tp',
+        ]);
+        expect(rows.find((row) => row.code === 'citizen')).toMatchObject({
+            raster_create: null, raster_delete: null, raster_categorize: null, raster_read: null,
+        });
     });
 
     test('storage schema và EPSG:5899 hoạt động trên PostGIS thật', async () => {

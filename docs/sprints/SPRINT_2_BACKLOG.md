@@ -24,7 +24,7 @@ Thiết lập storage quarantine, GeoServer lifecycle, VN-2000 EPSG:5899 và WMS
 - Migration `006` tạo `core.file_objects`; PostGIS phải cung cấp EPSG:5899 chuẩn.
 - GeoServer URL chỉ từ server config; secret file; identifier validation; redirect denial; sanitized errors.
 - WMS chỉ `GetMap`; WFS chỉ `GetFeature`; layer name ép từ `gis.layers.geoserver_layer`.
-- OpenAPI và `.env.example` đồng bộ.
+- Postman collection và `.env.example` đồng bộ; OpenAPI lịch sử retired tại Sprint 6a.
 
 ## Acceptance Evidence
 
@@ -38,7 +38,7 @@ EPSG round-trip:        4326 -> 5899 -> 4326 passed
 MinIO live:             5/5 buckets healthy; anonymous 403
 MinIO service:          upload/stat/range-read/delete passed
 GeoServer live:         workspace/datastore/WMS/WFS 200
-OpenAPI YAML:           valid
+Historical OpenAPI YAML: valid at Sprint 2; retired in Sprint 6a
 High/Critical audit:    0
 ```
 

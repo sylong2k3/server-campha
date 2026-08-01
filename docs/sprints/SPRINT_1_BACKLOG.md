@@ -52,7 +52,7 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - [x] Quyết định sản phẩm: không triển khai AD/LDAP trên VPS dùng chung.
 - [x] Xóa endpoint, provisioning, refresh revalidation, dependency `ldapts`, cấu hình và runbook.
 - [x] Migration `008` thu hồi session, vô hiệu hóa LDAP-only user và drop `auth.ldap_identities`.
-- [x] OpenAPI/user-create contract chuyển local-only; Google OAuth giữ nguyên.
+- [x] User-create contract khi đó chuyển local-only; Google OAuth giữ nguyên. OpenAPI đã retired tại Sprint 6a.
 
 ### User/session
 
@@ -67,7 +67,7 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 
 ### Contract/quality
 
-- [x] OpenAPI Sprint 1 refresh/MFA/session operations/schemas/errors; parse OK.
+- [x] Contract Sprint 1 refresh/MFA/session operations/schemas/errors đã được kiểm chứng; OpenAPI lịch sử retired tại Sprint 6a, Postman được giữ.
 - [x] Authenticated runtime smoke: sample citizen `/auth/me` 200 với `tokenVersion`.
 - [x] Lint, unit, coverage và security audit đạt; số liệu hiện hành ở Acceptance Evidence.
 - [x] Migration 004 áp dụng VPS `campha`; integration read-only 3/3.

@@ -565,6 +565,380 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "Sprint 6a - Remote Sensing",
+      "item": [
+        {
+          "name": "Presign raster upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created',()=>pm.response.to.have.status(201));",
+                  "const d=pm.response.json().data; pm.environment.set('rasterFileObjectId',d.id); pm.environment.set('rasterUploadUrl',d.uploadUrl);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tnmtToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"raster\",\n  \"originalName\": \"sentinel-2-campha.tif\",\n  \"contentType\": \"image/tiff\",\n  \"expireSeconds\": 900\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/storage/uploads/presign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "storage",
+                "uploads",
+                "presign"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT GeoTIFF to quarantine",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/tiff",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": "sentinel-2-campha.tif"
+              }
+            },
+            "url": {
+              "raw": "{{rasterUploadUrl}}",
+              "host": [
+                "{{rasterUploadUrl}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Commit raster upload",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK',()=>pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tnmtToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/storage/uploads/{{rasterFileObjectId}}/commit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "storage",
+                "uploads",
+                "{{rasterFileObjectId}}",
+                "commit"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search satellite images",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/images?platform=sentinel-2&from=2024-01-01&to=2026-12-31&page=1&limit=20&sort=acquiredAt:desc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "images?platform=sentinel-2&from=2024-01-01&to=2026-12-31&page=1&limit=20&sort=acquiredAt:desc"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Satellite image detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Compare satellite images",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/compare?beforeId={{satelliteImageBeforeId}}&afterId={{satelliteImageAfterId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "compare?beforeId={{satelliteImageBeforeId}}&afterId={{satelliteImageAfterId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download satellite image URL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}/download-url?expireSeconds=300",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}",
+                "download-url?expireSeconds=300"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin satellite catalog",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images?page=1&limit=20"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create satellite metadata",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sceneCode\": \"S2A_CAMPHA_20260101\",\n  \"title\": \"Sentinel-2 C?m Ph? 01/2026\",\n  \"platform\": \"sentinel-2\",\n  \"thematicGroup\": \"land-cover\",\n  \"coverageKey\": \"campha-core\",\n  \"acquiredAt\": \"2026-01-01T03:00:00Z\",\n  \"productLevel\": \"L2A\",\n  \"resolutionM\": 10,\n  \"cloudCoverPercent\": 5,\n  \"fileObjectId\": \"{{rasterFileObjectId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Categorize satellite image",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"thematicGroup\": \"forest\",\n  \"expectedUpdatedAt\": \"{{satelliteImageUpdatedAt}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}/category",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}",
+                "category"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete satellite image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     }
   ]
 }

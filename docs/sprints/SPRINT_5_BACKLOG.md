@@ -36,7 +36,8 @@ Integration:               30 passed (PostgreSQL/PostGIS + Supertest)
 Global branch coverage:    78.85%
 CMS service branches:      94.11%
 Production npm audit:      0 vulnerabilities
-OpenAPI/Postman/runtime:   parsed/imported successfully
+Postman/runtime:           parsed/imported successfully
+API contract policy:       OpenAPI retired in Sprint 6a; Postman retained
 Postman secret check:      passed; testPassword empty
 Git diff check:            passed
 ```
