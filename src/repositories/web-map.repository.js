@@ -128,6 +128,6 @@ const terrainCatalog = async (actor) => {
 };
 
 module.exports = {
-    catalog, accessibleLayer, configuredFields, searchFields,
-    featureById, searchLayer, basemaps, terrainCatalog, qid,
+    catalog, accessibleLayer, configuredFields, searchFields, idFieldFor,
+    featureById, searchLayer, basemaps, terrainCatalog, qid, FIELD,
 };

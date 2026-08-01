@@ -28,6 +28,7 @@ describe('Cẩm Phả foundation database', () => {
             '021_spatial_statistics.sql',
             '022_spatial_statistics_rbac.sql',
             '023_field_reports.sql',
+            '024_mobile_gis.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });

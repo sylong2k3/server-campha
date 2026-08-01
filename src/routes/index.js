@@ -10,6 +10,7 @@ const cmsRoutes = require('./cms.routes');
 const remoteSensingRoutes = require('./remote-sensing.routes');
 const spatialStatisticsRoutes = require('./spatial-statistics.routes');
 const fieldReportRoutes = require('./field-report.routes');
+const mobileGisRoutes = require('./mobile-gis.routes');
 
 const router = Router();
 
@@ -29,5 +30,6 @@ router.use('/admin/statistics', spatialStatisticsRoutes.adminRouter);
 router.use('/field-reports', fieldReportRoutes.publicRouter);
 router.use('/admin/field-reports', fieldReportRoutes.adminRouter);
 router.use('/devices', fieldReportRoutes.deviceRouter);
+router.use('/mobile', mobileGisRoutes);
 
 module.exports = router;

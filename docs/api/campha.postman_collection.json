@@ -35,7 +35,10 @@
     { "key": "pdfMapUpdatedAt", "value": "", "type": "string" },
     { "key": "statisticsSourceId", "value": "", "type": "string" },
     { "key": "statisticsSourceUpdatedAt", "value": "", "type": "string" },
-    { "key": "beforeStatisticsSourceId", "value": "", "type": "string" }
+    { "key": "beforeStatisticsSourceId", "value": "", "type": "string" },
+    {"key":"mobileLayerId","value":"1","type":"string"},
+    {"key":"mobileDraftId","value":"1","type":"string"},
+    {"key":"mobileDraftUpdatedAt","value":"","type":"string"}
   ],
   "item": [
     {
@@ -752,6 +755,163 @@
         { "name": "Thay doi gan vi tri", "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/field-reports/nearby?longitude=107.33&latitude=21.01&radiusMeters=100&from=2026-01-01&to=2026-12-31", "host": ["{{baseUrl}}"], "path": ["api","v1","field-reports","nearby"], "query": [{ "key": "longitude", "value": "107.33" }, { "key": "latitude", "value": "21.01" }, { "key": "radiusMeters", "value": "100" }, { "key": "from", "value": "2026-01-01" }, { "key": "to", "value": "2026-12-31" }] } } },
         { "name": "Cum phan anh", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{tnmtToken}}" }], "url": { "raw": "{{baseUrl}}/api/v1/admin/field-reports/clusters?radiusMeters=100&minReporters=2&from=2026-01-01&to=2026-12-31", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","field-reports","clusters"], "query": [{ "key": "radiusMeters", "value": "100" }, { "key": "minReporters", "value": "2" }, { "key": "from", "value": "2026-01-01" }, { "key": "to", "value": "2026-12-31" }] } } },
         { "name": "Dang ky FCM token", "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{citizenToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{fcmDeviceToken}}\",\n  \"platform\": \"android\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/devices/push-token", "host": ["{{baseUrl}}"], "path": ["api","v1","devices","push-token"] } } }
+      ]
+    },
+    {
+      "name": "Sprint 9a - Mobile GIS",
+      "item": [
+        {
+          "name": "Vector tile MVT",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/tiles/12/3267/1812.mvt"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('MVT 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('MVT content type',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('mapbox-vector-tile'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Thuoc tinh doi tuong",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/1"
+          },
+          "event": []
+        },
+        {
+          "name": "Doi tuong lan can GPS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/nearby?longitude=107.335&latitude=21.01&radiusMeters=200&limit=20"
+          },
+          "event": []
+        },
+        {
+          "name": "Do chieu dai VN-2000",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/mobile/measure",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"geometry\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        107.335,\n        21.01\n      ],\n      [\n        107.336,\n        21.01\n      ]\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "Tao ban phac thao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/mobile/drafts",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Khu vuc khao sat\",\n  \"properties\": {\n    \"note\": \"Ban nhap mobile\"\n  },\n  \"geometry\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [\n          107.33,\n          21\n        ],\n        [\n          107.331,\n          21\n        ],\n        [\n          107.331,\n          21.001\n        ],\n        [\n          107.33,\n          21\n        ]\n      ]\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{citizenToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created',()=>pm.response.to.have.status(201));",
+                  "const d=pm.response.json().data;pm.collectionVariables.set('mobileDraftId',d.id);pm.collectionVariables.set('mobileDraftUpdatedAt',d.updated_at);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Danh sach ban phac thao",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mobile/drafts?page=1&limit=20",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{citizenToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "Xoa ban phac thao",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mobile/drafts/{{mobileDraftId}}?expectedUpdatedAt={{mobileDraftUpdatedAt}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{citizenToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": []
+        },
+        {
+          "name": "Thoi tiet hien tai",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/mobile/weather/current?longitude=107.335&latitude=21.01"
+          },
+          "event": []
+        }
       ]
     }
   ]
