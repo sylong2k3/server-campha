@@ -1,73 +1,320 @@
 {
   "info": {
     "_postman_id": "6e53c6b1-68ae-4e60-b780-e3e46caac001",
-    "name": "Cẩm Phả GIS API - Sprint 0",
+    "name": "C?m Ph? GIS API - Sprint 4",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
       "name": "Health",
-      "request": { "method": "GET", "url": "{{baseUrl}}/health" },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "pm.expect(pm.response.json().status).to.eql('OK');"] } }]
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.expect(pm.response.json().status).to.eql('OK');"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Login system_admin",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{testPassword}}\"}" },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{testPassword}}\"}"
+        },
         "url": "{{baseUrl}}/api/v1/auth/login"
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('login admin 200', () => pm.response.to.have.status(200));", "pm.environment.set('adminToken', pm.response.json().data.accessToken);"] } }]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('login admin 200', () => pm.response.to.have.status(200));",
+              "pm.environment.set('adminToken', pm.response.json().data.accessToken);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Admin me",
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
         "url": "{{baseUrl}}/api/v1/auth/me"
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('admin me 200', () => pm.response.to.have.status(200));"] } }]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('admin me 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Missing token rejected",
-      "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/auth/me" },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('401 without token', () => pm.response.to.have.status(401));"] } }]
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/auth/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('401 without token', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "system_admin reads logs with DB permission",
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
         "url": "{{baseUrl}}/api/v1/admin/system-logs"
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('200 with DB permission', () => pm.response.to.have.status(200));"] } }]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('200 with DB permission', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Login citizen for RBAC test",
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\"email\":\"{{citizenEmail}}\",\"password\":\"{{testPassword}}\"}" },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"{{citizenEmail}}\",\"password\":\"{{testPassword}}\"}"
+        },
         "url": "{{baseUrl}}/api/v1/auth/login"
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('citizen login 200', () => pm.response.to.have.status(200));", "pm.environment.set('citizenToken', pm.response.json().data.accessToken);"] } }]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('citizen login 200', () => pm.response.to.have.status(200));",
+              "pm.environment.set('citizenToken', pm.response.json().data.accessToken);"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Citizen permission denied",
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{citizenToken}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{citizenToken}}"
+          }
+        ],
         "url": "{{baseUrl}}/api/v1/admin/system-logs"
       },
-      "event": [{ "listen": "test", "script": { "exec": ["pm.test('403 without DB permission', () => pm.response.to.have.status(403));"] } }]
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('403 without DB permission', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
     },
     {
       "name": "Login remaining roles",
       "item": [
-        { "name": "UBND", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{ubndEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/api/v1/auth/login" } },
-        { "name": "TNMT", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{tnmtEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/api/v1/auth/login" } },
-        { "name": "Xây dựng", "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\"email\":\"{{xdEmail}}\",\"password\":\"{{testPassword}}\"}" }, "url": "{{baseUrl}}/api/v1/auth/login" } }
+        {
+          "name": "UBND",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{ubndEmail}}\",\"password\":\"{{testPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "TNMT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{tnmtEmail}}\",\"password\":\"{{testPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Xây dựng",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{xdEmail}}\",\"password\":\"{{testPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sprint 4 Web Map",
+      "item": [
+        {
+          "name": "Anonymous catalog 200",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/web-map/layers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Anonymous catalog 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Basemap catalog 200",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/web-map/basemaps"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Basemap catalog 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Feature search 200",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/web-map/features/search?q=cam%20pha&limit=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Feature search 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Citizen terrain 200",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/web-map/terrain"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Citizen terrain 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid search 400",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/web-map/features/search?q=x&limit=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invalid search 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        }
       ]
     }
   ]

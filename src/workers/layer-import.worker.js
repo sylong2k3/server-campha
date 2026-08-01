@@ -41,11 +41,10 @@ const processImport = async (job) => {
     }, Math.max(10000, Math.floor(leaseSeconds * 500)));
     heartbeat.unref?.();
     try {
-        const result = await executeImport({ ...job, object_key: file.object_key });
-        await jobRepository.completeImport(job.id, workerId, result);
+        await executeImport({ ...job, object_key: file.object_key });
     } catch (error) {
         if (error instanceof LayerImportValidationError && error.importErrors?.length) {
-            await jobRepository.addImportErrors(job.id, error.importErrors);
+            await jobRepository.addImportErrors(job.id, workerId, error.importErrors);
         }
         await jobRepository.failImport(job.id, workerId, error.code || 'IMPORT_FAILED', error.message || 'Import failed');
     } finally {
@@ -57,6 +56,11 @@ const processImport = async (job) => {
 const isAlreadyGone = (error) => error instanceof GeoServerError && error.status === 404;
 const processCleanup = async (job) => {
     currentJob = { type: 'cleanup', id: job.id };
+    const heartbeat = setInterval(() => {
+        jobRepository.heartbeatCleanup(job.id, workerId, leaseSeconds)
+            .catch((error) => console.error('[LayerWorker] cleanup heartbeat:', error.message));
+    }, Math.max(10000, Math.floor(leaseSeconds * 500)));
+    heartbeat.unref?.();
     try {
         const layer = await layerRepository.findById(job.layer_id, true);
         if (!layer) { throw new Error('Layer metadata not found'); }
@@ -79,10 +83,15 @@ const processCleanup = async (job) => {
                 await storageRepository.markDeleted(file.id, layer.created_by);
             }
         }
-        await jobRepository.completeCleanup(job.id, workerId, job.layer_id);
+        const completed = await jobRepository.completeCleanup(job.id, workerId, job.layer_id);
+        if (!completed) { console.warn('[LayerWorker] cleanup lease lost before completion'); }
     } catch (error) {
-        await jobRepository.failCleanup(job, workerId, error.message || 'Cleanup failed');
-    } finally { currentJob = null; }
+        const failed = await jobRepository.failCleanup(job, workerId, error.message || 'Cleanup failed');
+        if (!failed) { console.warn('[LayerWorker] cleanup lease lost before failure update'); }
+    } finally {
+        clearInterval(heartbeat);
+        currentJob = null;
+    }
 };
 
 const loop = async () => {

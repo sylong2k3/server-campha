@@ -17,6 +17,7 @@ tags:
   - name: System Logs
   - name: Storage
   - name: Maps
+  - name: Web Map
   - name: Layer Management
 paths:
   /health:
@@ -508,6 +509,89 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '422': { description: Layer is not a PostGIS vector }
         '503': { description: GeoServer unavailable }
+  /api/v1/web-map/layers:
+    get:
+      tags: [Web Map]
+      operationId: listWebMapLayers
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { name: category, in: query, schema: { type: string, maxLength: 50 } }
+      responses:
+        '200': { description: Published public or role-ACL layer catalog, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/web-map/layers/{layerId}/features/{featureId}:
+    get:
+      tags: [Web Map]
+      operationId: getWebMapFeature
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/LayerId' }
+        - { name: featureId, in: path, required: true, schema: { type: string, pattern: '^[A-Za-z0-9_-]{1,120}$' } }
+        - { name: includeGeometry, in: query, schema: { type: boolean, default: false } }
+      responses:
+        '200': { description: Allowlisted feature attributes }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { description: Layer is not a queryable vector }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/web-map/features/search:
+    get:
+      tags: [Web Map]
+      operationId: searchWebMapFeatures
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - { name: layerId, in: query, schema: { type: integer, format: int64, minimum: 1 } }
+        - { name: bbox, in: query, schema: { type: string, example: '107.2,20.9,107.5,21.2' } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200': { description: ACL-filtered Vietnamese feature matches }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+  /api/v1/web-map/layers/{layerId}/legend:
+    get:
+      tags: [Web Map]
+      operationId: getWebMapLegend
+      security: [{}, { bearerAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/LayerId' }]
+      responses:
+        '200': { description: Layer style, legend and min/max zoom }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/web-map/basemaps:
+    get:
+      tags: [Web Map]
+      operationId: listBasemaps
+      security: [{}, { bearerAuth: [] }]
+      responses:
+        '200': { description: Enabled basemaps not requiring API keys }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/web-map/terrain:
+    get:
+      tags: [Web Map]
+      operationId: listTerrainLayers
+      security: [{}, { bearerAuth: [] }]
+      responses:
+        '200': { description: Public or role-ACL DEM/terrain layer catalog }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/v1/web-map/terrain/{layerId}/url:
+    get:
+      tags: [Web Map]
+      operationId: getTerrainUrl
+      security: [{}, { bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/LayerId' }
+        - { name: expireSeconds, in: query, schema: { type: integer, minimum: 60, maximum: 900, default: 300 } }
+      responses:
+        '200': { description: Short-lived MinIO presigned terrain URL }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 components:
   securitySchemes:
     bearerAuth:

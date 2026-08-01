@@ -97,11 +97,19 @@ const heartbeatImport = async (id, workerId, progress, leaseSeconds = 120) => {
     return rowCount === 1;
 };
 
-const addImportErrors = async (jobId, errors) => {
-    if (!errors.length) { return; }
+const addImportErrors = async (jobId, workerId, errors) => {
+    if (!errors.length) { return false; }
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
+        const owned = await client.query(
+            `SELECT id FROM gis.layer_import_jobs
+             WHERE id = $1 AND status = 'running' AND worker_id = $2
+               AND lease_expires_at > NOW() FOR UPDATE`,
+            [jobId, workerId]
+        );
+        if (owned.rowCount !== 1) { await client.query('ROLLBACK'); return false; }
+        await client.query('DELETE FROM gis.layer_import_errors WHERE job_id = $1', [jobId]);
         for (const error of errors) {
             await client.query(
                 `INSERT INTO gis.layer_import_errors
@@ -111,6 +119,7 @@ const addImportErrors = async (jobId, errors) => {
             );
         }
         await client.query('COMMIT');
+        return true;
     } catch (error) {
         await client.query('ROLLBACK'); throw error;
     } finally { client.release(); }
@@ -122,7 +131,8 @@ const completeImport = async (id, workerId, result) => {
          SET status = 'succeeded', progress = 100, layer_id = $3, feature_count = $4,
              geometry_type = $5, source_srid = $6, target_srid = $7,
              finished_at = NOW(), worker_id = NULL, lease_expires_at = NULL
-         WHERE id = $1 AND status = 'running' AND worker_id = $2 RETURNING *`,
+         WHERE id = $1 AND status = 'running' AND worker_id = $2
+           AND lease_expires_at > NOW() RETURNING *`,
         [id, workerId, result.layerId, result.featureCount, result.geometryType, result.sourceSrid, result.targetSrid]
     );
     return row || null;
@@ -133,7 +143,8 @@ const failImport = async (id, workerId, errorCode, errorMessage) => {
         `UPDATE gis.layer_import_jobs
          SET status = 'failed', finished_at = NOW(), worker_id = NULL, lease_expires_at = NULL,
              error_code = $3, error_message = LEFT($4, 2000)
-         WHERE id = $1 AND status = 'running' AND worker_id = $2 RETURNING *`,
+         WHERE id = $1 AND status = 'running' AND worker_id = $2
+           AND lease_expires_at > NOW() RETURNING *`,
         [id, workerId, errorCode, errorMessage]
     );
     return row || null;
@@ -177,17 +188,31 @@ const claimCleanup = async (workerId, leaseSeconds = 120) => {
     } finally { client.release(); }
 };
 
+const heartbeatCleanup = async (id, workerId, leaseSeconds = 120) => {
+    const { rowCount } = await db.query(
+        `UPDATE gis.layer_cleanup_jobs
+         SET lease_expires_at = NOW() + make_interval(secs => $3)
+         WHERE id = $1 AND status = 'running' AND worker_id = $2
+           AND lease_expires_at > NOW()`,
+        [id, workerId, leaseSeconds]
+    );
+    return rowCount === 1;
+};
+
 const completeCleanup = async (id, workerId, layerId) => {
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
-        await client.query(
+        const completed = await client.query(
             `UPDATE gis.layer_cleanup_jobs
              SET status = 'succeeded', finished_at = NOW(), worker_id = NULL, lease_expires_at = NULL
-             WHERE id = $1 AND status = 'running' AND worker_id = $2`, [id, workerId]
+             WHERE id = $1 AND status = 'running' AND worker_id = $2
+               AND lease_expires_at > NOW()`, [id, workerId]
         );
+        if (completed.rowCount !== 1) { await client.query('ROLLBACK'); return false; }
         await client.query("UPDATE gis.layers SET cleanup_status = 'complete' WHERE id = $1", [layerId]);
         await client.query('COMMIT');
+        return true;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
 };
@@ -197,22 +222,26 @@ const failCleanup = async (job, workerId, message) => {
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
-        await client.query(
+        const failed = await client.query(
             `UPDATE gis.layer_cleanup_jobs
              SET status = $3, worker_id = NULL, lease_expires_at = NULL,
                  next_attempt_at = CASE WHEN $4 THEN NOW() + make_interval(secs => LEAST(3600, 15 * (2 ^ attempt))) ELSE next_attempt_at END,
                  finished_at = CASE WHEN $4 THEN NULL ELSE NOW() END,
                  error_message = LEFT($5, 2000)
-             WHERE id = $1 AND worker_id = $2`,
+             WHERE id = $1 AND status = 'running' AND worker_id = $2
+               AND lease_expires_at > NOW()`,
             [job.id, workerId, retry ? 'queued' : 'failed', retry, message]
         );
+        if (failed.rowCount !== 1) { await client.query('ROLLBACK'); return false; }
         await client.query("UPDATE gis.layers SET cleanup_status = $2 WHERE id = $1", [job.layer_id, retry ? 'queued' : 'failed']);
         await client.query('COMMIT');
+        return true;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
 };
 
 module.exports = {
     createImport, findImportById, listImportErrors, claimImport, heartbeatImport,
-    addImportErrors, completeImport, failImport, claimCleanup, completeCleanup, failCleanup,
+    addImportErrors, completeImport, failImport, claimCleanup, heartbeatCleanup,
+    completeCleanup, failCleanup,
 };

@@ -277,7 +277,7 @@ const validateSpatialStaging = async (job, stagingTable) => {
     return { featureCount: Number(summary.feature_count), geometryType: summary.geometry_type, targetSrid: summary.srid };
 };
 
-const promoteStaging = async (job, stagingTable, summary) => {
+const promoteStaging = async (job, workerId, stagingTable, summary) => {
     const input = job.input_payload;
     const finalTable = generatedTable('layer', job);
     const staging = quoteIdentifier(stagingTable);
@@ -290,11 +290,12 @@ const promoteStaging = async (job, stagingTable, summary) => {
         const { rows: [layer] } = await client.query(
             `INSERT INTO gis.layers
                 (code, name_vi, category, geometry_type, srid, storage_kind, table_name, object_key,
-                 is_public, source_file_id, publish_status, created_by)
-             VALUES ($1, $2, $3, $4, $5, 'postgis', $6, $7, $8, $9, 'pending', $10)
+                 is_public, source_file_id, publish_status, metadata, created_by)
+             VALUES ($1, $2, $3, $4, $5, 'postgis', $6, $7, $8, $9, 'pending', $10::jsonb, $11)
              RETURNING *`,
             [input.code, input.nameVi, input.category, summary.geometryType, summary.targetSrid,
-                finalTable, job.object_key, input.isPublic, job.file_object_id, job.owner_user_id]
+                finalTable, job.object_key, input.isPublic, job.file_object_id,
+                JSON.stringify({ importType: job.import_type }), job.owner_user_id]
         );
         await client.query(
             `INSERT INTO gis.layer_permissions
@@ -306,6 +307,19 @@ const promoteStaging = async (job, stagingTable, summary) => {
              FROM auth.roles WHERE is_active = true`,
             [layer.id, input.isPublic]
         );
+        const completed = await client.query(
+            `UPDATE gis.layer_import_jobs
+             SET status = 'succeeded', progress = 100, layer_id = $3, feature_count = $4,
+                 geometry_type = $5, source_srid = $6, target_srid = $7,
+                 finished_at = NOW(), worker_id = NULL, lease_expires_at = NULL
+             WHERE id = $1 AND status = 'running' AND worker_id = $2
+               AND lease_expires_at > NOW()`,
+            [job.id, workerId, layer.id, summary.featureCount, summary.geometryType,
+                summary.sourceSrid, summary.targetSrid]
+        );
+        if (completed.rowCount !== 1) {
+            throw new LayerImportValidationError('WORKER_LEASE_LOST', 'Worker mất lease trước khi promote lớp');
+        }
         await client.query('COMMIT');
         return layer;
     } catch (error) {
@@ -331,7 +345,9 @@ const executeImport = async (job) => {
             ? await importShapefileToStaging(job, sourcePath, stagingTable)
             : await importExcelToStaging(job, sourcePath, stagingTable);
         const summary = await validateSpatialStaging(job, stagingTable);
-        const layer = await promoteStaging(job, stagingTable, summary);
+        const layer = await promoteStaging(job, job.worker_id, stagingTable, {
+            ...summary, sourceSrid: metadata.sourceSrid,
+        });
         try {
             const geoserverLayer = await geoserverClient.publishVectorLayer({ ...layer, epsg_code: layer.srid });
             await layerRepository.setPublishState(layer.id, 'published', geoserverLayer);
@@ -358,6 +374,6 @@ const executeImport = async (job) => {
 
 module.exports = {
     LayerImportValidationError, quoteIdentifier, runTool, inspectSource,
-    parseShapefileMetadata, importShapefileToStaging, importExcelToStaging,
-    executeImport, validateSpatialStaging,
+    inspectExcel, parseShapefileMetadata, importShapefileToStaging,
+    importExcelToStaging, validateSpatialStaging, promoteStaging, executeImport,
 };

@@ -1,0 +1,89 @@
+'use strict';
+
+const repository = require('../repositories/web-map.repository');
+const minioService = require('./minio.service');
+const { Api403Error, Api404Error, Api422Error } = require('../core/error.response');
+const { t } = require('../utils/i18n.util');
+
+const canMap = (actor, action) => !actor || actor.permissions?.map?.[action] === true;
+const assertMap = (actor, action) => {
+    if (!canMap(actor, action)) { throw new Api403Error(t('web_map_forbidden', actor?.lang)); }
+};
+const getAccessible = async (id, actor, options) => {
+    const layer = await repository.accessibleLayer(id, actor, options);
+    if (!layer) { throw new Api404Error(t('web_map_layer_not_found', actor?.lang)); }
+    return layer;
+};
+
+const serializeLayer = (layer) => ({
+    id: layer.id,
+    code: layer.code,
+    nameVi: layer.name_vi,
+    category: layer.category,
+    geometryType: layer.geometry_type,
+    srid: layer.srid,
+    geoserverLayer: layer.geoserver_layer,
+    styleName: layer.style_name,
+    minZoom: layer.min_zoom,
+    maxZoom: layer.max_zoom,
+    legend: layer.legend_config,
+    isPublic: layer.is_public,
+});
+const listLayers = async (category, actor) => {
+    assertMap(actor, 'view');
+    return (await repository.catalog(actor, category)).map(serializeLayer);
+};
+const getFeature = async (layerId, featureId, includeGeometry, actor) => {
+    assertMap(actor, 'view_attributes');
+    const layer = await getAccessible(layerId, actor);
+    if (layer.storage_kind !== 'postgis' || !layer.table_name) {
+        throw new Api422Error(t('web_map_not_vector', actor?.lang), ['NOT_VECTOR_LAYER']);
+    }
+    const feature = await repository.featureById(layer, featureId, includeGeometry);
+    if (!feature) { throw new Api404Error(t('web_map_feature_not_found', actor?.lang)); }
+    return { layerId: layer.id, feature };
+};
+const searchFeatures = async ({ q, layerId, bbox, limit }, actor) => {
+    assertMap(actor, 'search_feature');
+    const layers = layerId
+        ? [await getAccessible(layerId, actor)]
+        : (await repository.catalog(actor)).filter((layer) => layer.storage_kind === 'postgis');
+    const perLayer = Math.max(1, Math.ceil(limit / Math.max(1, layers.length)));
+    const results = [];
+    for (const layer of layers) {
+        if (!layer.table_name || !repository.searchFields(layer).length) { continue; }
+        const features = await repository.searchLayer(layer, q, bbox, perLayer);
+        results.push(...features.map((feature) => ({ layerId: layer.id, layerCode: layer.code, layerName: layer.name_vi, ...feature })));
+        if (results.length >= limit) { break; }
+    }
+    return results.slice(0, limit);
+};
+const getLegend = async (layerId, actor) => {
+    assertMap(actor, 'view_legend');
+    const layer = await getAccessible(layerId, actor);
+    return {
+        layerId: layer.id, code: layer.code, nameVi: layer.name_vi,
+        styleName: layer.style_name, minZoom: layer.min_zoom, maxZoom: layer.max_zoom,
+        legend: layer.legend_config,
+    };
+};
+const listBasemaps = async (actor) => {
+    assertMap(actor, 'view');
+    return repository.basemaps();
+};
+const listTerrain = async (actor) => {
+    assertMap(actor, 'view_3d');
+    return repository.terrainCatalog(actor);
+};
+const getTerrainUrl = async (layerId, expireSeconds, actor) => {
+    assertMap(actor, 'view_3d');
+    const layer = await getAccessible(layerId, actor, { terrain: true });
+    return minioService.getPresignedDownloadUrl({
+        objectKey: layer.object_key, category: 'raster', expireSeconds,
+    });
+};
+
+module.exports = {
+    listLayers, getFeature, searchFeatures, getLegend, listBasemaps, listTerrain, getTerrainUrl,
+    serializeLayer,
+};

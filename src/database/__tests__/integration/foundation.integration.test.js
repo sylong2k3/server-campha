@@ -22,6 +22,7 @@ describe('Cẩm Phả foundation database', () => {
             '006_spatial_infrastructure.sql',
             '007_layer_management.sql',
             '008_remove_ldap_auth.sql',
+            '009_webgis_frontend_api.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
