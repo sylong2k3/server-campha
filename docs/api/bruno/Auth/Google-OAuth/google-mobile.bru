@@ -1,0 +1,23 @@
+﻿meta {
+  name: Google OAuth - Mobile
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/google/mobile
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "idToken": "<firebase-id-token>"
+  }
+}
+
+tests {
+  test("200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

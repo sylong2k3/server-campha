@@ -1,0 +1,23 @@
+﻿meta {
+  name: Tim kiem feature (toan van)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/web-map/features/search?q=cam pha&limit=20
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const items = res.getBody().data.items;
+  if (items && items.length > 0) {
+    bru.setEnvVar("featureId", items[0].id);
+    bru.setEnvVar("layerId", items[0].layerId);
+  }
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

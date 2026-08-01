@@ -1,0 +1,40 @@
+﻿meta {
+  name: Xoa lop ban do
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/admin/layers/{{layerId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tnmtToken}}
+}
+
+body:json {
+  {
+    "expectedUpdatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("tnmtToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "tnmt@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("tnmtToken", data.data.accessToken);
+    }
+  }
+}
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

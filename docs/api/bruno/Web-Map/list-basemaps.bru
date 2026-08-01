@@ -1,0 +1,15 @@
+﻿meta {
+  name: Danh sach Basemap
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/web-map/basemaps
+  body: none
+  auth: none
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

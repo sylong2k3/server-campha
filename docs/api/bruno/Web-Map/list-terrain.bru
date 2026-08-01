@@ -1,0 +1,15 @@
+﻿meta {
+  name: Danh sach Terrain / DEM
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/web-map/terrain
+  body: none
+  auth: none
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

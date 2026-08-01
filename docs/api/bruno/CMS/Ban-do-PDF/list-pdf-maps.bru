@@ -1,0 +1,20 @@
+﻿meta {
+  name: Danh sach ban do PDF
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/cms/pdf-maps?page=1&limit=20
+  body: none
+  auth: none
+}
+
+script:post-response {
+  const items = res.getBody().data.items;
+  if (items && items.length > 0) bru.setEnvVar("pdfMapId", items[0].id);
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

@@ -1,0 +1,31 @@
+﻿meta {
+  name: Login - citizen
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "citizen@campha.gov.vn",
+    "password": "CamPha@2026"
+  }
+}
+
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.accessToken) {
+    bru.setEnvVar("citizenToken", d.accessToken);
+  }
+}
+
+tests {
+  test("200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

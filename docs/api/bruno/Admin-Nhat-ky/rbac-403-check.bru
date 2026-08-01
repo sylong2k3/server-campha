@@ -1,0 +1,19 @@
+﻿meta {
+  name: Nhat ky - citizen bi tu choi (403)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/admin/system-logs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{citizenToken}}
+}
+
+tests {
+  test("403 Forbidden", function() { expect(res.getStatus()).to.equal(403); });
+}

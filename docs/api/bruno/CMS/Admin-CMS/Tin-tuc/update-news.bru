@@ -1,0 +1,48 @@
+﻿meta {
+  name: Cap nhat tin tuc
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/admin/cms/news/{{newsId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "expectedUpdatedAt": "{{newsUpdatedAt}}",
+    "title": "Thong bao Cam Pha (cap nhat)",
+    "status": "published",
+    "publishedAt": "2026-08-01T07:00:00.000Z"
+  }
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("adminToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("adminToken", data.data.accessToken);
+    }
+  }
+}
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.news) bru.setEnvVar("newsUpdatedAt", d.news.updatedAt);
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

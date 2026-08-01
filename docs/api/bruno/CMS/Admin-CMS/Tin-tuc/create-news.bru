@@ -1,0 +1,53 @@
+﻿meta {
+  name: Tao tin tuc
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/cms/news
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "title": "Thong bao Cam Pha thang 8/2026",
+    "summary": "Tom tat ngan gon",
+    "content": "Noi dung day du cua thong bao...",
+    "visibility": "public",
+    "status": "draft",
+    "publishedAt": null
+  }
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("adminToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("adminToken", data.data.accessToken);
+    }
+  }
+}
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.news) {
+    bru.setEnvVar("newsId", d.news.id);
+    bru.setEnvVar("newsUpdatedAt", d.news.updatedAt);
+  }
+}
+
+tests {
+  test("201 Created", function() { expect(res.getStatus()).to.equal(201); });
+}

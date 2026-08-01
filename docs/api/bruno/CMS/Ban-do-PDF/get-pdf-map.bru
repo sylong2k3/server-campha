@@ -1,0 +1,15 @@
+﻿meta {
+  name: Chi tiet ban do PDF
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/cms/pdf-maps/{{pdfMapId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

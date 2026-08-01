@@ -1,0 +1,54 @@
+﻿meta {
+  name: Tao tai lieu
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/cms/documents
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "title": "Bao cao kinh te xa hoi 2026",
+    "documentCode": "BC-KTXH-2026",
+    "issuingAgency": "UBND TP Cam Pha",
+    "issuedAt": "2026-01-15T00:00:00.000Z",
+    "description": "Bao cao tong hop tinh hinh kinh te xa hoi nam 2026",
+    "visibility": "public",
+    "fileObjectId": "{{storageObjectId}}"
+  }
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("adminToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("adminToken", data.data.accessToken);
+    }
+  }
+}
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.document) {
+    bru.setEnvVar("documentId", d.document.id);
+    bru.setEnvVar("documentUpdatedAt", d.document.updatedAt);
+  }
+}
+
+tests {
+  test("201 Created", function() { expect(res.getStatus()).to.equal(201); });
+}

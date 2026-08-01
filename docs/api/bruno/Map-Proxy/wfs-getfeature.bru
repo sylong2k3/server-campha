@@ -1,0 +1,19 @@
+﻿meta {
+  name: WFS - GetFeature (du lieu vector)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/maps/layers/{{layerId}}/wfs?request=GetFeature&count=100&outputFormat=application/json
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{tnmtToken}}
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

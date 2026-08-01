@@ -1,0 +1,47 @@
+﻿meta {
+  name: Cap nhat ban do PDF
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/admin/cms/pdf-maps/{{pdfMapId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "expectedUpdatedAt": "{{pdfMapUpdatedAt}}",
+    "title": "Ban do quy hoach SDD 2026 (cap nhat)",
+    "visibility": "public"
+  }
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("adminToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("adminToken", data.data.accessToken);
+    }
+  }
+}
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.pdfMap) bru.setEnvVar("pdfMapUpdatedAt", d.pdfMap.updatedAt);
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

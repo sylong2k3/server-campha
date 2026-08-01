@@ -1,942 +1,728 @@
 {
   "info": {
     "_postman_id": "6e53c6b1-68ae-4e60-b780-e3e46caac001",
-    "name": "C?m Ph? GIS API - Sprint 4",
+    "name": "Cam Pha GIS API",
+    "description": "## Cam Pha GIS API\n\n**Import xong dung ngay — khong can cau hinh them.**\n\nbaseUrl va tat ca tai khoan da nhung san trong Collection Variables. Khi gui request admin, token tu dong lay neu chua co (pre-request auto-login). Hoac chay thu cong qua folder **Dang nhap theo vai tro** de lay du 5 token cung luc.\n\n### Tai khoan (seed san trong DB local)\n\n| Role | Email | Quyen noi bat |\n|---|---|---|\n| system_admin | admin@campha.gov.vn | Nhat ky, toan quyen CMS |\n| ubnd_tp | ubnd@campha.gov.vn | Xem user & lop ban do |\n| so_tnmt | tnmt@campha.gov.vn | Toan quyen lop & user |\n| so_xd | xaydung@campha.gov.vn | Xem & export lop, quan ly user |\n| citizen | citizen@campha.gov.vn | Chi xem du lieu cong khai |\n\n**Mat khau chung:** `CamPha@2026`\n\n### Rate limit\n| Nhom | Gioi han | Cua so |\n|---|---|---|\n| Tat ca /api/ | 1000 req | 15 phut |\n| Auth | 20 req | 15 phut |\n| Quen/dat lai mat khau | 5 req | 15 phut |\n| Web Map & Map Proxy | 120 req | 1 phut |\n\n### Response envelope\n```\n// Thanh cong\n{ \"message\": \"...\", \"status\": 200, \"data\": { ... } }\n// Danh sach\n{ ..., \"data\": { \"items\": [...] }, \"metadata\": { \"page\", \"limit\", \"total\" } }\n// Loi\n{ \"success\": false, \"message\": \"...\", \"errors\": [] }\n```",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3006", "type": "string", "description": "Doi cong theo PORT trong .env" },
+    { "key": "testPassword", "value": "CamPha@2026", "type": "string", "description": "Mat khau chung (dev only)" },
+    { "key": "adminEmail", "value": "admin@campha.gov.vn", "type": "string" },
+    { "key": "ubndEmail", "value": "ubnd@campha.gov.vn", "type": "string" },
+    { "key": "tnmtEmail", "value": "tnmt@campha.gov.vn", "type": "string" },
+    { "key": "xdEmail", "value": "xaydung@campha.gov.vn", "type": "string" },
+    { "key": "citizenEmail", "value": "citizen@campha.gov.vn", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "ubndToken", "value": "", "type": "string" },
+    { "key": "tnmtToken", "value": "", "type": "string" },
+    { "key": "xdToken", "value": "", "type": "string" },
+    { "key": "citizenToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "challengeToken", "value": "", "type": "string" },
+    { "key": "userId", "value": "2", "type": "string" },
+    { "key": "layerId", "value": "1", "type": "string" },
+    { "key": "jobId", "value": "1", "type": "string" },
+    { "key": "storageObjectId", "value": "1", "type": "string" },
+    { "key": "sessionId", "value": "1", "type": "string" },
+    { "key": "featureId", "value": "1", "type": "string" },
+    { "key": "newsId", "value": "1", "type": "string" },
+    { "key": "commentId", "value": "1", "type": "string" },
+    { "key": "documentId", "value": "1", "type": "string" },
+    { "key": "pdfMapId", "value": "1", "type": "string" },
+    { "key": "newsUpdatedAt", "value": "", "type": "string" },
+    { "key": "documentUpdatedAt", "value": "", "type": "string" },
+    { "key": "pdfMapUpdatedAt", "value": "", "type": "string" }
+  ],
   "item": [
     {
-      "name": "Health",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/health"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('200 OK', () => pm.response.to.have.status(200));",
-              "pm.expect(pm.response.json().status).to.eql('OK');"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login system_admin",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{testPassword}}\"}"
-        },
-        "url": "{{baseUrl}}/api/v1/auth/login"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('login admin 200', () => pm.response.to.have.status(200));",
-              "pm.environment.set('adminToken', pm.response.json().data.accessToken);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Admin me",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/v1/auth/me"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('admin me 200', () => pm.response.to.have.status(200));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Missing token rejected",
-      "request": {
-        "method": "GET",
-        "url": "{{baseUrl}}/api/v1/auth/me"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('401 without token', () => pm.response.to.have.status(401));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "system_admin reads logs with DB permission",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{adminToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/v1/admin/system-logs"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('200 with DB permission', () => pm.response.to.have.status(200));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login citizen for RBAC test",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\"email\":\"{{citizenEmail}}\",\"password\":\"{{testPassword}}\"}"
-        },
-        "url": "{{baseUrl}}/api/v1/auth/login"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('citizen login 200', () => pm.response.to.have.status(200));",
-              "pm.environment.set('citizenToken', pm.response.json().data.accessToken);"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Citizen permission denied",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{citizenToken}}"
-          }
-        ],
-        "url": "{{baseUrl}}/api/v1/admin/system-logs"
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('403 without DB permission', () => pm.response.to.have.status(403));"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Login remaining roles",
+      "name": "System",
       "item": [
         {
-          "name": "UBND",
+          "name": "Health Check",
           "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"email\":\"{{ubndEmail}}\",\"password\":\"{{testPassword}}\"}"
-            },
-            "url": "{{baseUrl}}/api/v1/auth/login"
-          }
-        },
-        {
-          "name": "TNMT",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"email\":\"{{tnmtEmail}}\",\"password\":\"{{testPassword}}\"}"
-            },
-            "url": "{{baseUrl}}/api/v1/auth/login"
-          }
-        },
-        {
-          "name": "Xây dựng",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"email\":\"{{xdEmail}}\",\"password\":\"{{testPassword}}\"}"
-            },
-            "url": "{{baseUrl}}/api/v1/auth/login"
-          }
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] },
+            "description": "Tra ve `{ status: 'OK', timestamp }`. Xac nhan server dang chay."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "pm.test('status la OK', () => pm.expect(pm.response.json().status).to.eql('OK'));"] } }]
         }
       ]
     },
     {
-      "name": "Sprint 4 Web Map",
+      "name": "Xac thuc",
+      "description": "Toan bo luong xac thuc: dang nhap, dang ky, MFA, OAuth, quan ly phien.",
+      "auth": { "type": "noauth" },
       "item": [
         {
-          "name": "Anonymous catalog 200",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/web-map/layers"
-          },
-          "event": [
+          "name": "Dang nhap theo vai tro",
+          "description": "Chay tat ca 5 request de dien token vao Collection Variables. Token cung tu dong lay qua auto-login khi can.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Anonymous catalog 200', () => pm.response.to.have.status(200));"
-                ]
-              }
+              "name": "Login - system_admin",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@campha.gov.vn\",\n  \"password\": \"CamPha@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }, "description": "Dang nhap system_admin. Token -> adminToken + refreshToken." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const d = pm.response.json().data;", "if (d && d.accessToken) {", "  pm.collectionVariables.set('adminToken', d.accessToken);", "  pm.collectionVariables.set('refreshToken', d.refreshToken);", "  pm.environment.set('adminToken', d.accessToken);", "  pm.environment.set('refreshToken', d.refreshToken);", "}"] } }]
+            },
+            {
+              "name": "Login - ubnd_tp",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"ubnd@campha.gov.vn\",\n  \"password\": \"CamPha@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }, "description": "Dang nhap ubnd_tp. Token -> ubndToken." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const d = pm.response.json().data;", "if (d && d.accessToken) { pm.collectionVariables.set('ubndToken', d.accessToken); pm.environment.set('ubndToken', d.accessToken); }"] } }]
+            },
+            {
+              "name": "Login - so_tnmt",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"tnmt@campha.gov.vn\",\n  \"password\": \"CamPha@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }, "description": "Dang nhap so_tnmt. Token -> tnmtToken. Co day du quyen lop ban do va user." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const d = pm.response.json().data;", "if (d && d.accessToken) { pm.collectionVariables.set('tnmtToken', d.accessToken); pm.environment.set('tnmtToken', d.accessToken); }"] } }]
+            },
+            {
+              "name": "Login - so_xd",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"xaydung@campha.gov.vn\",\n  \"password\": \"CamPha@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }, "description": "Dang nhap so_xd. Token -> xdToken." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const d = pm.response.json().data;", "if (d && d.accessToken) { pm.collectionVariables.set('xdToken', d.accessToken); pm.environment.set('xdToken', d.accessToken); }"] } }]
+            },
+            {
+              "name": "Login - citizen",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"citizen@campha.gov.vn\",\n  \"password\": \"CamPha@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] }, "description": "Dang nhap citizen. Token -> citizenToken. Dung de test RBAC." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const d = pm.response.json().data;", "if (d && d.accessToken) { pm.collectionVariables.set('citizenToken', d.accessToken); pm.environment.set('citizenToken', d.accessToken); }"] } }]
             }
           ]
         },
         {
-          "name": "Basemap catalog 200",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/web-map/basemaps"
-          },
-          "event": [
+          "name": "Dang ky & Xac minh Email",
+          "description": "Luong tu dang ky tai khoan nguoi dan. Rate limit: 20 req/15 phut.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Basemap catalog 200', () => pm.response.to.have.status(200));"
-                ]
-              }
+              "name": "Dang ky tai khoan",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"test.user@example.com\",\n  \"password\": \"Test@12345\",\n  \"fullName\": \"Nguyen Van Test\",\n  \"phone\": \"0901234567\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/register", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","register"] }, "description": "Tu dang ky tai khoan nguoi dan. He thong gui email xac minh." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] } }]
+            },
+            {
+              "name": "Xac minh Email",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"token\": \"<token-tu-link-trong-email>\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","verify-email"] }, "description": "Xac minh dia chi email bang token tu email. Token dung mot lan va co thoi han." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Gui lai Email xac minh",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"test.user@example.com\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/resend-verification", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","resend-verification"] }, "description": "Gui lai email xac minh. Rate limit: 5 req/15 phut." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
             }
           ]
         },
         {
-          "name": "Feature search 200",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/web-map/features/search?q=cam%20pha&limit=20"
-          },
-          "event": [
+          "name": "Quen & Dat lai mat khau",
+          "description": "Khoi phuc mat khau qua email. Rate limit: 5 req/15 phut.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Feature search 200', () => pm.response.to.have.status(200));"
-                ]
-              }
+              "name": "Quen mat khau",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@campha.gov.vn\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","forgot-password"] }, "description": "Yeu cau gui link dat lai mat khau. Luon tra ve 200 du email co ton tai hay khong." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Dat lai mat khau",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"token\": \"<reset-token-tu-link-email>\",\n  \"newPassword\": \"NewPass@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] }, "description": "Dat mat khau moi bang token tu email. Token chi dung mot lan." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
             }
           ]
         },
         {
-          "name": "Citizen terrain 200",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{citizenToken}}"
-              }
-            ],
-            "url": "{{baseUrl}}/api/v1/web-map/terrain"
-          },
-          "event": [
+          "name": "Xac thuc 2 buoc MFA",
+          "description": "Luong MFA voi Google Authenticator.\n\n**Thu tu:** Login -> nhan challengeToken -> MFA Setup -> MFA Confirm -> MFA Verify khi dang nhap lan sau.",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Citizen terrain 200', () => pm.response.to.have.status(200));"
-                ]
-              }
+              "name": "MFA - Thiet lap",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/mfa/setup", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","mfa","setup"] }, "description": "Buoc 1: Nhan TOTP secret va otpauthUri de scan QR. Tra ve { secret, otpauthUri, qrCodeDataUrl }." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "MFA - Xac nhan (bat MFA)",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\",\n  \"code\": \"123456\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/mfa/confirm", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","mfa","confirm"] }, "description": "Buoc 2: Xac nhan ma TOTP 6 chu so de kich hoat MFA. Tra ve danh sach recovery codes." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "MFA - Xac thuc khi dang nhap",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\",\n  \"code\": \"123456\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/mfa/verify", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","mfa","verify"] }, "description": "Hoan tat dang nhap khi tai khoan bat MFA. Gui code (TOTP 6 so) HOAC recoveryCode. Tra ve { accessToken, refreshToken }." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
             }
           ]
         },
         {
-          "name": "Invalid search 400",
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/web-map/features/search?q=x&limit=100"
-          },
-          "event": [
+          "name": "Google OAuth",
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Invalid search 400', () => pm.response.to.have.status(400));"
-                ]
-              }
+              "name": "Google OAuth - Mobile (Firebase ID token)",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"idToken\": \"<firebase-id-token>\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/google/mobile", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","google","mobile"] }, "description": "Dang nhap tu app mobile bang Firebase ID token. Tra ve { accessToken, refreshToken, isNewUser }." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Google OAuth - Doi code lay token (Web)",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"code\": \"<short-lived-code-tu-callback>\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/oauth/exchange", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","oauth","exchange"] }, "description": "Frontend nhan ?code=... tu callback, goi endpoint nay de doi lay JWT. Code het han rat nhanh." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            }
+          ]
+        },
+        {
+          "name": "Ho so & Phien dang nhap",
+          "description": "Tat ca endpoint yeu cau Bearer token. Mac dinh dung adminToken.",
+          "item": [
+            {
+              "name": "Lam moi Token (Refresh)",
+              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh"] }, "description": "Doi refresh token lay cap token moi (rotation). Access token cu bi thu hoi ngay." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Thong tin ca nhan (GET /me)",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Thong tin ca nhan - khong token (401)",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"] } }]
+            },
+            {
+              "name": "Cap nhat ho so (PATCH /me)",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "PATCH", "header": [], "body": { "mode": "formdata", "formdata": [{ "key": "fullName", "value": "Nguyen Van Admin", "type": "text" }, { "key": "phone", "value": "0901234567", "type": "text" }, { "key": "avatar", "type": "file", "src": "", "disabled": true }] }, "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] }, "description": "Gui dang multipart/form-data. JPEG/PNG/GIF/WEBP, toi da 5 MB." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Doi mat khau",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"oldPassword\": \"CamPha@2026\",\n  \"newPassword\": \"NewPass@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","change-password"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Dat mat khau lan dau (Google account)",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"newPassword\": \"MyPass@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/set-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","set-password"] }, "description": "Danh cho tai khoan Google chua co mat khau. Thiet lap mat khau de dang nhap bang email/password." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Dang xuat",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","logout"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Danh sach phien dang nhap",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","sessions"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.sessions && j.data.sessions.length > 0) { pm.collectionVariables.set('sessionId', j.data.sessions[0].id); pm.environment.set('sessionId', j.data.sessions[0].id); }"] } }]
+            },
+            {
+              "name": "Thu hoi mot phien",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","sessions","{{sessionId}}"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Thu hoi tat ca phien",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] }, "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/auth/sessions", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","sessions"] }, "description": "token_version tang len — moi JWT cu het hieu luc ngay." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
             }
           ]
         }
       ]
     },
     {
-      "name": "Sprint 5 - CMS",
+      "name": "Admin - Nguoi dung",
+      "description": "Quan ly tai khoan. Token: tnmtToken (so_tnmt co day du quyen users.*).",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tnmtToken}}", "type": "string" }] },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.collectionVariables.get('tnmtToken') || pm.environment.get('tnmtToken');",
+              "if (!t) {",
+              "  const b = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || 'http://localhost:3006';",
+              "  pm.sendRequest({ url: b + '/api/v1/auth/login', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ email: 'tnmt@campha.gov.vn', password: 'CamPha@2026' }) } }, (err, res) => {",
+              "    if (!err && res.json().data && res.json().data.accessToken) {",
+              "      pm.collectionVariables.set('tnmtToken', res.json().data.accessToken);",
+              "      pm.environment.set('tnmtToken', res.json().data.accessToken);",
+              "    }",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
       "item": [
         {
-          "name": "Public news list",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/cms/news?page=1&limit=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cms",
-                "news?page=1&limit=20"
-              ]
-            }
-          },
-          "response": []
+          "name": "Danh sach nguoi dung",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/users?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "q", "value": "", "disabled": true }, { "key": "roleCode", "value": "citizen", "disabled": true }, { "key": "isActive", "value": "true", "disabled": true }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 1) { pm.collectionVariables.set('userId', items[1].id); pm.environment.set('userId', items[1].id); }"] } }]
         },
         {
-          "name": "Public news detail",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/cms/news/1",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cms",
-                "news",
-                "1"
-              ]
-            }
-          },
-          "response": []
+          "name": "Tao nguoi dung moi",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"newuser@campha.gov.vn\",\n  \"password\": \"NewUser@2026\",\n  \"fullName\": \"Nguyen Van Moi\",\n  \"phone\": \"0901111222\",\n  \"roleCode\": \"citizen\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/users", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));", "const j = pm.response.json(); if (j.data && j.data.user) { pm.collectionVariables.set('userId', j.data.user.id); pm.environment.set('userId', j.data.user.id); }"] } }]
         },
         {
-          "name": "Create pending comment",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"content\": \"N?i dung b?nh lu?n\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/cms/news/1/comments",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cms",
-                "news",
-                "1",
-                "comments"
-              ]
-            }
-          },
-          "response": []
+          "name": "Chi tiet nguoi dung",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
         },
         {
-          "name": "Public documents",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/cms/documents?page=1&limit=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cms",
-                "documents?page=1&limit=20"
-              ]
-            }
-          },
-          "response": []
+          "name": "Thay doi vai tro",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"roleCode\": \"so_xd\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/role", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","role"] }, "description": "roleCode: system_admin|ubnd_tp|so_tnmt|so_xd|citizen. Chi so_tnmt co quyen users.change_role." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
         },
         {
-          "name": "Document download URL",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/cms/documents/1/download-url?expireSeconds=300",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cms",
-                "documents",
-                "1",
-                "download-url?expireSeconds=300"
-              ]
-            }
-          },
-          "response": []
+          "name": "Kich hoat / Vo hieu hoa tai khoan",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"isActive\": false\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/active", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","active"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
         },
         {
-          "name": "Public PDF maps",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/cms/pdf-maps?page=1&limit=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "cms",
-                "pdf-maps?page=1&limit=20"
-              ]
-            }
-          },
-          "response": []
+          "name": "Dat lai mat khau (Admin reset)",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"newPassword\": \"Reset@2026!\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","reset-password"] }, "description": "Co must_change_password = true sau khi dat lai." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
         },
         {
-          "name": "Create admin news",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Th?ng b?o C?m Ph?\",\n  \"content\": \"N?i dung\",\n  \"visibility\": \"public\",\n  \"status\": \"draft\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/cms/news",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "cms",
-                "news"
-              ]
-            }
-          },
-          "response": []
+          "name": "Xoa nguoi dung",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
         },
         {
-          "name": "Create admin document",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"B?o c?o\",\n  \"documentCode\": \"BC-01\",\n  \"issuingAgency\": \"UBND TP C?m Ph?\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/cms/documents",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "cms",
-                "documents"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create admin PDF map",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"B?n ?? quy ho?ch\",\n  \"scaleLabel\": \"1:10.000\",\n  \"mapYear\": 2026,\n  \"preparingAgency\": \"UBND TP C?m Ph?\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "cms",
-                "pdf-maps"
-              ]
-            }
-          },
-          "response": []
+          "name": "Citizen bi tu choi truy cap admin (403)",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/users", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users"] }, "description": "Kiem tra RBAC: citizen goi admin endpoint -> 403 Forbidden." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] } }]
         }
       ]
     },
     {
-      "name": "Sprint 6a - Remote Sensing",
+      "name": "Admin - Nhat ky",
+      "description": "Tra cuu nhat ky. Token: adminToken (system_admin co system_logs.read va system_logs.manage).",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+              "if (!t) {",
+              "  const b = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || 'http://localhost:3006';",
+              "  pm.sendRequest({ url: b + '/api/v1/auth/login', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ email: 'admin@campha.gov.vn', password: 'CamPha@2026' }) } }, (err, res) => {",
+              "    if (!err && res.json().data && res.json().data.accessToken) {",
+              "      pm.collectionVariables.set('adminToken', res.json().data.accessToken);",
+              "      pm.environment.set('adminToken', res.json().data.accessToken);",
+              "    }",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
       "item": [
         {
-          "name": "Presign raster upload",
+          "name": "Danh sach nhat ky",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/system-logs?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","system-logs"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "level", "value": "error", "description": "debug|info|warn|error", "disabled": true }, { "key": "q", "value": "", "disabled": true }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Nhat ky - citizen bi tu choi (403)",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/system-logs", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","system-logs"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] } }]
+        },
+        {
+          "name": "Don dep nhat ky cu",
+          "request": { "method": "DELETE", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"olderThanDays\": 90\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/system-logs/cleanup", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","system-logs","cleanup"] }, "description": "Xoa nhat ky cu hon N ngay (1-3650). Tra ve { deleted: N }." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Storage",
+      "description": "Upload/download tep qua MinIO presigned URL.\n\n**Luong upload:** (1) Presign -> nhan PUT URL -> (2) PUT tep truc tiep len MinIO -> (3) Commit.\n\nToken: adminToken.",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+              "if (!t) {",
+              "  const b = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || 'http://localhost:3006';",
+              "  pm.sendRequest({ url: b + '/api/v1/auth/login', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ email: 'admin@campha.gov.vn', password: 'CamPha@2026' }) } }, (err, res) => {",
+              "    if (!err && res.json().data && res.json().data.accessToken) {",
+              "      pm.collectionVariables.set('adminToken', res.json().data.accessToken);",
+              "      pm.environment.set('adminToken', res.json().data.accessToken);",
+              "    }",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Tao presigned URL upload",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"category\": \"documents\",\n  \"originalName\": \"baocao.pdf\",\n  \"contentType\": \"application/pdf\",\n  \"expireSeconds\": 900\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/storage/uploads/presign", "host": ["{{baseUrl}}"], "path": ["api","v1","storage","uploads","presign"] }, "description": "category: layers|raster|documents|field-photos. Tra ve { uploadUrl, objectId }." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.objectId) { pm.collectionVariables.set('storageObjectId', j.data.objectId); pm.environment.set('storageObjectId', j.data.objectId); }"] } }]
+        },
+        {
+          "name": "Xac nhan tep da upload (Commit)",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/storage/uploads/{{storageObjectId}}/commit", "host": ["{{baseUrl}}"], "path": ["api","v1","storage","uploads","{{storageObjectId}}","commit"] }, "description": "Server quet virus (ClamAV) -> chuyen tep tu bucket quarantine sang bucket chinh." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Lay URL tai xuong",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/storage/objects/{{storageObjectId}}/download-url?expireSeconds=900", "host": ["{{baseUrl}}"], "path": ["api","v1","storage","objects","{{storageObjectId}}","download-url"], "query": [{ "key": "expireSeconds", "value": "900" }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Xoa tep",
+          "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/storage/objects/{{storageObjectId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","storage","objects","{{storageObjectId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Admin - Lop ban do",
+      "description": "Quan ly lop du lieu GIS. Token: tnmtToken.",
+      "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tnmtToken}}", "type": "string" }] },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t = pm.collectionVariables.get('tnmtToken') || pm.environment.get('tnmtToken');",
+              "if (!t) {",
+              "  const b = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || 'http://localhost:3006';",
+              "  pm.sendRequest({ url: b + '/api/v1/auth/login', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ email: 'tnmt@campha.gov.vn', password: 'CamPha@2026' }) } }, (err, res) => {",
+              "    if (!err && res.json().data && res.json().data.accessToken) {",
+              "      pm.collectionVariables.set('tnmtToken', res.json().data.accessToken);",
+              "      pm.environment.set('tnmtToken', res.json().data.accessToken);",
+              "    }",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Import du lieu",
+          "description": "Import lop tu Shapefile hoac Excel. Thu tu: Upload qua Storage -> lay storageObjectId -> goi Import -> theo doi Job.",
+          "item": [
+            {
+              "name": "Import Shapefile",
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fileObjectId\": {{storageObjectId}},\n  \"code\": \"ranh_gioi_phuong\",\n  \"nameVi\": \"Ranh gioi phuong\",\n  \"category\": \"boundary\",\n  \"targetSrid\": 4326,\n  \"isPublic\": false,\n  \"sourceEncoding\": \"UTF-8\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/imports/shapefile", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","imports","shapefile"] }, "description": "code: chu thuong, bat dau bang chu cai, dung _, 3-59 ky tu. Tra ve { jobId }." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('202 Accepted', () => pm.response.to.have.status(202));", "const j = pm.response.json(); if (j.data && j.data.jobId) { pm.collectionVariables.set('jobId', j.data.jobId); pm.environment.set('jobId', j.data.jobId); }"] } }]
+            },
+            {
+              "name": "Import Excel (diem toa do)",
+              "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"fileObjectId\": {{storageObjectId}},\n  \"code\": \"diem_quan_trac\",\n  \"nameVi\": \"Diem quan trac moi truong\",\n  \"category\": \"monitoring\",\n  \"sheetName\": \"Sheet1\",\n  \"xColumn\": \"longitude\",\n  \"yColumn\": \"latitude\",\n  \"sourceSrid\": 4326,\n  \"targetSrid\": 4326,\n  \"isPublic\": false\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/imports/excel", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","imports","excel"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('202 Accepted', () => pm.response.to.have.status(202));", "const j = pm.response.json(); if (j.data && j.data.jobId) { pm.collectionVariables.set('jobId', j.data.jobId); pm.environment.set('jobId', j.data.jobId); }"] } }]
+            },
+            {
+              "name": "Trang thai Import Job",
+              "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/imports/{{jobId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","imports","{{jobId}}"] }, "description": "Trang thai: pending|processing|completed|failed. Khi completed, tra ve layerId." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.layerId) { pm.collectionVariables.set('layerId', j.data.layerId); pm.environment.set('layerId', j.data.layerId); }"] } }]
+            },
+            {
+              "name": "Loi Import Job",
+              "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/imports/{{jobId}}/errors?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","imports","{{jobId}}","errors"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            }
+          ]
+        },
+        {
+          "name": "Danh sach lop ban do",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/layers?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "q", "value": "", "disabled": true }, { "key": "geometryType", "value": "POINT", "disabled": true }, { "key": "isPublic", "value": "true", "disabled": true }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('layerId', items[0].id); pm.environment.set('layerId', items[0].id); }"] } }]
+        },
+        {
+          "name": "Chi tiet lop ban do",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","{{layerId}}"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Cap nhat lop ban do",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\",\n  \"nameVi\": \"Ranh gioi phuong (cap nhat)\",\n  \"isPublic\": true,\n  \"minZoom\": 10,\n  \"maxZoom\": 18\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","{{layerId}}"] }, "description": "expectedUpdatedAt bat buoc (optimistic locking)." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Phan quyen lop ban do",
+          "request": { "method": "PUT", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"permissions\": [\n    { \"roleCode\": \"so_xd\", \"canView\": true, \"canExport\": true, \"canEdit\": false, \"canDelete\": false },\n    { \"roleCode\": \"ubnd_tp\", \"canView\": true, \"canExport\": false, \"canEdit\": false, \"canDelete\": false }\n  ]\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/permissions", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","{{layerId}}","permissions"] }, "description": "Thiet lap phan quyen theo vai tro (ghi de toan bo). Toi da 5 phan tu." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Publish len GeoServer",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/publish", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","{{layerId}}","publish"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Xoa lop ban do",
+          "request": { "method": "DELETE", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","layers","{{layerId}}"] }, "description": "expectedUpdatedAt bat buoc. Khong the hoan tac." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Web Map",
+      "description": "API cho WebGIS phia client. Dung optionalAuth — token khong bat buoc nhung neu co se mo rong du lieu theo vai tro.\n\nRate limit: 120 req/phut.",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "Danh sach lop (khong dang nhap)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/layers", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","layers"], "query": [{ "key": "category", "value": "boundary", "disabled": true }] }, "description": "Chi thay lop isPublic = true." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('layerId', items[0].id); pm.environment.set('layerId', items[0].id); }"] } }]
+        },
+        {
+          "name": "Danh sach lop (so_tnmt)",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tnmtToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/layers", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","layers"] }, "description": "Bao gom ca lop rieng tu. So sanh voi request an danh de thay su khac biet." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Chi tiet Feature",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/layers/{{layerId}}/features/{{featureId}}?includeGeometry=false", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","layers","{{layerId}}","features","{{featureId}}"], "query": [{ "key": "includeGeometry", "value": "false" }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Tim kiem feature (toan van)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/features/search?q=cam pha&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","features","search"], "query": [{ "key": "q", "value": "cam pha" }, { "key": "limit", "value": "20" }, { "key": "bbox", "value": "107.3,21.0,107.5,21.2", "disabled": true }] }, "description": "Tu khoa >= 2 ky tu." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('featureId', items[0].id); pm.collectionVariables.set('layerId', items[0].layerId); pm.environment.set('featureId', items[0].id); pm.environment.set('layerId', items[0].layerId); }"] } }]
+        },
+        {
+          "name": "Tim kiem - validation loi (400)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/features/search?q=x&limit=100", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","features","search"], "query": [{ "key": "q", "value": "x" }, { "key": "limit", "value": "100" }] }, "description": "q < 2 ky tu + limit > 50 -> 400 Bad Request." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('400 Bad Request (validation)', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Style & Legend lop",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/layers/{{layerId}}/legend", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","layers","{{layerId}}","legend"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Danh sach Basemap",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/basemaps", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","basemaps"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Danh sach Terrain / DEM",
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/terrain", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","terrain"] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "URL tile Terrain",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/web-map/terrain/{{layerId}}/url?expireSeconds=300", "host": ["{{baseUrl}}"], "path": ["api","v1","web-map","terrain","{{layerId}}","url"], "query": [{ "key": "expireSeconds", "value": "300" }] } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Map Proxy - GeoServer",
+      "description": "Proxy den GeoServer phuc vu WMS (anh) va WFS (vector). Rate limit: 120 req/phut.",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "WMS - GetMap (anh ban do)",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/maps/layers/{{layerId}}/wms?request=GetMap&bbox=107.30,21.00,107.50,21.20&width=512&height=512&crs=EPSG:4326&format=image/png&transparent=true", "host": ["{{baseUrl}}"], "path": ["api","v1","maps","layers","{{layerId}}","wms"], "query": [{ "key": "request", "value": "GetMap" }, { "key": "bbox", "value": "107.30,21.00,107.50,21.20" }, { "key": "width", "value": "512" }, { "key": "height", "value": "512" }, { "key": "crs", "value": "EPSG:4326" }, { "key": "format", "value": "image/png" }, { "key": "transparent", "value": "true" }] }, "description": "Response la anh nhi phan PNG/JPEG — khong phai JSON. Nhan Send and Download de thay anh." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "WFS - GetFeature (du lieu vector / export)",
+          "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{tnmtToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/maps/layers/{{layerId}}/wfs?request=GetFeature&count=100&outputFormat=application/json", "host": ["{{baseUrl}}"], "path": ["api","v1","maps","layers","{{layerId}}","wfs"], "query": [{ "key": "request", "value": "GetFeature" }, { "key": "count", "value": "100" }, { "key": "outputFormat", "value": "application/json" }, { "key": "bbox", "value": "107.30,21.00,107.50,21.20", "disabled": true }] }, "description": "Xuat du lieu vector GeoJSON tu GeoServer. Can quyen can_export." },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "CMS",
+      "description": "API CMS day du: tin tuc, tai lieu, ban do PDF — bao gom ca CRUD admin.\n\nLuu y DELETE: dung expectedUpdatedAt la query param (?expectedUpdatedAt=...), khong phai body.",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "Tin tuc (Public)",
+          "description": "Endpoint cong khai. Khong can token.",
+          "item": [
+            {
+              "name": "Danh sach tin tuc",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/news?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","news"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "q", "value": "", "disabled": true }] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('newsId', items[0].id); pm.environment.set('newsId', items[0].id); }"] } }]
+            },
+            {
+              "name": "Chi tiet tin tuc",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/news/{{newsId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","news","{{newsId}}"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Danh sach binh luan",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/news/{{newsId}}/comments?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","news","{{newsId}}","comments"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] }, "description": "Chi hien thi binh luan da duyet (approved)." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "Gui binh luan",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"content\": \"Noi dung binh luan (toi da 2000 ky tu)\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/cms/news/{{newsId}}/comments", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","news","{{newsId}}","comments"] }, "description": "Can dang nhap. Binh luan vao trang thai pending — admin phai duyet moi hien thi. Rate limit: 10 req/15 phut." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));"] } }]
+            }
+          ]
+        },
+        {
+          "name": "Tai lieu (Public)",
+          "description": "Danh muc tai lieu / van ban cong khai.",
+          "item": [
+            {
+              "name": "Danh sach tai lieu",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/documents?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","documents"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "q", "value": "", "disabled": true }] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('documentId', items[0].id); pm.environment.set('documentId', items[0].id); }"] } }]
+            },
+            {
+              "name": "Chi tiet tai lieu",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/documents/{{documentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","documents","{{documentId}}"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "URL tai tai lieu",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/documents/{{documentId}}/download-url?expireSeconds=300", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","documents","{{documentId}}","download-url"], "query": [{ "key": "expireSeconds", "value": "300" }] }, "description": "Can dang nhap. URL het han sau expireSeconds giay." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            }
+          ]
+        },
+        {
+          "name": "Ban do PDF (Public)",
+          "description": "Danh muc ban do PDF cong khai.",
+          "item": [
+            {
+              "name": "Danh sach ban do PDF",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/pdf-maps?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","pdf-maps"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "q", "value": "", "disabled": true }] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('pdfMapId', items[0].id); pm.environment.set('pdfMapId', items[0].id); }"] } }]
+            },
+            {
+              "name": "Chi tiet ban do PDF",
+              "request": { "auth": { "type": "noauth" }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/pdf-maps/{{pdfMapId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","pdf-maps","{{pdfMapId}}"] } },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            },
+            {
+              "name": "URL tai ban do PDF",
+              "request": { "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{citizenToken}}", "type": "string" }] }, "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/cms/pdf-maps/{{pdfMapId}}/download-url?expireSeconds=300", "host": ["{{baseUrl}}"], "path": ["api","v1","cms","pdf-maps","{{pdfMapId}}","download-url"], "query": [{ "key": "expireSeconds", "value": "300" }] }, "description": "Can dang nhap." },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+            }
+          ]
+        },
+        {
+          "name": "Admin CMS",
+          "description": "Quan ly toan bo noi dung CMS. Token: adminToken (tu dong lay neu chua co).\n\nDELETE dung expectedUpdatedAt la QUERY PARAM, khong phai body.",
+          "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
           "event": [
             {
-              "listen": "test",
+              "listen": "prerequest",
               "script": {
+                "type": "text/javascript",
                 "exec": [
-                  "pm.test('201 Created',()=>pm.response.to.have.status(201));",
-                  "const d=pm.response.json().data; pm.environment.set('rasterFileObjectId',d.id); pm.environment.set('rasterUploadUrl',d.uploadUrl);"
-                ],
-                "type": "text/javascript"
+                  "const t = pm.collectionVariables.get('adminToken') || pm.environment.get('adminToken');",
+                  "if (!t) {",
+                  "  const b = pm.collectionVariables.get('baseUrl') || pm.environment.get('baseUrl') || 'http://localhost:3006';",
+                  "  pm.sendRequest({ url: b + '/api/v1/auth/login', method: 'POST', header: [{ key: 'Content-Type', value: 'application/json' }], body: { mode: 'raw', raw: JSON.stringify({ email: 'admin@campha.gov.vn', password: 'CamPha@2026' }) } }, (err, res) => {",
+                  "    if (!err && res.json().data && res.json().data.accessToken) {",
+                  "      pm.collectionVariables.set('adminToken', res.json().data.accessToken);",
+                  "      pm.environment.set('adminToken', res.json().data.accessToken);",
+                  "    }",
+                  "  });",
+                  "}"
+                ]
               }
             }
           ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tnmtToken}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"category\": \"raster\",\n  \"originalName\": \"sentinel-2-campha.tif\",\n  \"contentType\": \"image/tiff\",\n  \"expireSeconds\": 900\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/storage/uploads/presign",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "storage",
-                "uploads",
-                "presign"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "PUT GeoTIFF to quarantine",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "image/tiff",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "file",
-              "file": {
-                "src": "sentinel-2-campha.tif"
-              }
-            },
-            "url": {
-              "raw": "{{rasterUploadUrl}}",
-              "host": [
-                "{{rasterUploadUrl}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Commit raster upload",
-          "event": [
+          "item": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('200 OK',()=>pm.response.to.have.status(200));"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tnmtToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/storage/uploads/{{rasterFileObjectId}}/commit",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "storage",
-                "uploads",
-                "{{rasterFileObjectId}}",
-                "commit"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Search satellite images",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/remote-sensing/images?platform=sentinel-2&from=2024-01-01&to=2026-12-31&page=1&limit=20&sort=acquiredAt:desc",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "remote-sensing",
-                "images?platform=sentinel-2&from=2024-01-01&to=2026-12-31&page=1&limit=20&sort=acquiredAt:desc"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Satellite image detail",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "remote-sensing",
-                "images",
-                "{{satelliteImageId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Compare satellite images",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/remote-sensing/compare?beforeId={{satelliteImageBeforeId}}&afterId={{satelliteImageAfterId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "remote-sensing",
-                "compare?beforeId={{satelliteImageBeforeId}}&afterId={{satelliteImageAfterId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Download satellite image URL",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}/download-url?expireSeconds=300",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "remote-sensing",
-                "images",
-                "{{satelliteImageId}}",
-                "download-url?expireSeconds=300"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Admin satellite catalog",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images?page=1&limit=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "remote-sensing",
-                "images?page=1&limit=20"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create satellite metadata",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"sceneCode\": \"S2A_CAMPHA_20260101\",\n  \"title\": \"Sentinel-2 C?m Ph? 01/2026\",\n  \"platform\": \"sentinel-2\",\n  \"thematicGroup\": \"land-cover\",\n  \"coverageKey\": \"campha-core\",\n  \"acquiredAt\": \"2026-01-01T03:00:00Z\",\n  \"productLevel\": \"L2A\",\n  \"resolutionM\": 10,\n  \"cloudCoverPercent\": 5,\n  \"fileObjectId\": \"{{rasterFileObjectId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "name": "Admin - Tin tuc",
+              "description": "CRUD tin tuc + quan ly binh luan.",
+              "item": [
+                {
+                  "name": "Danh sach tin tuc (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "status", "value": "draft", "disabled": true }, { "key": "visibility", "value": "internal", "disabled": true }] }, "description": "Bao gom ca draft, archived. Test script tu luu newsId va newsUpdatedAt." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('newsId', items[0].id); pm.collectionVariables.set('newsUpdatedAt', items[0].updatedAt); pm.environment.set('newsId', items[0].id); pm.environment.set('newsUpdatedAt', items[0].updatedAt); }"] } }]
+                },
+                {
+                  "name": "Tao tin tuc",
+                  "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Thong bao Cam Pha thang 8/2026\",\n  \"summary\": \"Tom tat ngan gon\",\n  \"content\": \"Noi dung day du cua thong bao...\",\n  \"visibility\": \"public\",\n  \"status\": \"draft\",\n  \"publishedAt\": null\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news"] }, "description": "title (bat buoc, toi da 300), content (bat buoc, toi da 100000), visibility: public|internal, status: draft|published|archived." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));", "const j = pm.response.json(); if (j.data && j.data.news) { pm.collectionVariables.set('newsId', j.data.news.id); pm.collectionVariables.set('newsUpdatedAt', j.data.news.updatedAt); pm.environment.set('newsId', j.data.news.id); pm.environment.set('newsUpdatedAt', j.data.news.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Chi tiet tin tuc (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news/{{newsId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news","{{newsId}}"] }, "description": "Chi tiet bat ke trang thai (ke ca draft). Dung de lay updatedAt moi nhat." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.news) { pm.collectionVariables.set('newsUpdatedAt', j.data.news.updatedAt); pm.environment.set('newsUpdatedAt', j.data.news.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Cap nhat tin tuc",
+                  "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"expectedUpdatedAt\": \"{{newsUpdatedAt}}\",\n  \"title\": \"Thong bao Cam Pha (cap nhat)\",\n  \"status\": \"published\",\n  \"publishedAt\": \"2026-08-01T07:00:00.000Z\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news/{{newsId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news","{{newsId}}"] }, "description": "expectedUpdatedAt bat buoc (optimistic locking). It nhat 2 field." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.news) { pm.collectionVariables.set('newsUpdatedAt', j.data.news.updatedAt); pm.environment.set('newsUpdatedAt', j.data.news.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Xoa tin tuc",
+                  "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news/{{newsId}}?expectedUpdatedAt={{newsUpdatedAt}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news","{{newsId}}"], "query": [{ "key": "expectedUpdatedAt", "value": "{{newsUpdatedAt}}", "description": "Bat buoc — gia tri updatedAt hien tai (QUERY PARAM, khong phai body)" }] }, "description": "expectedUpdatedAt la QUERY PARAM. Lay tu newsUpdatedAt tu dong luu." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+                },
+                {
+                  "name": "Danh sach binh luan (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news/{{newsId}}/comments?page=1&limit=20&status=pending", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news","{{newsId}}","comments"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "status", "value": "pending", "description": "pending|approved|rejected" }] }, "description": "Bao gom ca pending va rejected. Lay commentId de duyet." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('commentId', items[0].id); pm.environment.set('commentId', items[0].id); }"] } }]
+                },
+                {
+                  "name": "Duyet binh luan",
+                  "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/news/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","news","comments","{{commentId}}"] }, "description": "status: approved hoac rejected. commentId tu dong luu tu Danh sach binh luan (admin)." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
                 }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "remote-sensing",
-                "images"
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Categorize satellite image",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"thematicGroup\": \"forest\",\n  \"expectedUpdatedAt\": \"{{satelliteImageUpdatedAt}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+            },
+            {
+              "name": "Admin - Tai lieu",
+              "description": "Quan ly tai lieu / van ban. Khong co PATCH — thay the bang cach xoa roi tao moi.",
+              "item": [
+                {
+                  "name": "Danh sach tai lieu (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/documents?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","documents"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "visibility", "value": "internal", "disabled": true }] }, "description": "Bao gom ca internal. Test script tu luu documentId va documentUpdatedAt." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('documentId', items[0].id); pm.collectionVariables.set('documentUpdatedAt', items[0].updatedAt); pm.environment.set('documentId', items[0].id); pm.environment.set('documentUpdatedAt', items[0].updatedAt); }"] } }]
+                },
+                {
+                  "name": "Tao tai lieu",
+                  "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Bao cao kinh te xa hoi 2026\",\n  \"documentCode\": \"BC-KTXH-2026\",\n  \"issuingAgency\": \"UBND TP Cam Pha\",\n  \"issuedAt\": \"2026-01-15T00:00:00.000Z\",\n  \"description\": \"Bao cao tong hop tinh hinh kinh te xa hoi nam 2026\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": {{storageObjectId}}\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/documents", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","documents"] }, "description": "title, documentCode, issuingAgency bat buoc. fileObjectId tu Storage." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));", "const j = pm.response.json(); if (j.data && j.data.document) { pm.collectionVariables.set('documentId', j.data.document.id); pm.collectionVariables.set('documentUpdatedAt', j.data.document.updatedAt); pm.environment.set('documentId', j.data.document.id); pm.environment.set('documentUpdatedAt', j.data.document.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Chi tiet tai lieu (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/documents/{{documentId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","documents","{{documentId}}"] }, "description": "Dung de lay updatedAt truoc khi xoa." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.document) { pm.collectionVariables.set('documentUpdatedAt', j.data.document.updatedAt); pm.environment.set('documentUpdatedAt', j.data.document.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Xoa tai lieu",
+                  "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/documents/{{documentId}}?expectedUpdatedAt={{documentUpdatedAt}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","documents","{{documentId}}"], "query": [{ "key": "expectedUpdatedAt", "value": "{{documentUpdatedAt}}", "description": "Bat buoc — QUERY PARAM" }] }, "description": "expectedUpdatedAt la QUERY PARAM. Lay tu documentUpdatedAt tu dong luu." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
                 }
-              }
+              ]
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}/category",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "remote-sensing",
-                "images",
-                "{{satelliteImageId}}",
-                "category"
+            {
+              "name": "Admin - Ban do PDF",
+              "description": "Quan ly ban do PDF: them, cap nhat, xoa.",
+              "item": [
+                {
+                  "name": "Danh sach ban do PDF (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","pdf-maps"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }, { "key": "visibility", "value": "internal", "disabled": true }] }, "description": "Test script tu luu pdfMapId va pdfMapUpdatedAt." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('pdfMapId', items[0].id); pm.collectionVariables.set('pdfMapUpdatedAt', items[0].updatedAt); pm.environment.set('pdfMapId', items[0].id); pm.environment.set('pdfMapUpdatedAt', items[0].updatedAt); }"] } }]
+                },
+                {
+                  "name": "Tao ban do PDF",
+                  "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"title\": \"Ban do quy hoach su dung dat 2026\",\n  \"scaleLabel\": \"1:10.000\",\n  \"mapYear\": 2026,\n  \"preparingAgency\": \"UBND TP Cam Pha\",\n  \"description\": \"Ban do quy hoach su dung dat ky 2021-2026\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": {{storageObjectId}}\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","pdf-maps"] }, "description": "scaleLabel vi du: 1:10.000. mapYear: 1900-2200. fileObjectId bat buoc." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 Created', () => pm.response.to.have.status(201));", "const j = pm.response.json(); if (j.data && j.data.pdfMap) { pm.collectionVariables.set('pdfMapId', j.data.pdfMap.id); pm.collectionVariables.set('pdfMapUpdatedAt', j.data.pdfMap.updatedAt); pm.environment.set('pdfMapId', j.data.pdfMap.id); pm.environment.set('pdfMapUpdatedAt', j.data.pdfMap.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Chi tiet ban do PDF (admin)",
+                  "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps/{{pdfMapId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","pdf-maps","{{pdfMapId}}"] }, "description": "Dung de lay updatedAt truoc khi cap nhat hoac xoa." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.pdfMap) { pm.collectionVariables.set('pdfMapUpdatedAt', j.data.pdfMap.updatedAt); pm.environment.set('pdfMapUpdatedAt', j.data.pdfMap.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Cap nhat ban do PDF",
+                  "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"expectedUpdatedAt\": \"{{pdfMapUpdatedAt}}\",\n  \"title\": \"Ban do quy hoach SDD 2026 (cap nhat)\",\n  \"visibility\": \"public\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps/{{pdfMapId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","pdf-maps","{{pdfMapId}}"] }, "description": "expectedUpdatedAt bat buoc (optimistic locking). It nhat 2 field." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));", "const j = pm.response.json(); if (j.data && j.data.pdfMap) { pm.collectionVariables.set('pdfMapUpdatedAt', j.data.pdfMap.updatedAt); pm.environment.set('pdfMapUpdatedAt', j.data.pdfMap.updatedAt); }"] } }]
+                },
+                {
+                  "name": "Xoa ban do PDF",
+                  "request": { "method": "DELETE", "header": [], "url": { "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps/{{pdfMapId}}?expectedUpdatedAt={{pdfMapUpdatedAt}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","cms","pdf-maps","{{pdfMapId}}"], "query": [{ "key": "expectedUpdatedAt", "value": "{{pdfMapUpdatedAt}}", "description": "Bat buoc — QUERY PARAM" }] }, "description": "expectedUpdatedAt la QUERY PARAM. Lay tu pdfMapUpdatedAt tu dong luu." },
+                  "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
+                }
               ]
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete satellite image",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{adminToken}}",
-                "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "remote-sensing",
-                "images",
-                "{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}"
-              ]
-            }
-          },
-          "response": []
+          ]
         }
       ]
     }

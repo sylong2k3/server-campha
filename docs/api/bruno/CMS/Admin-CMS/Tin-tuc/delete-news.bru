@@ -1,0 +1,34 @@
+﻿meta {
+  name: Xoa tin tuc
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/admin/cms/news/{{newsId}}?expectedUpdatedAt={{newsUpdatedAt}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("adminToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("adminToken", data.data.accessToken);
+    }
+  }
+}
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

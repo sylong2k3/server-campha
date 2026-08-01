@@ -1,0 +1,19 @@
+﻿meta {
+  name: Citizen bi tu choi truy cap admin (403)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/v1/admin/users
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{citizenToken}}
+}
+
+tests {
+  test("403 Forbidden", function() { expect(res.getStatus()).to.equal(403); });
+}

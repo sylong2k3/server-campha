@@ -1,0 +1,19 @@
+﻿meta {
+  name: WMS - GetMap (anh ban do)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/maps/layers/{{layerId}}/wms?request=GetMap&bbox=107.30,21.00,107.50,21.20&width=512&height=512&crs=EPSG:4326&format=image/png&transparent=true
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{citizenToken}}
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

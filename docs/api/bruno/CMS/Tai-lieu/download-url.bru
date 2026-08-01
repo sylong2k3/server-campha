@@ -1,0 +1,19 @@
+﻿meta {
+  name: URL tai tai lieu
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/cms/documents/{{documentId}}/download-url?expireSeconds=300
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{citizenToken}}
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

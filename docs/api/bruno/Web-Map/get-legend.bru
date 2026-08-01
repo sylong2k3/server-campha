@@ -1,0 +1,15 @@
+﻿meta {
+  name: Style & Legend lop
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/web-map/layers/{{layerId}}/legend
+  body: none
+  auth: none
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+}

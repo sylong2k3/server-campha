@@ -1,0 +1,24 @@
+﻿meta {
+  name: MFA - Xac thuc khi dang nhap
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/auth/mfa/verify
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "challengeToken": "{{challengeToken}}",
+    "code": "123456"
+  }
+}
+
+tests {
+  test("200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

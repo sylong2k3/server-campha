@@ -1,0 +1,25 @@
+﻿meta {
+  name: Gui binh luan
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/cms/news/{{newsId}}/comments
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{citizenToken}}
+}
+
+body:json {
+  {
+    "content": "Noi dung binh luan (toi da 2000 ky tu)"
+  }
+}
+
+tests {
+  test("201 Created", function() { expect(res.getStatus()).to.equal(201); });
+}
