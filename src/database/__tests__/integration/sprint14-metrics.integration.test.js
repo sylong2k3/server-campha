@@ -1,10 +1,15 @@
 'use strict';
+if (process.env.DB_NAME !== 'campha_test') {
+    throw new Error(
+        `Sprint 14 metrics integration chỉ được chạy với DB_NAME=campha_test; received ${process.env.DB_NAME}`,
+    );
+}
 process.env.METRICS_ENABLED = 'true';
 process.env.METRICS_TOKEN = 'm'.repeat(48);
 const request = require('supertest');
-const db = require('../../configs/database');
-const metrics = require('../metrics.util');
-const app = require('../../app');
+const db = require('../../../configs/database');
+const metrics = require('../../../utils/metrics.util');
+const app = require('../../../app');
 afterAll(async () => {
     metrics.reset();
     db.stopPoolMonitor();

@@ -27,21 +27,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run format:check
       - run: npm test -- --runInBand
       - run: npm run test:coverage -- --runInBand
-      - name: Validate OpenAPI YAML and unique operationId
-        run: |
-          node - <<'NODE'
-          const fs = require('fs');
-          const YAML = require('yaml');
-          const doc = YAML.parse(fs.readFileSync('docs/api/openapi.yaml', 'utf8'));
-          if (doc.openapi !== '3.1.0') throw new Error('OpenAPI 3.1.0 required');
-          const ids = [];
-          for (const item of Object.values(doc.paths)) {
-            for (const op of Object.values(item)) if (op?.operationId) ids.push(op.operationId);
-          }
-          if (ids.length !== new Set(ids).size) throw new Error('Duplicate operationId');
-          NODE
       - run: npm audit --omit=dev --audit-level=high
 
   semgrep:

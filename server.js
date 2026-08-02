@@ -2,6 +2,13 @@
 // PHẢI set trước MỌI `require` khác — vì Date/logger cache TZ lúc khởi tạo.
 process.env.TZ = process.env.TZ || 'Asia/Ho_Chi_Minh';
 
+// PHẢI validate/load env trước MỌI require khác dùng process.env (app.js,
+// tokenManager.util đọc JWT_SECRET ngay lúc module load) — nếu không, cấu
+// hình sai (secret placeholder, CORS "*" ở production, ...) chỉ vỡ ra lúc
+// runtime thay vì chặn ngay lúc khởi động.
+const { loadEnv } = require('./src/configs/env');
+loadEnv();
+
 const app = require('./src/app');
 const db = require('./src/configs/database');
 const { initializeEarthEngine, isInitialized } = require('./src/configs/gge');

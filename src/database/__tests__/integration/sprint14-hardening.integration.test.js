@@ -1,8 +1,13 @@
 'use strict';
+if (process.env.DB_NAME !== 'campha_test') {
+    throw new Error(
+        `Sprint 14 hardening integration chỉ được chạy với DB_NAME=campha_test; received ${process.env.DB_NAME}`,
+    );
+}
 process.env.REQUEST_BODY_LIMIT = '1kb';
 const request = require('supertest');
-const db = require('../configs/database');
-const app = require('../app');
+const db = require('../../../configs/database');
+const app = require('../../../app');
 let consoleError;
 beforeAll(() => {
     consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
