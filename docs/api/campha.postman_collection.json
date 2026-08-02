@@ -913,6 +913,205 @@
           "event": []
         }
       ]
+    },
+{
+  "name": "Sprint 9b - Routing va Offline Sync",
+  "description": "pgRouting, TNMT source edits, immutable history, restore and bounded conflict-aware sync.",
+  "item": [
+    {
+      "name": "Xay dung topology mang duong",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tnmtToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"directed\":false,\"snapToleranceMeters\":0.5}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/mobile/admin/routing-networks/{{mobileLayerId}}/rebuild"
+      },
+      "event": []
+    },
+    {
+      "name": "Bang chung topology",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tnmtToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/mobile/admin/routing-networks/{{mobileLayerId}}/topology"
+      },
+      "event": []
+    },
+    {
+      "name": "Tim duong ngan nhat",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"layerId\":{{mobileLayerId}},\"start\":[107.33,21.0],\"end\":[107.34,21.0],\"snapRadiusMeters\":100,\"maxDistanceMeters\":50000}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/mobile/routes/shortest"
+      },
+      "event": []
+    },
+    {
+      "name": "Sua thuoc tinh doi tuong TNMT",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tnmtToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"baseVersion\":1,\"attributes\":{\"name\":\"Cap nhat tu mobile\"}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}"
+      },
+      "event": []
+    },
+    {
+      "name": "Lich su phien ban doi tuong",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tnmtToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}/history"
+      },
+      "event": []
+    },
+    {
+      "name": "Khoi phuc version 1",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tnmtToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"baseVersion\":2}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}/restore/1"
+      },
+      "event": []
+    },
+    {
+      "name": "Offline sync idempotent",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tnmtToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"clientId\":\"785d9ba2-4d51-4d3a-b8af-28d285dc36d2\",\"changes\":[{\"clientChangeId\":\"8fd3461c-8a73-423b-8cca-e513696bba25\",\"layerId\":{{mobileLayerId}},\"featureId\":\"{{featureId}}\",\"baseVersion\":1,\"attributes\":{\"name\":\"Offline update\"}}]}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/api/v1/mobile/sync"
+      },
+      "event": []
     }
+  ]
+}
   ]
 }

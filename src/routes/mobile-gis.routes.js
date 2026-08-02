@@ -13,9 +13,16 @@ router.get('/layers/:layerId/features/:featureId',optionalAuth,readLimiter,stric
 router.get('/layers/:layerId/nearby',optionalAuth,readLimiter,strict(v.layerParams,'params'),strict(v.nearbyQuery,'query'),asyncHandler(controller.nearby));
 router.get('/weather/current',optionalAuth,readLimiter,strict(v.weatherQuery,'query'),asyncHandler(controller.weather));
 router.post('/measure',optionalAuth,readLimiter,strict(v.measureBody),asyncHandler(controller.measure));
+router.post('/routes/shortest',optionalAuth,readLimiter,strict(v.routeBody),asyncHandler(controller.route));
 router.use(verifyToken,enforcePasswordChange);
 router.post('/drafts',writeLimiter,strict(v.draftBody),asyncHandler(controller.createDraft));
 router.get('/drafts',strict(v.pageQuery,'query'),asyncHandler(controller.listDrafts));
 router.get('/drafts/:id',strict(v.idParams,'params'),asyncHandler(controller.getDraft));
 router.delete('/drafts/:id',writeLimiter,strict(v.idParams,'params'),strict(v.deleteQuery,'query'),asyncHandler(controller.removeDraft));
+router.post('/admin/routing-networks/:layerId/rebuild',writeLimiter,strict(v.layerParams,'params'),strict(v.rebuildBody),asyncHandler(controller.rebuildNetwork));
+router.get('/admin/routing-networks/:layerId/topology',readLimiter,strict(v.layerParams,'params'),asyncHandler(controller.topology));
+router.patch('/layers/:layerId/features/:featureId',writeLimiter,strict(v.featureParams,'params'),strict(v.featureChange),asyncHandler(controller.updateFeature));
+router.get('/layers/:layerId/features/:featureId/history',readLimiter,strict(v.featureParams,'params'),asyncHandler(controller.featureHistory));
+router.post('/layers/:layerId/features/:featureId/restore/:version',writeLimiter,strict(v.versionParams,'params'),strict(v.restoreBody),asyncHandler(controller.restoreFeature));
+router.post('/sync',writeLimiter,strict(v.syncBody),asyncHandler(controller.sync));
 module.exports=router;

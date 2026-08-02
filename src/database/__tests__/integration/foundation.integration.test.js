@@ -29,6 +29,8 @@ describe('Cẩm Phả foundation database', () => {
             '022_spatial_statistics_rbac.sql',
             '023_field_reports.sql',
             '024_mobile_gis.sql',
+            '025_mobile_gis_routing_sync.sql',
+            '026_mobile_gis_audit_integrity.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
@@ -129,5 +131,17 @@ describe('Cẩm Phả foundation database', () => {
             lockout_level: true,
             oauth_mfa_required: true,
         });
+    });
+    test('pgRouting và schema Sprint 9b tồn tại', async () => {
+        const { rows: [schema] } = await db.query(`
+            SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='pgrouting') AS pgrouting,
+                   to_regclass('gis.routing_networks') IS NOT NULL AS routing_networks,
+                   to_regclass('gis.routing_vertices') IS NOT NULL AS routing_vertices,
+                   to_regclass('gis.routing_edges') IS NOT NULL AS routing_edges,
+                   to_regclass('gis.feature_states') IS NOT NULL AS feature_states,
+                   to_regclass('gis.feature_versions') IS NOT NULL AS feature_versions,
+                   to_regclass('gis.mobile_sync_receipts') IS NOT NULL AS mobile_sync_receipts
+        `);
+        expect(Object.values(schema).every(Boolean)).toBe(true);
     });
 });

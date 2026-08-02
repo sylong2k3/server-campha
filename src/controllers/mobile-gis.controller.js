@@ -1,5 +1,7 @@
 'use strict';
 const service=require('../services/mobile-gis.service');
+const routingService=require('../services/mobile-routing.service');
+const editService=require('../services/mobile-feature-edit.service');
 const {OK,CREATED,OK_LIST}=require('../core/success.response');
 const {buildActor}=require('../utils/actor.util');
 const {t}=require('../utils/i18n.util');
@@ -12,4 +14,11 @@ const listDrafts=async(req,res)=>{const data=await service.listDrafts(req.query,
 const getDraft=(req,res)=>service.getDraft(Number(req.params.id),buildActor(req)).then(data=>OK(res,t('mobile_drafts_success',req.lang),data));
 const removeDraft=(req,res)=>service.removeDraft(Number(req.params.id),req.query,buildActor(req)).then(data=>OK(res,t('mobile_draft_deleted_success',req.lang),data));
 const weather=(req,res)=>service.currentWeather(req.query,buildActor(req)).then(data=>OK(res,t('mobile_weather_success',req.lang),data));
-module.exports={tile,feature,nearby,measure,createDraft,listDrafts,getDraft,removeDraft,weather};
+const route=(req,res)=>routingService.shortest(req.body,buildActor(req)).then(data=>OK(res,t('mobile_route_success',req.lang),data));
+const rebuildNetwork=(req,res)=>routingService.rebuild(Number(req.params.layerId),req.body,buildActor(req)).then(data=>OK(res,t('mobile_topology_rebuilt_success',req.lang),data));
+const topology=(req,res)=>routingService.topology(Number(req.params.layerId),buildActor(req)).then(data=>OK(res,t('mobile_topology_success',req.lang),data));
+const updateFeature=(req,res)=>editService.update(Number(req.params.layerId),req.params.featureId,req.body,buildActor(req)).then(data=>OK(res,t('mobile_feature_updated_success',req.lang),data));
+const featureHistory=(req,res)=>editService.history(Number(req.params.layerId),req.params.featureId,buildActor(req)).then(data=>OK(res,t('mobile_feature_history_success',req.lang),data));
+const restoreFeature=(req,res)=>editService.restore(Number(req.params.layerId),req.params.featureId,Number(req.params.version),req.body,buildActor(req)).then(data=>OK(res,t('mobile_feature_restored_success',req.lang),data));
+const sync=(req,res)=>editService.sync(req.body,buildActor(req)).then(data=>OK(res,t('mobile_sync_success',req.lang),data));
+module.exports={tile,feature,nearby,measure,createDraft,listDrafts,getDraft,removeDraft,weather,route,rebuildNetwork,topology,updateFeature,featureHistory,restoreFeature,sync};

@@ -33,7 +33,8 @@ const catalog = async (actor, category) => {
 
 const accessibleLayer = async (id, actor, { terrain = false } = {}) => {
     const { rows: [row] } = await db.query(
-        `SELECT l.*, COALESCE(lp.can_view, false) AS role_can_view
+        `SELECT l.*, COALESCE(lp.can_view, false) AS role_can_view,
+                COALESCE(lp.can_edit, false) AS role_can_edit
          FROM gis.layers l
          LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $2
          WHERE l.id = $1 AND l.deleted_at IS NULL
