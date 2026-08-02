@@ -16,8 +16,6 @@ firebase.json
 # Tài khoản mẫu chứa mật khẩu dev — giữ local, không commit
 ACCOUNTS.md
 
-pnpm-lock.yaml
-
 # Claude Code local tooling config
 .claude/
 
