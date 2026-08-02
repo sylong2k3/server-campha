@@ -10,11 +10,13 @@ Các API MVT/nearby dùng native-SRID bbox prefilter trước transform/metric e
 
 ```bash
 BASE_URL=https://staging.example.vn READ_TOKEN='...' LAYER_ID=123 k6 run tests/load/sprint14-read.js
+BASE_URL=https://staging.example.vn k6 run tests/load/sprint14-basemap-anonymous.js
 ```
 
 - Ramp 100 → 500 VU; giữ 500 VU trong 5 phút.
 - Acceptance: `http_req_duration p(95)<800ms`, `http_req_failed<1%`.
-- Chỉ token read-only; không production; không ghi token vào report.
+- `sprint14-read.js`: endpoint có bearer, chỉ token read-only; không production; không ghi token vào report.
+- `sprint14-basemap-anonymous.js`: endpoint public `/api/v1/web-map/basemaps`, cố ý không gửi `Authorization` để đo đúng nhánh `optionalAuth` bỏ qua Passport.
 
 ## Result record
 
@@ -28,6 +30,9 @@ BASE_URL=https://staging.example.vn READ_TOKEN='...' LAYER_ID=123 k6 run tests/l
 Điều kiện benchmark local: ramp 100 → 500 VU, giữ 500 VU 60 giây, sleep 200 ms; global limiter nâng riêng trong process test (`RATE_LIMIT_MAX=1000000`). Rate limit production không đổi. Tất cả 93.982 response trả HTTP 200. ETag được xác minh riêng; k6 v2 dùng key `headers.Etag` và contract đã sửa từ `headers.ETag`.
 
 Pre-deploy optimized smoke dùng cùng 500 VU nhưng endpoint public: anonymous request bỏ Passport khi không có `Authorization`, basemap cache RAM 60 giây có in-flight deduplication, `HTTP_ACCESS_LOG_ENABLED=false`. So với local public path trước tối ưu chưa có phép đo cùng điều kiện; kết quả này chỉ chứng minh code mới không bão hòa local, chưa dự đoán chính xác VPS.
+
+> [!NOTE]
+> Hai dòng benchmark endpoint basemap public ở trên (13:17 và 13:27) được chạy trước khi `tests/load/sprint14-basemap-anonymous.js` được commit — không có script tương ứng trong repo tại thời điểm đó nên không tái lập được chính xác. `sprint14-basemap-anonymous.js` hiện đã có sẵn cho lần retest tiếp theo trên endpoint này.
 
 Điều kiện staging: full contract 12 phút (2 phút → 100 VU, 3 phút → 500 VU, giữ 500 VU 5 phút, ramp-down 2 phút), `RATE_LIMIT_MAX` và `WEB_MAP_RATE_LIMIT` tạm nâng 1.000.000. Tất cả response hai lần chạy trả HTTP 200 và có ETag. `aa82087` tăng throughput từ 192,57 lên 285,49 RPS (+48,3%), giảm avg từ 1,53 giây xuống 967,64 ms (-36,8%), giảm p95 từ 2,98 xuống 1,67 giây (-44,0%). VPS vẫn bão hòa dưới 500 VU; p95 còn vượt mục tiêu 2,1 lần.
 

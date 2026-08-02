@@ -82,6 +82,18 @@ const authenticate = async (req, res, next) => {
                 ],
             ).catch(() => {});
         });
+        // Check scope/method TRƯỚC khi tăng quota — request bị từ chối vì không
+        // đủ quyền không được phép trừ vào hạn mức của khoá chia sẻ.
+        const scope = METHOD_SCOPE[req.method];
+        if (
+            !scope ||
+            !credential.scopes.includes(scope) ||
+            !credential.allowed_methods.includes(req.method)
+        ) {
+            throw new Api403Error('Khóa không có scope cho thao tác này', [
+                'SHARE_SCOPE_FORBIDDEN',
+            ]);
+        }
         const {
             rows: [quota],
         } = await db.query(
@@ -99,16 +111,6 @@ const authenticate = async (req, res, next) => {
         res.set('RateLimit-Reset', String(req.shareQuota.reset));
         if (quota.request_count > credential.quota_per_minute) {
             throw new Api429Error('Đã vượt hạn mức khóa chia sẻ', ['SHARE_QUOTA_EXCEEDED']);
-        }
-        const scope = METHOD_SCOPE[req.method];
-        if (
-            !scope ||
-            !credential.scopes.includes(scope) ||
-            !credential.allowed_methods.includes(req.method)
-        ) {
-            throw new Api403Error('Khóa không có scope cho thao tác này', [
-                'SHARE_SCOPE_FORBIDDEN',
-            ]);
         }
         next();
     } catch (error) {

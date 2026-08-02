@@ -23,6 +23,7 @@ const vectorTile = async (layer, z, x, y) => {
             WHERE t.geom IS NOT NULL
               AND t.geom && bounds.native
               AND ST_Intersects(ST_Transform(t.geom,3857),bounds.mercator)
+            ORDER BY ${webMapRepository.qid(idField, webMapRepository.FIELD)}
             LIMIT 5000
          ) SELECT ST_AsMVT(mvtgeom,$4,4096,'geom') tile FROM mvtgeom`,
         [z, x, y, layer.code, Number(layer.srid)],

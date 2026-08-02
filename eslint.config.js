@@ -26,6 +26,7 @@ module.exports = [
                 beforeAll: 'readonly',
                 beforeEach: 'readonly',
                 afterAll: 'readonly',
+                afterEach: 'readonly',
                 clearInterval: 'readonly',
                 clearTimeout: 'readonly',
                 console: 'readonly',

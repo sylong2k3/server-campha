@@ -8,7 +8,6 @@ const { inspectShapefileZip } = require('../archive-inspector.util');
 
 const zipTool = process.env.GDAL_OGR2OGR_PATH;
 const maybeTest = zipTool && fs.existsSync(zipTool) ? test : test.skip;
-/* global afterEach */
 let tempDir;
 
 beforeEach(() => {
