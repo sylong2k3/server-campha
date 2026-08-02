@@ -54,7 +54,13 @@ const create = async (slug, input, share) => {
     const r = context(share, slug);
     keys(input, r.write_fields);
     try {
-        return await repo.create(r, input, { id: r.created_by });
+        const result = await repo.create(r, input, { id: r.created_by });
+        if (result.conflict) {
+            throw new Api409Error('Mã đối tượng đã tồn tại hoặc từng được sử dụng', [
+                'FEATURE_ID_CONFLICT',
+            ]);
+        }
+        return result;
     } catch (error) {
         return mapError(error);
     }

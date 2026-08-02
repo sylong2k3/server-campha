@@ -32,6 +32,7 @@ describe('Cẩm Phả foundation database', () => {
             '025_mobile_gis_routing_sync.sql',
             '026_mobile_gis_audit_integrity.sql',
             '070_api_registry.sql',
+            '071_api_registry_lifecycle_integrity.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });

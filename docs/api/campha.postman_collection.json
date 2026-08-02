@@ -38,7 +38,14 @@
     { "key": "beforeStatisticsSourceId", "value": "", "type": "string" },
     {"key":"mobileLayerId","value":"1","type":"string"},
     {"key":"mobileDraftId","value":"1","type":"string"},
-    {"key":"mobileDraftUpdatedAt","value":"","type":"string"}
+    {"key":"mobileDraftUpdatedAt","value":"","type":"string"},
+    {"key":"apiRegistryId","type":"string","value":""},
+    {"key":"apiRegistryVersion","type":"string","value":"1"},
+    {"key":"apiRegistrySlug","type":"string","value":"shared-layer"},
+    {"key":"apiKeyId","type":"string","value":""},
+    {"key":"apiShareToken","type":"string","value":""},
+    {"key":"apiFeatureId","type":"string","value":"ext-1"},
+    {"key":"apiFeatureVersion","type":"string","value":"1"}
   ],
   "item": [
     {
@@ -1112,6 +1119,753 @@
       "event": []
     }
   ]
-}
+},
+  {
+    "name": "Sprint 13 - Registry API lop",
+    "description": "Postman la contract duy nhat. Share JWT tach user JWT; token plaintext chi tra khi issue/rotate; TNMT phe duyet write scope; PostgreSQL quota va immutable audit.",
+    "item": [
+      {
+        "name": "List registries",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry?page=1&limit=20",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry?page=1&limit=20"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Create registry",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"layerId\":{{layerId}},\"slug\":\"{{apiRegistrySlug}}\",\"name\":\"Shared layer\",\"readFields\":[\"name\"],\"writeFields\":[\"name\"],\"searchFields\":[\"name\"],\"allowedMethods\":[\"GET\",\"POST\",\"PUT\",\"DELETE\"],\"defaultSortField\":\"name\"}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('201',()=>pm.response.to.have.status(201));",
+                "const d=pm.response.json().data;if(d){pm.collectionVariables.set('apiRegistryId',d.id);pm.collectionVariables.set('apiRegistryVersion',d.version);}"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Get registry",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/{{apiRegistryId}}",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "{{apiRegistryId}}"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Update registry",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/{{apiRegistryId}}",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "{{apiRegistryId}}"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"expectedVersion\":{{apiRegistryVersion}},\"name\":\"Shared layer updated\"}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Issue scoped key",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/{{apiRegistryId}}/keys",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "{{apiRegistryId}}",
+              "keys"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"name\":\"Portal integration\",\"consumer\":\"Partner portal\",\"scopes\":[\"features:read\",\"features:create\",\"features:update\",\"features:delete\"],\"quotaPerMinute\":60,\"expiresInHours\":720}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('201',()=>pm.response.to.have.status(201));",
+                "const d=pm.response.json().data;if(d){pm.collectionVariables.set('apiKeyId',d.id);pm.collectionVariables.set('apiShareToken',d.token);}"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "List keys",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/{{apiRegistryId}}/keys",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "{{apiRegistryId}}",
+              "keys"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Rotate key",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/keys/{{apiKeyId}}/rotate",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "keys",
+              "{{apiKeyId}}",
+              "rotate"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"expiresInHours\":720}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('200',()=>pm.response.to.have.status(200));",
+                "const d=pm.response.json().data;if(d)pm.collectionVariables.set('apiShareToken',d.token);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Usage dashboard",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/{{apiRegistryId}}/usage",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "{{apiRegistryId}}",
+              "usage"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Shared feature list",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{apiShareToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/shared/{{apiRegistrySlug}}/features?page=1&limit=20&sortBy=name&sortOrder=ASC",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "shared",
+              "{{apiRegistrySlug}}",
+              "features?page=1&limit=20&sortBy=name&sortOrder=ASC"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('200 + quota',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.has('RateLimit-Limit')).to.be.true;});"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Shared feature detail",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{apiShareToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "GET",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/shared/{{apiRegistrySlug}}/features/{{apiFeatureId}}",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "shared",
+              "{{apiRegistrySlug}}",
+              "features",
+              "{{apiFeatureId}}"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Shared feature create",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{apiShareToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "POST",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/shared/{{apiRegistrySlug}}/features",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "shared",
+              "{{apiRegistrySlug}}",
+              "features"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"featureId\":\"{{apiFeatureId}}\",\"attributes\":{\"name\":\"External feature\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[107.335,21.01]}}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('201',()=>pm.response.to.have.status(201));",
+                "const d=pm.response.json().data;if(d)pm.collectionVariables.set('apiFeatureVersion',d.version);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Shared feature update",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{apiShareToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/shared/{{apiRegistrySlug}}/features/{{apiFeatureId}}",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "shared",
+              "{{apiRegistrySlug}}",
+              "features",
+              "{{apiFeatureId}}"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"baseVersion\":{{apiFeatureVersion}},\"attributes\":{\"name\":\"External feature updated\"}}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('200',()=>pm.response.to.have.status(200));",
+                "const d=pm.response.json().data;if(d)pm.collectionVariables.set('apiFeatureVersion',d.version);"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Shared feature delete",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{apiShareToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/shared/{{apiRegistrySlug}}/features/{{apiFeatureId}}",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "shared",
+              "{{apiRegistrySlug}}",
+              "features",
+              "{{apiFeatureId}}"
+            ]
+          },
+          "description": "Sprint 13 Registry API",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"baseVersion\":{{apiFeatureVersion}}}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Revoke key",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "POST",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/keys/{{apiKeyId}}/revoke",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "keys",
+              "{{apiKeyId}}",
+              "revoke"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Delete registry",
+        "request": {
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "method": "DELETE",
+          "header": [],
+          "url": {
+            "raw": "{{baseUrl}}/api/v1/admin/api-registry/{{apiRegistryId}}?expectedVersion={{apiRegistryVersion}}",
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "path": [
+              "api",
+              "v1",
+              "admin",
+              "api-registry",
+              "{{apiRegistryId}}?expectedVersion={{apiRegistryVersion}}"
+            ]
+          },
+          "description": "Sprint 13 Registry API"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
   ]
 }

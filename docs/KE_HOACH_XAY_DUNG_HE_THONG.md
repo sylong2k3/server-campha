@@ -975,6 +975,8 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 **Bảo mật:** đây là bề mặt tấn công hướng ra ngoài tổ chức. Yêu cầu: khóa gắn scope tối thiểu (chỉ lớp cụ thể, chỉ phương thức cụ thể), mặc định chỉ đọc — mọi khóa cho phép ghi cần TNMT phê duyệt riêng; hạn mức theo khóa; ghi nhật ký đầy đủ; hỗ trợ xoay vòng khóa.
 
+**Trạng thái 02/08/2026:** ✅ Đã triển khai migrations `070–071`, registry quản trị, share JWT riêng, quota PostgreSQL, revoke/rotate tức thời, shared CRUD có version conflict và immutable audit. Contract duy nhất: `docs/api/campha.postman_collection.json`, folder `Sprint 13 - Registry API lop`. UAT dữ liệu thật: `docs/sprints/SPRINT_13_BACKLOG.md`.
+
 ---
 
 ## Sprint 14 — Siêu dữ liệu, hiệu năng & gia cố (Hardening)

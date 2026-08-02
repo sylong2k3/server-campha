@@ -3,7 +3,8 @@ const db = require('../configs/database');
 const { randomUUID } = require('crypto');
 const tokenUtil = require('../utils/api-share-token.util');
 const publicKey = (row, token) => {
-    const { jti_hash: _hash, ...safe } = row;
+    const safe = { ...row };
+    delete safe.jti_hash;
     return { ...safe, token };
 };
 const SORT = {

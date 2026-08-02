@@ -38,7 +38,12 @@ class Api422Error extends BaseError {
 }
 
 class Api429Error extends BaseError {
-    constructor(message = 'Too Many Requests', errors = [], status = 429, isOperational = true) {
+    constructor(
+        message = ReasonPhrases.TOO_MANY_REQUESTS || 'Too Many Requests',
+        errors = [],
+        status = StatusCodes.TOO_MANY_REQUESTS || 429,
+        isOperational = true,
+    ) {
         super(message, status, errors, isOperational);
     }
 }

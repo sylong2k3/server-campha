@@ -67,6 +67,11 @@ const create = async (r, input, actor) => {
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
+        const { rows: [used] } = await client.query(`SELECT version FROM gis.feature_states WHERE layer_id=$1 AND feature_id=$2 FOR UPDATE`, [r.layer_id, String(input.featureId)]);
+        if (used) {
+            await client.query('ROLLBACK');
+            return { conflict: true };
+        }
         await validateGeometry(r, input.geometry, client);
         const fields = Object.keys(input.attributes),
             p = [
