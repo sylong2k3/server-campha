@@ -7,6 +7,8 @@ module.exports = [
             'coverage/**',
             'public/**',
             '.audit-report.json',
+            'scripts/api-test-full.js',
+            'scripts/reset-and-seed.js',
         ],
     },
     js.configs.recommended,
@@ -50,6 +52,13 @@ module.exports = [
             eqeqeq: ['error', 'always'],
             curly: ['error', 'all'],
             'no-throw-literal': 'error',
+        },
+    },
+    {
+        files: ['tests/load/**/*.js'],
+        languageOptions: {
+            sourceType: 'module',
+            globals: { __ENV: 'readonly' },
         },
     },
 ];

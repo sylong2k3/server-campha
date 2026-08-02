@@ -47,6 +47,34 @@ const getLayer = async (req, res) => {
         await layerService.getLayer(Number(req.params.layerId), buildActor(req)),
     );
 };
+const getStandardMetadata = async (req, res) => {
+    const result = await layerService.standardMetadata(Number(req.params.layerId), buildActor(req));
+    OK(res, 'Lấy siêu dữ liệu chuẩn thành công', result.profile);
+};
+const updateStandardMetadata = async (req, res) => {
+    OK(
+        res,
+        'Cập nhật siêu dữ liệu chuẩn thành công',
+        await layerService.updateStandardMetadata(
+            Number(req.params.layerId),
+            req.body,
+            buildActor(req),
+        ),
+    );
+};
+const getStandardMetadataXml = async (req, res) => {
+    const result = await layerService.standardMetadataXml(
+        Number(req.params.layerId),
+        buildActor(req),
+    );
+    res.set({
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${result.code}-metadata.xml"`,
+        'Cache-Control': 'private, no-cache',
+        'X-Content-Type-Options': 'nosniff',
+    });
+    res.status(200).send(result.xml);
+};
 const updateLayer = async (req, res) => {
     OK(
         res,
@@ -91,6 +119,9 @@ module.exports = {
     listImportErrors,
     listLayers,
     getLayer,
+    getStandardMetadata,
+    updateStandardMetadata,
+    getStandardMetadataXml,
     updateLayer,
     replacePermissions,
     deleteLayer,

@@ -85,7 +85,11 @@ const updateMetadata = async (id, payload) => {
     for (const [key, column] of Object.entries(fields)) {
         if (Object.prototype.hasOwnProperty.call(payload, key)) {
             params.push(payload[key]);
-            assignments.push(`${column} = $${params.length}`);
+            assignments.push(
+                key === 'metadata'
+                    ? `${column} = COALESCE(${column},'{}'::jsonb) || $${params.length}::jsonb`
+                    : `${column} = $${params.length}`,
+            );
         }
     }
     params.push(id, payload.expectedUpdatedAt);
@@ -97,6 +101,20 @@ const updateMetadata = async (id, payload) => {
          WHERE id = $${params.length - 1} AND deleted_at IS NULL${versionCondition(params.length)}
          RETURNING *`,
         params,
+    );
+    return row || null;
+};
+
+const updateStandardMetadata = async (id, profile, expectedUpdatedAt) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `UPDATE gis.layers
+         SET metadata = jsonb_set(COALESCE(metadata,'{}'::jsonb), '{standardProfile}', $2::jsonb, true),
+             version = version + 1
+         WHERE id = $1 AND deleted_at IS NULL${versionCondition(3)}
+         RETURNING *`,
+        [id, JSON.stringify(profile), expectedUpdatedAt],
     );
     return row || null;
 };
@@ -204,6 +222,7 @@ module.exports = {
     list,
     findById,
     updateMetadata,
+    updateStandardMetadata,
     activeRoleCodes,
     replacePermissions,
     softDeleteAndEnqueue,

@@ -14,8 +14,18 @@ const vectorTile = async (layer, z, x, y) => {
     const {
         rows: [row],
     } = await db.query(
-        `WITH bounds AS(SELECT ST_TileEnvelope($1,$2,$3) geom),mvtgeom AS(SELECT ${select.join(',')},ST_AsMVTGeom(ST_Transform(t.geom,3857),bounds.geom,4096,64,true) geom FROM gis.${table} t,bounds WHERE t.geom IS NOT NULL AND NOT ST_IsEmpty(t.geom) AND ST_Intersects(ST_Transform(t.geom,3857),bounds.geom) LIMIT 5000) SELECT ST_AsMVT(mvtgeom,$4,4096,'geom') tile FROM mvtgeom`,
-        [z, x, y, layer.code],
+        `WITH bounds AS(
+            SELECT ST_TileEnvelope($1,$2,$3) mercator,
+                   ST_Transform(ST_TileEnvelope($1,$2,$3),$5::integer) native
+         ),mvtgeom AS(
+            SELECT ${select.join(',')},ST_AsMVTGeom(ST_Transform(t.geom,3857),bounds.mercator,4096,64,true) geom
+            FROM gis.${table} t,bounds
+            WHERE t.geom IS NOT NULL
+              AND t.geom && bounds.native
+              AND ST_Intersects(ST_Transform(t.geom,3857),bounds.mercator)
+            LIMIT 5000
+         ) SELECT ST_AsMVT(mvtgeom,$4,4096,'geom') tile FROM mvtgeom`,
+        [z, x, y, layer.code, Number(layer.srid)],
     );
     return row?.tile || Buffer.alloc(0);
 };
@@ -30,8 +40,19 @@ const nearby = async (layer, input) => {
             `ST_AsGeoJSON(ST_Transform(ST_PointOnSurface(t.geom),4326),6)::jsonb location`,
         ];
     const { rows } = await db.query(
-        `SELECT ${select.join(',')} FROM gis.${table} t WHERE t.geom IS NOT NULL AND NOT ST_IsEmpty(t.geom) AND ST_DWithin(ST_Transform(t.geom,5899),ST_Transform(ST_SetSRID(ST_MakePoint($1,$2),4326),5899),$3) ORDER BY distance_m,${webMapRepository.qid(idField, webMapRepository.FIELD)} LIMIT $4`,
-        [input.longitude, input.latitude, input.radiusMeters, input.limit],
+        `WITH point AS(
+            SELECT ST_Transform(ST_SetSRID(ST_MakePoint($1,$2),4326),5899) metric
+         ),target AS(
+            SELECT metric,
+                   ST_Transform(ST_Envelope(ST_Buffer(metric,$3)),$5::integer) native_envelope
+            FROM point
+         ) SELECT ${select.join(',')}
+         FROM gis.${table} t,target
+         WHERE t.geom IS NOT NULL
+           AND t.geom && target.native_envelope
+           AND ST_DWithin(ST_Transform(t.geom,5899),target.metric,$3)
+         ORDER BY distance_m,${webMapRepository.qid(idField, webMapRepository.FIELD)} LIMIT $4`,
+        [input.longitude, input.latitude, input.radiusMeters, input.limit, Number(layer.srid)],
     );
     return rows;
 };

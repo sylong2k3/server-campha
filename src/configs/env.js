@@ -27,6 +27,12 @@ const ENV_SCHEMA_KEYS = {
         .pattern(/^\d+(?:b|kb|mb|gb)$/i)
         .default('2mb'),
     RATE_LIMIT_MAX: positiveInteger.default(1000),
+    SERVER_REQUEST_TIMEOUT_MS: positiveInteger.min(1000).max(600000).default(30000),
+    SERVER_HEADERS_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(15000),
+    SERVER_KEEP_ALIVE_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(5000),
+    SHUTDOWN_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(10000),
+    METRICS_ENABLED: boolean.default('false'),
+    METRICS_TOKEN: Joi.string().min(32).allow(''),
     API_BASE_URL: httpUrl.default('http://127.0.0.1:3006'),
 
     DB_HOST: Joi.string().trim().min(1).required(),
@@ -299,6 +305,16 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
         }
         if (value.NODE_ENV === 'production' && !value.API_SHARE_JWT_SECRET) {
             errors.push('API_SHARE_JWT_SECRET is required in production');
+        }
+        if (value.SERVER_HEADERS_TIMEOUT_MS > value.SERVER_REQUEST_TIMEOUT_MS) {
+            errors.push('SERVER_HEADERS_TIMEOUT_MS cannot exceed SERVER_REQUEST_TIMEOUT_MS');
+        }
+        if (
+            value.METRICS_ENABLED === 'true' &&
+            value.NODE_ENV === 'production' &&
+            !value.METRICS_TOKEN
+        ) {
+            errors.push('METRICS_TOKEN is required when METRICS_ENABLED=true in production');
         }
         if (value.DB_POOL_MIN > value.DB_POOL_MAX) {
             errors.push('DB_POOL_MIN cannot exceed DB_POOL_MAX');

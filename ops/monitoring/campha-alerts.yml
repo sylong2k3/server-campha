@@ -1,0 +1,28 @@
+groups:
+  - name: campha-api
+    rules:
+      - alert: CamphaApiHigh5xxRate
+        expr: sum(rate(campha_http_requests_total{status_class="5xx"}[5m])) / clamp_min(sum(rate(campha_http_requests_total[5m])), 0.001) > 0.01
+        for: 10m
+        labels: { severity: critical }
+        annotations: { summary: "Campha API 5xx rate exceeds 1%" }
+      - alert: CamphaApiP95Slow
+        expr: histogram_quantile(0.95, sum by (le) (rate(campha_http_request_duration_seconds_bucket[5m]))) > 0.8
+        for: 10m
+        labels: { severity: warning }
+        annotations: { summary: "Campha API p95 exceeds 800ms" }
+      - alert: CamphaDbPoolWaiting
+        expr: campha_db_pool_connections{state="waiting"} > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "PostgreSQL pool has waiting clients" }
+      - alert: CamphaLayerJobFailed
+        expr: campha_layer_jobs{status="failed"} > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations: { summary: "Layer import or cleanup job failed" }
+      - alert: CamphaLayerJobStuck
+        expr: campha_layer_jobs{status=~"queued|running"} > 0
+        for: 30m
+        labels: { severity: warning }
+        annotations: { summary: "Layer jobs have remained active for 30 minutes" }

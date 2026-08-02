@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s
+rule_files:
+  - campha-alerts.yml
+scrape_configs:
+  - job_name: campha-api
+    metrics_path: /metrics
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/campha-metrics-token
+    static_configs:
+      - targets: [api.campha.example]

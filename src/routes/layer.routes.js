@@ -48,6 +48,25 @@ router.get(
     asyncHandler(controller.listLayers),
 );
 router.get(
+    '/:layerId/standard-metadata.xml',
+    requirePermission('layers', 'read'),
+    validate(validator.layerIdParamsSchema, 'params'),
+    asyncHandler(controller.getStandardMetadataXml),
+);
+router.get(
+    '/:layerId/standard-metadata',
+    requirePermission('layers', 'read'),
+    validate(validator.layerIdParamsSchema, 'params'),
+    asyncHandler(controller.getStandardMetadata),
+);
+router.put(
+    '/:layerId/standard-metadata',
+    requirePermission('layers', 'update'),
+    validate(validator.layerIdParamsSchema, 'params'),
+    strict(validator.geographicMetadataSchema),
+    asyncHandler(controller.updateStandardMetadata),
+);
+router.get(
     '/:layerId',
     requirePermission('layers', 'read'),
     validate(validator.layerIdParamsSchema, 'params'),

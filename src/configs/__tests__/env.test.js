@@ -39,6 +39,8 @@ describe('environment configuration', () => {
         expect(target.PORT).toBe('3006');
         expect(target.UPLOAD_IMAGE_MAX_MB).toBe('5');
         expect(target.WS_MAX_PAYLOAD_BYTES).toBe('65536');
+        expect(target.SERVER_REQUEST_TIMEOUT_MS).toBe('30000');
+        expect(target.METRICS_ENABLED).toBe('false');
     });
 
     test('rejects invalid ranges and cross-field values', () => {
@@ -53,6 +55,15 @@ describe('environment configuration', () => {
                 { checkFiles: false },
             ),
         ).toThrow(/DB_POOL_MIN cannot exceed|WEATHER_WIND_GRID_SIZE/);
+        expect(() =>
+            validateEnv(
+                validEnv({
+                    SERVER_REQUEST_TIMEOUT_MS: '10000',
+                    SERVER_HEADERS_TIMEOUT_MS: '11000',
+                }),
+                { checkFiles: false },
+            ),
+        ).toThrow(/SERVER_HEADERS_TIMEOUT_MS cannot exceed/);
     });
 
     test('requires feature dependencies', () => {
@@ -100,6 +111,26 @@ describe('environment configuration', () => {
                 { checkFiles: false },
             ),
         ).toThrow(/must differ from user JWT secrets/);
+    });
+
+    test('requires metrics bearer token only in production', () => {
+        const production = {
+            NODE_ENV: 'production',
+            APP_URL: 'https://api.campha.vn',
+            API_BASE_URL: 'https://api.campha.vn',
+            FRONTEND_URL: 'https://gis.campha.vn',
+            CORS_ORIGINS: 'https://gis.campha.vn',
+            API_SHARE_JWT_SECRET: 'c'.repeat(48),
+            METRICS_ENABLED: 'true',
+        };
+        expect(() => validateEnv(validEnv(production), { checkFiles: false })).toThrow(
+            /METRICS_TOKEN is required/,
+        );
+        expect(
+            validateEnv(validEnv({ ...production, METRICS_TOKEN: 'm'.repeat(48) }), {
+                checkFiles: false,
+            }).METRICS_ENABLED,
+        ).toBe('true');
     });
 
     test('redacts secret values from validation errors', () => {

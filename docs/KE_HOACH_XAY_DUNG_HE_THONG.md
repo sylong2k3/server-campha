@@ -986,13 +986,15 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-14.1 | Siêu dữ liệu lớp bản đồ theo chuẩn TCVN 12687:2019, ISO 19115 / ISO 19139 và QCVN hiện hành; xuất XML |
 | US-14.2 | Kiểm thử tải k6: 500 người dùng đồng thời, mục tiêu p95 < 800 ms cho API đọc |
 | US-14.3 | Tối ưu truy vấn không gian theo kết quả `EXPLAIN ANALYZE` |
-| US-14.3b | Cache tầng đọc bằng Redis + ETag (chuyển từ S4) |
+| US-14.3b | Cache tầng đọc bằng ETag/conditional GET native HTTP; **không Redis** |
 | US-14.4 | Gia cố: security header, CSP, giới hạn kích thước body, timeout toàn cục |
 | US-14.5 | Sao lưu/khôi phục: `pg_dump` + WAL archiving + sao lưu MinIO; **diễn tập khôi phục thực tế** |
-| US-14.6 | Giám sát: Prometheus + Grafana, cảnh báo khi job thất bại/độ trễ dữ liệu KTTV |
+| US-14.6 | Giám sát: Prometheus + Grafana, cảnh báo HTTP/DB/job; không KTTV/GEE |
 | US-14.7 | Tài liệu vận hành + tài liệu API bản chính thức |
 
 **Bảo mật:** **kiểm thử xâm nhập độc lập** theo OWASP ASVS Level 2 và OWASP API Security Top 10 (2023). Kết quả phải xử lý xong toàn bộ lỗi mức High/Critical trước khi nghiệm thu.
+
+**Trạng thái code 02/08/2026:** metadata JSON/XML, ETag, timeout, Prometheus, GiST prefilter, EXPLAIN test, k6 contract và backup/restore runbook đã triển khai. Còn manual acceptance: k6 staging 500 VU, restore drill VPS, đối chiếu TCVN/QCVN chính thức và pentest độc lập.
 
 ---
 
@@ -1076,7 +1078,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 
 **Tầng mạng/hạ tầng**
 - TLS 1.2+ bắt buộc, chứng thư số hợp lệ, HSTS.
-- Chỉ mở cổng 443 ra ngoài. PostgreSQL/MinIO/GeoServer/Redis nằm trong mạng nội bộ.
+- Chỉ mở cổng 443 ra ngoài. PostgreSQL/MinIO/GeoServer nằm trong mạng nội bộ. Không triển khai Redis.
 - Tài khoản DB riêng cho ứng dụng (không dùng `postgres`), quyền tối thiểu theo schema.
 
 **Tầng ứng dụng**

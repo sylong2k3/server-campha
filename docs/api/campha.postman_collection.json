@@ -45,7 +45,9 @@
     {"key":"apiKeyId","type":"string","value":""},
     {"key":"apiShareToken","type":"string","value":""},
     {"key":"apiFeatureId","type":"string","value":"ext-1"},
-    {"key":"apiFeatureVersion","type":"string","value":"1"}
+    {"key":"apiFeatureVersion","type":"string","value":"1"},
+    {"key":"readEtag","value":"","type":"string"},
+    {"key":"metricsToken","value":"","type":"secret"}
   ],
   "item": [
     {
@@ -1860,6 +1862,203 @@
               "type": "text/javascript",
               "exec": [
                 "pm.test('success',()=>pm.expect(pm.response.code).to.be.oneOf([200,201]));"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "Sprint 14 - Metadata and Hardening",
+    "item": [
+      {
+        "name": "Update standard metadata",
+        "request": {
+          "method": "PUT",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "body": {
+            "mode": "raw",
+            "raw": "{\"expectedUpdatedAt\":\"{{layerUpdatedAt}}\",\"metadataIdentifier\":\"campha.layer.{{layerId}}\",\"language\":\"vie\",\"characterSet\":\"utf8\",\"hierarchyLevel\":\"dataset\",\"dateStamp\":\"2026-08-02\",\"contact\":{\"organizationName\":\"Sở Tài nguyên và Môi trường Quảng Ninh\",\"email\":\"gis@example.vn\",\"role\":\"owner\"},\"referenceSystem\":{\"code\":\"EPSG:5899\",\"codeSpace\":\"EPSG\"},\"identification\":{\"title\":\"Lớp dữ liệu Cẩm Phả\",\"abstract\":\"Siêu dữ liệu địa lý phục vụ quản lý thành phố Cẩm Phả\",\"purpose\":\"Quản lý nhà nước\",\"status\":\"completed\",\"citationDate\":\"2026-08-02\",\"citationDateType\":\"creation\",\"language\":\"vie\",\"characterSet\":\"utf8\",\"topicCategories\":[\"planningCadastre\"],\"keywords\":[\"Cẩm Phả\",\"GIS\"],\"extent\":{\"description\":\"Thành phố Cẩm Phả\",\"westBoundLongitude\":107.1,\"eastBoundLongitude\":107.6,\"southBoundLatitude\":20.8,\"northBoundLatitude\":21.2}},\"constraints\":{\"accessConstraints\":\"restricted\",\"useConstraints\":\"license\",\"otherConstraints\":\"Theo phân quyền hệ thống\"},\"dataQuality\":{\"scope\":\"dataset\",\"lineage\":\"Dữ liệu được kiểm tra hình học và chuẩn hóa hệ quy chiếu\"},\"distribution\":{\"formatName\":\"PostGIS\",\"formatVersion\":\"3\",\"onlineResources\":[]}}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          },
+          "url": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('200',()=>pm.response.to.have.status(200));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Get standard metadata",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "url": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('200',()=>pm.response.to.have.status(200));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Export ISO 19139 XML",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "url": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata.xml"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('XML',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.get('Content-Type')).to.include('application/xml');});"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "ETag read",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": "{{baseUrl}}/api/v1/web-map/basemaps"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('ETag',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.has('ETag')).to.be.true;pm.collectionVariables.set('readEtag',pm.response.headers.get('ETag'));});"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Conditional read 304",
+        "request": {
+          "method": "GET",
+          "header": [
+            {
+              "key": "If-None-Match",
+              "value": "{{readEtag}}"
+            }
+          ],
+          "url": "{{baseUrl}}/api/v1/web-map/basemaps"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('304',()=>pm.response.to.have.status(304));"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Metrics authorized",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{metricsToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "url": "{{baseUrl}}/metrics"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Prometheus',()=>{pm.response.to.have.status(200);pm.expect(pm.response.text()).to.include('campha_http_requests_total');});"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Metrics unauthorized",
+        "request": {
+          "method": "GET",
+          "header": [],
+          "url": "{{baseUrl}}/metrics"
+        },
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('401 or disabled',()=>pm.expect(pm.response.code).to.be.oneOf([401,404]));"
               ]
             }
           }

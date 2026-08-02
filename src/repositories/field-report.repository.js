@@ -191,9 +191,19 @@ const history = async (id) => {
 };
 const nearby = async (input) => {
     const params = [input.longitude, input.latitude, input.radiusMeters, input.from, input.to];
-    const scope = `x.deleted_at IS NULL AND x.status IN('approved','resolved') AND x.created_at BETWEEN $4 AND $5 AND ST_DWithin(ST_Transform(x.location,5899),ST_Transform(ST_SetSRID(ST_MakePoint($1,$2),4326),5899),$3)`;
+    const prefilter = (alias) => `${alias}.location && target.native_envelope`;
+    const exact = (alias) => `ST_DWithin(ST_Transform(${alias}.location,5899),target.metric,$3)`;
+    const scope = `x.deleted_at IS NULL AND x.status IN('approved','resolved') AND x.created_at BETWEEN $4 AND $5 AND ${prefilter('x')} AND ${exact('x')}`;
     const { rows } = await db.query(
-        `SELECT ${publicFields},(SELECT COUNT(DISTINCT x.sender_user_id)::int FROM community.field_reports x WHERE ${scope}) distinct_reporters FROM community.field_reports r WHERE r.deleted_at IS NULL AND r.status IN('approved','resolved') AND r.created_at BETWEEN $4 AND $5 AND ST_DWithin(ST_Transform(r.location,5899),ST_Transform(ST_SetSRID(ST_MakePoint($1,$2),4326),5899),$3) ORDER BY r.created_at DESC LIMIT 100`,
+        `WITH target AS(
+            SELECT metric,ST_Transform(ST_Envelope(ST_Buffer(metric,$3)),4326) native_envelope
+            FROM (SELECT ST_Transform(ST_SetSRID(ST_MakePoint($1,$2),4326),5899) metric) point
+         ) SELECT ${publicFields},
+                (SELECT COUNT(DISTINCT x.sender_user_id)::int FROM community.field_reports x,target WHERE ${scope}) distinct_reporters
+         FROM community.field_reports r,target
+         WHERE r.deleted_at IS NULL AND r.status IN('approved','resolved')
+           AND r.created_at BETWEEN $4 AND $5 AND ${prefilter('r')} AND ${exact('r')}
+         ORDER BY r.created_at DESC LIMIT 100`,
         params,
     );
     return rows;

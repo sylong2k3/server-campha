@@ -5,6 +5,7 @@ const jobRepository = require('../repositories/layer-job.repository');
 const geoserverClient = require('../utils/geoserver.client');
 const systemLogger = require('../utils/systemLogger.util');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
+const { toIso19139Xml } = require('../utils/geographic-metadata.util');
 
 const assertTnmt = (actor) => {
     if (actor?.role !== 'so_tnmt') {
@@ -84,6 +85,37 @@ const getLayer = async (id, actor) => {
         throw new Api404Error('Không tìm thấy lớp dữ liệu');
     }
     return layer;
+};
+const standardMetadata = async (id, actor) => {
+    const layer = await getLayer(id, actor);
+    const profile = layer.metadata?.standardProfile;
+    if (!profile) {
+        throw new Api404Error('Lớp chưa có siêu dữ liệu chuẩn');
+    }
+    return { layer, profile };
+};
+const updateStandardMetadata = async (id, input, actor) => {
+    assertPermission(actor, 'update');
+    const { expectedUpdatedAt, ...profile } = input;
+    const layer = await layerRepository.updateStandardMetadata(id, profile, expectedUpdatedAt);
+    if (!layer) {
+        const existing = await layerRepository.findById(id);
+        if (!existing) {
+            throw new Api404Error('Không tìm thấy lớp dữ liệu');
+        }
+        throw new Api409Error('Lớp đã được thay đổi; tải lại dữ liệu trước khi cập nhật', [
+            'OPTIMISTIC_LOCK_CONFLICT',
+        ]);
+    }
+    audit('layer_standard_metadata_updated', actor, {
+        layerId: id,
+        metadataIdentifier: profile.metadataIdentifier,
+    });
+    return { layerId: layer.id, profile, updatedAt: layer.updated_at, version: layer.version };
+};
+const standardMetadataXml = async (id, actor) => {
+    const { layer, profile } = await standardMetadata(id, actor);
+    return { code: layer.code, xml: toIso19139Xml(layer, profile) };
 };
 const updateLayer = async (id, input, actor) => {
     assertPermission(actor, 'update');
@@ -179,6 +211,9 @@ module.exports = {
     listImportErrors,
     listLayers,
     getLayer,
+    standardMetadata,
+    updateStandardMetadata,
+    standardMetadataXml,
     updateLayer,
     replacePermissions,
     deleteLayer,

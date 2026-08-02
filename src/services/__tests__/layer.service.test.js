@@ -4,6 +4,9 @@ jest.mock('../../repositories/layer.repository');
 jest.mock('../../repositories/layer-job.repository');
 jest.mock('../../utils/systemLogger.util', () => ({ logInfo: jest.fn() }));
 jest.mock('../../utils/geoserver.client', () => ({ publishVectorLayer: jest.fn() }));
+jest.mock('../../utils/geographic-metadata.util', () => ({
+    toIso19139Xml: jest.fn(() => '<gmd:MD_Metadata/>'),
+}));
 
 const layerRepository = require('../../repositories/layer.repository');
 const jobRepository = require('../../repositories/layer-job.repository');
@@ -78,6 +81,37 @@ describe('layer service', () => {
                 actor,
             ),
         ).rejects.toMatchObject({ status: 422, errors: ['ACL_EXCEEDS_ROLE_CONTRACT'] });
+    });
+
+    test('standard metadata update is TNMT-only and exports XML', async () => {
+        const profile = { metadataIdentifier: 'cp.roads' };
+        await expect(
+            service.updateStandardMetadata(
+                1,
+                { expectedUpdatedAt: new Date(), ...profile },
+                { ...actor, role: 'system_admin' },
+            ),
+        ).rejects.toMatchObject({ status: 403 });
+        layerRepository.updateStandardMetadata.mockResolvedValue({
+            id: 1,
+            code: 'roads',
+            metadata: { standardProfile: profile },
+            updated_at: new Date(),
+            version: 2,
+        });
+        await expect(
+            service.updateStandardMetadata(1, { expectedUpdatedAt: new Date(), ...profile }, actor),
+        ).resolves.toMatchObject({ layerId: 1, profile, version: 2 });
+        layerRepository.findById.mockResolvedValue({
+            id: 1,
+            code: 'roads',
+            geometry_type: 'LINESTRING',
+            metadata: { standardProfile: profile },
+        });
+        await expect(service.standardMetadataXml(1, actor)).resolves.toEqual({
+            code: 'roads',
+            xml: '<gmd:MD_Metadata/>',
+        });
     });
 
     test('valid ACL replacement and soft-delete return repository result', async () => {

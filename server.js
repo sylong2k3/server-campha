@@ -20,6 +20,11 @@ require('dotenv').config();
 const PORT = process.env.PORT || 8881;
 const HOST = process.env.HOST || '0.0.0.0';
 const WS_PATH = '/ws';
+const integer = (name, fallback) => Number.parseInt(process.env[name], 10) || fallback;
+const SERVER_REQUEST_TIMEOUT_MS = integer('SERVER_REQUEST_TIMEOUT_MS', 30000);
+const SERVER_HEADERS_TIMEOUT_MS = integer('SERVER_HEADERS_TIMEOUT_MS', 15000);
+const SERVER_KEEP_ALIVE_TIMEOUT_MS = integer('SERVER_KEEP_ALIVE_TIMEOUT_MS', 5000);
+const SHUTDOWN_TIMEOUT_MS = integer('SHUTDOWN_TIMEOUT_MS', 10000);
 
 const IS_SINGLETON_WORKER = !process.env.CLUSTER_WORKER_ID || process.env.CLUSTER_WORKER_ID === '0';
 
@@ -124,7 +129,7 @@ async function gracefulShutdown(signal) {
     setTimeout(() => {
         console.error('Graceful shutdown timeout, forcing exit...');
         process.exit(1);
-    }, 10000).unref();
+    }, SHUTDOWN_TIMEOUT_MS).unref();
 }
 
 process.on('uncaughtException', (error) => {
@@ -144,6 +149,9 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
             env: process.env.NODE_ENV || 'development',
         });
     });
+    server.requestTimeout = SERVER_REQUEST_TIMEOUT_MS;
+    server.headersTimeout = SERVER_HEADERS_TIMEOUT_MS;
+    server.keepAliveTimeout = SERVER_KEEP_ALIVE_TIMEOUT_MS;
 
     // Kích hoạt WebSocket realtime (dùng chung HTTP server qua sự kiện 'upgrade').
     initWebSocketServer(server, { path: WS_PATH });

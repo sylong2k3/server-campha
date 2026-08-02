@@ -5,8 +5,8 @@
 - JWT/refresh token và mật khẩu người dùng.
 - Dữ liệu đa tổ chức trong PostgreSQL/PostGIS.
 - Lớp bản đồ, raster và tài liệu trên MinIO/GeoServer.
-- Credential VPS, Google Earth Engine, Firebase và SMTP.
-- Cơ chế job nền tương lai và nhật ký kiểm toán.
+- Credential VPS, Firebase và SMTP; GEE thuộc phạm vi cộng sự.
+- Share JWT registry, profile metadata, metrics endpoint và nhật ký kiểm toán.
 
 ## Ranh giới tin cậy
 
@@ -17,8 +17,9 @@ flowchart LR
   API --> DB[(PostgreSQL/PostGIS)]
   API --> MinIO[(MinIO)]
   API --> GeoServer[GeoServer private]
-  Worker[Future DB Queue Worker] --> DB
+  Worker[PostgreSQL Queue Worker] --> DB
   Worker --> MinIO
+  Prometheus[Prometheus private] -->|Bearer /metrics| API
 ```
 
 Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ native VPS, chỉ bind local/private interface. Redis chưa được dùng.
@@ -45,7 +46,13 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 | Raster lớn gây cạn tài nguyên | Upload quarantine, giới hạn 2 GiB, GeoTIFF magic bytes, ClamAV fail-closed | Đo tải/live UAT với cảnh cắt nhỏ |
 | Satellite IDOR/lộ object key | Metadata API không serialize bucket/object key; file phải owner-owned/ready/clean; download RBAC | Integration anonymous + 5 role DB |
 | Presigned replay/tải hàng loạt | Compare URL 60 giây; download 60–900 giây và giới hạn 20/15 phút theo user | Shared limiter store khi chạy nhiều process |
-| Metadata injection/query abuse | Joi strict; SQL tham số; sort/platform allowlist; page limit ≤100 | Postman/Supertest negative cases |
+| Metadata injection/query abuse | Joi strict; SQL tham số; sort/platform allowlist; page limit ≤100; ISO XML escape | Đối chiếu TCVN/QCVN chính thức + XML schema |
+| Share API replay/quota abuse | JWT secret riêng, JTI hash, DB lookup, PostgreSQL atomic quota, immediate revoke/rotate | Staging partner UAT |
+| Metrics disclosure/cardinality | Disabled mặc định; bearer timing-safe; bounded route/status labels; no-store | Nginx private route + token rotation |
+| Resource exhaustion/slowloris | Body limits, rate limit, PostgreSQL query timeout, Node request/header/keep-alive timeout | k6 500 VU + external slowloris test |
+| Cache leak/stale authorization | Public revalidation chỉ anonymous GET; bearer responses private/no-cache; không Redis | Proxy/CDN staging test |
+| Backup phá hủy/tampering | Custom dump, TOC/checksum; restore DB prefix guard; MinIO mirror không delete | Native VPS restore drill + PITR evidence |
+| Spatial full scan | GiST native-SRID bbox prefilter trước transform; EXPLAIN integration | EXPLAIN trên data thật + k6 staging |
 
 ## Giả định cần kiểm tra
 

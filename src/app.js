@@ -13,11 +13,14 @@ const { errorHandler, notFoundHandler } = require('./middlewares/error-handler')
 const { initPassport } = require('./configs/passport');
 const localeMiddleware = require('./middlewares/locale.middleware');
 const { t } = require('./utils/i18n.util');
+const metrics = require('./utils/metrics.util');
+const metricsRoutes = require('./routes/metrics.routes');
 
 initPassport();
 
 const app = express();
 app.disable('x-powered-by');
+app.set('etag', 'weak');
 
 // Chặn sớm các request dò quét file nhạy cảm (.env, .git, path traversal)
 // trước khi tới router, tránh lộ thông tin và giảm rác log lỗi 404.
@@ -100,6 +103,10 @@ const corsOptions = {
         'X-RateLimit-Limit',
         'X-RateLimit-Remaining',
         'X-RateLimit-Reset',
+        'RateLimit-Limit',
+        'RateLimit-Remaining',
+        'RateLimit-Reset',
+        'ETag',
         'Retry-After',
     ],
     maxAge: 86400,
@@ -109,6 +116,21 @@ app.use(cors(corsOptions));
 app.use(passport.initialize());
 app.use(cookieParser());
 app.use(localeMiddleware);
+app.use(metrics.middleware);
+app.use('/metrics', metricsRoutes);
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/')) {
+        res.vary('Authorization');
+        res.vary('Cookie');
+        res.set(
+            'Cache-Control',
+            req.method === 'GET' && !req.headers.authorization && !req.headers.cookie
+                ? 'public, max-age=0, must-revalidate'
+                : 'private, no-cache',
+        );
+    }
+    next();
+});
 
 const bodyLimit = process.env.REQUEST_BODY_LIMIT || '2mb';
 app.use(express.json({ limit: bodyLimit }));

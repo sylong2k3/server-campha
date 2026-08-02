@@ -385,7 +385,13 @@ Backup phải được đồng bộ ra nơi độc lập với VPS. Phải test 
 [ ] Google OAuth production callback UAT
 [ ] Firebase/GEE/OpenWeather secrets
 [ ] Firewall chỉ public 22/80/443
-[ ] Backup + checksum + restore test
+[ ] Backup + checksum + restore test theo `docs/BACKUP_RESTORE_RUNBOOK.md`
+[ ] WAL archive/base backup/PITR drill trên instance biệt lập
+[ ] Prometheus + Grafana native systemd, bind private/local
+[ ] `METRICS_ENABLED=true`, token file mode `0600`, `/metrics` không public qua Nginx
+[ ] Alert HTTP 5xx/p95, DB pool, layer job failed/stuck
+[ ] Server timeout env: request 30s, headers 15s, keep-alive 5s, shutdown 10s
+[ ] k6 500 VU chỉ staging; p95 < 800 ms, lỗi < 1%
 [ ] Logrotate + health monitoring
 [ ] `npm ci --omit=dev`
 [ ] `npm run migrate:status`
