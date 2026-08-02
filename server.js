@@ -1,11 +1,4 @@
-// ── Timezone: khoá về VN (+07:00) ────────────────────────────────────────────
-// PHẢI set trước MỌI `require` khác — vì Date/logger cache TZ lúc khởi tạo.
 process.env.TZ = process.env.TZ || 'Asia/Ho_Chi_Minh';
-
-// PHẢI validate/load env trước MỌI require khác dùng process.env (app.js,
-// tokenManager.util đọc JWT_SECRET ngay lúc module load) — nếu không, cấu
-// hình sai (secret placeholder, CORS "*" ở production, ...) chỉ vỡ ra lúc
-// runtime thay vì chặn ngay lúc khởi động.
 const { loadEnv } = require('./src/configs/env');
 loadEnv();
 
@@ -41,7 +34,7 @@ let isShuttingDown = false;
 function printStartupBanner({ dbStatus, minioStatus, earthEngineStatus, geoserverStatus }) {
     const publicHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
     const env = process.env.NODE_ENV || 'development';
-    const appName = process.env.APP_NAME || 'WebGIS Cẩm Phả';
+    const appName = process.env.APP_NAME || 'Server Cẩm Phả HydroMap';
 
     const COL = 13;
     const row = (label, value) => `  ${label.padEnd(COL)}: ${value}`;

@@ -8,7 +8,7 @@ const validEnv = (overrides = {}) => ({
     PORT: '3006',
     APP_LANG: 'vi',
     TZ: 'Asia/Ho_Chi_Minh',
-    APP_NAME: 'WebGIS Cẩm Phả',
+    APP_NAME: 'Server Cẩm Phả HydroMap',
     APP_URL: 'http://localhost:3006',
     FRONTEND_URL: 'http://localhost:5173',
     CORS_ORIGINS: 'http://localhost:5173',

@@ -21,16 +21,19 @@ jobs:
       JWT_SECRET_REFRESH: ci-throwaway-value-not-a-real-secret-refresh
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm test -- --runInBand
-      - run: npm run test:coverage -- --runInBand
-      - run: npm audit --omit=dev --audit-level=high
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
+      - run: pnpm run format:check
+      - run: pnpm test -- --runInBand
+      - run: pnpm run test:coverage -- --runInBand
+      - run: pnpm audit --audit-level=high
 
   semgrep:
     runs-on: ubuntu-latest
