@@ -16,8 +16,14 @@ const hasWrite = (value) => value.some((x) => x !== 'GET' && x !== 'features:rea
 const writeScope = { POST: 'features:create', PUT: 'features:update', DELETE: 'features:delete' };
 const writeContract = (input) => {
     const methods = input.allowedMethods.filter((x) => x !== 'GET');
-    if ((methods.length && !input.writeFields.length) || (!methods.length && input.writeFields.length)) {
-        throw new Api422Error('Phương thức ghi và danh sách trường ghi phải được cấu hình cùng nhau', ['REGISTRY_WRITE_CONTRACT']);
+    if (
+        (methods.length && !input.writeFields.length) ||
+        (!methods.length && input.writeFields.length)
+    ) {
+        throw new Api422Error(
+            'Phương thức ghi và danh sách trường ghi phải được cấu hình cùng nhau',
+            ['REGISTRY_WRITE_CONTRACT'],
+        );
     }
 };
 const fields = async (input, layer) => {
@@ -26,9 +32,13 @@ const fields = async (input, layer) => {
         blocked = new Set([id.toLowerCase(), 'geom', 'source', 'target', 'cost', 'reverse_cost']);
     writeContract(input);
     const fieldsOnly = [...input.readFields, ...input.writeFields, ...input.searchFields];
-    if (fieldsOnly.some((x) => !webMap.FIELD.test(x) || !actual.has(x) || blocked.has(x.toLowerCase()))
-        || !webMap.FIELD.test(input.defaultSortField)
-        || !actual.has(input.defaultSortField)) {
+    if (
+        fieldsOnly.some(
+            (x) => !webMap.FIELD.test(x) || !actual.has(x) || blocked.has(x.toLowerCase()),
+        ) ||
+        !webMap.FIELD.test(input.defaultSortField) ||
+        !actual.has(input.defaultSortField)
+    ) {
         throw new Api422Error('Cấu hình trường không hợp lệ', ['INVALID_REGISTRY_FIELD']);
     }
     if (
@@ -37,9 +47,10 @@ const fields = async (input, layer) => {
         input.searchFields.some((x) => !input.readFields.includes(x)) ||
         (!input.readFields.includes(input.defaultSortField) && input.defaultSortField !== id)
     ) {
-        throw new Api422Error('Trường ghi/tìm kiếm/sắp xếp phải thuộc trường đọc; ID được trả riêng', [
-            'REGISTRY_FIELD_CONTRACT',
-        ]);
+        throw new Api422Error(
+            'Trường ghi/tìm kiếm/sắp xếp phải thuộc trường đọc; ID được trả riêng',
+            ['REGISTRY_FIELD_CONTRACT'],
+        );
     }
     const display = new Set(webMap.configuredFields(layer)),
         editable = new Set(
@@ -107,9 +118,15 @@ const update = async (id, input, actor) => {
             allowedMethods: input.allowedMethods || current.allowed_methods,
             defaultSortField: input.defaultSortField || current.default_sort_field,
         };
-    const touchesWrite = Object.hasOwn(input, 'writeFields') || Object.hasOwn(input, 'allowedMethods');
-    if (touchesWrite && (hasWrite(current.allowed_methods) || hasWrite(merged.allowedMethods)
-        || current.write_fields.length || merged.writeFields.length)) {
+    const touchesWrite =
+        Object.hasOwn(input, 'writeFields') || Object.hasOwn(input, 'allowedMethods');
+    if (
+        touchesWrite &&
+        (hasWrite(current.allowed_methods) ||
+            hasWrite(merged.allowedMethods) ||
+            current.write_fields.length ||
+            merged.writeFields.length)
+    ) {
         tnmt(actor);
     }
     await fields(merged, current);

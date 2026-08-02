@@ -1,9 +1,104 @@
 'use strict';
-const service=require('../api-registry.service');
-const {Api403Error,Api422Error}=require('../../core/error.response');
-const repo=require('../../repositories/api-registry.repository');
+const service = require('../api-registry.service');
+const { Api403Error, Api422Error } = require('../../core/error.response');
+const repo = require('../../repositories/api-registry.repository');
 jest.mock('../../repositories/api-registry.repository');
-const layer={id:7,table_name:'roads',storage_kind:'postgis',publish_status:'published',metadata:{idField:'source_fid',displayFields:['name'],searchFields:['name'],editableFields:['name']}};
-const actor=(role='so_tnmt',grant=true)=>({id:1,role,permissions:{api_registry:{create:true,share:true,grant,read:true}}});
-beforeEach(()=>{jest.clearAllMocks();repo.columns.mockResolvedValue(['source_fid','name','geom']);});
-describe('api registry service policy',()=>{test('write registry requires TNMT grant',async()=>{repo.layer.mockResolvedValue(layer);await expect(service.create({layerId:7,slug:'roads-api',name:'Roads',readFields:['name'],writeFields:['name'],searchFields:['name'],allowedMethods:['GET','PUT'],defaultSortField:'name'},actor('so_xd',false))).rejects.toBeInstanceOf(Api403Error);expect(repo.create).not.toHaveBeenCalled();});test('rejects inconsistent write fields and methods',async()=>{repo.layer.mockResolvedValue(layer);await expect(service.create({layerId:7,slug:'roads-api',name:'Roads',readFields:['name'],writeFields:[],searchFields:['name'],allowedMethods:['GET','PUT'],defaultSortField:'name'},actor())).rejects.toBeInstanceOf(Api422Error);});test('read-only key may be issued by non-grant sharer but write key may not',async()=>{repo.find.mockResolvedValue({...layer,layer_id:7,is_active:true,allowed_methods:['GET'],read_fields:['name'],write_fields:[],search_fields:['name'],default_sort_field:'name'});repo.issue.mockResolvedValue({id:'key'});await expect(service.issue(1,{name:'Read',consumer:'Portal',scopes:['features:read'],quotaPerMinute:60,expiresInHours:24},actor('so_xd',false))).resolves.toEqual({id:'key'});await expect(service.issue(1,{name:'Write',consumer:'Portal',scopes:['features:read','features:update'],quotaPerMinute:60,expiresInHours:24},actor('so_xd',false))).rejects.toBeInstanceOf(Api403Error);});});
+const layer = {
+    id: 7,
+    table_name: 'roads',
+    storage_kind: 'postgis',
+    publish_status: 'published',
+    metadata: {
+        idField: 'source_fid',
+        displayFields: ['name'],
+        searchFields: ['name'],
+        editableFields: ['name'],
+    },
+};
+const actor = (role = 'so_tnmt', grant = true) => ({
+    id: 1,
+    role,
+    permissions: { api_registry: { create: true, share: true, grant, read: true } },
+});
+beforeEach(() => {
+    jest.clearAllMocks();
+    repo.columns.mockResolvedValue(['source_fid', 'name', 'geom']);
+});
+describe('api registry service policy', () => {
+    test('write registry requires TNMT grant', async () => {
+        repo.layer.mockResolvedValue(layer);
+        await expect(
+            service.create(
+                {
+                    layerId: 7,
+                    slug: 'roads-api',
+                    name: 'Roads',
+                    readFields: ['name'],
+                    writeFields: ['name'],
+                    searchFields: ['name'],
+                    allowedMethods: ['GET', 'PUT'],
+                    defaultSortField: 'name',
+                },
+                actor('so_xd', false),
+            ),
+        ).rejects.toBeInstanceOf(Api403Error);
+        expect(repo.create).not.toHaveBeenCalled();
+    });
+    test('rejects inconsistent write fields and methods', async () => {
+        repo.layer.mockResolvedValue(layer);
+        await expect(
+            service.create(
+                {
+                    layerId: 7,
+                    slug: 'roads-api',
+                    name: 'Roads',
+                    readFields: ['name'],
+                    writeFields: [],
+                    searchFields: ['name'],
+                    allowedMethods: ['GET', 'PUT'],
+                    defaultSortField: 'name',
+                },
+                actor(),
+            ),
+        ).rejects.toBeInstanceOf(Api422Error);
+    });
+    test('read-only key may be issued by non-grant sharer but write key may not', async () => {
+        repo.find.mockResolvedValue({
+            ...layer,
+            layer_id: 7,
+            is_active: true,
+            allowed_methods: ['GET'],
+            read_fields: ['name'],
+            write_fields: [],
+            search_fields: ['name'],
+            default_sort_field: 'name',
+        });
+        repo.issue.mockResolvedValue({ id: 'key' });
+        await expect(
+            service.issue(
+                1,
+                {
+                    name: 'Read',
+                    consumer: 'Portal',
+                    scopes: ['features:read'],
+                    quotaPerMinute: 60,
+                    expiresInHours: 24,
+                },
+                actor('so_xd', false),
+            ),
+        ).resolves.toEqual({ id: 'key' });
+        await expect(
+            service.issue(
+                1,
+                {
+                    name: 'Write',
+                    consumer: 'Portal',
+                    scopes: ['features:read', 'features:update'],
+                    quotaPerMinute: 60,
+                    expiresInHours: 24,
+                },
+                actor('so_xd', false),
+            ),
+        ).rejects.toBeInstanceOf(Api403Error);
+    });
+});
