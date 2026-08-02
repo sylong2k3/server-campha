@@ -14,7 +14,9 @@ const commitUpload = async (req, res) => {
 };
 const getDownloadUrl = async (req, res) => {
     const result = await storageService.getDownloadUrl(
-        Number(req.params.id), req.query.expireSeconds, buildActor(req)
+        Number(req.params.id),
+        req.query.expireSeconds,
+        buildActor(req),
     );
     OK(res, 'Đã tạo URL tải file', result);
 };

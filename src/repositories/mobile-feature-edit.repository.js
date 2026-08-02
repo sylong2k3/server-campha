@@ -1,15 +1,263 @@
 'use strict';
-const db=require('../configs/database');
-const webMap=require('./web-map.repository');
-const tableFor=layer=>webMap.qid(layer.table_name),idFor=layer=>webMap.qid(webMap.idFieldFor(layer),webMap.FIELD);
-const editableFields=layer=>{const blocked=new Set(['geom','source','target','cost','reverse_cost',webMap.idFieldFor(layer).toLowerCase()]);return [...new Set(Array.isArray(layer.metadata?.editableFields)?layer.metadata.editableFields.filter(x=>typeof x==='string'&&webMap.FIELD.test(x)&&!blocked.has(x.toLowerCase())):[])].slice(0,30);};
-const snapshotSql=(layer,alias='t')=>{const fields=editableFields(layer);return {fields,attributes:fields.length?`jsonb_build_object(${fields.map(f=>`'${f}',${alias}.${webMap.qid(f,webMap.FIELD)}`).join(',')})`:`'{}'::jsonb`};};
-const snapshot=async(layer,featureId,client=db,lock=false)=>{const table=tableFor(layer),id=idFor(layer),{attributes}=snapshotSql(layer);const {rows:[row]}=await client.query(`SELECT ${id}::text feature_id,${attributes} attributes,ST_AsGeoJSON(ST_Transform(geom,4326),6)::jsonb geometry FROM gis.${table} t WHERE ${id}::text=$1 ${lock?'FOR UPDATE':''}`,[String(featureId)]);return row||null;};
-const state=async(layerId,featureId,client=db,lock=false)=>{const {rows:[row]}=await client.query(`SELECT * FROM gis.feature_states WHERE layer_id=$1 AND feature_id=$2 ${lock?'FOR UPDATE':''}`,[layerId,String(featureId)]);return row||null;};
-const ensureState=async(layer,featureId,actor,client)=>{let current=await state(layer.id,featureId,client,true);if(current){return current;}const before=await snapshot(layer,featureId,client,true);if(!before){return null;}await client.query(`INSERT INTO gis.feature_states(layer_id,feature_id,version,updated_by) VALUES($1::bigint,$2::varchar,1,$3::bigint) ON CONFLICT DO NOTHING`,[layer.id,String(featureId),actor.id]);current=await state(layer.id,featureId,client,true);await client.query(`INSERT INTO gis.feature_versions(layer_id,feature_id,version,action,before_attributes,after_attributes,before_geom,after_geom,changed_by) SELECT $1::bigint,$2::varchar,1,'baseline',$3::jsonb,$3::jsonb,ST_SetSRID(ST_GeomFromGeoJSON($4::jsonb),4326),ST_SetSRID(ST_GeomFromGeoJSON($4::jsonb),4326),$5::bigint WHERE NOT EXISTS(SELECT 1 FROM gis.feature_versions WHERE layer_id=$1::bigint AND feature_id=$2::varchar AND version=1)`,[layer.id,String(featureId),before.attributes,JSON.stringify(before.geometry),actor.id]);return current;};
-const updateTx=async(layer,featureId,input,actor,options={})=>{const client=options.client||await db.getClient(),own=!options.client;try{if(own){await client.query('BEGIN');}const current=await ensureState(layer,featureId,actor,client);if(!current){if(own){await client.query('ROLLBACK');}return {missing:true};}const before=await snapshot(layer,featureId,client,true);if(Number(current.version)!==Number(input.baseVersion)){if(own){await client.query('ROLLBACK');}return {conflict:true,current:{...before,version:Number(current.version),updatedAt:current.updated_at}};}const allowed=editableFields(layer),keys=Object.keys(input.attributes||{});if(keys.some(key=>!allowed.includes(key))){const error=new Error('ATTRIBUTE_NOT_EDITABLE');error.code='ATTRIBUTE_NOT_EDITABLE';throw error;}const params=[],sets=[];for(const key of keys){params.push(input.attributes[key]);sets.push(`${webMap.qid(key,webMap.FIELD)}=$${params.length}`);}if(input.geometry){const {rows:[check]}=await client.query(`WITH g AS(SELECT ST_SetSRID(ST_GeomFromGeoJSON($1::jsonb),4326) geom) SELECT ST_IsValid(geom) valid,ST_IsEmpty(geom) empty,UPPER(GeometryType(geom)) type FROM g`,[JSON.stringify(input.geometry)]);const expected=String(layer.geometry_type).replace('MULTI','');if(!check.valid||check.empty||check.type!==expected){const error=new Error('INVALID_FEATURE_GEOMETRY');error.code='INVALID_FEATURE_GEOMETRY';throw error;}params.push(JSON.stringify(input.geometry),Number(layer.srid));const geometrySql=`ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($${params.length-1}::jsonb),4326),$${params.length}::integer)`;sets.push(`geom=${String(layer.geometry_type).startsWith('MULTI')?`ST_Multi(${geometrySql})`:geometrySql}`);}if(!sets.length){const error=new Error('EMPTY_FEATURE_CHANGE');error.code='EMPTY_FEATURE_CHANGE';throw error;}params.push(String(featureId));await client.query(`UPDATE gis.${tableFor(layer)} SET ${sets.join(',')} WHERE ${idFor(layer)}::text=$${params.length}`,params);const after=await snapshot(layer,featureId,client,false),next=Number(current.version)+1;await client.query(`UPDATE gis.feature_states SET version=$3,updated_by=$4,updated_at=NOW() WHERE layer_id=$1 AND feature_id=$2`,[layer.id,String(featureId),next,actor.id]);const action=options.action||'update';await client.query(`INSERT INTO gis.feature_versions(layer_id,feature_id,version,action,before_attributes,after_attributes,before_geom,after_geom,restored_from_version,changed_by,client_id,client_change_id) VALUES($1,$2,$3,$4,$5,$6,ST_SetSRID(ST_GeomFromGeoJSON($7::jsonb),4326),ST_SetSRID(ST_GeomFromGeoJSON($8::jsonb),4326),$9,$10,$11,$12)`,[layer.id,String(featureId),next,action,before.attributes,after.attributes,JSON.stringify(before.geometry),JSON.stringify(after.geometry),options.restoredFromVersion||null,actor.id,options.clientId||null,options.clientChangeId||null]);await client.query(`INSERT INTO auth.activity_logs(user_id,action,status,ip_address,user_agent,metadata) VALUES($1,$2,'success',$3,$4,$5)`,[actor.id,action==='restore'?'map_feature_restore':'map_feature_update',actor.ipAddress||null,actor.userAgent||null,{layerId:layer.id,featureId:String(featureId),version:next,before,after,clientId:options.clientId||null,clientChangeId:options.clientChangeId||null}]);if(own){await client.query('COMMIT');}return {...after,version:next};}catch(error){if(own){await client.query('ROLLBACK');}throw error;}finally{if(own){client.release();}}};
-const history=async(layerId,featureId)=>{const {rows}=await db.query(`SELECT version,action,before_attributes,after_attributes,ST_AsGeoJSON(before_geom,6)::jsonb before_geometry,ST_AsGeoJSON(after_geom,6)::jsonb after_geometry,restored_from_version,changed_by,changed_at FROM gis.feature_versions WHERE layer_id=$1 AND feature_id=$2 ORDER BY version DESC`,[layerId,String(featureId)]);return rows;};
-const version=async(layerId,featureId,number)=>{const {rows:[row]}=await db.query(`SELECT version,after_attributes attributes,ST_AsGeoJSON(after_geom,6)::jsonb geometry FROM gis.feature_versions WHERE layer_id=$1 AND feature_id=$2 AND version=$3`,[layerId,String(featureId),number]);return row||null;};
-const receipt=async(actorId,clientId,changeId,client=db)=>{const {rows:[row]}=await client.query('SELECT status,result FROM gis.mobile_sync_receipts WHERE actor_user_id=$1 AND client_id=$2 AND client_change_id=$3',[actorId,clientId,changeId]);return row||null;};
-const syncOne=async(layer,change,batch,actor)=>{const client=await db.getClient();try{await client.query('BEGIN');await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1,0))`,[`${actor.id}:${batch.clientId}:${change.clientChangeId}`]);const prior=await receipt(actor.id,batch.clientId,change.clientChangeId,client);if(prior){await client.query('COMMIT');return {...prior.result,replayed:true};}const result=await updateTx(layer,change.featureId,change,actor,{client,clientId:batch.clientId,clientChangeId:change.clientChangeId});const status=result.conflict?'conflict':'applied';await client.query(`INSERT INTO gis.mobile_sync_receipts(actor_user_id,client_id,client_change_id,status,result) VALUES($1,$2,$3,$4,$5)`,[actor.id,batch.clientId,change.clientChangeId,status,result]);await client.query('COMMIT');return result;}catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}};
-module.exports={editableFields,snapshot,state,updateTx,history,version,receipt,syncOne};
+const db = require('../configs/database');
+const webMap = require('./web-map.repository');
+const tableFor = (layer) => webMap.qid(layer.table_name),
+    idFor = (layer) => webMap.qid(webMap.idFieldFor(layer), webMap.FIELD);
+const editableFields = (layer) => {
+    const blocked = new Set([
+        'geom',
+        'source',
+        'target',
+        'cost',
+        'reverse_cost',
+        webMap.idFieldFor(layer).toLowerCase(),
+    ]);
+    return [
+        ...new Set(
+            Array.isArray(layer.metadata?.editableFields)
+                ? layer.metadata.editableFields.filter(
+                      (x) =>
+                          typeof x === 'string' &&
+                          webMap.FIELD.test(x) &&
+                          !blocked.has(x.toLowerCase()),
+                  )
+                : [],
+        ),
+    ].slice(0, 30);
+};
+const snapshotSql = (layer, alias = 't') => {
+    const fields = editableFields(layer);
+    return {
+        fields,
+        attributes: fields.length
+            ? `jsonb_build_object(${fields.map((f) => `'${f}',${alias}.${webMap.qid(f, webMap.FIELD)}`).join(',')})`
+            : `'{}'::jsonb`,
+    };
+};
+const snapshot = async (layer, featureId, client = db, lock = false) => {
+    const table = tableFor(layer),
+        id = idFor(layer),
+        { attributes } = snapshotSql(layer);
+    const {
+        rows: [row],
+    } = await client.query(
+        `SELECT ${id}::text feature_id,${attributes} attributes,ST_AsGeoJSON(ST_Transform(geom,4326),6)::jsonb geometry FROM gis.${table} t WHERE ${id}::text=$1 ${lock ? 'FOR UPDATE' : ''}`,
+        [String(featureId)],
+    );
+    return row || null;
+};
+const state = async (layerId, featureId, client = db, lock = false) => {
+    const {
+        rows: [row],
+    } = await client.query(
+        `SELECT * FROM gis.feature_states WHERE layer_id=$1 AND feature_id=$2 ${lock ? 'FOR UPDATE' : ''}`,
+        [layerId, String(featureId)],
+    );
+    return row || null;
+};
+const ensureState = async (layer, featureId, actor, client) => {
+    let current = await state(layer.id, featureId, client, true);
+    if (current) {
+        return current;
+    }
+    const before = await snapshot(layer, featureId, client, true);
+    if (!before) {
+        return null;
+    }
+    await client.query(
+        `INSERT INTO gis.feature_states(layer_id,feature_id,version,updated_by) VALUES($1::bigint,$2::varchar,1,$3::bigint) ON CONFLICT DO NOTHING`,
+        [layer.id, String(featureId), actor.id],
+    );
+    current = await state(layer.id, featureId, client, true);
+    await client.query(
+        `INSERT INTO gis.feature_versions(layer_id,feature_id,version,action,before_attributes,after_attributes,before_geom,after_geom,changed_by) SELECT $1::bigint,$2::varchar,1,'baseline',$3::jsonb,$3::jsonb,ST_SetSRID(ST_GeomFromGeoJSON($4::jsonb),4326),ST_SetSRID(ST_GeomFromGeoJSON($4::jsonb),4326),$5::bigint WHERE NOT EXISTS(SELECT 1 FROM gis.feature_versions WHERE layer_id=$1::bigint AND feature_id=$2::varchar AND version=1)`,
+        [layer.id, String(featureId), before.attributes, JSON.stringify(before.geometry), actor.id],
+    );
+    return current;
+};
+const updateTx = async (layer, featureId, input, actor, options = {}) => {
+    const client = options.client || (await db.getClient()),
+        own = !options.client;
+    try {
+        if (own) {
+            await client.query('BEGIN');
+        }
+        const current = await ensureState(layer, featureId, actor, client);
+        if (!current) {
+            if (own) {
+                await client.query('ROLLBACK');
+            }
+            return { missing: true };
+        }
+        const before = await snapshot(layer, featureId, client, true);
+        if (Number(current.version) !== Number(input.baseVersion)) {
+            if (own) {
+                await client.query('ROLLBACK');
+            }
+            return {
+                conflict: true,
+                current: {
+                    ...before,
+                    version: Number(current.version),
+                    updatedAt: current.updated_at,
+                },
+            };
+        }
+        const allowed = editableFields(layer),
+            keys = Object.keys(input.attributes || {});
+        if (keys.some((key) => !allowed.includes(key))) {
+            const error = new Error('ATTRIBUTE_NOT_EDITABLE');
+            error.code = 'ATTRIBUTE_NOT_EDITABLE';
+            throw error;
+        }
+        const params = [],
+            sets = [];
+        for (const key of keys) {
+            params.push(input.attributes[key]);
+            sets.push(`${webMap.qid(key, webMap.FIELD)}=$${params.length}`);
+        }
+        if (input.geometry) {
+            const {
+                rows: [check],
+            } = await client.query(
+                `WITH g AS(SELECT ST_SetSRID(ST_GeomFromGeoJSON($1::jsonb),4326) geom) SELECT ST_IsValid(geom) valid,ST_IsEmpty(geom) empty,UPPER(GeometryType(geom)) type FROM g`,
+                [JSON.stringify(input.geometry)],
+            );
+            const expected = String(layer.geometry_type).replace('MULTI', '');
+            if (!check.valid || check.empty || check.type !== expected) {
+                const error = new Error('INVALID_FEATURE_GEOMETRY');
+                error.code = 'INVALID_FEATURE_GEOMETRY';
+                throw error;
+            }
+            params.push(JSON.stringify(input.geometry), Number(layer.srid));
+            const geometrySql = `ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON($${params.length - 1}::jsonb),4326),$${params.length}::integer)`;
+            sets.push(
+                `geom=${String(layer.geometry_type).startsWith('MULTI') ? `ST_Multi(${geometrySql})` : geometrySql}`,
+            );
+        }
+        if (!sets.length) {
+            const error = new Error('EMPTY_FEATURE_CHANGE');
+            error.code = 'EMPTY_FEATURE_CHANGE';
+            throw error;
+        }
+        params.push(String(featureId));
+        await client.query(
+            `UPDATE gis.${tableFor(layer)} SET ${sets.join(',')} WHERE ${idFor(layer)}::text=$${params.length}`,
+            params,
+        );
+        const after = await snapshot(layer, featureId, client, false),
+            next = Number(current.version) + 1;
+        await client.query(
+            `UPDATE gis.feature_states SET version=$3,updated_by=$4,updated_at=NOW() WHERE layer_id=$1 AND feature_id=$2`,
+            [layer.id, String(featureId), next, actor.id],
+        );
+        const action = options.action || 'update';
+        await client.query(
+            `INSERT INTO gis.feature_versions(layer_id,feature_id,version,action,before_attributes,after_attributes,before_geom,after_geom,restored_from_version,changed_by,client_id,client_change_id,api_key_id) VALUES($1,$2,$3,$4,$5,$6,ST_SetSRID(ST_GeomFromGeoJSON($7::jsonb),4326),ST_SetSRID(ST_GeomFromGeoJSON($8::jsonb),4326),$9,$10,$11,$12,$13)`,
+            [
+                layer.id,
+                String(featureId),
+                next,
+                action,
+                before.attributes,
+                after.attributes,
+                JSON.stringify(before.geometry),
+                JSON.stringify(after.geometry),
+                options.restoredFromVersion || null,
+                actor.id,
+                options.clientId || null,
+                options.clientChangeId || null,
+                options.apiKeyId || null,
+            ],
+        );
+        await client.query(
+            `INSERT INTO auth.activity_logs(user_id,action,status,ip_address,user_agent,metadata) VALUES($1,$2,'success',$3,$4,$5)`,
+            [
+                actor.id,
+                action === 'restore' ? 'map_feature_restore' : 'map_feature_update',
+                actor.ipAddress || null,
+                actor.userAgent || null,
+                {
+                    layerId: layer.id,
+                    featureId: String(featureId),
+                    version: next,
+                    before,
+                    after,
+                    clientId: options.clientId || null,
+                    clientChangeId: options.clientChangeId || null,
+                    apiKeyId: options.apiKeyId || null,
+                },
+            ],
+        );
+        if (own) {
+            await client.query('COMMIT');
+        }
+        return { ...after, version: next };
+    } catch (error) {
+        if (own) {
+            await client.query('ROLLBACK');
+        }
+        throw error;
+    } finally {
+        if (own) {
+            client.release();
+        }
+    }
+};
+const history = async (layerId, featureId) => {
+    const { rows } = await db.query(
+        `SELECT version,action,before_attributes,after_attributes,ST_AsGeoJSON(before_geom,6)::jsonb before_geometry,ST_AsGeoJSON(after_geom,6)::jsonb after_geometry,restored_from_version,changed_by,changed_at FROM gis.feature_versions WHERE layer_id=$1 AND feature_id=$2 ORDER BY version DESC`,
+        [layerId, String(featureId)],
+    );
+    return rows;
+};
+const version = async (layerId, featureId, number) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `SELECT version,after_attributes attributes,ST_AsGeoJSON(after_geom,6)::jsonb geometry FROM gis.feature_versions WHERE layer_id=$1 AND feature_id=$2 AND version=$3`,
+        [layerId, String(featureId), number],
+    );
+    return row || null;
+};
+const receipt = async (actorId, clientId, changeId, client = db) => {
+    const {
+        rows: [row],
+    } = await client.query(
+        'SELECT status,result FROM gis.mobile_sync_receipts WHERE actor_user_id=$1 AND client_id=$2 AND client_change_id=$3',
+        [actorId, clientId, changeId],
+    );
+    return row || null;
+};
+const syncOne = async (layer, change, batch, actor) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, [
+            `${actor.id}:${batch.clientId}:${change.clientChangeId}`,
+        ]);
+        const prior = await receipt(actor.id, batch.clientId, change.clientChangeId, client);
+        if (prior) {
+            await client.query('COMMIT');
+            return { ...prior.result, replayed: true };
+        }
+        const result = await updateTx(layer, change.featureId, change, actor, {
+            client,
+            clientId: batch.clientId,
+            clientChangeId: change.clientChangeId,
+        });
+        const status = result.conflict ? 'conflict' : 'applied';
+        await client.query(
+            `INSERT INTO gis.mobile_sync_receipts(actor_user_id,client_id,client_change_id,status,result) VALUES($1,$2,$3,$4,$5)`,
+            [actor.id, batch.clientId, change.clientChangeId, status, result],
+        );
+        await client.query('COMMIT');
+        return result;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+module.exports = { editableFields, snapshot, state, updateTx, history, version, receipt, syncOne };

@@ -11,7 +11,9 @@ const ACCESS_COLUMNS = {
 
 const requireLayerAccess = (access) => {
     const permissionColumn = ACCESS_COLUMNS[access];
-    if (!permissionColumn) {throw new TypeError(`Unsupported layer access: ${access}`);}
+    if (!permissionColumn) {
+        throw new TypeError(`Unsupported layer access: ${access}`);
+    }
 
     return async (req, res, next) => {
         const layerId = Number(req.params.layerId);
@@ -28,19 +30,28 @@ const requireLayerAccess = (access) => {
                  LEFT JOIN gis.layer_permissions lp
                    ON lp.layer_id = l.id AND lp.role_code = $2
                  WHERE l.id = $1 AND l.deleted_at IS NULL`,
-                [layerId, req.user?.role || null]
+                [layerId, req.user?.role || null],
             );
             const layer = rows[0];
-            if (!layer) {return next(new Api404Error(t('map_layer_not_found', req.lang)));}
+            if (!layer) {
+                return next(new Api404Error(t('map_layer_not_found', req.lang)));
+            }
             if (access === 'view' && layer.is_public) {
                 req.layerAcl = layer;
                 return next();
             }
-            if (!req.user) {return next(new Api401Error(t('please_login', req.lang)));}
+            if (!req.user) {
+                return next(new Api401Error(t('please_login', req.lang)));
+            }
             if (layer.allowed !== true) {
-                return next(new Api403Error(t('no_permission_resource', req.lang, {
-                    resource: 'layers', action: access,
-                })));
+                return next(
+                    new Api403Error(
+                        t('no_permission_resource', req.lang, {
+                            resource: 'layers',
+                            action: access,
+                        }),
+                    ),
+                );
             }
             req.layerAcl = layer;
             return next();

@@ -1,9 +1,16 @@
 const { Router } = require('express');
 const asyncHandler = require('../helpers/async-handler');
 const systemLogController = require('../controllers/systemLog.controller');
-const { verifyToken, requirePermission, enforcePasswordChange } = require('../middlewares/auth.middleware');
+const {
+    verifyToken,
+    requirePermission,
+    enforcePasswordChange,
+} = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
-const { listSystemLogsSchema, cleanupSystemLogsSchema } = require('../validators/systemLog.validator');
+const {
+    listSystemLogsSchema,
+    cleanupSystemLogsSchema,
+} = require('../validators/systemLog.validator');
 
 const adminRouter = Router();
 
@@ -14,7 +21,7 @@ adminRouter.get(
     enforcePasswordChange,
     requirePermission('system_logs', 'read'),
     validate(listSystemLogsSchema, 'query'),
-    asyncHandler(systemLogController.listSystemLogs)
+    asyncHandler(systemLogController.listSystemLogs),
 );
 
 // DELETE /admin/system-logs/cleanup — dọn log cũ hơn N ngày
@@ -24,7 +31,7 @@ adminRouter.delete(
     enforcePasswordChange,
     requirePermission('system_logs', 'manage'),
     validate(cleanupSystemLogsSchema),
-    asyncHandler(systemLogController.cleanupSystemLogs)
+    asyncHandler(systemLogController.cleanupSystemLogs),
 );
 
 module.exports = { adminRouter };

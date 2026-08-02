@@ -31,6 +31,7 @@ describe('Cẩm Phả foundation database', () => {
             '024_mobile_gis.sql',
             '025_mobile_gis_routing_sync.sql',
             '026_mobile_gis_audit_integrity.sql',
+            '070_api_registry.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
@@ -51,25 +52,41 @@ describe('Cẩm Phả foundation database', () => {
             ORDER BY code
         `);
         expect(rows.map((row) => row.code)).toEqual([
-            'citizen', 'so_tnmt', 'so_xd', 'system_admin', 'ubnd_tp',
+            'citizen',
+            'so_tnmt',
+            'so_xd',
+            'system_admin',
+            'ubnd_tp',
         ]);
-        expect(rows.filter((row) => row.can_change_role === 'true').map((row) => row.code))
-            .toEqual(['so_tnmt']);
+        expect(rows.filter((row) => row.can_change_role === 'true').map((row) => row.code)).toEqual(
+            ['so_tnmt'],
+        );
         const adminActions = ['raster_create', 'raster_delete', 'raster_categorize', 'raster_read'];
-        const rasterManagers = rows.filter((row) => adminActions.every((action) => row[action] === 'true'))
+        const rasterManagers = rows
+            .filter((row) => adminActions.every((action) => row[action] === 'true'))
             .map((row) => row.code);
         expect(rasterManagers).toEqual(['so_tnmt', 'so_xd', 'system_admin', 'ubnd_tp']);
-        expect(rows.filter((row) => ['raster_compare', 'raster_search', 'raster_download']
-            .every((action) => row[action] === 'true')).map((row) => row.code)).toEqual([
-            'citizen', 'so_tnmt', 'so_xd', 'system_admin', 'ubnd_tp',
-        ]);
+        expect(
+            rows
+                .filter((row) =>
+                    ['raster_compare', 'raster_search', 'raster_download'].every(
+                        (action) => row[action] === 'true',
+                    ),
+                )
+                .map((row) => row.code),
+        ).toEqual(['citizen', 'so_tnmt', 'so_xd', 'system_admin', 'ubnd_tp']);
         expect(rows.find((row) => row.code === 'citizen')).toMatchObject({
-            raster_create: null, raster_delete: null, raster_categorize: null, raster_read: null,
+            raster_create: null,
+            raster_delete: null,
+            raster_categorize: null,
+            raster_read: null,
         });
     });
 
     test('storage schema và EPSG:5899 hoạt động trên PostGIS thật', async () => {
-        const { rows: [schema] } = await db.query(`
+        const {
+            rows: [schema],
+        } = await db.query(`
             SELECT to_regclass('core.file_objects') IS NOT NULL AS file_objects,
                    EXISTS (
                      SELECT 1 FROM spatial_ref_sys
@@ -78,7 +95,9 @@ describe('Cẩm Phả foundation database', () => {
         `);
         expect(schema).toEqual({ file_objects: true, epsg_5899: true });
 
-        const { rows: [point] } = await db.query(`
+        const {
+            rows: [point],
+        } = await db.query(`
             SELECT ST_X(round_trip) AS longitude, ST_Y(round_trip) AS latitude
             FROM (
               SELECT ST_Transform(
@@ -88,11 +107,13 @@ describe('Cẩm Phả foundation database', () => {
             ) t
         `);
         expect(Number(point.longitude)).toBeCloseTo(107.335, 6);
-        expect(Number(point.latitude)).toBeCloseTo(21.010, 6);
+        expect(Number(point.latitude)).toBeCloseTo(21.01, 6);
     });
 
     test('multi-tenant, layer ACL và auth security schema tồn tại', async () => {
-        const { rows: [schema] } = await db.query(`
+        const {
+            rows: [schema],
+        } = await db.query(`
             SELECT
               to_regclass('auth.organizations') IS NOT NULL AS organizations,
               to_regclass('gis.layers') IS NOT NULL AS layers,
@@ -133,7 +154,9 @@ describe('Cẩm Phả foundation database', () => {
         });
     });
     test('pgRouting và schema Sprint 9b tồn tại', async () => {
-        const { rows: [schema] } = await db.query(`
+        const {
+            rows: [schema],
+        } = await db.query(`
             SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='pgrouting') AS pgrouting,
                    to_regclass('gis.routing_networks') IS NOT NULL AS routing_networks,
                    to_regclass('gis.routing_vertices') IS NOT NULL AS routing_vertices,
@@ -141,6 +164,20 @@ describe('Cẩm Phả foundation database', () => {
                    to_regclass('gis.feature_states') IS NOT NULL AS feature_states,
                    to_regclass('gis.feature_versions') IS NOT NULL AS feature_versions,
                    to_regclass('gis.mobile_sync_receipts') IS NOT NULL AS mobile_sync_receipts
+        `);
+        expect(Object.values(schema).every(Boolean)).toBe(true);
+    });
+    test('schema Registry API Sprint 13 tồn tại', async () => {
+        const {
+            rows: [schema],
+        } = await db.query(`
+            SELECT to_regclass('apikey.registries') IS NOT NULL AS registries,
+                   to_regclass('apikey.keys') IS NOT NULL AS keys,
+                   to_regclass('apikey.quota_windows') IS NOT NULL AS quota_windows,
+                   to_regclass('apikey.call_logs') IS NOT NULL AS call_logs,
+                   to_regclass('apikey.key_events') IS NOT NULL AS key_events,
+                   to_regclass('apikey.feature_mutations') IS NOT NULL AS feature_mutations,
+                   EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='gis' AND table_name='feature_versions' AND column_name='api_key_id') AS history_api_key
         `);
         expect(Object.values(schema).every(Boolean)).toBe(true);
     });

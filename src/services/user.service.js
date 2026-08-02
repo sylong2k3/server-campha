@@ -9,23 +9,38 @@ const activityLogger = require('../utils/activityLogger.util');
 const _hasUserPermission = (actor, action) => actor?.permissions?.users?.[action] === true;
 
 const _assertAssignableRole = (actor, targetRoleCode) => {
-    if (targetRoleCode === 'citizen') {return;}
+    if (targetRoleCode === 'citizen') {
+        return;
+    }
     if (!_hasUserPermission(actor, 'change_role')) {
-        throw new Api403Error(t('no_permission_resource', actor.lang, {
-            resource: 'users', action: 'change_role',
-        }));
+        throw new Api403Error(
+            t('no_permission_resource', actor.lang, {
+                resource: 'users',
+                action: 'change_role',
+            }),
+        );
     }
 };
 
 const _assertSameOrganization = (actor, targetUser) => {
-    if (actor.orgId && targetUser.org_id === actor.orgId) {return;}
-    throw new Api403Error(t('no_permission_resource', actor.lang, {
-        resource: 'users', action: 'manage',
-    }));
+    if (actor.role === 'system_admin') {
+        return;
+    } // system_admin quản lý toàn bộ user
+    if (actor.orgId && targetUser.org_id === actor.orgId) {
+        return;
+    }
+    throw new Api403Error(
+        t('no_permission_resource', actor.lang, {
+            resource: 'users',
+            action: 'manage',
+        }),
+    );
 };
 
 const _assertNotLastActiveSystemAdmin = async (targetUser, lang) => {
-    if (targetUser.role !== 'system_admin') {return;}
+    if (targetUser.role !== 'system_admin') {
+        return;
+    }
     const activeSystemAdmins = await userRepository.countActiveUsersByRole('system_admin');
     if (activeSystemAdmins <= 1) {
         throw new Api400Error(t('invalid_data', lang), [t('cannot_modify_last_admin', lang)]);
@@ -34,12 +49,16 @@ const _assertNotLastActiveSystemAdmin = async (targetUser, lang) => {
 
 const _getOrThrow = async (userId, lang) => {
     const user = await userRepository.findById(userId);
-    if (!user) {throw new Api404Error(t('user_not_found', lang));}
+    if (!user) {
+        throw new Api404Error(t('user_not_found', lang));
+    }
     return user;
 };
 
 const _sanitize = (user) => {
-    if (!user) {return null;}
+    if (!user) {
+        return null;
+    }
     const safe = { ...user };
     delete safe.password_hash;
     delete safe.login_attempts;
@@ -64,29 +83,33 @@ const _logAdminActivity = (actor, action, targetUserId, metadata = {}) =>
 
 const listUsers = async (filter, actor) => {
     if (!actor.orgId) {
-        throw new Api403Error(t('no_permission_resource', actor.lang, { resource: 'users', action: 'list' }));
+        throw new Api403Error(
+            t('no_permission_resource', actor.lang, { resource: 'users', action: 'list' }),
+        );
     }
-    const effectiveFilter = { ...filter, orgId: actor.orgId };
+    // system_admin xem toàn bộ user; các role khác chỉ xem trong tổ chức mình
+    const effectiveFilter =
+        actor.role === 'system_admin' ? { ...filter } : { ...filter, orgId: actor.orgId };
     const { items, total } = await userRepository.findAll(effectiveFilter);
     return { items: items.map(_sanitize), total };
 };
 
-const createUser = async ({
-    email,
-    password,
-    fullName,
-    phone,
-    roleCode = 'citizen',
-}, actor) => {
+const createUser = async ({ email, password, fullName, phone, roleCode = 'citizen' }, actor) => {
     _assertAssignableRole(actor, roleCode);
     if (!actor.orgId) {
-        throw new Api403Error(t('no_permission_resource', actor.lang, { resource: 'users', action: 'create' }));
+        throw new Api403Error(
+            t('no_permission_resource', actor.lang, { resource: 'users', action: 'create' }),
+        );
     }
     const role = await userRepository.findRoleByCode(roleCode);
-    if (!role) {throw new Api400Error(t('invalid_data', actor.lang));}
+    if (!role) {
+        throw new Api400Error(t('invalid_data', actor.lang));
+    }
 
     const existing = await userRepository.findByEmail(email);
-    if (existing) {throw new Api409Error(t('email_in_use', actor.lang));}
+    if (existing) {
+        throw new Api409Error(t('email_in_use', actor.lang));
+    }
 
     let user;
     try {
@@ -119,25 +142,36 @@ const changeUserRole = async (userId, roleCode, actor) => {
     _assertAssignableRole(actor, roleCode);
     const user = await _getOrThrow(userId, actor.lang);
     _assertSameOrganization(actor, user);
-    if (actor.id === userId) {throw new Api400Error(t('invalid_data', actor.lang), [t('cannot_change_own_role', actor.lang)]);}
+    if (actor.id === userId) {
+        throw new Api400Error(t('invalid_data', actor.lang), [
+            t('cannot_change_own_role', actor.lang),
+        ]);
+    }
     if (user.role === 'system_admin' && roleCode !== 'system_admin') {
         await _assertNotLastActiveSystemAdmin(user, actor.lang);
     }
     const role = await userRepository.findRoleByCode(roleCode);
-    if (!role) {throw new Api400Error(t('invalid_data', actor.lang));}
+    if (!role) {
+        throw new Api400Error(t('invalid_data', actor.lang));
+    }
     const updated = await userRepository.updateRole(userId, roleCode);
     await Promise.all([
         userRepository.incrementTokenVersion(userId),
         tokenRepository.deleteAllUserTokens(userId),
     ]);
-    await _logAdminActivity(actor, 'user_role_change', userId, { fromRole: user.role, toRole: roleCode });
+    await _logAdminActivity(actor, 'user_role_change', userId, {
+        fromRole: user.role,
+        toRole: roleCode,
+    });
     return _sanitize(updated);
 };
 
 const setUserActive = async (userId, isActive, actor) => {
     const user = await _getOrThrow(userId, actor.lang);
     _assertSameOrganization(actor, user);
-    if (actor.id === userId) {throw new Api400Error(t('cannot_self_lock', actor.lang));}
+    if (actor.id === userId) {
+        throw new Api400Error(t('cannot_self_lock', actor.lang));
+    }
     if (user.role === 'system_admin' && isActive === false) {
         await _assertNotLastActiveSystemAdmin(user, actor.lang);
     }
@@ -150,7 +184,10 @@ const setUserActive = async (userId, isActive, actor) => {
         ]);
     }
 
-    await _logAdminActivity(actor, 'user_active_change', userId, { fromActive: user.is_active, toActive: isActive });
+    await _logAdminActivity(actor, 'user_active_change', userId, {
+        fromActive: user.is_active,
+        toActive: isActive,
+    });
     return _sanitize(updated);
 };
 
@@ -176,7 +213,9 @@ const getUserById = async (userId, actor) => {
 const deleteUser = async (userId, actor) => {
     const user = await _getOrThrow(userId, actor.lang);
     _assertSameOrganization(actor, user);
-    if (actor.id === userId) {throw new Api400Error(t('cannot_self_delete', actor.lang));}
+    if (actor.id === userId) {
+        throw new Api400Error(t('cannot_self_delete', actor.lang));
+    }
     if (user.role === 'system_admin') {
         await _assertNotLastActiveSystemAdmin(user, actor.lang);
     }
@@ -185,10 +224,12 @@ const deleteUser = async (userId, actor) => {
         userRepository.incrementTokenVersion(userId),
         tokenRepository.deleteAllUserTokens(userId),
     ]);
-    await _logAdminActivity(actor, 'user_delete', userId, { targetRole: user.role, targetEmail: user.email });
+    await _logAdminActivity(actor, 'user_delete', userId, {
+        targetRole: user.role,
+        targetEmail: user.email,
+    });
     return { message: t('user_deleted_success', actor.lang) };
 };
-
 
 module.exports = {
     listUsers,

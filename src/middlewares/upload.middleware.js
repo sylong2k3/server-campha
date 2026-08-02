@@ -40,8 +40,18 @@ const FILE_CATEGORIES = {
             'application/x-7z-compressed',
         ],
         extensions: [
-            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
-            '.txt', '.csv', '.zip', '.rar', '.7z',
+            '.pdf',
+            '.doc',
+            '.docx',
+            '.xls',
+            '.xlsx',
+            '.ppt',
+            '.pptx',
+            '.txt',
+            '.csv',
+            '.zip',
+            '.rar',
+            '.7z',
         ],
     },
 };
@@ -55,15 +65,17 @@ const ensureDir = (dir) => {
 };
 
 const slugifyName = (name) => {
-    return name
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D')
-        .replace(/[^a-zA-Z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .toLowerCase()
-        .slice(0, 50) || 'file';
+    return (
+        name
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .replace(/[^a-zA-Z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .toLowerCase()
+            .slice(0, 50) || 'file'
+    );
 };
 
 const generateFilename = (originalname) => {
@@ -115,10 +127,9 @@ const createUploader = (allowedCategories) => {
     const fileFilter = (req, file, cb) => {
         const category = detectCategory(file, allowedCategories);
         if (!category) {
-            const err = new Api400Error(
-                t('upload_invalid_type', req.lang),
-                [`INVALID_FILE_TYPE: ${file.originalname} (${file.mimetype})`],
-            );
+            const err = new Api400Error(t('upload_invalid_type', req.lang), [
+                `INVALID_FILE_TYPE: ${file.originalname} (${file.mimetype})`,
+            ]);
             return cb(err, false);
         }
         cb(null, true);
@@ -156,7 +167,9 @@ const handleUploadError = (err, req, res, next) => {
 // createFieldsUploader — multer.fields() với mỗi field một category riêng.
 // fieldCategoryMap: { fieldName: 'category_key', … }
 const createFieldsUploader = (fieldCategoryMap) => {
-    const maxSize = Math.max(...Object.values(fieldCategoryMap).map((c) => FILE_CATEGORIES[c].maxSize));
+    const maxSize = Math.max(
+        ...Object.values(fieldCategoryMap).map((c) => FILE_CATEGORIES[c].maxSize),
+    );
 
     const storage = multer.diskStorage({
         destination: (req, file, cb) => {
@@ -183,22 +196,33 @@ const createFieldsUploader = (fieldCategoryMap) => {
     const fileFilter = (req, file, cb) => {
         const categoryKey = fieldCategoryMap[file.fieldname];
         if (!categoryKey) {
-            return cb(new Api400Error(t('upload_invalid_type', req.lang), [`UNEXPECTED_FIELD: ${file.fieldname}`]), false);
+            return cb(
+                new Api400Error(t('upload_invalid_type', req.lang), [
+                    `UNEXPECTED_FIELD: ${file.fieldname}`,
+                ]),
+                false,
+            );
         }
         const cfg = FILE_CATEGORIES[categoryKey];
         const ext = path.extname(file.originalname).toLowerCase();
         if (cfg.mimeTypes.includes(file.mimetype) && cfg.extensions.includes(ext)) {
             return cb(null, true);
         }
-        return cb(new Api400Error(
-            t('upload_invalid_type', req.lang),
-            [`INVALID_FILE_TYPE: ${file.originalname} (${file.mimetype}) for field "${file.fieldname}"`],
-        ), false);
+        return cb(
+            new Api400Error(t('upload_invalid_type', req.lang), [
+                `INVALID_FILE_TYPE: ${file.originalname} (${file.mimetype}) for field "${file.fieldname}"`,
+            ]),
+            false,
+        );
     };
 
     const fields = Object.keys(fieldCategoryMap).map((name) => ({ name, maxCount: 1 }));
 
-    return multer({ storage, fileFilter, limits: { fileSize: maxSize, files: fields.length } }).fields(fields);
+    return multer({
+        storage,
+        fileFilter,
+        limits: { fileSize: maxSize, files: fields.length },
+    }).fields(fields);
 };
 
 const uploadImage = createUploader(['image']);

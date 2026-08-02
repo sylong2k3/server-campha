@@ -23,7 +23,9 @@ const ENV_SCHEMA_KEYS = {
     FRONTEND_URL: httpUrl.required(),
     CORS_ORIGINS: Joi.string().trim().min(1).required(),
     TRUST_PROXY: Joi.string().trim().min(1).default('false'),
-    REQUEST_BODY_LIMIT: Joi.string().pattern(/^\d+(?:b|kb|mb|gb)$/i).default('2mb'),
+    REQUEST_BODY_LIMIT: Joi.string()
+        .pattern(/^\d+(?:b|kb|mb|gb)$/i)
+        .default('2mb'),
     RATE_LIMIT_MAX: positiveInteger.default(1000),
     API_BASE_URL: httpUrl.default('http://127.0.0.1:3006'),
 
@@ -42,6 +44,7 @@ const ENV_SCHEMA_KEYS = {
 
     JWT_SECRET: Joi.string().min(32).required(),
     JWT_SECRET_REFRESH: Joi.string().min(32).required(),
+    API_SHARE_JWT_SECRET: Joi.string().min(32).allow(''),
     JWT_ALGORITHM: Joi.string().valid('HS256', 'HS384', 'HS512').default('HS256'),
     JWT_ACCESS_EXPIRES_IN: duration.default('15m'),
     JWT_REFRESH_EXPIRES_IN: duration.default('30d'),
@@ -53,7 +56,9 @@ const ENV_SCHEMA_KEYS = {
     EMAIL_VERIFICATION_EXPIRES_MINUTES: positiveInteger.default(60),
     EMAIL_VERIFICATION_MAX_REQUESTS: positiveInteger.default(3),
     MFA_ENABLED: boolean.default('false'),
-    MFA_ENCRYPTION_KEY: Joi.string().pattern(/^[a-f0-9]{64}$/i).allow(''),
+    MFA_ENCRYPTION_KEY: Joi.string()
+        .pattern(/^[a-f0-9]{64}$/i)
+        .allow(''),
 
     GOOGLE_CLIENT_ID: Joi.string().trim().allow(''),
     GOOGLE_CLIENT_SECRET: Joi.string().allow(''),
@@ -73,7 +78,9 @@ const ENV_SCHEMA_KEYS = {
     FIREBASE_SERVICE_ACCOUNT_BASE64: Joi.string().allow(''),
     FIREBASE_SERVICE_ACCOUNT: Joi.string().trim().allow(''),
     GOOGLE_APPLICATION_CREDENTIALS: Joi.string().trim().allow(''),
-    DEVICE_TOKEN_ENCRYPTION_KEY: Joi.string().pattern(/^[a-f0-9]{64}$/i).allow(''),
+    DEVICE_TOKEN_ENCRYPTION_KEY: Joi.string()
+        .pattern(/^[a-f0-9]{64}$/i)
+        .allow(''),
 
     LAYER_WORKER_ENABLED: boolean.default('false'),
     LAYER_WORKER_CONCURRENCY: positiveInteger.max(16).default(1),
@@ -120,9 +127,13 @@ const ENV_SCHEMA_KEYS = {
     GEOSERVER_URL: httpUrl.allow(''),
     GEOSERVER_USER: Joi.string().trim().allow(''),
     GEOSERVER_PASSWORD_FILE: Joi.string().trim().allow(''),
-    GEOSERVER_WORKSPACE: Joi.string().pattern(/^[a-z][a-z0-9_-]{0,79}$/).default('campha'),
+    GEOSERVER_WORKSPACE: Joi.string()
+        .pattern(/^[a-z][a-z0-9_-]{0,79}$/)
+        .default('campha'),
     GEOSERVER_NAMESPACE_URI: httpUrl.default('https://gis.campha.gov.vn/campha'),
-    GEOSERVER_DATASTORE: Joi.string().pattern(/^[a-z][a-z0-9_-]{0,79}$/).default('campha_postgis'),
+    GEOSERVER_DATASTORE: Joi.string()
+        .pattern(/^[a-z][a-z0-9_-]{0,79}$/)
+        .default('campha_postgis'),
     GEOSERVER_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(15000),
     MAP_PROXY_MAX_RESPONSE_MB: positiveInteger.default(25),
     RASTER_INGEST_DEBUG: boolean.default('false'),
@@ -148,7 +159,8 @@ const ENV_SCHEMA_KEYS = {
 };
 
 const envSchema = Joi.object(ENV_SCHEMA_KEYS).unknown(true);
-const SECRET_NAME_PATTERN = /(PASSWORD|PASS|SECRET|TOKEN|API_KEY|ACCESS_KEY|ENCRYPTION_KEY|SERVICE_ACCOUNT)/i;
+const SECRET_NAME_PATTERN =
+    /(PASSWORD|PASS|SECRET|TOKEN|API_KEY|ACCESS_KEY|ENCRYPTION_KEY|SERVICE_ACCOUNT)/i;
 
 class EnvValidationError extends Error {
     constructor(errors) {
@@ -161,25 +173,40 @@ class EnvValidationError extends Error {
 const redactSecrets = (message, source) => {
     let safe = String(message);
     for (const [name, rawValue] of Object.entries(source)) {
-        if (!SECRET_NAME_PATTERN.test(name) || typeof rawValue !== 'string' || rawValue.length < 4) {continue;}
+        if (
+            !SECRET_NAME_PATTERN.test(name) ||
+            typeof rawValue !== 'string' ||
+            rawValue.length < 4
+        ) {
+            continue;
+        }
         safe = safe.split(rawValue).join('[REDACTED]');
     }
     return safe;
 };
 
 const requireNames = (value, enabledName, names, errors) => {
-    if (value[enabledName] !== 'true') {return;}
+    if (value[enabledName] !== 'true') {
+        return;
+    }
     for (const name of names) {
-        if (!String(value[name] || '').trim()) {errors.push(`${name} is required when ${enabledName}=true`);}
+        if (!String(value[name] || '').trim()) {
+            errors.push(`${name} is required when ${enabledName}=true`);
+        }
     }
 };
 
 const checkReadableFile = (value, name, errors, checkFiles) => {
-    if (!checkFiles || !value[name]) {return;}
+    if (!checkFiles || !value[name]) {
+        return;
+    }
     const file = path.resolve(value[name]);
     try {
-        if (!fs.statSync(file).isFile()) {errors.push(`${name} must point to a file`);}
-        else if (!fs.readFileSync(file, 'utf8').trim()) {errors.push(`${name} points to an empty file`);}
+        if (!fs.statSync(file).isFile()) {
+            errors.push(`${name} must point to a file`);
+        } else if (!fs.readFileSync(file, 'utf8').trim()) {
+            errors.push(`${name} points to an empty file`);
+        }
     } catch {
         errors.push(`${name} points to an unreadable file`);
     }
@@ -196,24 +223,37 @@ const isLoopbackUrl = (url) => {
 };
 
 const validateProductionUrls = (value, errors) => {
-    if (value.NODE_ENV !== 'production') {return;}
+    if (value.NODE_ENV !== 'production') {
+        return;
+    }
     for (const name of ['APP_URL', 'FRONTEND_URL', 'API_BASE_URL']) {
-        if (isLoopbackUrl(value[name])) {errors.push(`${name} cannot use a loopback host in production`);}
+        if (isLoopbackUrl(value[name])) {
+            errors.push(`${name} cannot use a loopback host in production`);
+        }
     }
 };
 
 const validateCors = (value, errors) => {
-    const origins = value.CORS_ORIGINS.split(',').map((origin) => origin.trim()).filter(Boolean);
-    if (!origins.length) {errors.push('CORS_ORIGINS must contain at least one origin'); return;}
+    const origins = value.CORS_ORIGINS.split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+    if (!origins.length) {
+        errors.push('CORS_ORIGINS must contain at least one origin');
+        return;
+    }
     if (value.NODE_ENV === 'production' && origins.includes('*')) {
         errors.push('CORS_ORIGINS cannot contain * in production');
         return;
     }
     for (const origin of origins) {
-        if (origin === '*') {continue;}
+        if (origin === '*') {
+            continue;
+        }
         try {
             const parsed = new URL(origin);
-            if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {throw new Error();}
+            if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== origin) {
+                throw new Error();
+            }
         } catch {
             errors.push(`CORS_ORIGINS contains an invalid origin: ${origin}`);
             continue;
@@ -236,10 +276,33 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
     const errors = error ? error.details.map((detail) => detail.message) : [];
 
     if (!error) {
-        if (/^(your_|change[-_]?me)/i.test(value.JWT_SECRET)) {errors.push('JWT_SECRET contains a placeholder');}
-        if (/^(your_|change[-_]?me)/i.test(value.JWT_SECRET_REFRESH)) {errors.push('JWT_SECRET_REFRESH contains a placeholder');}
-        if (value.JWT_SECRET === value.JWT_SECRET_REFRESH) {errors.push('JWT_SECRET_REFRESH must differ from JWT_SECRET');}
-        if (value.DB_POOL_MIN > value.DB_POOL_MAX) {errors.push('DB_POOL_MIN cannot exceed DB_POOL_MAX');}
+        if (/^(your_|change[-_]?me)/i.test(value.JWT_SECRET)) {
+            errors.push('JWT_SECRET contains a placeholder');
+        }
+        if (/^(your_|change[-_]?me)/i.test(value.JWT_SECRET_REFRESH)) {
+            errors.push('JWT_SECRET_REFRESH contains a placeholder');
+        }
+        if (
+            value.API_SHARE_JWT_SECRET &&
+            /^(your_|change[-_]?me)/i.test(value.API_SHARE_JWT_SECRET)
+        ) {
+            errors.push('API_SHARE_JWT_SECRET contains a placeholder');
+        }
+        if (value.JWT_SECRET === value.JWT_SECRET_REFRESH) {
+            errors.push('JWT_SECRET_REFRESH must differ from JWT_SECRET');
+        }
+        if (
+            value.API_SHARE_JWT_SECRET &&
+            [value.JWT_SECRET, value.JWT_SECRET_REFRESH].includes(value.API_SHARE_JWT_SECRET)
+        ) {
+            errors.push('API_SHARE_JWT_SECRET must differ from user JWT secrets');
+        }
+        if (value.NODE_ENV === 'production' && !value.API_SHARE_JWT_SECRET) {
+            errors.push('API_SHARE_JWT_SECRET is required in production');
+        }
+        if (value.DB_POOL_MIN > value.DB_POOL_MAX) {
+            errors.push('DB_POOL_MIN cannot exceed DB_POOL_MAX');
+        }
         if (value.WEATHER_WIND_GRID_SIZE > value.WEATHER_WIND_GRID_MAX) {
             errors.push('WEATHER_WIND_GRID_SIZE cannot exceed WEATHER_WIND_GRID_MAX');
         }
@@ -247,41 +310,71 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
         validateProductionUrls(value, errors);
         validateCors(value, errors);
         requireNames(value, 'MFA_ENABLED', ['MFA_ENCRYPTION_KEY'], errors);
-        requireNames(value, 'STORAGE_ENABLED', [
-            'MINIO_ENDPOINT', 'MINIO_ACCESS_KEY_FILE', 'MINIO_SECRET_KEY_FILE', 'MINIO_BUCKET_LAYERS',
-            'MINIO_BUCKET_RASTER', 'MINIO_BUCKET_DOCUMENTS', 'MINIO_BUCKET_FIELD_PHOTOS',
-            'MINIO_BUCKET_QUARANTINE',
-        ], errors);
+        requireNames(
+            value,
+            'STORAGE_ENABLED',
+            [
+                'MINIO_ENDPOINT',
+                'MINIO_ACCESS_KEY_FILE',
+                'MINIO_SECRET_KEY_FILE',
+                'MINIO_BUCKET_LAYERS',
+                'MINIO_BUCKET_RASTER',
+                'MINIO_BUCKET_DOCUMENTS',
+                'MINIO_BUCKET_FIELD_PHOTOS',
+                'MINIO_BUCKET_QUARANTINE',
+            ],
+            errors,
+        );
         requireNames(value, 'CLAMAV_ENABLED', ['CLAMAV_HOST'], errors);
-        requireNames(value, 'GEOSERVER_ENABLED', [
-            'GEOSERVER_URL', 'GEOSERVER_USER', 'GEOSERVER_PASSWORD_FILE',
-        ], errors);
-        requireNames(value, 'LAYER_WORKER_ENABLED', [
-            'GDAL_OGR2OGR_PATH', 'GDAL_OGRINFO_PATH', 'PROJ_DATA_PATH', 'GDAL_DATA_PATH',
-        ], errors);
+        requireNames(
+            value,
+            'GEOSERVER_ENABLED',
+            ['GEOSERVER_URL', 'GEOSERVER_USER', 'GEOSERVER_PASSWORD_FILE'],
+            errors,
+        );
+        requireNames(
+            value,
+            'LAYER_WORKER_ENABLED',
+            ['GDAL_OGR2OGR_PATH', 'GDAL_OGRINFO_PATH', 'PROJ_DATA_PATH', 'GDAL_DATA_PATH'],
+            errors,
+        );
 
-        if (value.LAYER_WORKER_ENABLED === 'true'
-            && (value.STORAGE_ENABLED !== 'true' || value.GEOSERVER_ENABLED !== 'true')) {
-            errors.push('LAYER_WORKER_ENABLED=true requires STORAGE_ENABLED=true and GEOSERVER_ENABLED=true');
+        if (
+            value.LAYER_WORKER_ENABLED === 'true' &&
+            (value.STORAGE_ENABLED !== 'true' || value.GEOSERVER_ENABLED !== 'true')
+        ) {
+            errors.push(
+                'LAYER_WORKER_ENABLED=true requires STORAGE_ENABLED=true and GEOSERVER_ENABLED=true',
+            );
         }
         if (value.GOOGLE_CLIENT_ID && (!value.GOOGLE_CLIENT_SECRET || !value.GOOGLE_CALLBACK_URL)) {
-            errors.push('GOOGLE_CLIENT_SECRET and GOOGLE_CALLBACK_URL are required with GOOGLE_CLIENT_ID');
+            errors.push(
+                'GOOGLE_CLIENT_SECRET and GOOGLE_CALLBACK_URL are required with GOOGLE_CLIENT_ID',
+            );
         }
         const smtpValues = [value.SMTP_HOST, value.SMTP_USER, value.SMTP_PASS];
         if (smtpValues.some(Boolean) && !smtpValues.every(Boolean)) {
             errors.push('SMTP_HOST, SMTP_USER and SMTP_PASS must be configured together');
         }
-        if (value.PUSH_ENABLED === 'true'
-            && !value.FIREBASE_SERVICE_ACCOUNT_BASE64
-            && !value.FIREBASE_SERVICE_ACCOUNT
-            && !value.GOOGLE_APPLICATION_CREDENTIALS) {
+        if (
+            value.PUSH_ENABLED === 'true' &&
+            !value.FIREBASE_SERVICE_ACCOUNT_BASE64 &&
+            !value.FIREBASE_SERVICE_ACCOUNT &&
+            !value.GOOGLE_APPLICATION_CREDENTIALS
+        ) {
             errors.push('PUSH_ENABLED=true requires Firebase credentials');
         }
         requireNames(value, 'PUSH_ENABLED', ['DEVICE_TOKEN_ENCRYPTION_KEY'], errors);
 
-        for (const name of ['MINIO_ACCESS_KEY_FILE', 'MINIO_SECRET_KEY_FILE', 'GEOSERVER_PASSWORD_FILE']) {
-            if ((value.STORAGE_ENABLED === 'true' && name.startsWith('MINIO'))
-                || (value.GEOSERVER_ENABLED === 'true' && name.startsWith('GEOSERVER'))) {
+        for (const name of [
+            'MINIO_ACCESS_KEY_FILE',
+            'MINIO_SECRET_KEY_FILE',
+            'GEOSERVER_PASSWORD_FILE',
+        ]) {
+            if (
+                (value.STORAGE_ENABLED === 'true' && name.startsWith('MINIO')) ||
+                (value.GEOSERVER_ENABLED === 'true' && name.startsWith('GEOSERVER'))
+            ) {
                 checkReadableFile(value, name, errors, checkFiles);
             }
         }
@@ -293,19 +386,25 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
         }
     }
 
-    if (errors.length) {throw new EnvValidationError(errors.map((item) => redactSecrets(item, source)));}
+    if (errors.length) {
+        throw new EnvValidationError(errors.map((item) => redactSecrets(item, source)));
+    }
     return value;
 };
 
 const applyEnv = (value, target = process.env) => {
     for (const name of Object.keys(ENV_SCHEMA_KEYS)) {
-        if (value[name] !== undefined) {target[name] = String(value[name]);}
+        if (value[name] !== undefined) {
+            target[name] = String(value[name]);
+        }
     }
 };
 
 const loadEnv = (options = {}) => {
     const result = dotenv.config({ quiet: true, ...options.dotenv });
-    if (result.error) {throw result.error;}
+    if (result.error) {
+        throw result.error;
+    }
     const value = validateEnv(process.env, { checkFiles: options.checkFiles !== false });
     applyEnv(value);
     return value;

@@ -15,9 +15,13 @@ const BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 
 const readSecretFile = (envName) => {
     const file = process.env[envName];
-    if (!file) {throw new Error(`${envName} is required when STORAGE_ENABLED=true`);}
+    if (!file) {
+        throw new Error(`${envName} is required when STORAGE_ENABLED=true`);
+    }
     const value = fs.readFileSync(file, 'utf8').trim();
-    if (!value) {throw new Error(`${envName} is empty`);}
+    if (!value) {
+        throw new Error(`${envName} is empty`);
+    }
     return value;
 };
 
@@ -30,16 +34,22 @@ const parsePort = (value) => {
 };
 
 const getConfig = () => {
-    if (!isEnabled()) {return null;}
+    if (!isEnabled()) {
+        return null;
+    }
     const endPoint = process.env.MINIO_ENDPOINT?.trim();
     if (!endPoint || endPoint.includes('://') || /[/\\@?#]/.test(endPoint)) {
         throw new Error('MINIO_ENDPOINT must be a hostname or IP address');
     }
-    const buckets = Object.fromEntries(Object.entries(CATEGORY_BUCKET_ENV).map(([category, envName]) => {
-        const name = process.env[envName]?.trim();
-        if (!name || !BUCKET_PATTERN.test(name)) {throw new Error(`${envName} is invalid`);}
-        return [category, name];
-    }));
+    const buckets = Object.fromEntries(
+        Object.entries(CATEGORY_BUCKET_ENV).map(([category, envName]) => {
+            const name = process.env[envName]?.trim();
+            if (!name || !BUCKET_PATTERN.test(name)) {
+                throw new Error(`${envName} is invalid`);
+            }
+            return [category, name];
+        }),
+    );
     const quarantineBucket = process.env.MINIO_BUCKET_QUARANTINE?.trim();
     if (!quarantineBucket || !BUCKET_PATTERN.test(quarantineBucket)) {
         throw new Error('MINIO_BUCKET_QUARANTINE is invalid');
@@ -64,7 +74,9 @@ let client;
 let clientConfig;
 const getClient = () => {
     const config = getConfig();
-    if (!config) {throw new Error('Object storage is disabled');}
+    if (!config) {
+        throw new Error('Object storage is disabled');
+    }
     if (!client) {
         client = new Minio.Client({
             endPoint: config.endPoint,
@@ -80,26 +92,38 @@ const getClient = () => {
 };
 
 const ensureBucket = async (minio, bucketName, region) => {
-    if (!await minio.bucketExists(bucketName)) {await minio.makeBucket(bucketName, region);}
+    if (!(await minio.bucketExists(bucketName))) {
+        await minio.makeBucket(bucketName, region);
+    }
     // Empty policy has no anonymous statements. IAM credentials remain controlled separately.
-    await minio.setBucketPolicy(bucketName, JSON.stringify({ Version: '2012-10-17', Statement: [] }));
+    await minio.setBucketPolicy(
+        bucketName,
+        JSON.stringify({ Version: '2012-10-17', Statement: [] }),
+    );
 };
 
 const initMinio = async () => {
-    if (!isEnabled()) {return false;}
+    if (!isEnabled()) {
+        return false;
+    }
     try {
         const minio = getClient();
         const config = clientConfig;
-        await Promise.all([...Object.values(config.buckets), config.quarantineBucket]
-            .map((bucket) => ensureBucket(minio, bucket, config.region)));
+        await Promise.all(
+            [...Object.values(config.buckets), config.quarantineBucket].map((bucket) =>
+                ensureBucket(minio, bucket, config.region),
+            ),
+        );
         await minio.setBucketLifecycle(config.quarantineBucket, {
-            Rule: [{
-                ID: 'expire-quarantine',
-                Status: 'Enabled',
-                Filter: { Prefix: '' },
-                Expiration: { Days: 1 },
-                AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
-            }],
+            Rule: [
+                {
+                    ID: 'expire-quarantine',
+                    Status: 'Enabled',
+                    Filter: { Prefix: '' },
+                    Expiration: { Days: 1 },
+                    AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 },
+                },
+            ],
         });
         console.info(t('minio_connected', process.env.APP_LANG || 'vi'));
         return true;
@@ -110,12 +134,17 @@ const initMinio = async () => {
 };
 
 const healthCheck = async () => {
-    if (!isEnabled()) {return false;}
+    if (!isEnabled()) {
+        return false;
+    }
     try {
         const minio = getClient();
         const config = clientConfig;
-        const checks = await Promise.all([...Object.values(config.buckets), config.quarantineBucket]
-            .map((bucket) => minio.bucketExists(bucket)));
+        const checks = await Promise.all(
+            [...Object.values(config.buckets), config.quarantineBucket].map((bucket) =>
+                minio.bucketExists(bucket),
+            ),
+        );
         return checks.every(Boolean);
     } catch {
         return false;
@@ -125,13 +154,17 @@ const healthCheck = async () => {
 const getBucketForCategory = (category) => {
     const config = getConfig();
     const bucket = config?.buckets[category];
-    if (!bucket) {throw new TypeError(`Unsupported storage category: ${category}`);}
+    if (!bucket) {
+        throw new TypeError(`Unsupported storage category: ${category}`);
+    }
     return bucket;
 };
 
 const getQuarantineBucket = () => {
     const config = getConfig();
-    if (!config) {throw new Error('Object storage is disabled');}
+    if (!config) {
+        throw new Error('Object storage is disabled');
+    }
     return config.quarantineBucket;
 };
 

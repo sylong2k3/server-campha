@@ -12,7 +12,9 @@ const notFoundHandler = (req, res) => {
 };
 
 const errorHandler = (err, req, res, next) => {
-    if (res.headersSent) {return next(err);}
+    if (res.headersSent) {
+        return next(err);
+    }
 
     if (err instanceof BaseError) {
         return res.status(err.status).json({
@@ -78,13 +80,13 @@ const errorHandler = (err, req, res, next) => {
 
     // PostgreSQL error mapping (SQLSTATE codes) → trả lỗi 4xx rõ ràng thay vì 500
     const PG_ERROR_MAP = {
-        '23505': { status: 409, key: 'resource_conflict', code: 'UNIQUE_VIOLATION' },     // unique_violation
-        '23503': { status: 400, key: 'invalid_reference', code: 'FK_VIOLATION' },          // foreign_key_violation
-        '23502': { status: 400, key: 'invalid_data', code: 'NOT_NULL_VIOLATION' },         // not_null_violation
-        '23514': { status: 400, key: 'invalid_data', code: 'CHECK_VIOLATION' },            // check_violation
-        '22P02': { status: 400, key: 'invalid_data', code: 'INVALID_TEXT_REPRESENTATION' },// invalid_text_representation
-        '22003': { status: 400, key: 'invalid_data', code: 'NUMERIC_OUT_OF_RANGE' },       // numeric_value_out_of_range
-        '22007': { status: 400, key: 'invalid_data', code: 'INVALID_DATETIME' },           // invalid_datetime_format
+        23505: { status: 409, key: 'resource_conflict', code: 'UNIQUE_VIOLATION' }, // unique_violation
+        23503: { status: 400, key: 'invalid_reference', code: 'FK_VIOLATION' }, // foreign_key_violation
+        23502: { status: 400, key: 'invalid_data', code: 'NOT_NULL_VIOLATION' }, // not_null_violation
+        23514: { status: 400, key: 'invalid_data', code: 'CHECK_VIOLATION' }, // check_violation
+        '22P02': { status: 400, key: 'invalid_data', code: 'INVALID_TEXT_REPRESENTATION' }, // invalid_text_representation
+        22003: { status: 400, key: 'invalid_data', code: 'NUMERIC_OUT_OF_RANGE' }, // numeric_value_out_of_range
+        22007: { status: 400, key: 'invalid_data', code: 'INVALID_DATETIME' }, // invalid_datetime_format
     };
 
     if (typeof err.code === 'string' && PG_ERROR_MAP[err.code]) {
@@ -96,8 +98,6 @@ const errorHandler = (err, req, res, next) => {
         });
     }
 
-
-
     const statusCode = err.status || err.statusCode || 500;
     console.error('[ERROR]', {
         method: req.method,
@@ -107,17 +107,22 @@ const errorHandler = (err, req, res, next) => {
         stack: err.stack,
     });
 
-    systemLogger.logError('http', `${req.method} ${req.originalUrl} → ${statusCode}: ${err.message}`, {
-        stack: err.stack,
-        userId: req.user?.id || null,
-        ipAddress: req.ip,
-    });
+    systemLogger.logError(
+        'http',
+        `${req.method} ${req.originalUrl} → ${statusCode}: ${err.message}`,
+        {
+            stack: err.stack,
+            userId: req.user?.id || null,
+            ipAddress: req.ip,
+        },
+    );
 
     return res.status(statusCode).json({
         success: false,
-        message: process.env.NODE_ENV === 'production'
-            ? 'Internal Server Error'
-            : err.message || 'Internal Server Error',
+        message:
+            process.env.NODE_ENV === 'production'
+                ? 'Internal Server Error'
+                : err.message || 'Internal Server Error',
         errors: ['INTERNAL_ERROR'],
         ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
     });

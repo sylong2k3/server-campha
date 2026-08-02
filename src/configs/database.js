@@ -35,8 +35,11 @@ const query = async (text, params) => {
     } catch (err) {
         const duration = Date.now() - start;
         const shortSql = text.replace(/\s+/g, ' ').substring(0, 150);
-        const detail = err.message || err.errors?.map((e) => e.message).join('; ') || err.code || String(err);
-        console.error(`[DB ERROR] ${duration}ms | code=${err.code || '-'} | ${detail} | ${shortSql}`);
+        const detail =
+            err.message || err.errors?.map((e) => e.message).join('; ') || err.code || String(err);
+        console.error(
+            `[DB ERROR] ${duration}ms | code=${err.code || '-'} | ${detail} | ${shortSql}`,
+        );
         throw err;
     }
 };
@@ -49,7 +52,9 @@ const POOL_MONITOR_INTERVAL_MS = parseInt(process.env.DB_POOL_MONITOR_MS, 10) ||
 let poolMonitorId = null;
 
 const startPoolMonitor = () => {
-    if (poolMonitorId) {return;}
+    if (poolMonitorId) {
+        return;
+    }
 
     poolMonitorId = setInterval(() => {
         const { totalCount, idleCount, waitingCount } = pool;
@@ -57,13 +62,13 @@ const startPoolMonitor = () => {
 
         if (waitingCount > 0) {
             console.warn(
-                `[DB Pool PRESSURE] waiting=${waitingCount} active=${activeCount} idle=${idleCount} total=${totalCount}/${pool.options.max}`
+                `[DB Pool PRESSURE] waiting=${waitingCount} active=${activeCount} idle=${idleCount} total=${totalCount}/${pool.options.max}`,
             );
         }
 
         if (totalCount > 0 && activeCount / pool.options.max > 0.8) {
             console.warn(
-                `[DB Pool HIGH USAGE] ${Math.round((activeCount / pool.options.max) * 100)}% | active=${activeCount} max=${pool.options.max}`
+                `[DB Pool HIGH USAGE] ${Math.round((activeCount / pool.options.max) * 100)}% | active=${activeCount} max=${pool.options.max}`,
             );
         }
     }, POOL_MONITOR_INTERVAL_MS);

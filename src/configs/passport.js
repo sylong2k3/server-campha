@@ -29,20 +29,26 @@ const initPassport = () => {
                 }
                 const user = await userRepository.findByIdSafe(payload.userId);
                 if (!user) {
-                    return done(null, false, { message: t('passport_user_not_found', getLang(req)) });
+                    return done(null, false, {
+                        message: t('passport_user_not_found', getLang(req)),
+                    });
                 }
                 if (!user.is_active) {
-                    return done(null, false, { message: t('passport_account_disabled', getLang(req)) });
+                    return done(null, false, {
+                        message: t('passport_account_disabled', getLang(req)),
+                    });
                 }
-                if (!Number.isInteger(payload.tokenVersion)
-                    || payload.tokenVersion !== user.token_version) {
+                if (
+                    !Number.isInteger(payload.tokenVersion) ||
+                    payload.tokenVersion !== user.token_version
+                ) {
                     return done(null, false, { message: t('token_revoked', getLang(req)) });
                 }
                 return done(null, { ...user, jti: payload.jti, exp: payload.exp });
             } catch (error) {
                 return done(error, false);
             }
-        })
+        }),
     );
 
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
@@ -71,8 +77,8 @@ const initPassport = () => {
                     } catch (error) {
                         return done(error, false);
                     }
-                }
-            )
+                },
+            ),
         );
         console.log('  ✓ Google OAuth2 strategy initialized');
     } else {

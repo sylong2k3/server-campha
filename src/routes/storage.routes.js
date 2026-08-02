@@ -13,8 +13,25 @@ const {
 
 const router = Router();
 router.use(verifyToken, enforcePasswordChange);
-router.post('/uploads/presign', validate(presignSchema), asyncHandler(storageController.createPresignedUpload));
-router.post('/uploads/:id/commit', validate(objectIdParamsSchema, 'params'), asyncHandler(storageController.commitUpload));
-router.get('/objects/:id/download-url', validate(objectIdParamsSchema, 'params'), validate(downloadQuerySchema, 'query'), asyncHandler(storageController.getDownloadUrl));
-router.delete('/objects/:id', validate(objectIdParamsSchema, 'params'), asyncHandler(storageController.deleteObject));
+router.post(
+    '/uploads/presign',
+    validate(presignSchema),
+    asyncHandler(storageController.createPresignedUpload),
+);
+router.post(
+    '/uploads/:id/commit',
+    validate(objectIdParamsSchema, 'params'),
+    asyncHandler(storageController.commitUpload),
+);
+router.get(
+    '/objects/:id/download-url',
+    validate(objectIdParamsSchema, 'params'),
+    validate(downloadQuerySchema, 'query'),
+    asyncHandler(storageController.getDownloadUrl),
+);
+router.delete(
+    '/objects/:id',
+    validate(objectIdParamsSchema, 'params'),
+    asyncHandler(storageController.deleteObject),
+);
 module.exports = router;

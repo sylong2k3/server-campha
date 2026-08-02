@@ -10,6 +10,8 @@
     "migrate": "node src/database/migrate.js",
     "migrate:status": "node src/database/migrate.js --status",
     "seed:users": "node src/database/seeds/001_users.seed.js",
+    "format": "prettier --write \"src/**/*.js\" \"server.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"server.js\"",
     "lint": "eslint .",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -47,6 +49,7 @@
     "eslint": "^10.8.0",
     "jest": "^30.4.2",
     "nodemon": "^3.1.14",
+    "prettier": "^3.9.6",
     "supertest": "^7.2.2"
   },
   "overrides": {
@@ -54,12 +57,5 @@
   },
   "engines": {
     "node": ">=24.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@firebase/util",
-      "bcrypt",
-      "protobufjs"
-    ]
   }
 }

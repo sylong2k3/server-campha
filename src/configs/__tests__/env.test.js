@@ -42,30 +42,64 @@ describe('environment configuration', () => {
     });
 
     test('rejects invalid ranges and cross-field values', () => {
-        expect(() => validateEnv(validEnv({
-            DB_POOL_MIN: '30',
-            DB_POOL_MAX: '10',
-            WEATHER_WIND_GRID_SIZE: '17',
-            WEATHER_WIND_GRID_MAX: '16',
-        }), { checkFiles: false })).toThrow(/DB_POOL_MIN cannot exceed|WEATHER_WIND_GRID_SIZE/);
+        expect(() =>
+            validateEnv(
+                validEnv({
+                    DB_POOL_MIN: '30',
+                    DB_POOL_MAX: '10',
+                    WEATHER_WIND_GRID_SIZE: '17',
+                    WEATHER_WIND_GRID_MAX: '16',
+                }),
+                { checkFiles: false },
+            ),
+        ).toThrow(/DB_POOL_MIN cannot exceed|WEATHER_WIND_GRID_SIZE/);
     });
 
     test('requires feature dependencies', () => {
-        expect(() => validateEnv(validEnv({ STORAGE_ENABLED: 'true' }), { checkFiles: false }))
-            .toThrow(/MINIO_ENDPOINT is required when STORAGE_ENABLED=true/);
-        expect(() => validateEnv(validEnv({ PUSH_ENABLED: 'true' }), { checkFiles: false }))
-            .toThrow(/requires Firebase credentials/);
+        expect(() =>
+            validateEnv(validEnv({ STORAGE_ENABLED: 'true' }), { checkFiles: false }),
+        ).toThrow(/MINIO_ENDPOINT is required when STORAGE_ENABLED=true/);
+        expect(() =>
+            validateEnv(validEnv({ PUSH_ENABLED: 'true' }), { checkFiles: false }),
+        ).toThrow(/requires Firebase credentials/);
     });
 
     test('rejects unsafe production origins and loopback URLs', () => {
-        expect(() => validateEnv(validEnv({
-            NODE_ENV: 'production',
-            CORS_ORIGINS: '*',
-        }), { checkFiles: false })).toThrow(/CORS_ORIGINS cannot contain \*/);
-        expect(() => validateEnv(validEnv({
-            NODE_ENV: 'production',
-            CORS_ORIGINS: 'http://localhost:5173',
-        }), { checkFiles: false })).toThrow(/cannot use a loopback host in production/);
+        expect(() =>
+            validateEnv(
+                validEnv({
+                    NODE_ENV: 'production',
+                    API_SHARE_JWT_SECRET: 'c'.repeat(48),
+                    CORS_ORIGINS: '*',
+                }),
+                { checkFiles: false },
+            ),
+        ).toThrow(/CORS_ORIGINS cannot contain \*/);
+        expect(() =>
+            validateEnv(
+                validEnv({
+                    NODE_ENV: 'production',
+                    API_SHARE_JWT_SECRET: 'c'.repeat(48),
+                    CORS_ORIGINS: 'http://localhost:5173',
+                }),
+                { checkFiles: false },
+            ),
+        ).toThrow(/cannot use a loopback host in production/);
+    });
+
+    test('requires a distinct share JWT secret in production', () => {
+        expect(() =>
+            validateEnv(validEnv({ NODE_ENV: 'production' }), { checkFiles: false }),
+        ).toThrow(/API_SHARE_JWT_SECRET is required/);
+        expect(() =>
+            validateEnv(
+                validEnv({
+                    NODE_ENV: 'production',
+                    API_SHARE_JWT_SECRET: 'a'.repeat(48),
+                }),
+                { checkFiles: false },
+            ),
+        ).toThrow(/must differ from user JWT secrets/);
     });
 
     test('redacts secret values from validation errors', () => {
@@ -73,7 +107,9 @@ describe('environment configuration', () => {
         let caught;
         try {
             // MFA_ENCRYPTION_KEY sai pattern -> Joi in ca gia tri ra message, phai bi che.
-            validateEnv(validEnv({ DB_PASSWORD: secret, MFA_ENCRYPTION_KEY: secret }), { checkFiles: false });
+            validateEnv(validEnv({ DB_PASSWORD: secret, MFA_ENCRYPTION_KEY: secret }), {
+                checkFiles: false,
+            });
         } catch (error) {
             caught = error;
         }

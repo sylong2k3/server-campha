@@ -2,3 +2,4 @@ allowBuilds:
   '@firebase/util': true
   bcrypt: true
   protobufjs: true
+  unrs-resolver: true

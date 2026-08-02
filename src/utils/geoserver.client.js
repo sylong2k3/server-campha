@@ -17,7 +17,6 @@ const normalizeBaseUrl = (url) => url.replace(/\/+$/, '');
 const authHeader = ({ user, password }) =>
     `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
 
-
 const requestGeoserver = async (path, options = {}) => {
     const config = assertGeoserverConfigured();
     if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) {
@@ -45,7 +44,7 @@ const requestGeoserver = async (path, options = {}) => {
             throw new GeoServerError(
                 `GeoServer request failed with status ${res.status}`,
                 res.status,
-                body.slice(0, 1000)
+                body.slice(0, 1000),
             );
         }
 
@@ -67,28 +66,25 @@ const publishVectorLayer = async (layer) => {
     const featureName = layer.table_name;
     const srs = `EPSG:${layer.epsg_code || 4326}`;
 
-    await requestGeoserver(
-        `/rest/workspaces/${workspace}/datastores/${datastore}/featuretypes`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                featureType: {
-                    name: featureName,
-                    nativeName: featureName,
-                    srs,
-                    enabled: layer.is_active !== false,
-                    title: layer.name_vi || featureName,
-                },
-            }),
-        }
-    );
+    await requestGeoserver(`/rest/workspaces/${workspace}/datastores/${datastore}/featuretypes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            featureType: {
+                name: featureName,
+                nativeName: featureName,
+                srs,
+                enabled: layer.is_active !== false,
+                title: layer.name_vi || featureName,
+            },
+        }),
+    });
 
     return `${workspace}:${featureName}`;
 };
 const isAlreadyExistsError = (err) =>
-    err instanceof GeoServerError
-    && /already exists/i.test(`${err.message} ${err.responseBody || ''}`);
+    err instanceof GeoServerError &&
+    /already exists/i.test(`${err.message} ${err.responseBody || ''}`);
 
 const publishRasterLayer = async (layer, lang = 'vi') => {
     const config = assertGeoserverConfigured();
@@ -102,24 +98,23 @@ const publishRasterLayer = async (layer, lang = 'vi') => {
 
     // Tạo CoverageStore — store đã tồn tại (retry sau lần publish dở dang) thì bỏ qua
     try {
-        await requestGeoserver(
-            `/rest/workspaces/${workspace}/coveragestores`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    coverageStore: {
-                        name: storeName,
-                        type: 'GeoTIFF',
-                        enabled: true,
-                        workspace: { name: workspace },
-                        url: sourceUrl.startsWith('file://') ? sourceUrl : `file://${sourceUrl}`,
-                    },
-                }),
-            }
-        );
+        await requestGeoserver(`/rest/workspaces/${workspace}/coveragestores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                coverageStore: {
+                    name: storeName,
+                    type: 'GeoTIFF',
+                    enabled: true,
+                    workspace: { name: workspace },
+                    url: sourceUrl.startsWith('file://') ? sourceUrl : `file://${sourceUrl}`,
+                },
+            }),
+        });
     } catch (err) {
-        if (!isAlreadyExistsError(err)) { throw err; }
+        if (!isAlreadyExistsError(err)) {
+            throw err;
+        }
     }
 
     // Publish coverage từ store
@@ -136,10 +131,12 @@ const publishRasterLayer = async (layer, lang = 'vi') => {
                         enabled: true,
                     },
                 }),
-            }
+            },
         );
     } catch (err) {
-        if (!isAlreadyExistsError(err)) { throw err; }
+        if (!isAlreadyExistsError(err)) {
+            throw err;
+        }
     }
 
     return `${workspace}:${storeName}`;
@@ -162,7 +159,7 @@ const publishTimelapseLayer = async (layer, lang = 'vi') => {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: fileUrl,
-        }
+        },
     );
 
     return `${workspace}:${storeName}`;
@@ -172,15 +169,18 @@ const deletePostgisDatastore = async () => {
     const config = assertGeoserverConfigured();
     await requestGeoserver(
         `/rest/workspaces/${encodeURIComponent(config.workspace)}/datastores/${encodeURIComponent(config.datastore)}?recurse=true`,
-        { method: 'DELETE' }
+        { method: 'DELETE' },
     );
 };
 
 const deleteWorkspace = async () => {
     const config = assertGeoserverConfigured();
-    await requestGeoserver(`/rest/workspaces/${encodeURIComponent(config.workspace)}?recurse=true`, {
-        method: 'DELETE',
-    });
+    await requestGeoserver(
+        `/rest/workspaces/${encodeURIComponent(config.workspace)}?recurse=true`,
+        {
+            method: 'DELETE',
+        },
+    );
 };
 
 const createWorkspace = async () => {
@@ -193,14 +193,42 @@ const createWorkspace = async () => {
     return config.workspace;
 };
 
-const createPostgisDatastore = async ({ host, port = 5432, database, schema = 'gis', user, password }) => {
+const createPostgisDatastore = async ({
+    host,
+    port = 5432,
+    database,
+    schema = 'gis',
+    user,
+    password,
+}) => {
     const config = assertGeoserverConfigured();
-    if (!host || !database || !user || !password) {throw new TypeError('PostGIS datastore connection is incomplete');}
-    const entries = { host, port: String(port), database, schema, user, passwd: password, dbtype: 'postgis', 'Expose primary keys': 'true' };
+    if (!host || !database || !user || !password) {
+        throw new TypeError('PostGIS datastore connection is incomplete');
+    }
+    const entries = {
+        host,
+        port: String(port),
+        database,
+        schema,
+        user,
+        passwd: password,
+        dbtype: 'postgis',
+        'Expose primary keys': 'true',
+    };
     await requestGeoserver(`/rest/workspaces/${encodeURIComponent(config.workspace)}/datastores`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataStore: { name: config.datastore, connectionParameters: { entry: Object.entries(entries).map(([key, value]) => ({ '@key': key, '$': value })) } } }),
+        body: JSON.stringify({
+            dataStore: {
+                name: config.datastore,
+                connectionParameters: {
+                    entry: Object.entries(entries).map(([key, value]) => ({
+                        '@key': key,
+                        $: value,
+                    })),
+                },
+            },
+        }),
     });
     return config.datastore;
 };
@@ -208,60 +236,68 @@ const createPostgisDatastore = async ({ host, port = 5432, database, schema = 'g
 const uploadStyle = async (styleName, sldXml) => {
     const config = assertGeoserverConfigured();
     const name = validateResourceName(styleName, 'styleName');
-    if (typeof sldXml !== 'string' || !sldXml.includes('StyledLayerDescriptor')) {throw new TypeError('SLD XML is invalid');}
-    await requestGeoserver(`/rest/workspaces/${encodeURIComponent(config.workspace)}/styles?name=${encodeURIComponent(name)}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/vnd.ogc.sld+xml' }, body: sldXml,
-    });
+    if (typeof sldXml !== 'string' || !sldXml.includes('StyledLayerDescriptor')) {
+        throw new TypeError('SLD XML is invalid');
+    }
+    await requestGeoserver(
+        `/rest/workspaces/${encodeURIComponent(config.workspace)}/styles?name=${encodeURIComponent(name)}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/vnd.ogc.sld+xml' },
+            body: sldXml,
+        },
+    );
     return `${config.workspace}:${name}`;
 };
 
 const deleteStyle = async (styleName) => {
     const config = assertGeoserverConfigured();
     const name = validateResourceName(styleName, 'styleName');
-    await requestGeoserver(`/rest/workspaces/${encodeURIComponent(config.workspace)}/styles/${encodeURIComponent(name)}?purge=true`, { method: 'DELETE' });
+    await requestGeoserver(
+        `/rest/workspaces/${encodeURIComponent(config.workspace)}/styles/${encodeURIComponent(name)}?purge=true`,
+        { method: 'DELETE' },
+    );
 };
 
-const encodeLayerName = (geoserverLayerName) => String(geoserverLayerName)
-    .split(':')
-    .map((part) => encodeURIComponent(part))
-    .join(':');
+const encodeLayerName = (geoserverLayerName) =>
+    String(geoserverLayerName)
+        .split(':')
+        .map((part) => encodeURIComponent(part))
+        .join(':');
 
 const unpublishLayer = async (geoserverLayerName) => {
-    await requestGeoserver(
-        `/rest/layers/${encodeLayerName(geoserverLayerName)}?recurse=true`,
-        { method: 'DELETE' }
-    );
+    await requestGeoserver(`/rest/layers/${encodeLayerName(geoserverLayerName)}?recurse=true`, {
+        method: 'DELETE',
+    });
 };
 
 const setLayerEnabled = async (geoserverLayerName, enabled) => {
-    await requestGeoserver(
-        `/rest/layers/${encodeLayerName(geoserverLayerName)}`,
-        {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ layer: { enabled } }),
-        }
-    );
+    await requestGeoserver(`/rest/layers/${encodeLayerName(geoserverLayerName)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ layer: { enabled } }),
+    });
 };
 
-
-const truncateGwcLayer = async (geoserverLayerName, format = 'image/png', zoomStart = 0, zoomStop = 16) => {
-    await requestGeoserver(
-        `/gwc/rest/seed/${encodeURIComponent(geoserverLayerName)}.json`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                seedRequest: {
-                    name: geoserverLayerName,
-                    type: 'truncate',
-                    zoomStart,
-                    zoomStop,
-                    format,
-                },
-            }),
-        }
-    );
+const truncateGwcLayer = async (
+    geoserverLayerName,
+    format = 'image/png',
+    zoomStart = 0,
+    zoomStop = 16,
+) => {
+    await requestGeoserver(`/gwc/rest/seed/${encodeURIComponent(geoserverLayerName)}.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            seedRequest: {
+                name: geoserverLayerName,
+                type: 'truncate',
+                zoomStart,
+                zoomStop,
+                format,
+            },
+        }),
+    });
 };
 
 /**
@@ -277,16 +313,15 @@ const truncateGwcLayer = async (geoserverLayerName, format = 'image/png', zoomSt
  * @param {boolean} [args.enabled]
  * @returns {Promise<string>} — 'workspace:storeName'
  */
-const publishS3GeoTiffLayer = async ({
-    storeName, s3Bucket, s3Key, title, enabled = true,
-}) => {
-    const config    = assertGeoserverConfigured();
+const publishS3GeoTiffLayer = async ({ storeName, s3Bucket, s3Key, title, enabled = true }) => {
+    const config = assertGeoserverConfigured();
     const workspace = config.workspace;
-    const s3Url     = `s3://${s3Bucket}/${s3Key}`;
-    const t0        = Date.now();
-    const dbg       = (process.env.RASTER_INGEST_DEBUG === 'true'
-                        || process.env.NODE_ENV === 'development')
-        ? (msg) => console.debug(`[GEOSERVER-S3] ${msg}`) : () => {};
+    const s3Url = `s3://${s3Bucket}/${s3Key}`;
+    const t0 = Date.now();
+    const dbg =
+        process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development'
+            ? (msg) => console.debug(`[GEOSERVER-S3] ${msg}`)
+            : () => {};
 
     dbg(`publish store=${storeName} ws=${workspace} url=${s3Url}`);
 
@@ -304,30 +339,26 @@ const publishS3GeoTiffLayer = async ({
     });
 
     try {
-        await requestGeoserver(
-            `/rest/workspaces/${workspace}/coveragestores`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: storeBody,
-            }
-        );
+        await requestGeoserver(`/rest/workspaces/${workspace}/coveragestores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: storeBody,
+        });
         dbg(`store CREATED (POST)`);
     } catch (err) {
         if (!isAlreadyExistsError(err)) {
-            console.error(`[GEOSERVER-S3] store CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`);
+            console.error(
+                `[GEOSERVER-S3] store CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`,
+            );
             throw err;
         }
         // Đã tồn tại → PUT cập nhật URL. GeoServer trả 200 kể cả khi URL trùng.
         dbg(`store exists → PUT update URL`);
-        await requestGeoserver(
-            `/rest/workspaces/${workspace}/coveragestores/${storeName}`,
-            {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: storeBody,
-            }
-        );
+        await requestGeoserver(`/rest/workspaces/${workspace}/coveragestores/${storeName}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: storeBody,
+        });
         dbg(`store URL UPDATED (PUT)`);
     }
 
@@ -340,17 +371,19 @@ const publishS3GeoTiffLayer = async ({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     coverage: {
-                        name:  storeName,
+                        name: storeName,
                         title: title || storeName,
                         enabled,
                     },
                 }),
-            }
+            },
         );
         dbg(`coverage CREATED`);
     } catch (err) {
         if (!isAlreadyExistsError(err)) {
-            console.error(`[GEOSERVER-S3] coverage CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`);
+            console.error(
+                `[GEOSERVER-S3] coverage CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`,
+            );
             throw err;
         }
         dbg(`coverage already exists — kept`);
@@ -374,19 +407,18 @@ const publishS3GeoTiffLayer = async ({
  * @param {boolean} [args.enabled]
  * @returns {Promise<string>} — 'workspace:storeName'
  */
-const publishFsGeoTiffLayer = async ({
-    storeName, filePath, title, enabled = true,
-}) => {
-    const config    = assertGeoserverConfigured();
+const publishFsGeoTiffLayer = async ({ storeName, filePath, title, enabled = true }) => {
+    const config = assertGeoserverConfigured();
     const workspace = config.workspace;
     // pathToFileURL xử lý drive letter + backslash trên Windows đúng chuẩn
     // (file:///C:/... thay vì file:C:\... — cái sau GeoServer từng parse sai).
     const { pathToFileURL } = require('url');
-    const fileUrl   = pathToFileURL(filePath).href;
-    const t0        = Date.now();
-    const dbg       = (process.env.RASTER_INGEST_DEBUG === 'true'
-                        || process.env.NODE_ENV === 'development')
-        ? (msg) => console.debug(`[GEOSERVER-FS] ${msg}`) : () => {};
+    const fileUrl = pathToFileURL(filePath).href;
+    const t0 = Date.now();
+    const dbg =
+        process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development'
+            ? (msg) => console.debug(`[GEOSERVER-FS] ${msg}`)
+            : () => {};
 
     dbg(`publish store=${storeName} ws=${workspace} url=${fileUrl}`);
 
@@ -401,21 +433,25 @@ const publishFsGeoTiffLayer = async ({
     });
 
     try {
-        await requestGeoserver(
-            `/rest/workspaces/${workspace}/coveragestores`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: storeBody },
-        );
+        await requestGeoserver(`/rest/workspaces/${workspace}/coveragestores`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: storeBody,
+        });
         dbg('store CREATED (POST)');
     } catch (err) {
         if (!isAlreadyExistsError(err)) {
-            console.error(`[GEOSERVER-FS] store CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`);
+            console.error(
+                `[GEOSERVER-FS] store CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`,
+            );
             throw err;
         }
         dbg('store exists → PUT update URL');
-        await requestGeoserver(
-            `/rest/workspaces/${workspace}/coveragestores/${storeName}`,
-            { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: storeBody },
-        );
+        await requestGeoserver(`/rest/workspaces/${workspace}/coveragestores/${storeName}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: storeBody,
+        });
         dbg('store URL UPDATED (PUT)');
     }
 
@@ -433,7 +469,9 @@ const publishFsGeoTiffLayer = async ({
         dbg('coverage CREATED');
     } catch (err) {
         if (!isAlreadyExistsError(err)) {
-            console.error(`[GEOSERVER-FS] coverage CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`);
+            console.error(
+                `[GEOSERVER-FS] coverage CREATE FAILED store=${storeName} status=${err.status}: ${err.message}`,
+            );
             throw err;
         }
         dbg('coverage already exists — kept');
@@ -454,11 +492,9 @@ const harvestGeoTiff = async (coverageStore, tifPath) => {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: fileUrl,
-        }
+        },
     );
 };
-
-
 
 const healthCheck = async () => {
     try {
@@ -469,7 +505,6 @@ const healthCheck = async () => {
         return false;
     }
 };
-
 
 module.exports = {
     GeoServerError,

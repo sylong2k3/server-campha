@@ -5,7 +5,7 @@ const create = async ({ level = 'info', source, message, metadata, userId, ipAdd
         `INSERT INTO core.system_logs (level, source, message, metadata, user_id, ip_address)
          VALUES ($1, $2, $3, $4, $5, $6)
          RETURNING id, level, source, message, created_at`,
-        [level, source, message, JSON.stringify(metadata || {}), userId || null, ipAddress || null]
+        [level, source, message, JSON.stringify(metadata || {}), userId || null, ipAddress || null],
     );
     return rows[0];
 };
@@ -17,10 +17,22 @@ const _buildFilter = ({ level, source, q, dateFrom, dateTo }, startIdx = 1) => {
     const params = [];
     let idx = startIdx;
 
-    if (level) { conditions.push(`level = $${idx++}`); params.push(level); }
-    if (source) { conditions.push(`source = $${idx++}`); params.push(source); }
-    if (dateFrom) { conditions.push(`created_at >= $${idx++}`); params.push(dateFrom); }
-    if (dateTo) { conditions.push(`created_at <= $${idx++}`); params.push(dateTo); }
+    if (level) {
+        conditions.push(`level = $${idx++}`);
+        params.push(level);
+    }
+    if (source) {
+        conditions.push(`source = $${idx++}`);
+        params.push(source);
+    }
+    if (dateFrom) {
+        conditions.push(`created_at >= $${idx++}`);
+        params.push(dateFrom);
+    }
+    if (dateTo) {
+        conditions.push(`created_at <= $${idx++}`);
+        params.push(dateTo);
+    }
     if (q) {
         const likeValue = `%${_escapeLike(String(q).toLowerCase())}%`;
         conditions.push(`LOWER(message) LIKE $${idx++} ESCAPE '\\'`);
@@ -47,7 +59,7 @@ const findAll = async ({ level, source, q, dateFrom, dateTo, page = 1, limit = 2
          ${where}
          ORDER BY created_at DESC, id DESC
          LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
-        params
+        params,
     );
 
     if (rows.length === 0) {
@@ -64,7 +76,7 @@ const countAll = async ({ level, source, q, dateFrom, dateTo } = {}) => {
     const { where, params } = _buildFilter({ level, source, q, dateFrom, dateTo });
     const { rows } = await db.query(
         `SELECT COUNT(*)::int AS total FROM core.system_logs ${where}`,
-        params
+        params,
     );
     return rows[0]?.total || 0;
 };
@@ -72,7 +84,7 @@ const countAll = async ({ level, source, q, dateFrom, dateTo } = {}) => {
 const deleteOlderThan = async (days) => {
     const { rowCount } = await db.query(
         `DELETE FROM core.system_logs WHERE created_at < NOW() - INTERVAL '1 day' * $1`,
-        [days]
+        [days],
     );
     return rowCount;
 };

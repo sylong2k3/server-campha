@@ -14,29 +14,37 @@ const locales = {
         email_in_use: 'Email đã được sử dụng',
         incorrect_credentials: 'Email hoặc mật khẩu không đúng',
         account_disabled: 'Tài khoản đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên',
-        account_locked_mins: 'Tài khoản tạm khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau {mins} phút',
+        account_locked_mins:
+            'Tài khoản tạm khóa do đăng nhập sai quá nhiều lần. Vui lòng thử lại sau {mins} phút',
         google_only: 'Tài khoản này chỉ đăng nhập qua Google. Vui lòng sử dụng đăng nhập Google',
-        account_locked_limit: 'Tài khoản đã bị khóa tạm {mins} phút do đăng nhập sai quá {attempts} lần',
+        account_locked_limit:
+            'Tài khoản đã bị khóa tạm {mins} phút do đăng nhập sai quá {attempts} lần',
         incorrect_credentials_attempts: 'Email hoặc mật khẩu không đúng. Còn {attempts} lần thử',
         invalid_refresh_token: 'Refresh token không hợp lệ hoặc đã hết hạn',
         refresh_token_revoked: 'Refresh token không tồn tại hoặc đã bị thu hồi',
         user_not_found: 'User không tồn tại',
-        google_no_password: 'Tài khoản này đăng nhập qua Google và chưa có mật khẩu. Vui lòng liên kết mật khẩu trước',
+        google_no_password:
+            'Tài khoản này đăng nhập qua Google và chưa có mật khẩu. Vui lòng liên kết mật khẩu trước',
         incorrect_old_password: 'Mật khẩu cũ không đúng',
         same_password: 'Mật khẩu mới phải khác mật khẩu cũ',
         password_changed_success: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại',
         password_already_set: 'Tài khoản đã có mật khẩu. Vui lòng dùng chức năng đổi mật khẩu',
-        password_setup_not_allowed: 'Chỉ tài khoản đã liên kết đăng nhập mạng xã hội mới được tạo mật khẩu lần đầu',
+        password_setup_not_allowed:
+            'Chỉ tài khoản đã liên kết đăng nhập mạng xã hội mới được tạo mật khẩu lần đầu',
         password_set_success: 'Tạo mật khẩu thành công. Vui lòng đăng nhập lại',
-        reset_email_sent: 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.',
+        reset_email_sent:
+            'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.',
         invalid_reset_token: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn',
         password_reset_success: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại',
         invalid_oauth_code: 'Mã xác thực không hợp lệ hoặc đã hết hạn',
-        email_not_verified: 'Email chưa được xác minh. Vui lòng kiểm tra hộp thư để xác minh tài khoản.',
+        email_not_verified:
+            'Email chưa được xác minh. Vui lòng kiểm tra hộp thư để xác minh tài khoản.',
         invalid_verification_token: 'Liên kết xác minh không hợp lệ hoặc đã hết hạn',
         email_verified_success: 'Xác minh email thành công. Bạn có thể đăng nhập.',
-        verification_email_sent: 'Nếu email tồn tại và chưa xác minh, chúng tôi đã gửi lại email xác minh. Vui lòng kiểm tra hộp thư.',
-        register_verify_email: 'Đăng ký thành công. Vui lòng kiểm tra email để xác minh tài khoản trước khi đăng nhập.',
+        verification_email_sent:
+            'Nếu email tồn tại và chưa xác minh, chúng tôi đã gửi lại email xác minh. Vui lòng kiểm tra hộp thư.',
+        register_verify_email:
+            'Đăng ký thành công. Vui lòng kiểm tra email để xác minh tài khoản trước khi đăng nhập.',
         too_many_requests: 'Quá nhiều yêu cầu. Vui lòng thử lại sau ít phút.',
         root_welcome: 'Welcome to App Quản Lý GIS CAMPHA',
         token_revoked: 'Token đã bị thu hồi',
@@ -70,12 +78,14 @@ const locales = {
         user_role_updated: 'Cập nhật quyền thành công',
         user_locked: 'Tài khoản đã bị khóa',
         user_unlocked: 'Tài khoản đã được mở khóa',
-        password_reset_admin_success: 'Đặt lại mật khẩu thành công. Người dùng sẽ cần đổi mật khẩu khi đăng nhập lần tiếp theo',
+        password_reset_admin_success:
+            'Đặt lại mật khẩu thành công. Người dùng sẽ cần đổi mật khẩu khi đăng nhập lần tiếp theo',
         password_change_required: 'Bạn cần đổi mật khẩu trước khi tiếp tục sử dụng hệ thống',
         profile_updated: 'Cập nhật hồ sơ thành công',
         cannot_self_lock: 'Bạn không thể khóa chính tài khoản của mình',
         cannot_self_delete: 'Bạn không thể xóa chính tài khoản của mình',
-        cannot_modify_last_admin: 'Không thể chỉnh sửa quản trị viên hệ thống đang hoạt động duy nhất',
+        cannot_modify_last_admin:
+            'Không thể chỉnh sửa quản trị viên hệ thống đang hoạt động duy nhất',
         cannot_change_own_role: 'Bạn không thể tự thay đổi vai trò của chính mình',
         user_deleted_success: 'Đã xóa tài khoản',
         register_success: 'Đăng ký thành công',
@@ -201,15 +211,19 @@ const locales = {
         map_layer_inactive: 'Layer đang inactive, không thể publish',
         map_layer_already_published: 'Layer đã được publish lên GeoServer',
         map_optimistic_lock_conflict: 'Layer đã bị thay đổi bởi request khác, vui lòng thử lại',
-        optimistic_lock_conflict: 'Bản ghi đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu mới nhất.',
-        news_optimistic_lock_conflict: 'Bản tin đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu mới nhất.',
-        document_optimistic_lock_conflict: 'Tài liệu đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu mới nhất.',
+        optimistic_lock_conflict:
+            'Bản ghi đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu mới nhất.',
+        news_optimistic_lock_conflict:
+            'Bản tin đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu mới nhất.',
+        document_optimistic_lock_conflict:
+            'Tài liệu đã được cập nhật bởi người dùng khác. Vui lòng tải lại dữ liệu mới nhất.',
         map_geojson_required: 'geojson là bắt buộc',
         map_invalid_geojson: 'GeoJSON không hợp lệ',
         map_geo_import_accepted: 'Yêu cầu import đã được tiếp nhận, đang xử lý',
         map_geo_import_queued: 'Import file đã được xếp hàng chờ xử lý',
         raster_ingest_disabled: 'Pipeline ingest raster đang bị tắt (RASTER_INGEST_ENABLED=false)',
-        raster_ingest_s3_not_configured: 'MinIO S3 chưa cấu hình đầy đủ cho GeoServer đọc trực tiếp',
+        raster_ingest_s3_not_configured:
+            'MinIO S3 chưa cấu hình đầy đủ cho GeoServer đọc trực tiếp',
         raster_ingest_invalid_url: 'URL nguồn không hợp lệ',
         raster_ingest_invalid_layer_code: 'Mã layer không hợp lệ',
         raster_ingest_accepted: 'Đã tiếp nhận yêu cầu ingest ảnh từ GEE',
@@ -228,7 +242,8 @@ const locales = {
         map_geo_import_failed: 'Import file GIS thất bại',
         map_geo_raster_dir_missing: 'Thư mục lưu GeoTIFF chưa được cấu hình (GEOSERVER_DATA_DIR)',
         map_geo_import_job_not_found_with_id: 'GeoImport: không tìm thấy job #{id}',
-        ogr_command_not_found: "ogr.util: '{cmd}' không tìm thấy. Cài GDAL: apt-get install -y gdal-bin",
+        ogr_command_not_found:
+            "ogr.util: '{cmd}' không tìm thấy. Cài GDAL: apt-get install -y gdal-bin",
         ogr_db_config_required: 'ogr.util: DB_HOST, DB_NAME, DB_USER là bắt buộc trong .env',
         ogrinfo_failed: 'ogrinfo thất bại: {msg}',
         ogr_prepare: 'Chuẩn bị ogr2ogr...',
@@ -239,7 +254,8 @@ const locales = {
         geoserver_timelapse_mosaic_required: 'publishTimelapseLayer: layer.mosaic_path là bắt buộc',
         geo_import_sync_job_error: '[GeoImport] Job #{id} sync lỗi:',
         geo_import_published: '[GeoImport] Job #{id}: published → {layer}',
-        geo_import_auto_publish_failed: '[GeoImport] Job #{id}: auto-publish thất bại (không rollback import):',
+        geo_import_auto_publish_failed:
+            '[GeoImport] Job #{id}: auto-publish thất bại (không rollback import):',
         geo_import_cache_truncated: '[GeoImport] Job #{id}: tile cache truncated cho {layer}',
         geo_import_truncate_cache_failed: '[GeoImport] Job #{id}: truncate cache lỗi (bỏ qua):',
         geo_worker_query_failed: '[{workerId}] Lỗi query pending jobs:',
@@ -248,23 +264,30 @@ const locales = {
         geo_worker_job_failed: '[{workerId}] Job #{id} thất bại:',
         geo_worker_started: '[{workerId}] GeoImport Worker khởi động (cron: {cron})',
         geo_worker_stopped: '[{workerId}] GeoImport Worker đã dừng',
-        push_disabled_warning: '[PUSH] {message} — push notifications disabled (WebSocket + DB vẫn hoạt động).',
+        push_disabled_warning:
+            '[PUSH] {message} — push notifications disabled (WebSocket + DB vẫn hoạt động).',
         push_firebase_admin_missing: 'Chưa cài đặt package "firebase-admin"',
-        push_credentials_missing: 'Chưa cấu hình FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS',
+        push_credentials_missing:
+            'Chưa cấu hình FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS',
         push_initialized: '  ✓ Push provider (FCM) initialized',
         push_init_failed: 'Khởi tạo FCM thất bại: {msg}',
         map_geoserver_rollback_unpublish_failed: '[MapService] Rollback GeoServer unpublish lỗi:',
-        map_geoserver_layer_missing_mark_unpublish: '[MapService] GeoServer layer {layer} không tồn tại, đánh dấu unpublish trong DB',
-        map_geoserver_sync_status_failed: '[MapService] Không thể đồng bộ trạng thái GeoServer cho {layer}:',
+        map_geoserver_layer_missing_mark_unpublish:
+            '[MapService] GeoServer layer {layer} không tồn tại, đánh dấu unpublish trong DB',
+        map_geoserver_sync_status_failed:
+            '[MapService] Không thể đồng bộ trạng thái GeoServer cho {layer}:',
         remote_sensing_thumbnail_upload_failed_log: '[RemoteSensing] Upload thumbnail thất bại:',
         remote_sensing_metadata_upload_failed_log: '[RemoteSensing] Upload metadata JSON thất bại:',
-        remote_sensing_db_insert_failed_rollback: '[RemoteSensing] DB insert thất bại, rollback MinIO:',
+        remote_sensing_db_insert_failed_rollback:
+            '[RemoteSensing] DB insert thất bại, rollback MinIO:',
         remote_sensing_rollback_object_done: '[RemoteSensing] Đã rollback object: {objectKey}',
         remote_sensing_rollback_object_failed: '[RemoteSensing] Không thể xóa object {objectKey}:',
         remote_sensing_minio_objects_deleted: '[RemoteSensing] Đã xóa {count} objects trên MinIO.',
         remote_sensing_minio_delete_failed: '[RemoteSensing] Lỗi xóa MinIO objects:',
-        upload_geo_unsupported_format_with_ext: 'Định dạng file không được hỗ trợ: {ext}. Chấp nhận: .zip, .geojson, .json, .kml, .kmz, .tif, .tiff',
-        upload_geo_non_standard_mime: '[uploadGeoFile] MIME không chuẩn: {mime} ({name}) — tiếp tục xử lý.',
+        upload_geo_unsupported_format_with_ext:
+            'Định dạng file không được hỗ trợ: {ext}. Chấp nhận: .zip, .geojson, .json, .kml, .kmz, .tif, .tiff',
+        upload_geo_non_standard_mime:
+            '[uploadGeoFile] MIME không chuẩn: {mime} ({name}) — tiếp tục xử lý.',
         upload_geo_file_too_large_limit: 'File quá lớn. Giới hạn: {max} MB',
         upload_geo_file_required: 'Vui lòng đính kèm file GIS (field: file).',
         minio_bucket_created: '[MinIO] Bucket "{bucket}" đã được tạo.',
@@ -274,10 +297,13 @@ const locales = {
         seed_user_password_updated: '↻ Cập nhật mật khẩu: id={id} {email} [{role}]',
         seed_user_created: '✓ Tạo: id={id} {email} [{role}]',
         seed_user_completed: 'Seed người dùng hoàn tất. Mật khẩu chung: {password}',
-        seed_dev_start: '=== KHỞI TẠO SEED DỮ LIỆU ĐỂ DEV (NEWS, DOCUMENTS, FEEDBACK, NOTIFICATIONS) ===',
+        seed_dev_start:
+            '=== KHỞI TẠO SEED DỮ LIỆU ĐỂ DEV (NEWS, DOCUMENTS, FEEDBACK, NOTIFICATIONS) ===',
         seed_default_user_missing: '❌ Không tìm thấy user mặc định nào trong database.',
-        seed_run_user_first: '👉 Vui lòng chạy lệnh seed user trước: node src/database/seeds/001_users.seed.js',
-        seed_default_roles_missing: '⚠ Cảnh báo: Thiếu vai trò mặc định (system_admin, ubnd_tp, so_tnmt, so_xd, citizen) trong database.',
+        seed_run_user_first:
+            '👉 Vui lòng chạy lệnh seed user trước: node src/database/seeds/001_users.seed.js',
+        seed_default_roles_missing:
+            '⚠ Cảnh báo: Thiếu vai trò mặc định (system_admin, ubnd_tp, so_tnmt, so_xd, citizen) trong database.',
         seed_authors_resolved: '✓ Xác định tác giả thành công:',
         seed_author_tnmt: '  - Sở TN&MT ID: {id}',
         seed_author_ubnd: '  - UBND TP Cẩm Phả ID: {id}',
@@ -286,9 +312,11 @@ const locales = {
         seed_cleaned_old_data: '✓ Đã làm sạch các bảng news, documents, feedback, notifications.',
         seed_news_start: '📰 Đang seed dữ liệu Tin tức (cms.news & cms.news_translations)...',
         seed_news_item_done: '  ✓ Đã seed tin tức: "{title}"',
-        seed_documents_start: '📁 Đang seed dữ liệu Tài liệu (cms.documents & cms.document_translations)...',
+        seed_documents_start:
+            '📁 Đang seed dữ liệu Tài liệu (cms.documents & cms.document_translations)...',
         seed_document_item_done: '  ✓ Đã seed tài liệu: "{title}"',
-        seed_feedback_start: '💬 Đang seed dữ liệu Phản ánh hiện trường (field.feedback & field.feedback_status_log)...',
+        seed_feedback_start:
+            '💬 Đang seed dữ liệu Phản ánh hiện trường (field.feedback & field.feedback_status_log)...',
         seed_feedback_item_done: '  ✓ Đã seed phản ánh: "{title}"',
         seed_notifications_start: '🔔 Đang seed dữ liệu Thông báo (core.notifications)...',
         seed_notification_item_done: '  ✓ Đã seed thông báo: "{title}"',
@@ -344,10 +372,14 @@ const locales = {
         remote_sensing_file_required: 'Vui lòng đính kèm file GeoTIFF (field: raster_file).',
         remote_sensing_filename_required: 'Vui lòng cung cấp tên file (query: file_name).',
         remote_sensing_upload_commit_success: 'Hoàn tất upload ảnh viễn thám thành công.',
-        remote_sensing_upload_object_missing: 'File chưa tồn tại trên MinIO. Vui lòng upload bằng presigned URL trước khi commit.',
-        remote_sensing_upload_object_key_invalid: 'object_key không hợp lệ. Chỉ chấp nhận key được cấp từ /upload-url (dạng raster/YYYY/MM/<uuid>/<tên file>).',
-        remote_sensing_not_geotiff: 'Nội dung file không phải GeoTIFF hợp lệ (sai magic-byte TIFF).',
-        remote_sensing_file_too_large: 'File vượt quá giới hạn cho phép ({maxMB}MB). Vui lòng nén lại hoặc chia nhỏ dữ liệu.',
+        remote_sensing_upload_object_missing:
+            'File chưa tồn tại trên MinIO. Vui lòng upload bằng presigned URL trước khi commit.',
+        remote_sensing_upload_object_key_invalid:
+            'object_key không hợp lệ. Chỉ chấp nhận key được cấp từ /upload-url (dạng raster/YYYY/MM/<uuid>/<tên file>).',
+        remote_sensing_not_geotiff:
+            'Nội dung file không phải GeoTIFF hợp lệ (sai magic-byte TIFF).',
+        remote_sensing_file_too_large:
+            'File vượt quá giới hạn cho phép ({maxMB}MB). Vui lòng nén lại hoặc chia nhỏ dữ liệu.',
         remote_sensing_no_change: 'Không tìm thấy ảnh hoặc không có thay đổi.',
         remote_sensing_minio_upload_failed: 'Upload file GeoTIFF lên MinIO thất bại: {msg}',
         remote_sensing_primary_file_not_found: 'Không tìm thấy file GeoTIFF chính.',
@@ -368,10 +400,12 @@ const locales = {
         worker_stopped: '[Worker] Image Processing Worker đã dừng.',
 
         // Raster Upload Middleware
-        upload_invalid_type_with_ext: 'Định dạng file không được phép: {mime} ({ext}). Chỉ chấp nhận GeoTIFF (.tif, .tiff).',
+        upload_invalid_type_with_ext:
+            'Định dạng file không được phép: {mime} ({ext}). Chỉ chấp nhận GeoTIFF (.tif, .tiff).',
         upload_invalid_file_name_ext: 'File "{name}" có định dạng không hợp lệ ({ext}).',
         upload_file_too_large_limit: 'File quá lớn. Giới hạn tối đa: {max} MB ({gb} GB).',
-        upload_raster_too_large_use_presigned: 'File vượt giới hạn upload trực tiếp ({max} MB). Vui lòng dùng presigned URL: GET /remote-sensing/upload-url → PUT lên MinIO → POST /remote-sensing/upload-commit.',
+        upload_raster_too_large_use_presigned:
+            'File vượt giới hạn upload trực tiếp ({max} MB). Vui lòng dùng presigned URL: GET /remote-sensing/upload-url → PUT lên MinIO → POST /remote-sensing/upload-commit.',
         upload_too_many_files_limit: 'Vượt quá số lượng file cho phép.',
         upload_invalid_field: 'Field upload không hợp lệ: {field}',
         upload_failed_msg: 'Lỗi upload: {msg}',
@@ -451,7 +485,8 @@ const locales = {
         field_measurement_verified_success: 'Đã xác thực phiên đo',
         field_measurement_rejected_success: 'Đã trả lại phiên đo',
         field_measurement_notify_submit_title: 'Kết quả đo biến động chờ xác thực',
-        field_measurement_notify_submit_body: 'Sở NN&MT gửi kết quả đo {code}: {areaM2} m² chờ xác thực',
+        field_measurement_notify_submit_body:
+            'Sở NN&MT gửi kết quả đo {code}: {areaM2} m² chờ xác thực',
         field_measurement_notify_verified_title: 'Kết quả đo biến động đã được xác thực',
         field_measurement_notify_verified_body: 'Kết quả đo {code} đã được xác thực chính thức',
         field_measurement_notify_rejected_title: 'Kết quả đo biến động bị trả lại',
@@ -465,11 +500,12 @@ const locales = {
         server_shutdown_log: 'Server đang tắt (tín hiệu: {signal})',
         server_uncaught_exception_log: 'Uncaught exception: {message}',
         server_unhandled_rejection_log: 'Unhandled promise rejection: {message}',
-        token_cleanup_run_log: 'Dọn token hết hạn: refresh={refresh} blacklist={blacklist} reset={reset} emailVerif={emailVerif} oauthCode={oauthCode}',
+        token_cleanup_run_log:
+            'Dọn token hết hạn: refresh={refresh} blacklist={blacklist} reset={reset} emailVerif={emailVerif} oauthCode={oauthCode}',
         token_cleanup_failed_log: 'Dọn token hết hạn thất bại: {message}',
         http_error_log: '{method} {url} → {status}: {message}',
-     },
-     en: {
+    },
+    en: {
         web_map_forbidden: 'You do not have permission to use this map function',
         web_map_layer_not_found: 'Map layer not found',
         web_map_feature_not_found: 'Map feature not found',
@@ -484,29 +520,37 @@ const locales = {
         email_in_use: 'Email is already in use',
         incorrect_credentials: 'Incorrect email or password',
         account_disabled: 'Account has been disabled. Please contact the administrator',
-        account_locked_mins: 'Account temporarily locked due to too many failed login attempts. Please try again after {mins} minutes',
+        account_locked_mins:
+            'Account temporarily locked due to too many failed login attempts. Please try again after {mins} minutes',
         google_only: 'This account only logs in via Google. Please use Google login',
-        account_locked_limit: 'Account has been temporarily locked for {mins} minutes due to more than {attempts} failed login attempts',
+        account_locked_limit:
+            'Account has been temporarily locked for {mins} minutes due to more than {attempts} failed login attempts',
         incorrect_credentials_attempts: 'Incorrect email or password. {attempts} attempts left',
         invalid_refresh_token: 'Invalid or expired refresh token',
         refresh_token_revoked: 'Refresh token does not exist or has been revoked',
         user_not_found: 'User does not exist',
-        google_no_password: 'This account logs in via Google and does not have a password. Please link a password first',
+        google_no_password:
+            'This account logs in via Google and does not have a password. Please link a password first',
         incorrect_old_password: 'Incorrect old password',
         same_password: 'New password must be different from the old password',
         password_changed_success: 'Password changed successfully. Please log in again',
         password_already_set: 'This account already has a password. Please use change password',
-        password_setup_not_allowed: 'Only accounts linked to a social login can create a first password',
+        password_setup_not_allowed:
+            'Only accounts linked to a social login can create a first password',
         password_set_success: 'Password created successfully. Please log in again',
-        reset_email_sent: 'If the email exists in our system, we have sent password reset instructions. Please check your inbox.',
+        reset_email_sent:
+            'If the email exists in our system, we have sent password reset instructions. Please check your inbox.',
         invalid_reset_token: 'The password reset link is invalid or has expired',
         password_reset_success: 'Password reset successfully. Please log in again',
         invalid_oauth_code: 'Authentication code is invalid or has expired',
-        email_not_verified: 'Email is not verified. Please check your inbox to verify your account.',
+        email_not_verified:
+            'Email is not verified. Please check your inbox to verify your account.',
         invalid_verification_token: 'The verification link is invalid or has expired',
         email_verified_success: 'Email verified successfully. You can now log in.',
-        verification_email_sent: 'If the email exists and is not yet verified, we have resent the verification email. Please check your inbox.',
-        register_verify_email: 'Registration successful. Please check your email to verify your account before logging in.',
+        verification_email_sent:
+            'If the email exists and is not yet verified, we have resent the verification email. Please check your inbox.',
+        register_verify_email:
+            'Registration successful. Please check your email to verify your account before logging in.',
         too_many_requests: 'Too many requests. Please try again in a few minutes.',
         root_welcome: 'Welcome to Cẩm Phả GIS Management App',
         token_revoked: 'Token has been revoked',
@@ -516,12 +560,14 @@ const locales = {
         satellite_forbidden: 'You do not have permission to perform this satellite-image action',
         satellite_not_found: 'Satellite image not found',
         satellite_coverage_mismatch: 'The images do not cover the same area',
-        satellite_time_order_invalid: 'The before image must have an earlier acquisition time than the after image',
+        satellite_time_order_invalid:
+            'The before image must have an earlier acquisition time than the after image',
         satellite_invalid_file: 'The GeoTIFF is not ready or does not belong to the user',
         satellite_conflict: 'The scene code or file already exists',
         satellite_optimistic_conflict: 'The data has changed; reload and try again',
         satellite_list_success: 'Satellite image catalog retrieved successfully',
-        satellite_admin_list_success: 'Administrative satellite image catalog retrieved successfully',
+        satellite_admin_list_success:
+            'Administrative satellite image catalog retrieved successfully',
         satellite_detail_success: 'Satellite image details retrieved successfully',
         satellite_compare_success: 'Satellite comparison pair created successfully',
         satellite_download_success: 'Satellite image download URL created successfully',
@@ -540,8 +586,10 @@ const locales = {
         user_role_updated: 'User role updated successfully',
         user_locked: 'Account has been locked',
         user_unlocked: 'Account has been unlocked',
-        password_reset_admin_success: 'Password reset successfully. The user will need to change their password on next login',
-        password_change_required: 'You must change your password before continuing to use the system',
+        password_reset_admin_success:
+            'Password reset successfully. The user will need to change their password on next login',
+        password_change_required:
+            'You must change your password before continuing to use the system',
         profile_updated: 'Profile updated successfully',
         cannot_self_lock: 'You cannot lock your own account',
         cannot_self_delete: 'You cannot delete your own account',
@@ -582,7 +630,8 @@ const locales = {
         mobile_sync_success: 'Offline changes synchronized',
         resource_conflict: 'The resource already exists or is duplicated',
         invalid_reference: 'Invalid referenced data',
-        too_many_auth_requests: 'Too many authentication requests. Please try again in a few minutes.',
+        too_many_auth_requests:
+            'Too many authentication requests. Please try again in a few minutes.',
         invalid_token: 'Invalid token',
         token_expired: 'Token expired',
         mfa_required: 'Multi-factor authentication is required to complete login',
@@ -670,19 +719,24 @@ const locales = {
         map_layer_inactive: 'Layer is inactive and cannot be published',
         map_layer_already_published: 'Layer has already been published to GeoServer',
         map_optimistic_lock_conflict: 'Layer was changed by another request, please try again',
-        optimistic_lock_conflict: 'This record was updated by another user. Please reload the latest data.',
-        news_optimistic_lock_conflict: 'This news item was updated by another user. Please reload the latest data.',
-        document_optimistic_lock_conflict: 'This document was updated by another user. Please reload the latest data.',
+        optimistic_lock_conflict:
+            'This record was updated by another user. Please reload the latest data.',
+        news_optimistic_lock_conflict:
+            'This news item was updated by another user. Please reload the latest data.',
+        document_optimistic_lock_conflict:
+            'This document was updated by another user. Please reload the latest data.',
         map_geojson_required: 'geojson is required',
         map_invalid_geojson: 'Invalid GeoJSON',
         map_geo_import_accepted: 'Import request accepted, processing in background',
         map_geo_import_queued: 'GIS file import has been queued',
         raster_ingest_disabled: 'Raster ingest pipeline is disabled (RASTER_INGEST_ENABLED=false)',
-        raster_ingest_s3_not_configured: 'MinIO S3 is not fully configured for GeoServer direct read',
+        raster_ingest_s3_not_configured:
+            'MinIO S3 is not fully configured for GeoServer direct read',
         raster_ingest_invalid_url: 'Invalid source URL',
         raster_ingest_invalid_layer_code: 'Invalid layer code',
         raster_ingest_accepted: 'GEE raster ingest request accepted',
-        raster_ingest_deduplicated: 'A job with the same URL is already in progress; returning existing job',
+        raster_ingest_deduplicated:
+            'A job with the same URL is already in progress; returning existing job',
         raster_ingest_job_not_found: 'Ingest job not found',
         raster_ingest_job_get_success: 'Ingest job retrieved successfully',
         raster_ingest_jobs_list_success: 'Ingest jobs list retrieved successfully',
@@ -697,7 +751,8 @@ const locales = {
         map_geo_import_failed: 'GIS file import failed',
         map_geo_raster_dir_missing: 'GeoTIFF storage directory not configured (GEOSERVER_DATA_DIR)',
         map_geo_import_job_not_found_with_id: 'GeoImport: job #{id} not found',
-        ogr_command_not_found: "ogr.util: '{cmd}' not found. Install GDAL: apt-get install -y gdal-bin",
+        ogr_command_not_found:
+            "ogr.util: '{cmd}' not found. Install GDAL: apt-get install -y gdal-bin",
         ogr_db_config_required: 'ogr.util: DB_HOST, DB_NAME, and DB_USER are required in .env',
         ogrinfo_failed: 'ogrinfo failed: {msg}',
         ogr_prepare: 'Preparing ogr2ogr...',
@@ -708,7 +763,8 @@ const locales = {
         geoserver_timelapse_mosaic_required: 'publishTimelapseLayer: layer.mosaic_path is required',
         geo_import_sync_job_error: '[GeoImport] Job #{id} sync error:',
         geo_import_published: '[GeoImport] Job #{id}: published → {layer}',
-        geo_import_auto_publish_failed: '[GeoImport] Job #{id}: auto-publish failed (import not rolled back):',
+        geo_import_auto_publish_failed:
+            '[GeoImport] Job #{id}: auto-publish failed (import not rolled back):',
         geo_import_cache_truncated: '[GeoImport] Job #{id}: tile cache truncated for {layer}',
         geo_import_truncate_cache_failed: '[GeoImport] Job #{id}: truncate cache failed (ignored):',
         geo_worker_query_failed: '[{workerId}] Failed to query pending jobs:',
@@ -717,23 +773,32 @@ const locales = {
         geo_worker_job_failed: '[{workerId}] Job #{id} failed:',
         geo_worker_started: '[{workerId}] GeoImport Worker started (cron: {cron})',
         geo_worker_stopped: '[{workerId}] GeoImport Worker stopped',
-        push_disabled_warning: '[PUSH] {message} — push notifications disabled (WebSocket + DB still works).',
+        push_disabled_warning:
+            '[PUSH] {message} — push notifications disabled (WebSocket + DB still works).',
         push_firebase_admin_missing: 'Package "firebase-admin" is not installed',
-        push_credentials_missing: 'FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS is not configured',
+        push_credentials_missing:
+            'FIREBASE_SERVICE_ACCOUNT / GOOGLE_APPLICATION_CREDENTIALS is not configured',
         push_initialized: '  ✓ Push provider (FCM) initialized',
         push_init_failed: 'FCM initialization failed: {msg}',
-        map_geoserver_rollback_unpublish_failed: '[MapService] Rollback GeoServer unpublish failed:',
-        map_geoserver_layer_missing_mark_unpublish: '[MapService] GeoServer layer {layer} does not exist, marking unpublished in DB',
-        map_geoserver_sync_status_failed: '[MapService] Could not synchronize GeoServer status for {layer}:',
+        map_geoserver_rollback_unpublish_failed:
+            '[MapService] Rollback GeoServer unpublish failed:',
+        map_geoserver_layer_missing_mark_unpublish:
+            '[MapService] GeoServer layer {layer} does not exist, marking unpublished in DB',
+        map_geoserver_sync_status_failed:
+            '[MapService] Could not synchronize GeoServer status for {layer}:',
         remote_sensing_thumbnail_upload_failed_log: '[RemoteSensing] Thumbnail upload failed:',
         remote_sensing_metadata_upload_failed_log: '[RemoteSensing] Metadata JSON upload failed:',
-        remote_sensing_db_insert_failed_rollback: '[RemoteSensing] DB insert failed, rolling back MinIO:',
+        remote_sensing_db_insert_failed_rollback:
+            '[RemoteSensing] DB insert failed, rolling back MinIO:',
         remote_sensing_rollback_object_done: '[RemoteSensing] Rolled back object: {objectKey}',
-        remote_sensing_rollback_object_failed: '[RemoteSensing] Could not delete object {objectKey}:',
+        remote_sensing_rollback_object_failed:
+            '[RemoteSensing] Could not delete object {objectKey}:',
         remote_sensing_minio_objects_deleted: '[RemoteSensing] Deleted {count} objects from MinIO.',
         remote_sensing_minio_delete_failed: '[RemoteSensing] Error deleting MinIO objects:',
-        upload_geo_unsupported_format_with_ext: 'Unsupported file format: {ext}. Accepted: .zip, .geojson, .json, .kml, .kmz, .tif, .tiff',
-        upload_geo_non_standard_mime: '[uploadGeoFile] Non-standard MIME: {mime} ({name}) — continuing processing.',
+        upload_geo_unsupported_format_with_ext:
+            'Unsupported file format: {ext}. Accepted: .zip, .geojson, .json, .kml, .kmz, .tif, .tiff',
+        upload_geo_non_standard_mime:
+            '[uploadGeoFile] Non-standard MIME: {mime} ({name}) — continuing processing.',
         upload_geo_file_too_large_limit: 'File too large. Limit: {max} MB',
         upload_geo_file_required: 'Please attach a GIS file (field: file).',
         minio_bucket_created: '[MinIO] Bucket "{bucket}" was created.',
@@ -743,10 +808,13 @@ const locales = {
         seed_user_password_updated: '↻ Updated password: id={id} {email} [{role}]',
         seed_user_created: '✓ Created: id={id} {email} [{role}]',
         seed_user_completed: 'User seed completed. Shared password: {password}',
-        seed_dev_start: '=== INITIALIZING DEVELOPMENT SEED DATA (NEWS, DOCUMENTS, FEEDBACK, NOTIFICATIONS) ===',
+        seed_dev_start:
+            '=== INITIALIZING DEVELOPMENT SEED DATA (NEWS, DOCUMENTS, FEEDBACK, NOTIFICATIONS) ===',
         seed_default_user_missing: '❌ No default user found in the database.',
-        seed_run_user_first: '👉 Please run the user seed first: node src/database/seeds/001_users.seed.js',
-        seed_default_roles_missing: '⚠ Warning: Default roles are missing (system_admin, ubnd_tp, so_tnmt, so_xd, citizen).',
+        seed_run_user_first:
+            '👉 Please run the user seed first: node src/database/seeds/001_users.seed.js',
+        seed_default_roles_missing:
+            '⚠ Warning: Default roles are missing (system_admin, ubnd_tp, so_tnmt, so_xd, citizen).',
         seed_authors_resolved: '✓ Authors resolved successfully:',
         seed_author_tnmt: '  - Department of Natural Resources and Environment ID: {id}',
         seed_author_ubnd: '  - Cẩm Phả City People Committee ID: {id}',
@@ -755,9 +823,11 @@ const locales = {
         seed_cleaned_old_data: '✓ Cleaned news, documents, feedback, and notifications tables.',
         seed_news_start: '📰 Seeding News data (cms.news & cms.news_translations)...',
         seed_news_item_done: '  ✓ Seeded news: "{title}"',
-        seed_documents_start: '📁 Seeding Document data (cms.documents & cms.document_translations)...',
+        seed_documents_start:
+            '📁 Seeding Document data (cms.documents & cms.document_translations)...',
         seed_document_item_done: '  ✓ Seeded document: "{title}"',
-        seed_feedback_start: '💬 Seeding Feedback data (field.feedback & field.feedback_status_log)...',
+        seed_feedback_start:
+            '💬 Seeding Feedback data (field.feedback & field.feedback_status_log)...',
         seed_feedback_item_done: '  ✓ Seeded feedback: "{title}"',
         seed_notifications_start: '🔔 Seeding Notification data (core.notifications)...',
         seed_notification_item_done: '  ✓ Seeded notification: "{title}"',
@@ -790,10 +860,12 @@ const locales = {
         remote_sensing_update_success: 'Remote sensing image updated successfully.',
         remote_sensing_delete_hard_success: 'Image and MinIO files deleted successfully.',
         remote_sensing_delete_soft_success: 'Image deleted successfully (soft delete).',
-        remote_sensing_download_success: 'Download link created successfully. Link expires in 15 minutes.',
+        remote_sensing_download_success:
+            'Download link created successfully. Link expires in 15 minutes.',
         remote_sensing_cog_url_success: 'COG URL retrieved successfully.',
         remote_sensing_layers_success: 'Layers list retrieved successfully.',
-        remote_sensing_process_queued: 'Image processing job created. Results will be updated later.',
+        remote_sensing_process_queued:
+            'Image processing job created. Results will be updated later.',
         remote_sensing_stats_success: 'Band statistics retrieved successfully.',
         remote_sensing_presigned_success: 'Presigned upload URL created successfully.',
         remote_sensing_not_found: 'Remote sensing image not found.',
@@ -813,10 +885,14 @@ const locales = {
         remote_sensing_file_required: 'Please attach a GeoTIFF file (field: raster_file).',
         remote_sensing_filename_required: 'Please provide a file name (query: file_name).',
         remote_sensing_upload_commit_success: 'Remote sensing upload committed successfully.',
-        remote_sensing_upload_object_missing: 'File does not exist on MinIO. Upload it with the presigned URL before committing.',
-        remote_sensing_upload_object_key_invalid: 'Invalid object_key. Only keys issued by /upload-url are accepted (format: raster/YYYY/MM/<uuid>/<file name>).',
-        remote_sensing_not_geotiff: 'File content is not a valid GeoTIFF (invalid TIFF magic bytes).',
-        remote_sensing_file_too_large: 'File exceeds the allowed limit ({maxMB}MB). Please compress or split the data.',
+        remote_sensing_upload_object_missing:
+            'File does not exist on MinIO. Upload it with the presigned URL before committing.',
+        remote_sensing_upload_object_key_invalid:
+            'Invalid object_key. Only keys issued by /upload-url are accepted (format: raster/YYYY/MM/<uuid>/<file name>).',
+        remote_sensing_not_geotiff:
+            'File content is not a valid GeoTIFF (invalid TIFF magic bytes).',
+        remote_sensing_file_too_large:
+            'File exceeds the allowed limit ({maxMB}MB). Please compress or split the data.',
         remote_sensing_no_change: 'Image not found or no changes made.',
         remote_sensing_minio_upload_failed: 'GeoTIFF upload to MinIO failed: {msg}',
         remote_sensing_primary_file_not_found: 'Primary GeoTIFF file not found.',
@@ -837,10 +913,12 @@ const locales = {
         worker_stopped: '[Worker] Image Processing Worker stopped.',
 
         // Raster Upload Middleware
-        upload_invalid_type_with_ext: 'Unsupported file format: {mime} ({ext}). Only GeoTIFF (.tif, .tiff) is accepted.',
+        upload_invalid_type_with_ext:
+            'Unsupported file format: {mime} ({ext}). Only GeoTIFF (.tif, .tiff) is accepted.',
         upload_invalid_file_name_ext: 'File "{name}" has an invalid format ({ext}).',
         upload_file_too_large_limit: 'File too large. Maximum limit: {max} MB ({gb} GB).',
-        upload_raster_too_large_use_presigned: 'File exceeds the direct-upload limit ({max} MB). Please use the presigned URL flow: GET /remote-sensing/upload-url → PUT to MinIO → POST /remote-sensing/upload-commit.',
+        upload_raster_too_large_use_presigned:
+            'File exceeds the direct-upload limit ({max} MB). Please use the presigned URL flow: GET /remote-sensing/upload-url → PUT to MinIO → POST /remote-sensing/upload-commit.',
         upload_too_many_files_limit: 'Exceeded maximum number of allowed files.',
         upload_invalid_field: 'Invalid upload field: {field}',
         upload_failed_msg: 'Upload error: {msg}',
@@ -910,7 +988,8 @@ const locales = {
         field_measurement_invalid_points: 'At least 3 GPS points are required to close the area',
         field_measurement_out_of_province: 'Measured location is outside Cẩm Phả city boundary',
         field_measurement_invalid_land_use_field: 'Invalid land use column name (landUseField)',
-        field_measurement_invalid_transition: 'Measurement is not in a status that allows this action',
+        field_measurement_invalid_transition:
+            'Measurement is not in a status that allows this action',
         field_measurement_review_note_required: 'A reason is required when returning a measurement',
         field_measurement_created_success: 'Measurement created successfully',
         field_measurement_updated_success: 'Measurement updated successfully',
@@ -920,7 +999,8 @@ const locales = {
         field_measurement_verified_success: 'Measurement verified',
         field_measurement_rejected_success: 'Measurement returned',
         field_measurement_notify_submit_title: 'Change measurement pending verification',
-        field_measurement_notify_submit_body: 'Sở NN&MT submitted measurement {code}: {areaM2} m² pending verification',
+        field_measurement_notify_submit_body:
+            'Sở NN&MT submitted measurement {code}: {areaM2} m² pending verification',
         field_measurement_notify_verified_title: 'Change measurement verified',
         field_measurement_notify_verified_body: 'Measurement {code} has been officially verified',
         field_measurement_notify_rejected_title: 'Change measurement returned',
@@ -934,17 +1014,18 @@ const locales = {
         server_shutdown_log: 'Server is shutting down (signal: {signal})',
         server_uncaught_exception_log: 'Uncaught exception: {message}',
         server_unhandled_rejection_log: 'Unhandled promise rejection: {message}',
-        token_cleanup_run_log: 'Expired token cleanup: refresh={refresh} blacklist={blacklist} reset={reset} emailVerif={emailVerif} oauthCode={oauthCode}',
+        token_cleanup_run_log:
+            'Expired token cleanup: refresh={refresh} blacklist={blacklist} reset={reset} emailVerif={emailVerif} oauthCode={oauthCode}',
         token_cleanup_failed_log: 'Expired token cleanup failed: {message}',
         http_error_log: '{method} {url} → {status}: {message}',
-    }
+    },
 };
 
 const t = (key, lang = 'vi', params = {}) => {
     const locale = locales[lang] || locales.vi;
     let message = locale[key] || key;
 
-    Object.keys(params).forEach(param => {
+    Object.keys(params).forEach((param) => {
         message = message.replace(`{${param}}`, params[param]);
     });
 

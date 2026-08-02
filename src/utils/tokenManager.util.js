@@ -28,7 +28,7 @@ const generateAccessToken = (payload) => {
             jti,
         },
         JWT_SECRET,
-        { algorithm: JWT_ALGORITHM, expiresIn: JWT_ACCESS_EXPIRES_IN }
+        { algorithm: JWT_ALGORITHM, expiresIn: JWT_ACCESS_EXPIRES_IN },
     );
     const decoded = jwt.decode(token);
     return { token, jti, expiresAt: new Date(decoded.exp * 1000) };
@@ -43,7 +43,7 @@ const generateRefreshToken = (payload) => {
             jti: generateUUID(),
         },
         JWT_SECRET_REFRESH,
-        { algorithm: JWT_ALGORITHM, expiresIn: JWT_REFRESH_EXPIRES_IN }
+        { algorithm: JWT_ALGORITHM, expiresIn: JWT_REFRESH_EXPIRES_IN },
     );
     const decoded = jwt.decode(token);
     return { token, expiresAt: new Date(decoded.exp * 1000) };

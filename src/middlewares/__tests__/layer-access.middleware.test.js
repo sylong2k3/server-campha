@@ -30,7 +30,9 @@ describe('requireLayerAccess', () => {
     test('từ chối action không được ACL cấp', async () => {
         db.query.mockResolvedValue({ rows: [{ id: 3, is_public: true, allowed: false }] });
         const error = await invoke('edit', {
-            params: { layerId: '3' }, lang: 'vi', user: { role: 'system_admin' },
+            params: { layerId: '3' },
+            lang: 'vi',
+            user: { role: 'system_admin' },
         });
         expect(error).toBeInstanceOf(Api403Error);
     });

@@ -16,12 +16,16 @@ const runCleanup = async () => {
         systemLogger.logInfo('token-cleanup', message, result);
     } catch (err) {
         console.error('[TOKEN CLEANUP] Failed:', err.message);
-        systemLogger.logError('token-cleanup', `Dọn token hết hạn thất bại: ${err.message}`, { stack: err.stack });
+        systemLogger.logError('token-cleanup', `Dọn token hết hạn thất bại: ${err.message}`, {
+            stack: err.stack,
+        });
     }
 };
 
 const start = () => {
-    if (task) {return;}
+    if (task) {
+        return;
+    }
     if (!cron.validate(CLEANUP_CRON)) {
         console.warn(`[TOKEN CLEANUP] Invalid cron expression "${CLEANUP_CRON}" — job not started`);
         return;

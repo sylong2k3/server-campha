@@ -4,7 +4,9 @@ const Joi = require('joi');
 const layerIdParamsSchema = Joi.object({ layerId: Joi.number().integer().positive().required() });
 const wmsQuerySchema = Joi.object({
     request: Joi.string().valid('GetMap').insensitive().required(),
-    bbox: Joi.string().pattern(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/).required(),
+    bbox: Joi.string()
+        .pattern(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
+        .required(),
     width: Joi.number().integer().min(1).max(4096).required(),
     height: Joi.number().integer().min(1).max(4096).required(),
     crs: Joi.string().valid('EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
@@ -14,7 +16,9 @@ const wmsQuerySchema = Joi.object({
 });
 const wfsQuerySchema = Joi.object({
     request: Joi.string().valid('GetFeature').insensitive().required(),
-    bbox: Joi.string().pattern(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/).optional(),
+    bbox: Joi.string()
+        .pattern(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
+        .optional(),
     count: Joi.number().integer().min(1).max(10000).default(1000),
     srsName: Joi.string().valid('EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
     outputFormat: Joi.string().valid('application/json').default('application/json'),

@@ -2,7 +2,7 @@
 
 const Joi = require('joi');
 
-const noHtml = (value, helpers) => /[<>]/.test(value) ? helpers.error('string.html') : value;
+const noHtml = (value, helpers) => (/[<>]/.test(value) ? helpers.error('string.html') : value);
 const plain = (max) => Joi.string().trim().min(1).max(max).custom(noHtml);
 const optionalPlain = (max) => Joi.string().trim().max(max).allow('', null).custom(noHtml);
 const idParamsSchema = Joi.object({ id: Joi.number().integer().positive().required() });
@@ -26,15 +26,21 @@ const newsCreateSchema = Joi.object({
     status: Joi.string().valid('draft', 'published', 'archived').default('draft'),
     publishedAt: Joi.date().iso().allow(null).optional(),
 });
-const newsUpdateSchema = newsCreateSchema.fork(['title', 'content'], (field) => field.optional()).keys({
-    expectedUpdatedAt: Joi.date().iso().required(),
-}).min(2);
+const newsUpdateSchema = newsCreateSchema
+    .fork(['title', 'content'], (field) => field.optional())
+    .keys({
+        expectedUpdatedAt: Joi.date().iso().required(),
+    })
+    .min(2);
 const commentCreateSchema = Joi.object({ content: plain(2000).required() });
 const commentListSchema = Joi.object({
-    page: pagination.page, limit: pagination.limit,
+    page: pagination.page,
+    limit: pagination.limit,
     status: Joi.string().valid('pending', 'approved', 'rejected').optional(),
 });
-const commentModerateSchema = Joi.object({ status: Joi.string().valid('approved', 'rejected').required() });
+const commentModerateSchema = Joi.object({
+    status: Joi.string().valid('approved', 'rejected').required(),
+});
 const documentCreateSchema = Joi.object({
     title: plain(300).required(),
     documentCode: plain(100).required(),
@@ -57,15 +63,31 @@ const pdfMapCreateSchema = Joi.object({
     visibility: Joi.string().valid('public', 'internal').default('public'),
     fileObjectId: Joi.number().integer().positive().required(),
 });
-const pdfMapUpdateSchema = pdfMapCreateSchema.fork(
-    ['title', 'scaleLabel', 'mapYear', 'preparingAgency', 'fileObjectId'], (field) => field.optional()
-).keys({ expectedUpdatedAt: Joi.date().iso().required() }).min(2);
+const pdfMapUpdateSchema = pdfMapCreateSchema
+    .fork(['title', 'scaleLabel', 'mapYear', 'preparingAgency', 'fileObjectId'], (field) =>
+        field.optional(),
+    )
+    .keys({ expectedUpdatedAt: Joi.date().iso().required() })
+    .min(2);
 const deleteQuerySchema = Joi.object({ expectedUpdatedAt: Joi.date().iso().required() });
-const downloadQuerySchema = Joi.object({ expireSeconds: Joi.number().integer().min(60).max(900).default(300) });
+const downloadQuerySchema = Joi.object({
+    expireSeconds: Joi.number().integer().min(60).max(900).default(300),
+});
 
 module.exports = {
-    idParamsSchema, commentParamsSchema, publicListSchema, newsAdminListSchema,
-    newsCreateSchema, newsUpdateSchema, commentCreateSchema, commentListSchema,
-    commentModerateSchema, documentCreateSchema, visibilityListSchema,
-    pdfMapCreateSchema, pdfMapUpdateSchema, deleteQuerySchema, downloadQuerySchema,
+    idParamsSchema,
+    commentParamsSchema,
+    publicListSchema,
+    newsAdminListSchema,
+    newsCreateSchema,
+    newsUpdateSchema,
+    commentCreateSchema,
+    commentListSchema,
+    commentModerateSchema,
+    documentCreateSchema,
+    visibilityListSchema,
+    pdfMapCreateSchema,
+    pdfMapUpdateSchema,
+    deleteQuerySchema,
+    downloadQuerySchema,
 };

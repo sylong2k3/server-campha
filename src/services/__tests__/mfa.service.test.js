@@ -61,7 +61,9 @@ const context = { ipAddress: '127.0.0.1', userAgent: 'jest', lang: 'vi' };
 describe('MFA service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        cryptoHelper.generateRandomToken.mockReturnValue('opaque-challenge-token-with-sufficient-entropy');
+        cryptoHelper.generateRandomToken.mockReturnValue(
+            'opaque-challenge-token-with-sufficient-entropy',
+        );
         tokenManager.generateTokenPair.mockReturnValue({
             accessToken: 'access-token',
             refreshToken: 'refresh-token',
@@ -99,11 +101,13 @@ describe('MFA service', () => {
             challengeToken: 'opaque-challenge-token-with-sufficient-entropy',
             purpose: 'setup',
         });
-        expect(mfaRepository.createChallenge).toHaveBeenCalledWith(expect.objectContaining({
-            userId: 7,
-            tokenHash: 'hash:opaque-challenge-token-with-sufficient-entropy',
-            purpose: 'setup',
-        }));
+        expect(mfaRepository.createChallenge).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 7,
+                tokenHash: 'hash:opaque-challenge-token-with-sufficient-entropy',
+                purpose: 'setup',
+            }),
+        );
     });
 
     test('setup chỉ trả secret sau challenge hợp lệ', async () => {
@@ -121,7 +125,9 @@ describe('MFA service', () => {
             otpAuthUri: 'otpauth://totp/CamPha',
         });
         expect(mfaRepository.upsertCredential).toHaveBeenCalledWith(7, {
-            ciphertext: 'cipher', iv: 'iv', authTag: 'tag',
+            ciphertext: 'cipher',
+            iv: 'iv',
+            authTag: 'tag',
         });
     });
 
@@ -137,20 +143,29 @@ describe('MFA service', () => {
         totp.verifyTotp.mockReturnValue(100);
         mfaRepository.completeEnrollment.mockResolvedValue('ok');
 
-        const result = await mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
+        const result = await mfaService.confirm(
+            { challengeToken: 'challenge', code: '123456' },
+            context,
+        );
         expect(result.recoveryCodes).toHaveLength(10);
-        expect(mfaRepository.completeEnrollment).toHaveBeenCalledWith(expect.objectContaining({
-            challengeId: 1,
-            userId: 7,
-            counter: 100,
-            recoveryCodeHashes: expect.arrayContaining(['hash:OPAQUE-CHALLENGE-TOKEN-WITH-SUFFICIENT-ENTROPY']),
-            tokenVersion: 3,
-            session: expect.objectContaining({ tokenHash: 'hash:refresh-token' }),
-        }));
-        expect(tokenManager.generateTokenPair).toHaveBeenCalledWith(expect.objectContaining({
-            userId: 7,
-            tokenVersion: 3,
-        }));
+        expect(mfaRepository.completeEnrollment).toHaveBeenCalledWith(
+            expect.objectContaining({
+                challengeId: 1,
+                userId: 7,
+                counter: 100,
+                recoveryCodeHashes: expect.arrayContaining([
+                    'hash:OPAQUE-CHALLENGE-TOKEN-WITH-SUFFICIENT-ENTROPY',
+                ]),
+                tokenVersion: 3,
+                session: expect.objectContaining({ tokenHash: 'hash:refresh-token' }),
+            }),
+        );
+        expect(tokenManager.generateTokenPair).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 7,
+                tokenVersion: 3,
+            }),
+        );
     });
 
     test('TOTP counter đã dùng bị từ chối để chống replay', async () => {
@@ -165,8 +180,9 @@ describe('MFA service', () => {
         totp.verifyTotp.mockReturnValue(100);
         mfaRepository.completeLogin.mockResolvedValue('code_invalid');
 
-        await expect(mfaService.verify({ challengeToken: 'challenge', code: '123456' }, context))
-            .rejects.toMatchObject({ status: 401 });
+        await expect(
+            mfaService.verify({ challengeToken: 'challenge', code: '123456' }, context),
+        ).rejects.toMatchObject({ status: 401 });
     });
 
     test('recovery code được consume trước khi cấp token', async () => {
@@ -174,93 +190,178 @@ describe('MFA service', () => {
         mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
         mfaRepository.completeLogin.mockResolvedValue('ok');
 
-        const result = await mfaService.verify({
-            challengeToken: 'challenge',
-            recoveryCode: 'RECOVERYCODE',
-        }, context);
-        expect(mfaRepository.completeLogin).toHaveBeenCalledWith(expect.objectContaining({
-            userId: 7,
-            recoveryCodeHash: 'hash:RECOVERYCODE',
-            session: expect.objectContaining({ tokenHash: 'hash:refresh-token' }),
-        }));
+        const result = await mfaService.verify(
+            {
+                challengeToken: 'challenge',
+                recoveryCode: 'RECOVERYCODE',
+            },
+            context,
+        );
+        expect(mfaRepository.completeLogin).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 7,
+                recoveryCodeHash: 'hash:RECOVERYCODE',
+                session: expect.objectContaining({ tokenHash: 'hash:refresh-token' }),
+            }),
+        );
         expect(result.accessToken).toBe('access-token');
     });
     test.each([
-        ['setup challenge hết hạn', async () => {
-            mfaRepository.findChallenge.mockResolvedValue(null);
-            return mfaService.setup('expired', context);
-        }, 401],
-        ['setup user không còn active', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
-            userRepository.findById.mockResolvedValue({ ...user, is_active: false });
-            return mfaService.setup('challenge', context);
-        }, 401],
-        ['confirm challenge hết hạn', async () => {
-            mfaRepository.findChallenge.mockResolvedValue(null);
-            return mfaService.confirm({ challengeToken: 'expired', code: '123456' }, context);
-        }, 401],
-        ['confirm credential đã enabled', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
-            return mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
-        }, 409],
-        ['confirm sai TOTP', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({
-                is_enabled: false, secret_ciphertext: 'cipher', secret_iv: 'iv', secret_auth_tag: 'tag',
-            });
-            totp.verifyTotp.mockReturnValue(null);
-            return mfaService.confirm({ challengeToken: 'challenge', code: '000000' }, context);
-        }, 401],
-        ['confirm challenge consume race', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ id: 1, user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({
-                is_enabled: false, secret_ciphertext: 'cipher', secret_iv: 'iv', secret_auth_tag: 'tag',
-            });
-            totp.verifyTotp.mockReturnValue(100);
-            mfaRepository.completeEnrollment.mockResolvedValue('challenge_invalid');
-            return mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
-        }, 401],
-        ['confirm enable race', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ id: 1, user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({
-                is_enabled: false, secret_ciphertext: 'cipher', secret_iv: 'iv', secret_auth_tag: 'tag',
-            });
-            totp.verifyTotp.mockReturnValue(100);
-            mfaRepository.completeEnrollment.mockResolvedValue('already_enabled');
-            return mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
-        }, 409],
-        ['verify thiếu code', async () => mfaService.verify({ challengeToken: 'challenge' }, context), 400],
-        ['verify gửi hai code', async () => mfaService.verify({
-            challengeToken: 'challenge', code: '123456', recoveryCode: 'RECOVERYCODE',
-        }, context), 400],
-        ['verify challenge hết hạn', async () => {
-            mfaRepository.findChallenge.mockResolvedValue(null);
-            return mfaService.verify({ challengeToken: 'expired', code: '123456' }, context);
-        }, 401],
-        ['verify MFA chưa enabled', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({ is_enabled: false });
-            return mfaService.verify({ challengeToken: 'challenge', code: '123456' }, context);
-        }, 401],
-        ['verify recovery đã dùng', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
-            mfaRepository.completeLogin.mockResolvedValue('code_invalid');
-            return mfaService.verify({ challengeToken: 'challenge', recoveryCode: 'RECOVERYCODE' }, context);
-        }, 401],
-        ['verify challenge consume race', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ id: 3, user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
-            mfaRepository.completeLogin.mockResolvedValue('challenge_invalid');
-            return mfaService.verify({ challengeToken: 'challenge', recoveryCode: 'RECOVERYCODE' }, context);
-        }, 401],
-        ['verify user đổi role', async () => {
-            mfaRepository.findChallenge.mockResolvedValue({ id: 3, user_id: 7 });
-            mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
-            userRepository.findById.mockResolvedValue({ ...user, role: 'citizen' });
-            return mfaService.verify({ challengeToken: 'challenge', recoveryCode: 'RECOVERYCODE' }, context);
-        }, 401],
+        [
+            'setup challenge hết hạn',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue(null);
+                return mfaService.setup('expired', context);
+            },
+            401,
+        ],
+        [
+            'setup user không còn active',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
+                userRepository.findById.mockResolvedValue({ ...user, is_active: false });
+                return mfaService.setup('challenge', context);
+            },
+            401,
+        ],
+        [
+            'confirm challenge hết hạn',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue(null);
+                return mfaService.confirm({ challengeToken: 'expired', code: '123456' }, context);
+            },
+            401,
+        ],
+        [
+            'confirm credential đã enabled',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
+                return mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
+            },
+            409,
+        ],
+        [
+            'confirm sai TOTP',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({
+                    is_enabled: false,
+                    secret_ciphertext: 'cipher',
+                    secret_iv: 'iv',
+                    secret_auth_tag: 'tag',
+                });
+                totp.verifyTotp.mockReturnValue(null);
+                return mfaService.confirm({ challengeToken: 'challenge', code: '000000' }, context);
+            },
+            401,
+        ],
+        [
+            'confirm challenge consume race',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ id: 1, user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({
+                    is_enabled: false,
+                    secret_ciphertext: 'cipher',
+                    secret_iv: 'iv',
+                    secret_auth_tag: 'tag',
+                });
+                totp.verifyTotp.mockReturnValue(100);
+                mfaRepository.completeEnrollment.mockResolvedValue('challenge_invalid');
+                return mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
+            },
+            401,
+        ],
+        [
+            'confirm enable race',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ id: 1, user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({
+                    is_enabled: false,
+                    secret_ciphertext: 'cipher',
+                    secret_iv: 'iv',
+                    secret_auth_tag: 'tag',
+                });
+                totp.verifyTotp.mockReturnValue(100);
+                mfaRepository.completeEnrollment.mockResolvedValue('already_enabled');
+                return mfaService.confirm({ challengeToken: 'challenge', code: '123456' }, context);
+            },
+            409,
+        ],
+        [
+            'verify thiếu code',
+            async () => mfaService.verify({ challengeToken: 'challenge' }, context),
+            400,
+        ],
+        [
+            'verify gửi hai code',
+            async () =>
+                mfaService.verify(
+                    {
+                        challengeToken: 'challenge',
+                        code: '123456',
+                        recoveryCode: 'RECOVERYCODE',
+                    },
+                    context,
+                ),
+            400,
+        ],
+        [
+            'verify challenge hết hạn',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue(null);
+                return mfaService.verify({ challengeToken: 'expired', code: '123456' }, context);
+            },
+            401,
+        ],
+        [
+            'verify MFA chưa enabled',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({ is_enabled: false });
+                return mfaService.verify({ challengeToken: 'challenge', code: '123456' }, context);
+            },
+            401,
+        ],
+        [
+            'verify recovery đã dùng',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
+                mfaRepository.completeLogin.mockResolvedValue('code_invalid');
+                return mfaService.verify(
+                    { challengeToken: 'challenge', recoveryCode: 'RECOVERYCODE' },
+                    context,
+                );
+            },
+            401,
+        ],
+        [
+            'verify challenge consume race',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ id: 3, user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
+                mfaRepository.completeLogin.mockResolvedValue('challenge_invalid');
+                return mfaService.verify(
+                    { challengeToken: 'challenge', recoveryCode: 'RECOVERYCODE' },
+                    context,
+                );
+            },
+            401,
+        ],
+        [
+            'verify user đổi role',
+            async () => {
+                mfaRepository.findChallenge.mockResolvedValue({ id: 3, user_id: 7 });
+                mfaRepository.findCredential.mockResolvedValue({ is_enabled: true });
+                userRepository.findById.mockResolvedValue({ ...user, role: 'citizen' });
+                return mfaService.verify(
+                    { challengeToken: 'challenge', recoveryCode: 'RECOVERYCODE' },
+                    context,
+                );
+            },
+            401,
+        ],
     ])('%s', async (_name, run, status) => {
         await expect(run()).rejects.toMatchObject({ status });
     });

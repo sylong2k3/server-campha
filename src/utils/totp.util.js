@@ -47,21 +47,25 @@ const hotp = (secret, counter, digits = TOTP_DIGITS, algorithm = 'sha1') => {
     }
     const counterBuffer = Buffer.alloc(8);
     counterBuffer.writeBigUInt64BE(BigInt(counter));
-    const digest = crypto.createHmac(algorithm, decodeBase32(secret)).update(counterBuffer).digest();
+    const digest = crypto
+        .createHmac(algorithm, decodeBase32(secret))
+        .update(counterBuffer)
+        .digest();
     const offset = digest[digest.length - 1] & 0x0f;
-    const binary = (digest.readUInt32BE(offset) & 0x7fffffff) % (10 ** digits);
+    const binary = (digest.readUInt32BE(offset) & 0x7fffffff) % 10 ** digits;
     return String(binary).padStart(digits, '0');
 };
 
 const counterAt = (timeMs = Date.now(), period = TOTP_PERIOD_SECONDS) =>
     Math.floor(timeMs / 1000 / period);
 
-const generateTotp = (secret, options = {}) => hotp(
-    secret,
-    options.counter ?? counterAt(options.timeMs, options.period),
-    options.digits || TOTP_DIGITS,
-    options.algorithm || 'sha1'
-);
+const generateTotp = (secret, options = {}) =>
+    hotp(
+        secret,
+        options.counter ?? counterAt(options.timeMs, options.period),
+        options.digits || TOTP_DIGITS,
+        options.algorithm || 'sha1',
+    );
 
 const verifyTotp = (secret, token, options = {}) => {
     if (!/^\d{6}$/.test(String(token))) {
@@ -71,10 +75,13 @@ const verifyTotp = (secret, token, options = {}) => {
     const window = options.window ?? 1;
     for (let offset = -window; offset <= window; offset += 1) {
         const counter = current + offset;
-        if (counter >= 0 && crypto.timingSafeEqual(
-            Buffer.from(generateTotp(secret, { ...options, counter })),
-            Buffer.from(String(token))
-        )) {
+        if (
+            counter >= 0 &&
+            crypto.timingSafeEqual(
+                Buffer.from(generateTotp(secret, { ...options, counter })),
+                Buffer.from(String(token)),
+            )
+        ) {
             return counter;
         }
     }
@@ -115,7 +122,11 @@ const encryptSecret = (secret) => {
 };
 
 const decryptSecret = ({ ciphertext, iv, authTag }) => {
-    const decipher = crypto.createDecipheriv('aes-256-gcm', getEncryptionKey(), Buffer.from(iv, 'hex'));
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        getEncryptionKey(),
+        Buffer.from(iv, 'hex'),
+    );
     decipher.setAuthTag(Buffer.from(authTag, 'hex'));
     return Buffer.concat([
         decipher.update(Buffer.from(ciphertext, 'base64')),

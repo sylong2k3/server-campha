@@ -8,11 +8,15 @@ const createUserSchema = Joi.object({
     password: strongPasswordSchema.required(),
     fullName: Joi.string().min(2).max(255).trim().required(),
     phone: phoneSchema.optional().allow(null, ''),
-    roleCode: Joi.string().valid(...VALID_ROLES).default('citizen'),
+    roleCode: Joi.string()
+        .valid(...VALID_ROLES)
+        .default('citizen'),
 });
 
 const updateRoleSchema = Joi.object({
-    roleCode: Joi.string().valid(...VALID_ROLES).required(),
+    roleCode: Joi.string()
+        .valid(...VALID_ROLES)
+        .required(),
 });
 
 const setActiveSchema = Joi.object({
@@ -23,11 +27,12 @@ const resetPasswordAdminSchema = Joi.object({
     newPassword: strongPasswordSchema.required(),
 });
 
-
 const listUsersSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
-    roleCode: Joi.string().valid(...VALID_ROLES).optional(),
+    roleCode: Joi.string()
+        .valid(...VALID_ROLES)
+        .optional(),
     isActive: Joi.boolean().optional(),
     q: Joi.string().trim().max(255).optional().allow(''),
     email: Joi.string().trim().max(255).optional().allow(''),
@@ -42,4 +47,11 @@ const userIdParamsSchema = Joi.object({
     id: Joi.number().integer().positive().required(),
 });
 
-module.exports = { createUserSchema, updateRoleSchema, setActiveSchema, resetPasswordAdminSchema, listUsersSchema, userIdParamsSchema };
+module.exports = {
+    createUserSchema,
+    updateRoleSchema,
+    setActiveSchema,
+    resetPasswordAdminSchema,
+    listUsersSchema,
+    userIdParamsSchema,
+};

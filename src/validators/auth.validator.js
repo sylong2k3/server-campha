@@ -3,57 +3,35 @@ const { emailSchema, phoneSchema } = require('./common.validator');
 
 const registerSchema = Joi.object({
     email: emailSchema.required(),
-    password: Joi.string()
-        .min(8)
-        .max(128)
-        .required(),
-    fullName: Joi.string()
-        .min(2)
-        .max(255)
-        .trim()
-        .required(),
-    phone: phoneSchema
-        .optional()
-        .allow(null, ''),
+    password: Joi.string().min(8).max(128).required(),
+    fullName: Joi.string().min(2).max(255).trim().required(),
+    phone: phoneSchema.optional().allow(null, ''),
 });
 
 const loginSchema = Joi.object({
     email: emailSchema.required(),
-    password: Joi.string()
-        .required(),
+    password: Joi.string().required(),
 });
 
 const refreshSchema = Joi.object({
-    refreshToken: Joi.string()
-        .required(),
+    refreshToken: Joi.string().required(),
 });
 
 const changePasswordSchema = Joi.object({
-    oldPassword: Joi.string()
-        .required(),
-    newPassword: Joi.string()
-        .min(8)
-        .max(128)
-        .required()
-        .invalid(Joi.ref('oldPassword')),
+    oldPassword: Joi.string().required(),
+    newPassword: Joi.string().min(8).max(128).required().invalid(Joi.ref('oldPassword')),
 });
 
 const setPasswordSchema = Joi.object({
-    newPassword: Joi.string()
-        .min(8)
-        .max(128)
-        .required(),
+    newPassword: Joi.string().min(8).max(128).required(),
 });
 
 const logoutSchema = Joi.object({
-    refreshToken: Joi.string()
-        .optional()
-        .allow(null, ''),
+    refreshToken: Joi.string().optional().allow(null, ''),
 });
 
 const googleMobileSchema = Joi.object({
-    idToken: Joi.string()
-        .required(),
+    idToken: Joi.string().required(),
 });
 
 const forgotPasswordSchema = Joi.object({
@@ -61,22 +39,16 @@ const forgotPasswordSchema = Joi.object({
 });
 
 const resetPasswordSchema = Joi.object({
-    token: Joi.string()
-        .required(),
-    newPassword: Joi.string()
-        .min(8)
-        .max(128)
-        .required(),
+    token: Joi.string().required(),
+    newPassword: Joi.string().min(8).max(128).required(),
 });
 
 const oauthExchangeSchema = Joi.object({
-    code: Joi.string()
-        .required(),
+    code: Joi.string().required(),
 });
 
 const verifyEmailSchema = Joi.object({
-    token: Joi.string()
-        .required(),
+    token: Joi.string().required(),
 });
 
 const resendVerificationSchema = Joi.object({
@@ -97,13 +69,19 @@ const mfaSetupSchema = Joi.object({
 
 const mfaConfirmSchema = Joi.object({
     challengeToken: Joi.string().min(40).max(128).required(),
-    code: Joi.string().pattern(/^\d{6}$/).required(),
+    code: Joi.string()
+        .pattern(/^\d{6}$/)
+        .required(),
 });
 
 const mfaVerifySchema = Joi.object({
     challengeToken: Joi.string().min(40).max(128).required(),
-    code: Joi.string().pattern(/^\d{6}$/).optional(),
-    recoveryCode: Joi.string().pattern(/^[A-Z0-9_-]{12}$/i).optional(),
+    code: Joi.string()
+        .pattern(/^\d{6}$/)
+        .optional(),
+    recoveryCode: Joi.string()
+        .pattern(/^[A-Z0-9_-]{12}$/i)
+        .optional(),
 }).xor('code', 'recoveryCode');
 
 const sessionIdSchema = Joi.object({

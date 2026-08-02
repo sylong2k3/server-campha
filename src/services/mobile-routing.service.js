@@ -1,10 +1,60 @@
 'use strict';
-const repository=require('../repositories/mobile-routing.repository');
-const webMap=require('../repositories/web-map.repository');
-const {Api403Error,Api404Error,Api409Error,Api422Error}=require('../core/error.response');
-const assertTnmt=actor=>{if(actor?.role!=='so_tnmt'){throw new Api403Error('Chỉ Sở TNMT được quản trị mạng định tuyến');}};
-const layer=async(id,actor)=>{const row=await webMap.accessibleLayer(id,actor);if(!row||row.publish_status!=='published'){throw new Api404Error('Không tìm thấy lớp mạng đường');}if(row.storage_kind!=='postgis'||!['LINESTRING','MULTILINESTRING'].includes(row.geometry_type)){throw new Api422Error('Lớp không phải mạng đường PostGIS',['NOT_ROUTABLE_LAYER']);}return row;};
-const rebuild=async(id,input,actor)=>{assertTnmt(actor);const row=await layer(id,actor);if(!row.role_can_edit){throw new Api403Error('Không có quyền sửa lớp mạng đường');}return repository.rebuild(row,input,actor);};
-const topology=async(id,actor)=>{assertTnmt(actor);await layer(id,actor);const network=await repository.findNetwork(id);if(!network){throw new Api404Error('Mạng định tuyến chưa được tạo');}return {...network,evidence:await repository.topologyEvidence(network.id)};};
-const shortest=async(input,actor)=>{if(actor&&actor.permissions?.map?.route!==true){throw new Api403Error('Không có quyền tìm đường');}await layer(input.layerId,actor);const network=await repository.findNetwork(input.layerId);if(!network||network.status!=='ready'){throw new Api409Error('Mạng định tuyến chưa sẵn sàng',['ROUTING_NETWORK_NOT_READY']);}const route=await repository.shortest(network,input);if(!route){throw new Api422Error('Không thể nối hai điểm vào mạng đường hoặc không có tuyến',['ROUTE_NOT_FOUND']);}if(Number(route.distance_m)>input.maxDistanceMeters){throw new Api422Error('Tuyến vượt giới hạn khoảng cách',['ROUTE_TOO_LONG']);}return {layerId:input.layerId,topologyVersion:Number(network.topology_version),...route};};
-module.exports={rebuild,topology,shortest};
+const repository = require('../repositories/mobile-routing.repository');
+const webMap = require('../repositories/web-map.repository');
+const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
+const assertTnmt = (actor) => {
+    if (actor?.role !== 'so_tnmt') {
+        throw new Api403Error('Chỉ Sở TNMT được quản trị mạng định tuyến');
+    }
+};
+const layer = async (id, actor) => {
+    const row = await webMap.accessibleLayer(id, actor);
+    if (!row || row.publish_status !== 'published') {
+        throw new Api404Error('Không tìm thấy lớp mạng đường');
+    }
+    if (
+        row.storage_kind !== 'postgis' ||
+        !['LINESTRING', 'MULTILINESTRING'].includes(row.geometry_type)
+    ) {
+        throw new Api422Error('Lớp không phải mạng đường PostGIS', ['NOT_ROUTABLE_LAYER']);
+    }
+    return row;
+};
+const rebuild = async (id, input, actor) => {
+    assertTnmt(actor);
+    const row = await layer(id, actor);
+    if (!row.role_can_edit) {
+        throw new Api403Error('Không có quyền sửa lớp mạng đường');
+    }
+    return repository.rebuild(row, input, actor);
+};
+const topology = async (id, actor) => {
+    assertTnmt(actor);
+    await layer(id, actor);
+    const network = await repository.findNetwork(id);
+    if (!network) {
+        throw new Api404Error('Mạng định tuyến chưa được tạo');
+    }
+    return { ...network, evidence: await repository.topologyEvidence(network.id) };
+};
+const shortest = async (input, actor) => {
+    if (actor && actor.permissions?.map?.route !== true) {
+        throw new Api403Error('Không có quyền tìm đường');
+    }
+    await layer(input.layerId, actor);
+    const network = await repository.findNetwork(input.layerId);
+    if (!network || network.status !== 'ready') {
+        throw new Api409Error('Mạng định tuyến chưa sẵn sàng', ['ROUTING_NETWORK_NOT_READY']);
+    }
+    const route = await repository.shortest(network, input);
+    if (!route) {
+        throw new Api422Error('Không thể nối hai điểm vào mạng đường hoặc không có tuyến', [
+            'ROUTE_NOT_FOUND',
+        ]);
+    }
+    if (Number(route.distance_m) > input.maxDistanceMeters) {
+        throw new Api422Error('Tuyến vượt giới hạn khoảng cách', ['ROUTE_TOO_LONG']);
+    }
+    return { layerId: input.layerId, topologyVersion: Number(network.topology_version), ...route };
+};
+module.exports = { rebuild, topology, shortest };

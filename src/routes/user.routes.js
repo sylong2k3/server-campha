@@ -1,7 +1,11 @@
 const { Router } = require('express');
 const asyncHandler = require('../helpers/async-handler');
 const userController = require('../controllers/user.controller');
-const { verifyToken, requirePermission, enforcePasswordChange } = require('../middlewares/auth.middleware');
+const {
+    verifyToken,
+    requirePermission,
+    enforcePasswordChange,
+} = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
     createUserSchema,
@@ -19,7 +23,7 @@ adminRouter.get(
     enforcePasswordChange,
     requirePermission('users', 'read'),
     validate(listUsersSchema, 'query'),
-    asyncHandler(userController.listUsers)
+    asyncHandler(userController.listUsers),
 );
 
 adminRouter.post(
@@ -28,7 +32,7 @@ adminRouter.post(
     enforcePasswordChange,
     requirePermission('users', 'create'),
     validate(createUserSchema),
-    asyncHandler(userController.createUser)
+    asyncHandler(userController.createUser),
 );
 
 // GET /admin/users/:id — chi tiết user
@@ -38,7 +42,7 @@ adminRouter.get(
     enforcePasswordChange,
     requirePermission('users', 'read'),
     validate(userIdParamsSchema, 'params'),
-    asyncHandler(userController.getUserById)
+    asyncHandler(userController.getUserById),
 );
 
 // PATCH /admin/users/:id/role — đổi role
@@ -49,7 +53,7 @@ adminRouter.patch(
     requirePermission('users', 'change_role'),
     validate(userIdParamsSchema, 'params'),
     validate(updateRoleSchema),
-    asyncHandler(userController.changeUserRole)
+    asyncHandler(userController.changeUserRole),
 );
 
 // PATCH /admin/users/:id/active — khóa/mở khóa user
@@ -60,7 +64,7 @@ adminRouter.patch(
     requirePermission('users', 'change_status'),
     validate(userIdParamsSchema, 'params'),
     validate(setActiveSchema),
-    asyncHandler(userController.setUserActive)
+    asyncHandler(userController.setUserActive),
 );
 
 // POST /admin/users/:id/reset-password — reset mật khẩu
@@ -71,7 +75,7 @@ adminRouter.post(
     requirePermission('users', 'reset_password'),
     validate(userIdParamsSchema, 'params'),
     validate(resetPasswordAdminSchema),
-    asyncHandler(userController.resetUserPassword)
+    asyncHandler(userController.resetUserPassword),
 );
 
 // DELETE /admin/users/:id — xoá user
@@ -81,7 +85,7 @@ adminRouter.delete(
     enforcePasswordChange,
     requirePermission('users', 'delete'),
     validate(userIdParamsSchema, 'params'),
-    asyncHandler(userController.deleteUser)
+    asyncHandler(userController.deleteUser),
 );
 
 module.exports = {

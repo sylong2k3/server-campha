@@ -1,11 +1,18 @@
 'use strict';
 
-jest.mock('../../configs/minioClient', () => ({ getBucketForCategory: jest.fn(() => 'campha-documents') }));
+jest.mock('../../configs/minioClient', () => ({
+    getBucketForCategory: jest.fn(() => 'campha-documents'),
+}));
 jest.mock('../minio.service', () => ({
     buildObjectKey: jest.fn(() => 'documents/2026/07/id/report.pdf'),
-    getPresignedUploadUrl: jest.fn(), statQuarantineObject: jest.fn(), getQuarantineHead: jest.fn(),
-    getQuarantineStream: jest.fn(), promoteQuarantineObject: jest.fn(), removeQuarantineObject: jest.fn(),
-    removeObject: jest.fn(), getPresignedDownloadUrl: jest.fn(),
+    getPresignedUploadUrl: jest.fn(),
+    statQuarantineObject: jest.fn(),
+    getQuarantineHead: jest.fn(),
+    getQuarantineStream: jest.fn(),
+    promoteQuarantineObject: jest.fn(),
+    removeQuarantineObject: jest.fn(),
+    removeObject: jest.fn(),
+    getPresignedDownloadUrl: jest.fn(),
 }));
 jest.mock('../clamav.service', () => {
     class ClamAvUnavailableError extends Error {}
@@ -13,8 +20,13 @@ jest.mock('../clamav.service', () => {
     return { scanStream: jest.fn(), ClamAvUnavailableError, MalwareDetectedError };
 });
 jest.mock('../../repositories/storage.repository', () => ({
-    createQuarantine: jest.fn(), claimForScan: jest.fn(), markReady: jest.fn(), markRejected: jest.fn(),
-    resetPending: jest.fn(), findAccessibleById: jest.fn(), markDeleted: jest.fn(),
+    createQuarantine: jest.fn(),
+    claimForScan: jest.fn(),
+    markReady: jest.fn(),
+    markRejected: jest.fn(),
+    resetPending: jest.fn(),
+    findAccessibleById: jest.fn(),
+    markDeleted: jest.fn(),
 }));
 const { Readable } = require('stream');
 const minio = require('../minio.service');
@@ -22,7 +34,13 @@ const clamav = require('../clamav.service');
 const repo = require('../../repositories/storage.repository');
 const service = require('../storage.service');
 const actor = { id: 7, orgId: 2, permissions: { documents: { create: true } } };
-const pending = () => ({ id: 11, category: 'documents', original_name: 'report.pdf', quarantine_key: 'q', object_key: 'o' });
+const pending = () => ({
+    id: 11,
+    category: 'documents',
+    original_name: 'report.pdf',
+    quarantine_key: 'q',
+    object_key: 'o',
+});
 const stream = (value = 'clean') => Readable.from([Buffer.from(value)]);
 describe('storage quarantine workflow', () => {
     beforeEach(() => {
@@ -32,13 +50,34 @@ describe('storage quarantine workflow', () => {
         minio.promoteQuarantineObject.mockResolvedValue(undefined);
     });
     test('presign records owner and never accepts arbitrary bucket', async () => {
-        minio.getPresignedUploadUrl.mockResolvedValue({ url: 'signed', expiresAt: new Date('2026-08-01') });
+        minio.getPresignedUploadUrl.mockResolvedValue({
+            url: 'signed',
+            expiresAt: new Date('2026-08-01'),
+        });
         repo.createQuarantine.mockResolvedValue({ id: 11 });
-        await expect(service.createPresignedUpload({ category: 'documents', originalName: 'report.pdf', contentType: 'application/pdf', expireSeconds: 900 }, actor)).resolves.toMatchObject({ id: 11, uploadUrl: 'signed' });
-        expect(repo.createQuarantine).toHaveBeenCalledWith(expect.objectContaining({ bucket: 'campha-documents', ownerUserId: 7 }));
+        await expect(
+            service.createPresignedUpload(
+                {
+                    category: 'documents',
+                    originalName: 'report.pdf',
+                    contentType: 'application/pdf',
+                    expireSeconds: 900,
+                },
+                actor,
+            ),
+        ).resolves.toMatchObject({ id: 11, uploadUrl: 'signed' });
+        expect(repo.createQuarantine).toHaveBeenCalledWith(
+            expect.objectContaining({ bucket: 'campha-documents', ownerUserId: 7 }),
+        );
     });
     test('scanner outage resets pending and returns 503 without promote', async () => {
-        repo.claimForScan.mockResolvedValue({ id: 11, category: 'documents', original_name: 'report.pdf', quarantine_key: 'q', object_key: 'o' });
+        repo.claimForScan.mockResolvedValue({
+            id: 11,
+            category: 'documents',
+            original_name: 'report.pdf',
+            quarantine_key: 'q',
+            object_key: 'o',
+        });
         minio.statQuarantineObject.mockResolvedValue({ size: 8 });
         minio.getQuarantineHead.mockResolvedValue(Buffer.from('%PDF-x'));
         minio.getQuarantineStream.mockResolvedValue(Readable.from('clean'));
@@ -48,14 +87,36 @@ describe('storage quarantine workflow', () => {
         expect(minio.promoteQuarantineObject).not.toHaveBeenCalled();
     });
     test('rejects unauthorized category and extension before presigning', async () => {
-        await expect(service.createPresignedUpload({ category: 'documents', originalName: 'a.pdf', contentType: 'application/pdf' }, { id: 8, permissions: {} })).rejects.toMatchObject({ status: 403 });
-        await expect(service.createPresignedUpload({ category: 'documents', originalName: 'a.exe', contentType: 'application/octet-stream' }, actor)).rejects.toMatchObject({ status: 422 });
+        await expect(
+            service.createPresignedUpload(
+                { category: 'documents', originalName: 'a.pdf', contentType: 'application/pdf' },
+                { id: 8, permissions: {} },
+            ),
+        ).rejects.toMatchObject({ status: 403 });
+        await expect(
+            service.createPresignedUpload(
+                {
+                    category: 'documents',
+                    originalName: 'a.exe',
+                    contentType: 'application/octet-stream',
+                },
+                actor,
+            ),
+        ).rejects.toMatchObject({ status: 422 });
         expect(minio.getPresignedUploadUrl).not.toHaveBeenCalled();
     });
     test('removes quarantine allocation when metadata insert fails', async () => {
-        minio.getPresignedUploadUrl.mockResolvedValue({ url: 'signed', expiresAt: new Date('2026-08-01') });
+        minio.getPresignedUploadUrl.mockResolvedValue({
+            url: 'signed',
+            expiresAt: new Date('2026-08-01'),
+        });
         repo.createQuarantine.mockRejectedValue(new Error('db failed'));
-        await expect(service.createPresignedUpload({ category: 'documents', originalName: 'a.pdf', contentType: 'application/pdf' }, actor)).rejects.toThrow('db failed');
+        await expect(
+            service.createPresignedUpload(
+                { category: 'documents', originalName: 'a.pdf', contentType: 'application/pdf' },
+                actor,
+            ),
+        ).rejects.toThrow('db failed');
         expect(minio.removeQuarantineObject).toHaveBeenCalled();
     });
     test('clean commit hashes, promotes, marks ready and removes quarantine', async () => {
@@ -65,9 +126,19 @@ describe('storage quarantine workflow', () => {
         minio.getQuarantineStream.mockResolvedValueOnce(stream()).mockResolvedValueOnce(stream());
         clamav.scanStream.mockResolvedValue({ clean: true });
         repo.markReady.mockResolvedValue({ id: 11, lifecycle_status: 'ready' });
-        await expect(service.commitUpload(11, actor)).resolves.toMatchObject({ lifecycle_status: 'ready' });
-        expect(minio.promoteQuarantineObject).toHaveBeenCalledWith({ quarantineKey: 'q', objectKey: 'o', category: 'documents', sourceEtag: 'scanned-etag' });
-        expect(repo.markReady).toHaveBeenCalledWith(11, expect.objectContaining({ sizeBytes: 5, detectedMime: 'application/pdf' }));
+        await expect(service.commitUpload(11, actor)).resolves.toMatchObject({
+            lifecycle_status: 'ready',
+        });
+        expect(minio.promoteQuarantineObject).toHaveBeenCalledWith({
+            quarantineKey: 'q',
+            objectKey: 'o',
+            category: 'documents',
+            sourceEtag: 'scanned-etag',
+        });
+        expect(repo.markReady).toHaveBeenCalledWith(
+            11,
+            expect.objectContaining({ sizeBytes: 5, detectedMime: 'application/pdf' }),
+        );
     });
     test('missing pending claim returns conflict', async () => {
         repo.claimForScan.mockResolvedValue(null);
@@ -100,7 +171,12 @@ describe('storage quarantine workflow', () => {
     test('download and delete require ready owner object', async () => {
         repo.findAccessibleById.mockResolvedValueOnce(null);
         await expect(service.getDownloadUrl(11, 900, actor)).rejects.toMatchObject({ status: 404 });
-        repo.findAccessibleById.mockResolvedValue({ id: 11, lifecycle_status: 'ready', object_key: 'o', category: 'documents' });
+        repo.findAccessibleById.mockResolvedValue({
+            id: 11,
+            lifecycle_status: 'ready',
+            object_key: 'o',
+            category: 'documents',
+        });
         minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'download' });
         await expect(service.getDownloadUrl(11, 900, actor)).resolves.toEqual({ url: 'download' });
         repo.markDeleted.mockResolvedValue({ id: 11 });
@@ -108,7 +184,13 @@ describe('storage quarantine workflow', () => {
         expect(minio.removeObject).toHaveBeenCalledWith({ objectKey: 'o', category: 'documents' });
     });
     test('signature mismatch rejects and deletes quarantine object', async () => {
-        repo.claimForScan.mockResolvedValue({ id: 11, category: 'documents', original_name: 'report.pdf', quarantine_key: 'q', object_key: 'o' });
+        repo.claimForScan.mockResolvedValue({
+            id: 11,
+            category: 'documents',
+            original_name: 'report.pdf',
+            quarantine_key: 'q',
+            object_key: 'o',
+        });
         minio.statQuarantineObject.mockResolvedValue({ size: 8 });
         minio.getQuarantineHead.mockResolvedValue(Buffer.from('MZ bad'));
         await expect(service.commitUpload(11, actor)).rejects.toMatchObject({ status: 422 });

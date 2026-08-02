@@ -7,7 +7,7 @@ const findByProviderId = async (provider, providerId) => {
                 sa.is_active, sa.last_used_at, sa.created_at
          FROM auth.social_accounts sa
          WHERE sa.provider = $1 AND sa.provider_id = $2 AND sa.is_active = true`,
-        [provider, providerId]
+        [provider, providerId],
     );
     return rows[0] || null;
 };
@@ -19,7 +19,7 @@ const findByUserId = async (userId) => {
          FROM auth.social_accounts
          WHERE user_id = $1
          ORDER BY created_at DESC`,
-        [userId]
+        [userId],
     );
     return rows;
 };
@@ -44,7 +44,7 @@ const create = async (data) => {
             data.refreshToken || null,
             data.tokenExpiresAt || null,
             JSON.stringify(data.rawProfile || {}),
-        ]
+        ],
     );
     return rows[0];
 };
@@ -73,7 +73,7 @@ const updateByProviderId = async (provider, providerId, data) => {
             data.refreshToken || null,
             data.tokenExpiresAt || null,
             data.rawProfile ? JSON.stringify(data.rawProfile) : null,
-        ]
+        ],
     );
     return rows[0] || null;
 };
@@ -83,7 +83,7 @@ const unlinkProvider = async (userId, provider) => {
         `UPDATE auth.social_accounts
          SET is_active = false
          WHERE user_id = $1 AND provider = $2`,
-        [userId, provider]
+        [userId, provider],
     );
     return rowCount > 0;
 };
@@ -92,7 +92,7 @@ const hasProvider = async (userId, provider) => {
     const { rows } = await db.query(
         `SELECT 1 FROM auth.social_accounts
          WHERE user_id = $1 AND provider = $2 AND is_active = true`,
-        [userId, provider]
+        [userId, provider],
     );
     return rows.length > 0;
 };
@@ -102,7 +102,7 @@ const hasActiveProvider = async (userId) => {
         `SELECT 1 FROM auth.social_accounts
          WHERE user_id = $1 AND is_active = true
          LIMIT 1`,
-        [userId]
+        [userId],
     );
     return rows.length > 0;
 };

@@ -40,7 +40,11 @@ const logout = async (req, res) => {
 const changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     const context = getRequestContext(req);
-    const result = await authService.changePassword(req.user.id, { oldPassword, newPassword }, context);
+    const result = await authService.changePassword(
+        req.user.id,
+        { oldPassword, newPassword },
+        context,
+    );
     OK(res, result.message);
 };
 

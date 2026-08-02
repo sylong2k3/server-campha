@@ -1,12 +1,70 @@
 'use strict';
-const crypto=require('crypto');
-const db=require('../configs/database');
-const getKey=()=>{const raw=process.env.DEVICE_TOKEN_ENCRYPTION_KEY;if(!/^[a-f0-9]{64}$/i.test(raw||'')){throw new Error('DEVICE_TOKEN_ENCRYPTION_KEY must be a 64-character hex value');}return Buffer.from(raw,'hex');};
-const hash=(token)=>crypto.createHash('sha256').update(token).digest('hex');
-const encrypt=(token)=>{const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',getKey(),iv);const ciphertext=Buffer.concat([cipher.update(token,'utf8'),cipher.final()]);return{hash:hash(token),ciphertext:ciphertext.toString('base64'),iv:iv.toString('base64'),authTag:cipher.getAuthTag().toString('hex')};};
-const decrypt=(row)=>{const decipher=crypto.createDecipheriv('aes-256-gcm',getKey(),Buffer.from(row.token_iv,'base64'));decipher.setAuthTag(Buffer.from(row.token_auth_tag,'hex'));return Buffer.concat([decipher.update(Buffer.from(row.token_ciphertext,'base64')),decipher.final()]).toString('utf8');};
-const upsert=async(token,platform,userId)=>{const value=encrypt(token);const {rows:[row]}=await db.query(`INSERT INTO auth.device_tokens(user_id,token_hash,token_ciphertext,token_iv,token_auth_tag,platform) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(token_hash) DO UPDATE SET user_id=EXCLUDED.user_id,token_ciphertext=EXCLUDED.token_ciphertext,token_iv=EXCLUDED.token_iv,token_auth_tag=EXCLUDED.token_auth_tag,platform=EXCLUDED.platform,last_seen_at=NOW(),disabled_at=NULL RETURNING id,platform,last_seen_at`,[userId,value.hash,value.ciphertext,value.iv,value.authTag,platform]);return row;};
-const disable=async(token,userId)=>{const {rows:[row]}=await db.query('UPDATE auth.device_tokens SET disabled_at=NOW() WHERE token_hash=$1 AND user_id=$2 AND disabled_at IS NULL RETURNING id',[hash(token),userId]);return row||null;};
-const activeForUser=async(userId)=>{const {rows}=await db.query('SELECT token_ciphertext,token_iv,token_auth_tag FROM auth.device_tokens WHERE user_id=$1 AND disabled_at IS NULL',[userId]);return rows.map(decrypt);};
-const disableTokens=async(tokens)=>{if(!tokens.length){return;}await db.query('UPDATE auth.device_tokens SET disabled_at=NOW() WHERE token_hash=ANY($1::char(64)[])',[tokens.map(hash)]);};
-module.exports={hash,encrypt,decrypt,upsert,disable,activeForUser,disableTokens};
+const crypto = require('crypto');
+const db = require('../configs/database');
+const getKey = () => {
+    const raw = process.env.DEVICE_TOKEN_ENCRYPTION_KEY;
+    if (!/^[a-f0-9]{64}$/i.test(raw || '')) {
+        throw new Error('DEVICE_TOKEN_ENCRYPTION_KEY must be a 64-character hex value');
+    }
+    return Buffer.from(raw, 'hex');
+};
+const hash = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const encrypt = (token) => {
+    const iv = crypto.randomBytes(12),
+        cipher = crypto.createCipheriv('aes-256-gcm', getKey(), iv);
+    const ciphertext = Buffer.concat([cipher.update(token, 'utf8'), cipher.final()]);
+    return {
+        hash: hash(token),
+        ciphertext: ciphertext.toString('base64'),
+        iv: iv.toString('base64'),
+        authTag: cipher.getAuthTag().toString('hex'),
+    };
+};
+const decrypt = (row) => {
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm',
+        getKey(),
+        Buffer.from(row.token_iv, 'base64'),
+    );
+    decipher.setAuthTag(Buffer.from(row.token_auth_tag, 'hex'));
+    return Buffer.concat([
+        decipher.update(Buffer.from(row.token_ciphertext, 'base64')),
+        decipher.final(),
+    ]).toString('utf8');
+};
+const upsert = async (token, platform, userId) => {
+    const value = encrypt(token);
+    const {
+        rows: [row],
+    } = await db.query(
+        `INSERT INTO auth.device_tokens(user_id,token_hash,token_ciphertext,token_iv,token_auth_tag,platform) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(token_hash) DO UPDATE SET user_id=EXCLUDED.user_id,token_ciphertext=EXCLUDED.token_ciphertext,token_iv=EXCLUDED.token_iv,token_auth_tag=EXCLUDED.token_auth_tag,platform=EXCLUDED.platform,last_seen_at=NOW(),disabled_at=NULL RETURNING id,platform,last_seen_at`,
+        [userId, value.hash, value.ciphertext, value.iv, value.authTag, platform],
+    );
+    return row;
+};
+const disable = async (token, userId) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        'UPDATE auth.device_tokens SET disabled_at=NOW() WHERE token_hash=$1 AND user_id=$2 AND disabled_at IS NULL RETURNING id',
+        [hash(token), userId],
+    );
+    return row || null;
+};
+const activeForUser = async (userId) => {
+    const { rows } = await db.query(
+        'SELECT token_ciphertext,token_iv,token_auth_tag FROM auth.device_tokens WHERE user_id=$1 AND disabled_at IS NULL',
+        [userId],
+    );
+    return rows.map(decrypt);
+};
+const disableTokens = async (tokens) => {
+    if (!tokens.length) {
+        return;
+    }
+    await db.query(
+        'UPDATE auth.device_tokens SET disabled_at=NOW() WHERE token_hash=ANY($1::char(64)[])',
+        [tokens.map(hash)],
+    );
+};
+module.exports = { hash, encrypt, decrypt, upsert, disable, activeForUser, disableTokens };

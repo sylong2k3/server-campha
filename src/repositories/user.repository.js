@@ -16,14 +16,16 @@ const USER_SELECT = `
 `;
 
 const findById = async (id) => {
-    const { rows } = await db.query(`${USER_SELECT} WHERE u.id = $1 AND u.deleted_at IS NULL`, [id]);
+    const { rows } = await db.query(`${USER_SELECT} WHERE u.id = $1 AND u.deleted_at IS NULL`, [
+        id,
+    ]);
     return rows[0] || null;
 };
 
 const findByEmail = async (email) => {
     const { rows } = await db.query(
         `${USER_SELECT} WHERE LOWER(u.email) = LOWER($1) AND u.deleted_at IS NULL`,
-        [email]
+        [email],
     );
     return rows[0] || null;
 };
@@ -47,7 +49,16 @@ const create = async ({
              $8, CASE WHEN $8 THEN NOW() ELSE NULL END
          )
          RETURNING id`,
-        [email, passwordHash || null, fullName, phone || null, avatarUrl || null, roleCode, orgId, emailVerified]
+        [
+            email,
+            passwordHash || null,
+            fullName,
+            phone || null,
+            avatarUrl || null,
+            roleCode,
+            orgId,
+            emailVerified,
+        ],
     );
     return rows[0] ? findById(rows[0].id) : null;
 };
@@ -58,7 +69,7 @@ const updatePassword = async (userId, newPasswordHash) => {
          SET password_hash = $2, password_changed_at = NOW(), must_change_password = false
          WHERE id = $1
          RETURNING id, email, full_name, password_changed_at, updated_at`,
-        [userId, newPasswordHash]
+        [userId, newPasswordHash],
     );
     return rows[0] || null;
 };
@@ -69,7 +80,7 @@ const updateLoginSuccess = async (userId, ipAddress) => {
          SET login_attempts = 0, locked_until = NULL, lockout_level = 0,
              last_login_at = NOW(), last_login_ip = $2
          WHERE id = $1`,
-        [userId, ipAddress]
+        [userId, ipAddress],
     );
 };
 
@@ -91,7 +102,7 @@ const incrementLoginAttempts = async (userId, maxAttempts = 5, baseLockMinutes =
              END
          WHERE id = $1
          RETURNING login_attempts, locked_until, lockout_level`,
-        [userId, maxAttempts, baseLockMinutes]
+        [userId, maxAttempts, baseLockMinutes],
     );
     return rows[0] || null;
 };
@@ -104,7 +115,7 @@ const markEmailVerified = async (userId) => {
     await db.query(
         `UPDATE auth.users SET email_verified = true, email_verified_at = NOW()
          WHERE id = $1 AND email_verified = false`,
-        [userId]
+        [userId],
     );
 };
 
@@ -128,7 +139,7 @@ const findByIdSafe = async (userId) => {
          INNER JOIN auth.roles r ON u.role_id = r.id
          LEFT JOIN auth.organizations o ON u.org_id = o.id
          WHERE u.id = $1 AND u.deleted_at IS NULL`,
-        [userId]
+        [userId],
     );
     return rows[0] || null;
 };
@@ -147,8 +158,14 @@ const _buildUserFilter = ({ roleCode, roleCodes, orgId, isActive, q, email }, st
         conditions.push(`r.code = $${idx++}`);
         params.push(roleCode);
     }
-    if (orgId !== undefined) { conditions.push(`u.org_id = $${idx++}`); params.push(orgId); }
-    if (isActive !== undefined) { conditions.push(`u.is_active = $${idx++}`); params.push(isActive); }
+    if (orgId !== undefined) {
+        conditions.push(`u.org_id = $${idx++}`);
+        params.push(orgId);
+    }
+    if (isActive !== undefined) {
+        conditions.push(`u.is_active = $${idx++}`);
+        params.push(isActive);
+    }
     const keyword = q || email;
     if (keyword) {
         const likeValue = `%${_escapeLike(String(keyword).toLowerCase())}%`;
@@ -188,7 +205,18 @@ const _normalizeSort = (sortBy = 'created_at', sortOrder = 'DESC') => ({
     sortDirection: String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC',
 });
 
-const findAll = async ({ roleCode, roleCodes, orgId, isActive, q, email, page = 1, limit = 20, sortBy = 'created_at', sortOrder = 'DESC' } = {}) => {
+const findAll = async ({
+    roleCode,
+    roleCodes,
+    orgId,
+    isActive,
+    q,
+    email,
+    page = 1,
+    limit = 20,
+    sortBy = 'created_at',
+    sortOrder = 'DESC',
+} = {}) => {
     const filter = { roleCode, roleCodes, orgId, isActive, q, email };
     const { where, params, nextIdx } = _buildUserFilter(filter);
     const offset = (page - 1) * limit;
@@ -208,7 +236,7 @@ const findAll = async ({ roleCode, roleCodes, orgId, isActive, q, email, page = 
          ${where}
          ORDER BY ${sortColumn} ${sortDirection}, u.id DESC
          LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
-        params
+        params,
     );
 
     if (rows.length === 0) {
@@ -229,7 +257,7 @@ const countAll = async ({ roleCode, roleCodes, orgId, isActive, q, email } = {})
          FROM auth.users u
          INNER JOIN auth.roles r ON u.role_id = r.id
          ${where}`,
-        params
+        params,
     );
     return rows[0]?.total || 0;
 };
@@ -240,16 +268,16 @@ const updateRole = async (userId, roleCode) => {
          SET role_id = (SELECT id FROM auth.roles WHERE code = $2 AND is_active = true)
          WHERE id = $1 AND deleted_at IS NULL
          RETURNING id`,
-        [userId, roleCode]
+        [userId, roleCode],
     );
     return rows[0] ? findById(rows[0].id) : null;
 };
 
 const updateActive = async (userId, isActive) => {
     const { rows } = await db.query(
-         `UPDATE auth.users SET is_active = $2 WHERE id = $1 AND deleted_at IS NULL
+        `UPDATE auth.users SET is_active = $2 WHERE id = $1 AND deleted_at IS NULL
          RETURNING id, email, is_active, updated_at`,
-        [userId, isActive]
+        [userId, isActive],
     );
     return rows[0] || null;
 };
@@ -260,7 +288,7 @@ const updateTemporaryPassword = async (userId, passwordHash) => {
          SET password_hash = $2, must_change_password = true, password_changed_at = NOW()
          WHERE id = $1 AND deleted_at IS NULL
          RETURNING id, email, must_change_password, updated_at`,
-        [userId, passwordHash]
+        [userId, passwordHash],
     );
     return rows[0] || null;
 };
@@ -270,11 +298,22 @@ const updateProfile = async (userId, { fullName, phone, avatarUrl, expectedUpdat
     const params = [];
     let idx = 1;
 
-    if (fullName !== undefined)  { sets.push(`full_name = $${idx++}`);  params.push(fullName); }
-    if (phone !== undefined)     { sets.push(`phone = $${idx++}`);      params.push(phone); }
-    if (avatarUrl !== undefined) { sets.push(`avatar_url = $${idx}`); params.push(avatarUrl); }
+    if (fullName !== undefined) {
+        sets.push(`full_name = $${idx++}`);
+        params.push(fullName);
+    }
+    if (phone !== undefined) {
+        sets.push(`phone = $${idx++}`);
+        params.push(phone);
+    }
+    if (avatarUrl !== undefined) {
+        sets.push(`avatar_url = $${idx}`);
+        params.push(avatarUrl);
+    }
 
-    if (!sets.length) {return findByIdSafe(userId);}
+    if (!sets.length) {
+        return findByIdSafe(userId);
+    }
 
     params.push(userId);
     const idIdx = params.length;
@@ -286,7 +325,7 @@ const updateProfile = async (userId, { fullName, phone, avatarUrl, expectedUpdat
     }
     const { rows } = await db.query(
         `UPDATE auth.users SET ${sets.join(', ')} WHERE id = $${idIdx} AND deleted_at IS NULL${lockSql} RETURNING id`,
-        params
+        params,
     );
     return rows[0] ? findByIdSafe(rows[0].id) : null;
 };
@@ -297,7 +336,7 @@ const softDelete = async (userId) => {
          SET deleted_at = NOW(), is_active = false
          WHERE id = $1 AND deleted_at IS NULL
          RETURNING id, email, deleted_at`,
-        [userId]
+        [userId],
     );
     return rows[0] || null;
 };
@@ -308,7 +347,7 @@ const countActiveUsersByRole = async (roleCode) => {
          FROM auth.users u
          INNER JOIN auth.roles r ON u.role_id = r.id
          WHERE r.code = $1 AND u.deleted_at IS NULL AND u.is_active = true`,
-        [roleCode]
+        [roleCode],
     );
     return rows[0]?.total || 0;
 };
@@ -317,25 +356,28 @@ const findRoleByCode = async (code) => {
     const { rows } = await db.query(
         `SELECT id, code, name_vi, name_en, description_vi, description_en, permissions, sort_order, is_active
          FROM auth.roles WHERE code = $1 AND is_active = true`,
-        [code]
+        [code],
     );
     return rows[0] || null;
 };
 
 const incrementTokenVersion = async (userId) => {
-    const { rows } = await db.query(`
+    const { rows } = await db.query(
+        `
         UPDATE auth.users
         SET token_version = token_version + 1
         WHERE id = $1 AND deleted_at IS NULL
         RETURNING token_version
-    `, [userId]);
+    `,
+        [userId],
+    );
     return rows[0]?.token_version ?? null;
 };
 
 const findAllRoles = async () => {
     const { rows } = await db.query(
         `SELECT id, code, name_vi, name_en, description_vi, description_en, permissions, sort_order, is_active
-         FROM auth.roles WHERE is_active = true ORDER BY sort_order ASC`
+         FROM auth.roles WHERE is_active = true ORDER BY sort_order ASC`,
     );
     return rows;
 };

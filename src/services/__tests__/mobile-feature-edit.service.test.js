@@ -1,5 +1,64 @@
 'use strict';
-jest.mock('../../repositories/mobile-feature-edit.repository');jest.mock('../../repositories/web-map.repository');
-const repository=require('../../repositories/mobile-feature-edit.repository'),webMap=require('../../repositories/web-map.repository'),service=require('../mobile-feature-edit.service');
-const actor={id:7,role:'so_tnmt',permissions:{map_feature:{update:true}}},layer={id:1,storage_kind:'postgis',table_name:'roads',publish_status:'published',role_can_edit:true};
-describe('mobile feature edit service',()=>{beforeEach(()=>{jest.clearAllMocks();webMap.accessibleLayer.mockResolvedValue(layer);});test('rejects every non-TNMT role even with permission',async()=>{await expect(service.update(1,'1',{baseVersion:1,attributes:{name:'x'}},{...actor,role:'system_admin'})).rejects.toMatchObject({status:403});});test('requires per-layer edit ACL',async()=>{webMap.accessibleLayer.mockResolvedValue({...layer,role_can_edit:false});await expect(service.update(1,'1',{baseVersion:1,attributes:{name:'x'}},actor)).rejects.toMatchObject({status:403});});test('maps stale update to 409 and missing row to 404',async()=>{repository.updateTx.mockResolvedValueOnce({conflict:true}).mockResolvedValueOnce({missing:true});await expect(service.update(1,'1',{baseVersion:1,attributes:{name:'x'}},actor)).rejects.toMatchObject({status:409});await expect(service.update(1,'1',{baseVersion:1,attributes:{name:'x'}},actor)).rejects.toMatchObject({status:404});});test('offline sync sorts deterministic outcomes',async()=>{repository.syncOne.mockResolvedValueOnce({version:2}).mockResolvedValueOnce({conflict:true,current:{version:3}});const result=await service.sync({clientId:'x',changes:[{layerId:1,featureId:'1',clientChangeId:'a'},{layerId:1,featureId:'2',clientChangeId:'b'}]},actor);expect(result.applied).toHaveLength(1);expect(result.conflicts).toHaveLength(1);});});
+jest.mock('../../repositories/mobile-feature-edit.repository');
+jest.mock('../../repositories/web-map.repository');
+const repository = require('../../repositories/mobile-feature-edit.repository'),
+    webMap = require('../../repositories/web-map.repository'),
+    service = require('../mobile-feature-edit.service');
+const actor = { id: 7, role: 'so_tnmt', permissions: { map_feature: { update: true } } },
+    layer = {
+        id: 1,
+        storage_kind: 'postgis',
+        table_name: 'roads',
+        publish_status: 'published',
+        role_can_edit: true,
+    };
+describe('mobile feature edit service', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        webMap.accessibleLayer.mockResolvedValue(layer);
+    });
+    test('rejects every non-TNMT role even with permission', async () => {
+        await expect(
+            service.update(
+                1,
+                '1',
+                { baseVersion: 1, attributes: { name: 'x' } },
+                { ...actor, role: 'system_admin' },
+            ),
+        ).rejects.toMatchObject({ status: 403 });
+    });
+    test('requires per-layer edit ACL', async () => {
+        webMap.accessibleLayer.mockResolvedValue({ ...layer, role_can_edit: false });
+        await expect(
+            service.update(1, '1', { baseVersion: 1, attributes: { name: 'x' } }, actor),
+        ).rejects.toMatchObject({ status: 403 });
+    });
+    test('maps stale update to 409 and missing row to 404', async () => {
+        repository.updateTx
+            .mockResolvedValueOnce({ conflict: true })
+            .mockResolvedValueOnce({ missing: true });
+        await expect(
+            service.update(1, '1', { baseVersion: 1, attributes: { name: 'x' } }, actor),
+        ).rejects.toMatchObject({ status: 409 });
+        await expect(
+            service.update(1, '1', { baseVersion: 1, attributes: { name: 'x' } }, actor),
+        ).rejects.toMatchObject({ status: 404 });
+    });
+    test('offline sync sorts deterministic outcomes', async () => {
+        repository.syncOne
+            .mockResolvedValueOnce({ version: 2 })
+            .mockResolvedValueOnce({ conflict: true, current: { version: 3 } });
+        const result = await service.sync(
+            {
+                clientId: 'x',
+                changes: [
+                    { layerId: 1, featureId: '1', clientChangeId: 'a' },
+                    { layerId: 1, featureId: '2', clientChangeId: 'b' },
+                ],
+            },
+            actor,
+        );
+        expect(result.applied).toHaveLength(1);
+        expect(result.conflicts).toHaveLength(1);
+    });
+});

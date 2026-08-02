@@ -1,18 +1,84 @@
 'use strict';
-const service=require('../services/field-report.service');
-const {OK,CREATED,OK_LIST}=require('../core/success.response');
-const {buildActor}=require('../utils/actor.util');
-const {t}=require('../utils/i18n.util');
-const actor=(req)=>buildActor(req);
-const listPublic=async(req,res)=>{const result=await service.listPublic(req.query);return OK_LIST(res,t('field_report_public_success',req.lang),result.items,{...req.query,total:result.total});};
-const nearby=async(req,res)=>OK(res,t('field_report_nearby_success',req.lang),await service.nearby(req.query));
-const listMine=async(req,res)=>{const result=await service.listMine(req.query,actor(req));return OK_LIST(res,t('field_report_mine_success',req.lang),result.items,{...req.query,total:result.total});};
-const create=async(req,res)=>CREATED(res,t('field_report_created_success',req.lang),await service.create(req.body,actor(req)));
-const get=async(req,res)=>OK(res,t('field_report_detail_success',req.lang),await service.get(Number(req.params.id),actor(req)));
-const remove=async(req,res)=>OK(res,t('field_report_deleted_success',req.lang),await service.remove(Number(req.params.id),req.query.expectedUpdatedAt,actor(req)));
-const listAdmin=async(req,res)=>{const result=await service.listAdmin(req.query,actor(req));return OK_LIST(res,t('field_report_admin_success',req.lang),result.items,{...req.query,total:result.total});};
-const review=async(req,res)=>OK(res,t('field_report_reviewed_success',req.lang),await service.review(Number(req.params.id),req.body,actor(req)));
-const clusters=async(req,res)=>OK(res,t('field_report_clusters_success',req.lang),await service.clusters(req.query,actor(req)));
-const registerDevice=async(req,res)=>OK(res,t('field_report_device_registered',req.lang),await service.registerDevice(req.body,actor(req)));
-const unregisterDevice=async(req,res)=>OK(res,t('field_report_device_removed',req.lang),await service.unregisterDevice(req.body,actor(req)));
-module.exports={listPublic,nearby,listMine,create,get,remove,listAdmin,review,clusters,registerDevice,unregisterDevice};
+const service = require('../services/field-report.service');
+const { OK, CREATED, OK_LIST } = require('../core/success.response');
+const { buildActor } = require('../utils/actor.util');
+const { t } = require('../utils/i18n.util');
+const actor = (req) => buildActor(req);
+const listPublic = async (req, res) => {
+    const result = await service.listPublic(req.query);
+    return OK_LIST(res, t('field_report_public_success', req.lang), result.items, {
+        ...req.query,
+        total: result.total,
+    });
+};
+const nearby = async (req, res) =>
+    OK(res, t('field_report_nearby_success', req.lang), await service.nearby(req.query));
+const listMine = async (req, res) => {
+    const result = await service.listMine(req.query, actor(req));
+    return OK_LIST(res, t('field_report_mine_success', req.lang), result.items, {
+        ...req.query,
+        total: result.total,
+    });
+};
+const create = async (req, res) =>
+    CREATED(
+        res,
+        t('field_report_created_success', req.lang),
+        await service.create(req.body, actor(req)),
+    );
+const get = async (req, res) =>
+    OK(
+        res,
+        t('field_report_detail_success', req.lang),
+        await service.get(Number(req.params.id), actor(req)),
+    );
+const remove = async (req, res) =>
+    OK(
+        res,
+        t('field_report_deleted_success', req.lang),
+        await service.remove(Number(req.params.id), req.query.expectedUpdatedAt, actor(req)),
+    );
+const listAdmin = async (req, res) => {
+    const result = await service.listAdmin(req.query, actor(req));
+    return OK_LIST(res, t('field_report_admin_success', req.lang), result.items, {
+        ...req.query,
+        total: result.total,
+    });
+};
+const review = async (req, res) =>
+    OK(
+        res,
+        t('field_report_reviewed_success', req.lang),
+        await service.review(Number(req.params.id), req.body, actor(req)),
+    );
+const clusters = async (req, res) =>
+    OK(
+        res,
+        t('field_report_clusters_success', req.lang),
+        await service.clusters(req.query, actor(req)),
+    );
+const registerDevice = async (req, res) =>
+    OK(
+        res,
+        t('field_report_device_registered', req.lang),
+        await service.registerDevice(req.body, actor(req)),
+    );
+const unregisterDevice = async (req, res) =>
+    OK(
+        res,
+        t('field_report_device_removed', req.lang),
+        await service.unregisterDevice(req.body, actor(req)),
+    );
+module.exports = {
+    listPublic,
+    nearby,
+    listMine,
+    create,
+    get,
+    remove,
+    listAdmin,
+    review,
+    clusters,
+    registerDevice,
+    unregisterDevice,
+};

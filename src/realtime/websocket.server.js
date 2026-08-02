@@ -19,7 +19,9 @@ function createMessage(event, data) {
 }
 
 function safelySend(ws, message) {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {return false;}
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        return false;
+    }
 
     try {
         ws.send(message);
@@ -46,10 +48,13 @@ function setupSocketState(ws, req) {
 
     clients.add(ws);
 
-    safelySend(ws, createMessage('connected', {
-        userId,
-        message: 'WebSocket connected',
-    }));
+    safelySend(
+        ws,
+        createMessage('connected', {
+            userId,
+            message: 'WebSocket connected',
+        }),
+    );
 
     ws.on('message', (rawPayload) => {
         try {
@@ -76,18 +81,26 @@ function setupSocketState(ws, req) {
                     .filter((ch) => ch === `role:${ws._wsState.role}` || PUBLIC_CHANNELS.has(ch));
 
                 for (const channel of requested) {
-                    if (ws._wsState.channels.size >= MAX_CHANNELS) { break; }
+                    if (ws._wsState.channels.size >= MAX_CHANNELS) {
+                        break;
+                    }
                     ws._wsState.channels.add(channel);
                 }
 
-                safelySend(ws, createMessage('subscribed', {
-                    channels: Array.from(ws._wsState.channels),
-                }));
+                safelySend(
+                    ws,
+                    createMessage('subscribed', {
+                        channels: Array.from(ws._wsState.channels),
+                    }),
+                );
             }
         } catch {
-            safelySend(ws, createMessage('error', {
-                message: 'Invalid WebSocket message format',
-            }));
+            safelySend(
+                ws,
+                createMessage('error', {
+                    message: 'Invalid WebSocket message format',
+                }),
+            );
         }
     });
 
@@ -98,7 +111,9 @@ function setupSocketState(ws, req) {
 function initWebSocketServer(server, options = {}) {
     const path = options.path || '/ws';
 
-    if (wss) {return;}
+    if (wss) {
+        return;
+    }
     httpServer = server;
 
     // CORS_ORIGINS never changes at runtime — compute once per server start,
@@ -130,9 +145,8 @@ function initWebSocketServer(server, options = {}) {
 
         const authorization = req.headers.authorization || '';
         const [scheme, headerToken] = authorization.split(' ');
-        const token = (scheme === 'Bearer' && headerToken)
-            ? headerToken
-            : requestUrl.searchParams.get('token');
+        const token =
+            scheme === 'Bearer' && headerToken ? headerToken : requestUrl.searchParams.get('token');
 
         if (!token) {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -159,7 +173,9 @@ function initWebSocketServer(server, options = {}) {
 function broadcast(event, data) {
     const message = createMessage(event, data);
     clients.forEach((ws) => {
-        if (!safelySend(ws, message)) {clients.delete(ws);}
+        if (!safelySend(ws, message)) {
+            clients.delete(ws);
+        }
     });
 }
 
@@ -167,7 +183,9 @@ function notifyUser(userId, event, data) {
     const message = createMessage(event, data);
     clients.forEach((ws) => {
         if (ws._wsState?.userId === String(userId)) {
-            if (!safelySend(ws, message)) {clients.delete(ws);}
+            if (!safelySend(ws, message)) {
+                clients.delete(ws);
+            }
         }
     });
 }
@@ -176,14 +194,20 @@ function notifyChannel(channel, event, data) {
     const message = createMessage(event, data);
     clients.forEach((ws) => {
         if (ws._wsState?.channels?.has(channel)) {
-            if (!safelySend(ws, message)) {clients.delete(ws);}
+            if (!safelySend(ws, message)) {
+                clients.delete(ws);
+            }
         }
     });
 }
 
 function closeWebSocketServer() {
     clients.forEach((ws) => {
-        try { ws.close(1000, 'Server shutting down'); } catch { /* no-op */ }
+        try {
+            ws.close(1000, 'Server shutting down');
+        } catch {
+            /* no-op */
+        }
     });
 
     clients.clear();
@@ -192,7 +216,9 @@ function closeWebSocketServer() {
         wss.close();
         wss = null;
     }
-    if (httpServer && upgradeHandler) {httpServer.off('upgrade', upgradeHandler);}
+    if (httpServer && upgradeHandler) {
+        httpServer.off('upgrade', upgradeHandler);
+    }
     upgradeHandler = null;
     httpServer = null;
 }

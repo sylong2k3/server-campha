@@ -1,9 +1,20 @@
 const userRepository = require('../repositories/user.repository');
 const tokenRepository = require('../repositories/token.repository');
 const socialRepository = require('../repositories/social.repository');
-const { hashPassword, comparePassword, hashToken, generateRandomToken } = require('../utils/cryptoHelper.util');
+const {
+    hashPassword,
+    comparePassword,
+    hashToken,
+    generateRandomToken,
+} = require('../utils/cryptoHelper.util');
 const { generateTokenPair, verifyRefreshToken } = require('../utils/tokenManager.util');
-const { Api400Error, Api401Error, Api403Error, Api409Error, Api404Error } = require('../core/error.response');
+const {
+    Api400Error,
+    Api401Error,
+    Api403Error,
+    Api409Error,
+    Api404Error,
+} = require('../core/error.response');
 const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mailer.util');
 const { t } = require('../utils/i18n.util');
 const { PG_UNIQUE_VIOLATION } = require('../core/pg-error-codes');
@@ -17,8 +28,10 @@ const RESET_MAX_REQUESTS_PER_WINDOW = parseInt(process.env.RESET_MAX_REQUESTS, 1
 const OAUTH_CODE_EXPIRES_SECONDS = parseInt(process.env.OAUTH_CODE_EXPIRES_SECONDS, 10) || 60;
 
 const REQUIRE_EMAIL_VERIFICATION = process.env.REQUIRE_EMAIL_VERIFICATION !== 'false';
-const EMAIL_VERIFICATION_EXPIRES_MINUTES = parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_MINUTES, 10) || 60;
-const EMAIL_VERIFICATION_MAX_REQUESTS = parseInt(process.env.EMAIL_VERIFICATION_MAX_REQUESTS, 10) || 3;
+const EMAIL_VERIFICATION_EXPIRES_MINUTES =
+    parseInt(process.env.EMAIL_VERIFICATION_EXPIRES_MINUTES, 10) || 60;
+const EMAIL_VERIFICATION_MAX_REQUESTS =
+    parseInt(process.env.EMAIL_VERIFICATION_MAX_REQUESTS, 10) || 3;
 
 const DUMMY_PASSWORD_HASH = '$2b$12$12l7tm6QooEdqRW4HUyj9uFsD0VvZqZh8YrVLdjN2No.SKaXrfhl6';
 
@@ -118,13 +131,17 @@ const login = async ({ email, password }, context = {}) => {
     }
 
     if (!user.is_active) {
-        await _logActivity(user.id, 'login_failed', 'failure', context, { reason: 'account_inactive' });
+        await _logActivity(user.id, 'login_failed', 'failure', context, {
+            reason: 'account_inactive',
+        });
         throw new Api401Error(t('incorrect_credentials', context.lang));
     }
 
     if (user.locked_until && new Date(user.locked_until) > new Date()) {
         const remainingMinutes = Math.ceil((new Date(user.locked_until) - new Date()) / 60000);
-        await _logActivity(user.id, 'login_failed', 'failure', context, { reason: 'account_locked' });
+        await _logActivity(user.id, 'login_failed', 'failure', context, {
+            reason: 'account_locked',
+        });
         throw new Api401Error(t('account_locked_mins', context.lang, { mins: remainingMinutes }));
     }
 
@@ -135,7 +152,11 @@ const login = async ({ email, password }, context = {}) => {
 
     const isPasswordValid = await comparePassword(password, user.password_hash);
     if (!isPasswordValid) {
-        const result = await userRepository.incrementLoginAttempts(user.id, MAX_LOGIN_ATTEMPTS, LOCK_MINUTES);
+        const result = await userRepository.incrementLoginAttempts(
+            user.id,
+            MAX_LOGIN_ATTEMPTS,
+            LOCK_MINUTES,
+        );
         const attemptsLeft = MAX_LOGIN_ATTEMPTS - (result?.login_attempts || 0);
 
         await _logActivity(user.id, 'login_failed', 'failure', context, {
@@ -144,22 +165,30 @@ const login = async ({ email, password }, context = {}) => {
         });
 
         if (result?.locked_until) {
-            const lockMinutes = Math.max(1, Math.ceil((new Date(result.locked_until) - new Date()) / 60000));
+            const lockMinutes = Math.max(
+                1,
+                Math.ceil((new Date(result.locked_until) - new Date()) / 60000),
+            );
             await _logActivity(user.id, 'account_locked', 'success', context);
             throw new Api401Error(
-                t('account_locked_limit', context.lang, { mins: lockMinutes, attempts: MAX_LOGIN_ATTEMPTS })
+                t('account_locked_limit', context.lang, {
+                    mins: lockMinutes,
+                    attempts: MAX_LOGIN_ATTEMPTS,
+                }),
             );
         }
 
         throw new Api401Error(
             attemptsLeft > 0
                 ? t('incorrect_credentials_attempts', context.lang, { attempts: attemptsLeft })
-                : t('incorrect_credentials', context.lang)
+                : t('incorrect_credentials', context.lang),
         );
     }
 
     if (REQUIRE_EMAIL_VERIFICATION && !user.email_verified) {
-        await _logActivity(user.id, 'login_failed', 'failure', context, { reason: 'email_not_verified' });
+        await _logActivity(user.id, 'login_failed', 'failure', context, {
+            reason: 'email_not_verified',
+        });
         throw new Api403Error(t('email_not_verified', context.lang));
     }
 
@@ -248,7 +277,9 @@ const changePassword = async (userId, { oldPassword, newPassword }, context = {}
 
     const isOldPasswordValid = await comparePassword(oldPassword, user.password_hash);
     if (!isOldPasswordValid) {
-        await _logActivity(userId, 'change_password', 'failure', context, { reason: 'wrong_old_password' });
+        await _logActivity(userId, 'change_password', 'failure', context, {
+            reason: 'wrong_old_password',
+        });
         throw new Api401Error(t('incorrect_old_password', context.lang));
     }
 
@@ -314,13 +345,20 @@ const forgotPassword = async ({ email }, context = {}) => {
     }
 
     if (!user.password_hash) {
-        await _logActivity(user.id, 'password_reset_request', 'failure', context, { reason: 'google_only' });
+        await _logActivity(user.id, 'password_reset_request', 'failure', context, {
+            reason: 'google_only',
+        });
         return { message: genericMessage };
     }
 
-    const recentCount = await tokenRepository.countRecentResetRequests(user.id, RESET_TOKEN_EXPIRES_MINUTES);
+    const recentCount = await tokenRepository.countRecentResetRequests(
+        user.id,
+        RESET_TOKEN_EXPIRES_MINUTES,
+    );
     if (recentCount >= RESET_MAX_REQUESTS_PER_WINDOW) {
-        await _logActivity(user.id, 'password_reset_request', 'failure', context, { reason: 'rate_limited' });
+        await _logActivity(user.id, 'password_reset_request', 'failure', context, {
+            reason: 'rate_limited',
+        });
         return { message: genericMessage };
     }
 
@@ -361,13 +399,17 @@ const resetPassword = async ({ token, newPassword }, context = {}) => {
     const tokenHash = hashToken(token);
     const resetToken = await tokenRepository.findValidPasswordResetToken(tokenHash);
     if (!resetToken) {
-        await _logActivity(null, 'password_reset_failed', 'failure', context, { reason: 'invalid_or_expired' });
+        await _logActivity(null, 'password_reset_failed', 'failure', context, {
+            reason: 'invalid_or_expired',
+        });
         throw new Api400Error(t('invalid_reset_token', context.lang));
     }
 
     const user = await userRepository.findById(resetToken.user_id);
     if (!user || !user.is_active) {
-        await _logActivity(resetToken.user_id, 'password_reset_failed', 'failure', context, { reason: 'inactive' });
+        await _logActivity(resetToken.user_id, 'password_reset_failed', 'failure', context, {
+            reason: 'inactive',
+        });
         throw new Api400Error(t('invalid_reset_token', context.lang));
     }
 
@@ -423,7 +465,7 @@ const resendVerification = async ({ email }, context = {}) => {
 
     const recentCount = await tokenRepository.countRecentEmailVerificationRequests(
         user.id,
-        EMAIL_VERIFICATION_EXPIRES_MINUTES
+        EMAIL_VERIFICATION_EXPIRES_MINUTES,
     );
     if (recentCount >= EMAIL_VERIFICATION_MAX_REQUESTS) {
         return { message: genericMessage };
@@ -438,7 +480,10 @@ const googleAuthCallback = async (googleProfile, context = {}) => {
     let user;
     let isNewUser = false;
 
-    const existingSocial = await socialRepository.findByProviderId('google', googleProfile.googleId);
+    const existingSocial = await socialRepository.findByProviderId(
+        'google',
+        googleProfile.googleId,
+    );
 
     if (existingSocial) {
         user = await userRepository.findById(existingSocial.user_id);
@@ -499,7 +544,10 @@ const googleAuthCallback = async (googleProfile, context = {}) => {
     }
 
     if (mfaService.isRequiredForRole(user.role)) {
-        await _logActivity(user.id, 'social_login', 'success', context, { provider: 'google', mfaPending: true });
+        await _logActivity(user.id, 'social_login', 'success', context, {
+            provider: 'google',
+            mfaPending: true,
+        });
         return { user: _sanitizeUser(user, context.lang), mfaRequired: true, isNewUser };
     }
 
@@ -585,7 +633,9 @@ const getMe = async (userId, context = {}) => {
 
 const updateMe = async (userId, data, file, context = {}) => {
     const user = await userRepository.findById(userId);
-    if (!user) {throw new Api404Error(t('user_not_found', context.lang));}
+    if (!user) {
+        throw new Api404Error(t('user_not_found', context.lang));
+    }
 
     let avatarUrl = data.avatarUrl;
     if (file) {
@@ -601,7 +651,9 @@ const updateMe = async (userId, data, file, context = {}) => {
     const updated = await userRepository.updateProfile(userId, normalized);
     if (!updated) {
         // user đã xác nhận tồn tại ở trên → null nghĩa là expectedUpdatedAt lệch (conflict)
-        if (normalized.expectedUpdatedAt) { throw new Api409Error(t('optimistic_lock_conflict', context.lang)); }
+        if (normalized.expectedUpdatedAt) {
+            throw new Api409Error(t('optimistic_lock_conflict', context.lang));
+        }
         throw new Api404Error(t('user_not_found', context.lang));
     }
     await _logActivity(userId, 'update_profile', 'success', context);
@@ -609,9 +661,7 @@ const updateMe = async (userId, data, file, context = {}) => {
 };
 
 const _sanitizeUser = (user, lang = 'vi') => {
-    const roleName = lang === 'en'
-        ? (user.role_name_en || user.role_name_vi)
-        : user.role_name_vi;
+    const roleName = lang === 'en' ? user.role_name_en || user.role_name_vi : user.role_name_vi;
 
     return {
         id: user.id,
@@ -696,7 +746,7 @@ const googleMobileLogin = async ({ idToken }, context = {}) => {
     const allowedAudiences = [
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_ANDROID_CLIENT_ID,
-        process.env.GOOGLE_IOS_CLIENT_ID
+        process.env.GOOGLE_IOS_CLIENT_ID,
     ].filter(Boolean);
 
     if (!allowedAudiences.includes(payload.aud)) {

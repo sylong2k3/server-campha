@@ -17,8 +17,7 @@ const REQUIRED_ROLES = new Set(['so_tnmt', 'system_admin']);
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const RECOVERY_CODE_COUNT = 10;
 
-const isRequiredForRole = (role) =>
-    process.env.MFA_ENABLED === 'true' && REQUIRED_ROLES.has(role);
+const isRequiredForRole = (role) => process.env.MFA_ENABLED === 'true' && REQUIRED_ROLES.has(role);
 
 const createChallenge = async (userId, purpose) => {
     const token = generateRandomToken(32);
@@ -59,12 +58,13 @@ const setup = async (challengeToken, context = {}) => {
     };
 };
 
-const buildTokens = (user) => generateTokenPair({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    tokenVersion: user.token_version,
-});
+const buildTokens = (user) =>
+    generateTokenPair({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        tokenVersion: user.token_version,
+    });
 
 const buildSession = (tokens, context) => ({
     tokenHash: hashToken(tokens.refreshToken),
@@ -100,7 +100,9 @@ const confirm = async ({ challengeToken, code }, context = {}) => {
     if (counter === null) {
         throw new Api401Error(t('mfa_code_invalid', context.lang));
     }
-    const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () => generateRandomToken(9).toUpperCase());
+    const recoveryCodes = Array.from({ length: RECOVERY_CODE_COUNT }, () =>
+        generateRandomToken(9).toUpperCase(),
+    );
     const user = await userRepository.findById(challenge.user_id);
     if (!user?.is_active || !isRequiredForRole(user.role)) {
         throw new Api401Error(t('mfa_challenge_invalid', context.lang));
@@ -185,15 +187,18 @@ const sanitizeUser = (user, lang = 'vi') => ({
     avatarUrl: user.avatar_url,
     role: user.role,
     roleName: lang === 'en' ? user.role_name_en : user.role_name_vi,
-    organization: user.org_id ? { id: user.org_id, code: user.org_code, name: user.org_name_vi } : null,
+    organization: user.org_id
+        ? { id: user.org_id, code: user.org_code, name: user.org_name_vi }
+        : null,
     mustChangePassword: user.must_change_password,
 });
 
-const log = (userId, action, context) => activityLogger.logActivity('[MFA]', {
-    userId,
-    action,
-    ipAddress: context.ipAddress,
-    userAgent: context.userAgent,
-});
+const log = (userId, action, context) =>
+    activityLogger.logActivity('[MFA]', {
+        userId,
+        action,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+    });
 
 module.exports = { isRequiredForRole, beginLogin, setup, confirm, verify };

@@ -1,9 +1,9 @@
 const { t } = require('./i18n.util');
 
-let admin = null;            // module firebase-admin (lazy)
-let messaging = null;        // instance messaging
-let initialized = false;     // đã thử init chưa
-let available = false;       // FCM dùng được không
+let admin = null; // module firebase-admin (lazy)
+let messaging = null; // instance messaging
+let initialized = false; // đã thử init chưa
+let available = false; // FCM dùng được không
 let warnedUnavailable = false;
 
 const getLang = () => process.env.APP_LANG || process.env.LANG || 'vi';
@@ -12,9 +12,9 @@ const isExplicitlyDisabled = () => process.env.PUSH_ENABLED === 'false';
 
 const loadServiceAccount = () => {
     if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-        const json = Buffer
-            .from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64')
-            .toString('utf8');
+        const json = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString(
+            'utf8',
+        );
         return JSON.parse(json);
     }
     if (process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -36,7 +36,9 @@ const warnOnce = (message) => {
 };
 
 const init = () => {
-    if (initialized) {return available;}
+    if (initialized) {
+        return available;
+    }
     initialized = true;
 
     if (isExplicitlyDisabled()) {
@@ -86,10 +88,10 @@ const getStatus = () => {
     const credentialSource = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64
         ? 'service_account_base64'
         : process.env.FIREBASE_SERVICE_ACCOUNT
-            ? 'service_account_file'
-            : process.env.GOOGLE_APPLICATION_CREDENTIALS
-                ? 'application_default'
-                : null;
+          ? 'service_account_file'
+          : process.env.GOOGLE_APPLICATION_CREDENTIALS
+            ? 'application_default'
+            : null;
 
     return {
         enabled: !isExplicitlyDisabled(),
@@ -120,27 +122,29 @@ const sendToTokens = async (tokens, { title, body, data = {} }) => {
         batches.push(tokens.slice(i, i + BATCH_SIZE));
     }
 
-    await Promise.all(batches.map(async (batch) => {
-        try {
-            const resp = await messaging.sendEachForMulticast({
-                tokens: batch,
-                notification: { title, body: body || '' },
-                data: stringData,
-            });
+    await Promise.all(
+        batches.map(async (batch) => {
+            try {
+                const resp = await messaging.sendEachForMulticast({
+                    tokens: batch,
+                    notification: { title, body: body || '' },
+                    data: stringData,
+                });
 
-            result.successCount += resp.successCount;
-            result.failureCount += resp.failureCount;
+                result.successCount += resp.successCount;
+                result.failureCount += resp.failureCount;
 
-            resp.responses.forEach((r, idx) => {
-                if (!r.success && _isInvalidTokenError(r.error)) {
-                    result.invalidTokens.push(batch[idx]);
-                }
-            });
-        } catch (err) {
-            console.error('[PUSH] sendToTokens batch failed:', err.message);
-            result.failureCount += batch.length;
-        }
-    }));
+                resp.responses.forEach((r, idx) => {
+                    if (!r.success && _isInvalidTokenError(r.error)) {
+                        result.invalidTokens.push(batch[idx]);
+                    }
+                });
+            } catch (err) {
+                console.error('[PUSH] sendToTokens batch failed:', err.message);
+                result.failureCount += batch.length;
+            }
+        }),
+    );
 
     return result;
 };
@@ -149,7 +153,9 @@ const sendToTokens = async (tokens, { title, body, data = {} }) => {
  * Gửi push tới một topic (dùng cho broadcast: 'all', 'role_citizen'...).
  */
 const sendToTopic = async (topic, { title, body, data = {} }) => {
-    if (!isAvailable() || !topic) {return false;}
+    if (!isAvailable() || !topic) {
+        return false;
+    }
     try {
         await messaging.send({
             topic,
@@ -165,9 +171,13 @@ const sendToTopic = async (topic, { title, body, data = {} }) => {
 
 /** Đăng ký token vào topic (gọi khi register device). Best-effort. */
 const subscribeToTopic = async (tokens, topic) => {
-    if (!isAvailable() || !topic) {return;}
+    if (!isAvailable() || !topic) {
+        return;
+    }
     const list = Array.isArray(tokens) ? tokens : [tokens];
-    if (list.length === 0) {return;}
+    if (list.length === 0) {
+        return;
+    }
     try {
         await messaging.subscribeToTopic(list, topic);
     } catch (err) {
@@ -177,9 +187,13 @@ const subscribeToTopic = async (tokens, topic) => {
 
 /** Hủy đăng ký token khỏi topic (gọi khi gỡ device). Best-effort. */
 const unsubscribeFromTopic = async (tokens, topic) => {
-    if (!isAvailable() || !topic) {return;}
+    if (!isAvailable() || !topic) {
+        return;
+    }
     const list = Array.isArray(tokens) ? tokens : [tokens];
-    if (list.length === 0) {return;}
+    if (list.length === 0) {
+        return;
+    }
     try {
         await messaging.unsubscribeFromTopic(list, topic);
     } catch (err) {
@@ -198,7 +212,9 @@ const _stringifyData = (data) => {
 };
 
 const _isInvalidTokenError = (error) => {
-    if (!error || !error.code) {return false;}
+    if (!error || !error.code) {
+        return false;
+    }
     return (
         error.code === 'messaging/registration-token-not-registered' ||
         error.code === 'messaging/invalid-registration-token' ||

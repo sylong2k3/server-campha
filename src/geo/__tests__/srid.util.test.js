@@ -7,8 +7,9 @@ describe('SRID utility', () => {
     });
     test('passes SRIDs as parameters to PostGIS', async () => {
         const db = { query: jest.fn().mockResolvedValue({ rows: [{ x: '123', y: '456' }] }) };
-        await expect(transformPoint(db, { longitude: 107, latitude: 21, targetSrid: 5899 }))
-            .resolves.toEqual({ x: 123, y: 456, srid: 5899 });
+        await expect(
+            transformPoint(db, { longitude: 107, latitude: 21, targetSrid: 5899 }),
+        ).resolves.toEqual({ x: 123, y: 456, srid: 5899 });
         expect(db.query.mock.calls[0][1]).toEqual([107, 21, 4326, 5899]);
     });
 });

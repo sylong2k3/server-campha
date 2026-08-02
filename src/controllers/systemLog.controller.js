@@ -15,7 +15,10 @@ const listSystemLogs = async (req, res) => {
 };
 
 const cleanupSystemLogs = async (req, res) => {
-    const result = await systemLogService.cleanupSystemLogs(req.body.olderThanDays, buildActor(req));
+    const result = await systemLogService.cleanupSystemLogs(
+        req.body.olderThanDays,
+        buildActor(req),
+    );
     OK(res, result.message, { deleted: result.deleted });
 };
 

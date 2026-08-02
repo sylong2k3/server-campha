@@ -12,8 +12,10 @@ const {
 } = require('../auth.middleware');
 
 const mockPassport = (callbackArgs) => {
-    passport.authenticate.mockImplementation((_strategy, _options, callback) =>
-        (req, res, next) => callback(...callbackArgs, req, res, next));
+    passport.authenticate.mockImplementation(
+        (_strategy, _options, callback) => (req, res, next) =>
+            callback(...callbackArgs, req, res, next),
+    );
 };
 
 describe('authentication middleware', () => {
@@ -53,28 +55,28 @@ describe('authentication middleware', () => {
         expect(next).toHaveBeenCalledWith(error);
     });
 
-    test.each([[false, null], [{ id: 2 }, { id: 2 }]])(
-        'optionalAuth chấp nhận anonymous hoặc user %#',
-        (passportUser, expected) => {
-            mockPassport([null, passportUser]);
-            const req = {};
-            const next = jest.fn();
-            optionalAuth(req, {}, next);
-            expect(req.user).toEqual(expected);
-            expect(next).toHaveBeenCalledWith();
-        }
-    );
+    test.each([
+        [false, null],
+        [{ id: 2 }, { id: 2 }],
+    ])('optionalAuth chấp nhận anonymous hoặc user %#', (passportUser, expected) => {
+        mockPassport([null, passportUser]);
+        const req = {};
+        const next = jest.fn();
+        optionalAuth(req, {}, next);
+        expect(req.user).toEqual(expected);
+        expect(next).toHaveBeenCalledWith();
+    });
 });
 
 describe('authorization middleware', () => {
     test('requireRole yêu cầu đăng nhập', () => {
-        expect(() => requireRole('so_tnmt')({ lang: 'vi' }, {}, jest.fn()))
-            .toThrow(Api401Error);
+        expect(() => requireRole('so_tnmt')({ lang: 'vi' }, {}, jest.fn())).toThrow(Api401Error);
     });
 
     test('requireRole từ chối role ngoài allowlist', () => {
-        expect(() => requireRole('so_tnmt')({ user: { role: 'citizen' }, lang: 'en' }, {}, jest.fn()))
-            .toThrow(Api403Error);
+        expect(() =>
+            requireRole('so_tnmt')({ user: { role: 'citizen' }, lang: 'en' }, {}, jest.fn()),
+        ).toThrow(Api403Error);
     });
 
     test('requireRole cho phép role hợp lệ', () => {
@@ -88,9 +90,16 @@ describe('authorization middleware', () => {
     });
 
     test('enforcePasswordChange chặn mật khẩu tạm', () => {
-        expect(() => enforcePasswordChange({
-            user: { must_change_password: true }, lang: 'vi',
-        }, {}, jest.fn())).toThrow(Api403Error);
+        expect(() =>
+            enforcePasswordChange(
+                {
+                    user: { must_change_password: true },
+                    lang: 'vi',
+                },
+                {},
+                jest.fn(),
+            ),
+        ).toThrow(Api403Error);
     });
 
     test('enforcePasswordChange cho phép mật khẩu bình thường', () => {
@@ -100,8 +109,9 @@ describe('authorization middleware', () => {
     });
 
     test('requirePermission yêu cầu đăng nhập', () => {
-        expect(() => requirePermission('layers', 'delete')({ lang: 'vi' }, {}, jest.fn()))
-            .toThrow(Api401Error);
+        expect(() => requirePermission('layers', 'delete')({ lang: 'vi' }, {}, jest.fn())).toThrow(
+            Api401Error,
+        );
     });
 
     test('không bypass system_admin khi DB không cấp quyền', () => {

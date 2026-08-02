@@ -7,11 +7,15 @@ const { t } = require('../utils/i18n.util');
 
 const canMap = (actor, action) => !actor || actor.permissions?.map?.[action] === true;
 const assertMap = (actor, action) => {
-    if (!canMap(actor, action)) { throw new Api403Error(t('web_map_forbidden', actor?.lang)); }
+    if (!canMap(actor, action)) {
+        throw new Api403Error(t('web_map_forbidden', actor?.lang));
+    }
 };
 const getAccessible = async (id, actor, options) => {
     const layer = await repository.accessibleLayer(id, actor, options);
-    if (!layer) { throw new Api404Error(t('web_map_layer_not_found', actor?.lang)); }
+    if (!layer) {
+        throw new Api404Error(t('web_map_layer_not_found', actor?.lang));
+    }
     return layer;
 };
 
@@ -40,7 +44,9 @@ const getFeature = async (layerId, featureId, includeGeometry, actor) => {
         throw new Api422Error(t('web_map_not_vector', actor?.lang), ['NOT_VECTOR_LAYER']);
     }
     const feature = await repository.featureById(layer, featureId, includeGeometry);
-    if (!feature) { throw new Api404Error(t('web_map_feature_not_found', actor?.lang)); }
+    if (!feature) {
+        throw new Api404Error(t('web_map_feature_not_found', actor?.lang));
+    }
     return { layerId: layer.id, feature };
 };
 const searchFeatures = async ({ q, layerId, bbox, limit }, actor) => {
@@ -51,10 +57,21 @@ const searchFeatures = async ({ q, layerId, bbox, limit }, actor) => {
     const perLayer = Math.max(1, Math.ceil(limit / Math.max(1, layers.length)));
     const results = [];
     for (const layer of layers) {
-        if (!layer.table_name || !repository.searchFields(layer).length) { continue; }
+        if (!layer.table_name || !repository.searchFields(layer).length) {
+            continue;
+        }
         const features = await repository.searchLayer(layer, q, bbox, perLayer);
-        results.push(...features.map((feature) => ({ layerId: layer.id, layerCode: layer.code, layerName: layer.name_vi, ...feature })));
-        if (results.length >= limit) { break; }
+        results.push(
+            ...features.map((feature) => ({
+                layerId: layer.id,
+                layerCode: layer.code,
+                layerName: layer.name_vi,
+                ...feature,
+            })),
+        );
+        if (results.length >= limit) {
+            break;
+        }
     }
     return results.slice(0, limit);
 };
@@ -62,8 +79,12 @@ const getLegend = async (layerId, actor) => {
     assertMap(actor, 'view_legend');
     const layer = await getAccessible(layerId, actor);
     return {
-        layerId: layer.id, code: layer.code, nameVi: layer.name_vi,
-        styleName: layer.style_name, minZoom: layer.min_zoom, maxZoom: layer.max_zoom,
+        layerId: layer.id,
+        code: layer.code,
+        nameVi: layer.name_vi,
+        styleName: layer.style_name,
+        minZoom: layer.min_zoom,
+        maxZoom: layer.max_zoom,
         legend: layer.legend_config,
     };
 };
@@ -79,11 +100,19 @@ const getTerrainUrl = async (layerId, expireSeconds, actor) => {
     assertMap(actor, 'view_3d');
     const layer = await getAccessible(layerId, actor, { terrain: true });
     return minioService.getPresignedDownloadUrl({
-        objectKey: layer.object_key, category: 'raster', expireSeconds,
+        objectKey: layer.object_key,
+        category: 'raster',
+        expireSeconds,
     });
 };
 
 module.exports = {
-    listLayers, getFeature, searchFeatures, getLegend, listBasemaps, listTerrain, getTerrainUrl,
+    listLayers,
+    getFeature,
+    searchFeatures,
+    getLegend,
+    listBasemaps,
+    listTerrain,
+    getTerrainUrl,
     serializeLayer,
 };

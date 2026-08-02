@@ -8,12 +8,7 @@ const tokenRepository = require('../../repositories/token.repository');
 const cryptoHelper = require('../../utils/cryptoHelper.util');
 const activityLogger = require('../../utils/activityLogger.util');
 const userService = require('../user.service');
-const {
-    Api400Error,
-    Api403Error,
-    Api404Error,
-    Api409Error,
-} = require('../../core/error.response');
+const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
 const { PG_UNIQUE_VIOLATION } = require('../../core/pg-error-codes');
 
 const actor = {
@@ -53,8 +48,9 @@ describe('user service organization scope', () => {
     });
 
     test('từ chối actor không có tổ chức', async () => {
-        await expect(userService.listUsers({}, { ...actor, orgId: null }))
-            .rejects.toBeInstanceOf(Api403Error);
+        await expect(userService.listUsers({}, { ...actor, orgId: null })).rejects.toBeInstanceOf(
+            Api403Error,
+        );
         expect(userRepository.findAll).not.toHaveBeenCalled();
     });
 
@@ -80,47 +76,82 @@ describe('user creation', () => {
     });
 
     test('system_admin không được tạo role đặc quyền khi DB không cấp change_role', async () => {
-        await expect(userService.createUser({
-            email: 'admin2@campha.gov.vn', password: 'SafePass123', fullName: 'Admin 2',
-            roleCode: 'system_admin',
-        }, { ...actor, role: 'system_admin', permissions: { users: { create: true } } }))
-            .rejects.toBeInstanceOf(Api403Error);
+        await expect(
+            userService.createUser(
+                {
+                    email: 'admin2@campha.gov.vn',
+                    password: 'SafePass123',
+                    fullName: 'Admin 2',
+                    roleCode: 'system_admin',
+                },
+                { ...actor, role: 'system_admin', permissions: { users: { create: true } } },
+            ),
+        ).rejects.toBeInstanceOf(Api403Error);
         expect(userRepository.create).not.toHaveBeenCalled();
     });
 
     test('citizen không cần change_role nhưng actor phải có tổ chức', async () => {
-        await expect(userService.createUser({
-            email: 'new@example.com', password: 'SafePass123', fullName: 'New',
-        }, { ...actor, orgId: null, permissions: {} })).rejects.toBeInstanceOf(Api403Error);
+        await expect(
+            userService.createUser(
+                {
+                    email: 'new@example.com',
+                    password: 'SafePass123',
+                    fullName: 'New',
+                },
+                { ...actor, orgId: null, permissions: {} },
+            ),
+        ).rejects.toBeInstanceOf(Api403Error);
     });
 
     test('từ chối email đã tồn tại hoặc role không tồn tại', async () => {
         userRepository.findRoleByCode.mockResolvedValueOnce({ code: 'citizen' });
         userRepository.findByEmail.mockResolvedValueOnce(citizen);
-        await expect(userService.createUser({
-            email: citizen.email, password: 'SafePass123', fullName: 'Duplicate',
-        }, actor)).rejects.toBeInstanceOf(Api409Error);
+        await expect(
+            userService.createUser(
+                {
+                    email: citizen.email,
+                    password: 'SafePass123',
+                    fullName: 'Duplicate',
+                },
+                actor,
+            ),
+        ).rejects.toBeInstanceOf(Api409Error);
 
         userRepository.findRoleByCode.mockResolvedValueOnce(null);
-        await expect(userService.createUser({
-            email: 'new@example.com', password: 'SafePass123', fullName: 'New',
-        }, actor)).rejects.toBeInstanceOf(Api400Error);
+        await expect(
+            userService.createUser(
+                {
+                    email: 'new@example.com',
+                    password: 'SafePass123',
+                    fullName: 'New',
+                },
+                actor,
+            ),
+        ).rejects.toBeInstanceOf(Api400Error);
     });
 
     test('tạo user trong org actor, normalize phone rỗng và audit', async () => {
         userRepository.findByEmail.mockResolvedValue(null);
         userRepository.findRoleByCode.mockResolvedValue({ code: 'citizen' });
         userRepository.create.mockResolvedValue({ ...citizen, id: 21, password_hash: 'hash' });
-        const result = await userService.createUser({
-            email: 'new@example.com', password: 'SafePass123', fullName: 'New', phone: '',
-        }, actor);
-        expect(userRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-            orgId: 42,
-            phone: null,
-            passwordHash: 'hash',
-            roleCode: 'citizen',
-            emailVerified: true,
-        }));
+        const result = await userService.createUser(
+            {
+                email: 'new@example.com',
+                password: 'SafePass123',
+                fullName: 'New',
+                phone: '',
+            },
+            actor,
+        );
+        expect(userRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                orgId: 42,
+                phone: null,
+                passwordHash: 'hash',
+                roleCode: 'citizen',
+                emailVerified: true,
+            }),
+        );
         expect(activityLogger.logActivity).toHaveBeenCalled();
         expect(result).not.toHaveProperty('password_hash');
     });
@@ -129,15 +160,29 @@ describe('user creation', () => {
         userRepository.findByEmail.mockResolvedValue(null);
         userRepository.findRoleByCode.mockResolvedValue({ code: 'citizen' });
         userRepository.create.mockRejectedValueOnce({ code: PG_UNIQUE_VIOLATION });
-        await expect(userService.createUser({
-            email: 'race@example.com', password: 'SafePass123', fullName: 'Race',
-        }, actor)).rejects.toBeInstanceOf(Api409Error);
+        await expect(
+            userService.createUser(
+                {
+                    email: 'race@example.com',
+                    password: 'SafePass123',
+                    fullName: 'Race',
+                },
+                actor,
+            ),
+        ).rejects.toBeInstanceOf(Api409Error);
 
         const dbError = new Error('db down');
         userRepository.create.mockRejectedValueOnce(dbError);
-        await expect(userService.createUser({
-            email: 'error@example.com', password: 'SafePass123', fullName: 'Error',
-        }, actor)).rejects.toBe(dbError);
+        await expect(
+            userService.createUser(
+                {
+                    email: 'error@example.com',
+                    password: 'SafePass123',
+                    fullName: 'Error',
+                },
+                actor,
+            ),
+        ).rejects.toBe(dbError);
     });
 });
 
@@ -158,19 +203,22 @@ describe('user administration mutations', () => {
     });
 
     test('không đổi role chính mình; role đích phải tồn tại', async () => {
-        await expect(userService.changeUserRole(actor.id, 'so_xd', actor))
-            .rejects.toBeInstanceOf(Api400Error);
+        await expect(userService.changeUserRole(actor.id, 'so_xd', actor)).rejects.toBeInstanceOf(
+            Api400Error,
+        );
         userRepository.findById.mockResolvedValue(citizen);
         userRepository.findRoleByCode.mockResolvedValue(null);
-        await expect(userService.changeUserRole(20, 'so_xd', actor))
-            .rejects.toBeInstanceOf(Api400Error);
+        await expect(userService.changeUserRole(20, 'so_xd', actor)).rejects.toBeInstanceOf(
+            Api400Error,
+        );
     });
 
     test('bảo vệ system_admin cuối cùng khi hạ role', async () => {
         userRepository.findById.mockResolvedValue({ ...citizen, role: 'system_admin' });
         userRepository.countActiveUsersByRole.mockResolvedValue(1);
-        await expect(userService.changeUserRole(20, 'so_xd', actor))
-            .rejects.toBeInstanceOf(Api400Error);
+        await expect(userService.changeUserRole(20, 'so_xd', actor)).rejects.toBeInstanceOf(
+            Api400Error,
+        );
     });
 
     test('đổi role hợp lệ và audit', async () => {
@@ -183,12 +231,14 @@ describe('user administration mutations', () => {
     });
 
     test('không khóa chính mình và bảo vệ admin cuối', async () => {
-        await expect(userService.setUserActive(actor.id, false, actor))
-            .rejects.toBeInstanceOf(Api400Error);
+        await expect(userService.setUserActive(actor.id, false, actor)).rejects.toBeInstanceOf(
+            Api400Error,
+        );
         userRepository.findById.mockResolvedValue({ ...citizen, role: 'system_admin' });
         userRepository.countActiveUsersByRole.mockResolvedValue(1);
-        await expect(userService.setUserActive(20, false, actor))
-            .rejects.toBeInstanceOf(Api400Error);
+        await expect(userService.setUserActive(20, false, actor)).rejects.toBeInstanceOf(
+            Api400Error,
+        );
     });
 
     test('khóa user thu hồi token; mở khóa không thu hồi', async () => {

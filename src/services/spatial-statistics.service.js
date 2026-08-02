@@ -1,18 +1,159 @@
 'use strict';
-const db=require('../configs/database');
-const repository=require('../repositories/spatial-statistics.repository');
-const systemLogger=require('../utils/systemLogger.util');
-const {Api403Error,Api404Error,Api409Error,Api422Error}=require('../core/error.response');
-const {t}=require('../utils/i18n.util');
-const has=(actor,domain,action)=>actor?.permissions?.[domain]?.[action]===true;
-const requirePermission=(actor,domain,action)=>{if(!has(actor,domain,action)){throw new Api403Error(t('statistics_forbidden',actor?.lang));}};
-const audit=(action,actor,metadata)=>systemLogger.logInfo('spatial_statistics',action,{actorId:actor.id,role:actor.role,orgId:actor.orgId,...metadata});
-const mapError=(error,lang)=>{if(error.code==='23505'){throw new Api409Error(t('statistics_source_conflict',lang),['STATISTICS_SOURCE_CONFLICT']);}if(error.code==='ANALYTICS_REFRESH_BUSY'){throw new Api409Error(t('statistics_refresh_busy',lang),['STATISTICS_REFRESH_BUSY']);}if(['ANALYTICS_COLUMN_INVALID','ANALYTICS_GEOMETRY_INVALID'].includes(error.code)){throw new Api422Error(t('statistics_source_invalid',lang),[error.code]);}throw error;};
-const listSources=(filter,actor)=>{requirePermission(actor,'stats','view');return repository.list(filter,actor.role);};
-const listAreas=(filter,actor)=>{requirePermission(actor,'stats','view');return repository.areas(filter,actor.role);};
-const timeSeries=async(filter,actor)=>{const rows=await listAreas(filter,actor),groups=new Map();for(const row of rows){const key=`${row.observed_year||row.observed_at}|${row.administrative_code}|${row.label}`;const current=groups.get(key)||{year:row.observed_year,observedAt:row.observed_at,administrativeCode:row.administrative_code,administrativeName:row.administrative_name,label:row.label,areaM2:0,areaHa:0,featureCount:0};current.areaM2+=Number(row.area_m2);current.areaHa+=Number(row.area_ha);current.featureCount+=Number(row.feature_count);groups.set(key,current);}return [...groups.values()];};
-const createSource=async(input,actor)=>{requirePermission(actor,'spatial','analyze');try{const row=await repository.create(input,actor);if(!row){throw new Api422Error(t('statistics_source_invalid',actor.lang),['LAYER_NOT_ANALYZABLE_OR_FORBIDDEN']);}audit('statistics_source_created',actor,{sourceId:row.id,layerId:input.layerId});return row;}catch(error){return mapError(error,actor.lang);}};
-const updateSource=async(id,input,actor)=>{requirePermission(actor,'spatial','analyze');try{const row=await repository.update(id,input,actor);if(!row){if(!await repository.find(id,db,actor.role)){throw new Api404Error(t('statistics_source_not_found',actor.lang));}throw new Api409Error(t('statistics_source_conflict',actor.lang),['OPTIMISTIC_LOCK_CONFLICT']);}audit('statistics_source_updated',actor,{sourceId:id});return row;}catch(error){return mapError(error,actor.lang);}};
-const refresh=async(id,input,actor)=>{requirePermission(actor,'spatial','analyze');const source=await repository.find(id,db,actor.role);if(!source){throw new Api404Error(t('statistics_source_not_found',actor.lang));}if(input.boundarySourceId&&!await repository.find(input.boundarySourceId,db,actor.role)){throw new Api404Error(t('statistics_boundary_not_found',actor.lang));}try{const row=await repository.refresh(id,input.boundarySourceId||null);if(!row){throw new Api422Error(t('statistics_source_invalid',actor.lang));}audit('statistics_source_refreshed',actor,{sourceId:id,boundarySourceId:input.boundarySourceId||null});return row;}catch(error){return mapError(error,actor.lang);}};
-const compare=async(input,actor)=>{requirePermission(actor,'spatial','analyze');const [before,after]=await Promise.all([repository.find(input.beforeSourceId,db,actor.role),repository.find(input.afterSourceId,db,actor.role)]);if(!before||!after){throw new Api404Error(t('statistics_source_not_found',actor.lang));}if(before.source_type!==after.source_type||before.source_type==='administrative_boundary'){throw new Api422Error(t('statistics_compare_invalid',actor.lang),['STATISTICS_TYPE_MISMATCH']);}const tableA=repository.quote(before.table_name),tableB=repository.quote(after.table_name),geomA=repository.quote(before.geometry_column),geomB=repository.quote(after.geometry_column);const {rows:[summary]}=await db.query(`WITH a AS (SELECT ST_UnaryUnion(ST_Collect(${geomA})) g FROM gis.${tableA}),b AS (SELECT ST_UnaryUnion(ST_Collect(${geomB})) g FROM gis.${tableB}),parts AS (SELECT ST_Difference(b.g,a.g) added,ST_Difference(a.g,b.g) removed,ST_Intersection(a.g,b.g) unchanged FROM a,b) SELECT ROUND(ST_Area(ST_Transform(added,5899))::numeric,2) added_m2,ROUND(ST_Area(ST_Transform(removed,5899))::numeric,2) removed_m2,ROUND(ST_Area(ST_Transform(unchanged,5899))::numeric,2) unchanged_m2,ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(added,1),4326),6)::jsonb added,ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(removed,1),4326),6)::jsonb removed FROM parts`);return summary;};
-module.exports={listSources,listAreas,timeSeries,createSource,updateSource,refresh,compare};
+const db = require('../configs/database');
+const repository = require('../repositories/spatial-statistics.repository');
+const systemLogger = require('../utils/systemLogger.util');
+const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
+const { t } = require('../utils/i18n.util');
+const has = (actor, domain, action) => actor?.permissions?.[domain]?.[action] === true;
+const requirePermission = (actor, domain, action) => {
+    if (!has(actor, domain, action)) {
+        throw new Api403Error(t('statistics_forbidden', actor?.lang));
+    }
+};
+const audit = (action, actor, metadata) =>
+    systemLogger.logInfo('spatial_statistics', action, {
+        actorId: actor.id,
+        role: actor.role,
+        orgId: actor.orgId,
+        ...metadata,
+    });
+const mapError = (error, lang) => {
+    if (error.code === '23505') {
+        throw new Api409Error(t('statistics_source_conflict', lang), [
+            'STATISTICS_SOURCE_CONFLICT',
+        ]);
+    }
+    if (error.code === 'ANALYTICS_REFRESH_BUSY') {
+        throw new Api409Error(t('statistics_refresh_busy', lang), ['STATISTICS_REFRESH_BUSY']);
+    }
+    if (['ANALYTICS_COLUMN_INVALID', 'ANALYTICS_GEOMETRY_INVALID'].includes(error.code)) {
+        throw new Api422Error(t('statistics_source_invalid', lang), [error.code]);
+    }
+    throw error;
+};
+const listSources = (filter, actor) => {
+    requirePermission(actor, 'stats', 'view');
+    return repository.list(filter, actor.role);
+};
+const listAreas = (filter, actor) => {
+    requirePermission(actor, 'stats', 'view');
+    return repository.areas(filter, actor.role);
+};
+const timeSeries = async (filter, actor) => {
+    const rows = await listAreas(filter, actor),
+        groups = new Map();
+    for (const row of rows) {
+        const key = `${row.observed_year || row.observed_at}|${row.administrative_code}|${row.label}`;
+        const current = groups.get(key) || {
+            year: row.observed_year,
+            observedAt: row.observed_at,
+            administrativeCode: row.administrative_code,
+            administrativeName: row.administrative_name,
+            label: row.label,
+            areaM2: 0,
+            areaHa: 0,
+            featureCount: 0,
+        };
+        current.areaM2 += Number(row.area_m2);
+        current.areaHa += Number(row.area_ha);
+        current.featureCount += Number(row.feature_count);
+        groups.set(key, current);
+    }
+    return [...groups.values()];
+};
+const createSource = async (input, actor) => {
+    requirePermission(actor, 'spatial', 'analyze');
+    try {
+        const row = await repository.create(input, actor);
+        if (!row) {
+            throw new Api422Error(t('statistics_source_invalid', actor.lang), [
+                'LAYER_NOT_ANALYZABLE_OR_FORBIDDEN',
+            ]);
+        }
+        audit('statistics_source_created', actor, { sourceId: row.id, layerId: input.layerId });
+        return row;
+    } catch (error) {
+        return mapError(error, actor.lang);
+    }
+};
+const updateSource = async (id, input, actor) => {
+    requirePermission(actor, 'spatial', 'analyze');
+    try {
+        const row = await repository.update(id, input, actor);
+        if (!row) {
+            if (!(await repository.find(id, db, actor.role))) {
+                throw new Api404Error(t('statistics_source_not_found', actor.lang));
+            }
+            throw new Api409Error(t('statistics_source_conflict', actor.lang), [
+                'OPTIMISTIC_LOCK_CONFLICT',
+            ]);
+        }
+        audit('statistics_source_updated', actor, { sourceId: id });
+        return row;
+    } catch (error) {
+        return mapError(error, actor.lang);
+    }
+};
+const refresh = async (id, input, actor) => {
+    requirePermission(actor, 'spatial', 'analyze');
+    const source = await repository.find(id, db, actor.role);
+    if (!source) {
+        throw new Api404Error(t('statistics_source_not_found', actor.lang));
+    }
+    if (
+        input.boundarySourceId &&
+        !(await repository.find(input.boundarySourceId, db, actor.role))
+    ) {
+        throw new Api404Error(t('statistics_boundary_not_found', actor.lang));
+    }
+    try {
+        const row = await repository.refresh(id, input.boundarySourceId || null);
+        if (!row) {
+            throw new Api422Error(t('statistics_source_invalid', actor.lang));
+        }
+        audit('statistics_source_refreshed', actor, {
+            sourceId: id,
+            boundarySourceId: input.boundarySourceId || null,
+        });
+        return row;
+    } catch (error) {
+        return mapError(error, actor.lang);
+    }
+};
+const compare = async (input, actor) => {
+    requirePermission(actor, 'spatial', 'analyze');
+    const [before, after] = await Promise.all([
+        repository.find(input.beforeSourceId, db, actor.role),
+        repository.find(input.afterSourceId, db, actor.role),
+    ]);
+    if (!before || !after) {
+        throw new Api404Error(t('statistics_source_not_found', actor.lang));
+    }
+    if (
+        before.source_type !== after.source_type ||
+        before.source_type === 'administrative_boundary'
+    ) {
+        throw new Api422Error(t('statistics_compare_invalid', actor.lang), [
+            'STATISTICS_TYPE_MISMATCH',
+        ]);
+    }
+    const tableA = repository.quote(before.table_name),
+        tableB = repository.quote(after.table_name),
+        geomA = repository.quote(before.geometry_column),
+        geomB = repository.quote(after.geometry_column);
+    const {
+        rows: [summary],
+    } = await db.query(
+        `WITH a AS (SELECT ST_UnaryUnion(ST_Collect(${geomA})) g FROM gis.${tableA}),b AS (SELECT ST_UnaryUnion(ST_Collect(${geomB})) g FROM gis.${tableB}),parts AS (SELECT ST_Difference(b.g,a.g) added,ST_Difference(a.g,b.g) removed,ST_Intersection(a.g,b.g) unchanged FROM a,b) SELECT ROUND(ST_Area(ST_Transform(added,5899))::numeric,2) added_m2,ROUND(ST_Area(ST_Transform(removed,5899))::numeric,2) removed_m2,ROUND(ST_Area(ST_Transform(unchanged,5899))::numeric,2) unchanged_m2,ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(added,1),4326),6)::jsonb added,ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(removed,1),4326),6)::jsonb removed FROM parts`,
+    );
+    return summary;
+};
+module.exports = {
+    listSources,
+    listAreas,
+    timeSeries,
+    createSource,
+    updateSource,
+    refresh,
+    compare,
+};

@@ -32,39 +32,40 @@ const fetchJson = async (url, opts) => {
 
 // ── OpenWeather: current weather tại điểm ───────────────────────────────────
 const getCurrentWeather = async (lng, lat) => {
-    const url = `${cfg.OPENWEATHER_BASE_URL}/weather`
-        + `?lat=${lat}&lon=${lng}`
-        + `&appid=${cfg.OPENWEATHER_API_KEY}`
-        + `&units=${cfg.UNITS}&lang=${cfg.LANG}`;
+    const url =
+        `${cfg.OPENWEATHER_BASE_URL}/weather` +
+        `?lat=${lat}&lon=${lng}` +
+        `&appid=${cfg.OPENWEATHER_API_KEY}` +
+        `&units=${cfg.UNITS}&lang=${cfg.LANG}`;
 
     const data = await fetchJson(url);
 
     return {
         observedAt: data.dt ? new Date(data.dt * 1000).toISOString() : null,
-        coord:      { lng: data.coord?.lon ?? lng, lat: data.coord?.lat ?? lat },
-        location:   data.name || null,
-        temp:       data.main?.temp ?? null,
-        feelsLike:  data.main?.feels_like ?? null,
-        tempMin:    data.main?.temp_min ?? null,
-        tempMax:    data.main?.temp_max ?? null,
-        humidity:   data.main?.humidity ?? null,
-        pressure:   data.main?.pressure ?? null,
-        clouds:     data.clouds?.all ?? null,
-        rain1h:     data.rain?.['1h'] ?? 0,
-        snow1h:     data.snow?.['1h'] ?? 0,
+        coord: { lng: data.coord?.lon ?? lng, lat: data.coord?.lat ?? lat },
+        location: data.name || null,
+        temp: data.main?.temp ?? null,
+        feelsLike: data.main?.feels_like ?? null,
+        tempMin: data.main?.temp_min ?? null,
+        tempMax: data.main?.temp_max ?? null,
+        humidity: data.main?.humidity ?? null,
+        pressure: data.main?.pressure ?? null,
+        clouds: data.clouds?.all ?? null,
+        rain1h: data.rain?.['1h'] ?? 0,
+        snow1h: data.snow?.['1h'] ?? 0,
         visibility: data.visibility ?? null,
         wind: {
             speed: data.wind?.speed ?? null,
-            deg:   data.wind?.deg ?? null,
-            gust:  data.wind?.gust ?? null,
+            deg: data.wind?.deg ?? null,
+            gust: data.wind?.gust ?? null,
         },
         weather: data.weather?.[0]
             ? {
-                id:          data.weather[0].id,
-                main:        data.weather[0].main,
-                description: data.weather[0].description,
-                icon:        data.weather[0].icon,
-            }
+                  id: data.weather[0].id,
+                  main: data.weather[0].main,
+                  description: data.weather[0].description,
+                  icon: data.weather[0].icon,
+              }
             : null,
         units: cfg.UNITS,
     };
@@ -82,7 +83,7 @@ const fetchTile = async (layer, z, x, y) => {
     }
     const arrayBuffer = await res.arrayBuffer();
     return {
-        buffer:      Buffer.from(arrayBuffer),
+        buffer: Buffer.from(arrayBuffer),
         contentType: res.headers.get('content-type') || 'image/png',
     };
 };
@@ -116,10 +117,11 @@ const getWindGrid = async (bbox, size = cfg.WIND_GRID_SIZE) => {
         }
     }
 
-    const url = `${cfg.OPEN_METEO_URL}`
-        + `?latitude=${lats.join(',')}&longitude=${lngs.join(',')}`
-        + `&current=wind_speed_10m,wind_direction_10m`
-        + `&wind_speed_unit=ms`;
+    const url =
+        `${cfg.OPEN_METEO_URL}` +
+        `?latitude=${lats.join(',')}&longitude=${lngs.join(',')}` +
+        `&current=wind_speed_10m,wind_direction_10m` +
+        `&wind_speed_unit=ms`;
 
     const data = await fetchJson(url);
     // Open-Meteo trả mảng khi nhiều toạ độ, object đơn khi 1 toạ độ.
@@ -127,22 +129,22 @@ const getWindGrid = async (bbox, size = cfg.WIND_GRID_SIZE) => {
 
     const points = entries.map((entry) => {
         const speed = entry.current?.wind_speed_10m ?? 0;
-        const deg   = entry.current?.wind_direction_10m ?? 0;
-        const rad   = (deg * Math.PI) / 180;
+        const deg = entry.current?.wind_direction_10m ?? 0;
+        const rad = (deg * Math.PI) / 180;
         return {
-            lat:   entry.latitude,
-            lng:   entry.longitude,
+            lat: entry.latitude,
+            lng: entry.longitude,
             speed,
             deg,
-            u:     Number((-speed * Math.sin(rad)).toFixed(3)),
-            v:     Number((-speed * Math.cos(rad)).toFixed(3)),
+            u: Number((-speed * Math.sin(rad)).toFixed(3)),
+            v: Number((-speed * Math.cos(rad)).toFixed(3)),
         };
     });
 
     return {
-        gridSize:   n,
+        gridSize: n,
         bbox,
-        unit:       'm/s',
+        unit: 'm/s',
         observedAt: entries[0]?.current?.time || null,
         points,
     };

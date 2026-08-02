@@ -11,6 +11,8 @@ const remoteSensingRoutes = require('./remote-sensing.routes');
 const spatialStatisticsRoutes = require('./spatial-statistics.routes');
 const fieldReportRoutes = require('./field-report.routes');
 const mobileGisRoutes = require('./mobile-gis.routes');
+const apiRegistryRoutes = require('./api-registry.routes');
+const sharedLayerRoutes = require('./shared-layer.routes');
 
 const router = Router();
 
@@ -31,5 +33,7 @@ router.use('/field-reports', fieldReportRoutes.publicRouter);
 router.use('/admin/field-reports', fieldReportRoutes.adminRouter);
 router.use('/devices', fieldReportRoutes.deviceRouter);
 router.use('/mobile', mobileGisRoutes);
+router.use('/admin/api-registry', apiRegistryRoutes);
+router.use('/shared', sharedLayerRoutes);
 
 module.exports = router;

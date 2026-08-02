@@ -44,21 +44,23 @@ const sendMail = async ({ to, subject, html, text }) => {
 const sendPasswordResetEmail = async ({ to, fullName, resetUrl, expiresMinutes, lang = 'vi' }) => {
     const name = fullName || (lang === 'en' ? 'there' : 'bạn');
 
-    const subject = lang === 'en'
-        ? `[${APP_NAME}] Reset your password`
-        : `[${APP_NAME}] Đặt lại mật khẩu`;
+    const subject =
+        lang === 'en' ? `[${APP_NAME}] Reset your password` : `[${APP_NAME}] Đặt lại mật khẩu`;
 
-    const text = lang === 'en'
-        ? `Hi ${name},\n\nYou requested to reset your password. Open the link below (valid for ${expiresMinutes} minutes):\n${resetUrl}\n\nIf you did not request this, please ignore this email.`
-        : `Xin chào ${name},\n\nBạn vừa yêu cầu đặt lại mật khẩu. Mở liên kết dưới đây (hiệu lực ${expiresMinutes} phút):\n${resetUrl}\n\nNếu bạn không yêu cầu, vui lòng bỏ qua email này.`;
+    const text =
+        lang === 'en'
+            ? `Hi ${name},\n\nYou requested to reset your password. Open the link below (valid for ${expiresMinutes} minutes):\n${resetUrl}\n\nIf you did not request this, please ignore this email.`
+            : `Xin chào ${name},\n\nBạn vừa yêu cầu đặt lại mật khẩu. Mở liên kết dưới đây (hiệu lực ${expiresMinutes} phút):\n${resetUrl}\n\nNếu bạn không yêu cầu, vui lòng bỏ qua email này.`;
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto;">
             <h2 style="color:#1a73e8;">${lang === 'en' ? 'Reset your password' : 'Đặt lại mật khẩu'}</h2>
             <p>${lang === 'en' ? `Hi ${name},` : `Xin chào ${name},`}</p>
-            <p>${lang === 'en'
-                ? 'You requested to reset your password. Click the button below to continue:'
-                : 'Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tiếp tục:'}</p>
+            <p>${
+                lang === 'en'
+                    ? 'You requested to reset your password. Click the button below to continue:'
+                    : 'Bạn vừa yêu cầu đặt lại mật khẩu. Nhấn nút bên dưới để tiếp tục:'
+            }</p>
             <p style="text-align:center; margin:28px 0;">
                 <a href="${resetUrl}"
                    style="background:#1a73e8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">
@@ -66,9 +68,11 @@ const sendPasswordResetEmail = async ({ to, fullName, resetUrl, expiresMinutes, 
                 </a>
             </p>
             <p style="color:#666;font-size:13px;">
-                ${lang === 'en'
-                    ? `This link is valid for ${expiresMinutes} minutes. If you did not request this, please ignore this email.`
-                    : `Liên kết có hiệu lực trong ${expiresMinutes} phút. Nếu bạn không yêu cầu, vui lòng bỏ qua email này.`}
+                ${
+                    lang === 'en'
+                        ? `This link is valid for ${expiresMinutes} minutes. If you did not request this, please ignore this email.`
+                        : `Liên kết có hiệu lực trong ${expiresMinutes} phút. Nếu bạn không yêu cầu, vui lòng bỏ qua email này.`
+                }
             </p>
             <p style="color:#999;font-size:12px;word-break:break-all;">${resetUrl}</p>
         </div>
@@ -80,21 +84,23 @@ const sendPasswordResetEmail = async ({ to, fullName, resetUrl, expiresMinutes, 
 const sendVerificationEmail = async ({ to, fullName, verifyUrl, expiresMinutes, lang = 'vi' }) => {
     const name = fullName || (lang === 'en' ? 'there' : 'bạn');
 
-    const subject = lang === 'en'
-        ? `[${APP_NAME}] Verify your email`
-        : `[${APP_NAME}] Xác minh email của bạn`;
+    const subject =
+        lang === 'en' ? `[${APP_NAME}] Verify your email` : `[${APP_NAME}] Xác minh email của bạn`;
 
-    const text = lang === 'en'
-        ? `Hi ${name},\n\nThanks for registering. Please verify your email by opening the link below (valid for ${expiresMinutes} minutes):\n${verifyUrl}\n\nIf you did not create this account, please ignore this email.`
-        : `Xin chào ${name},\n\nCảm ơn bạn đã đăng ký. Vui lòng xác minh email bằng cách mở liên kết dưới đây (hiệu lực ${expiresMinutes} phút):\n${verifyUrl}\n\nNếu bạn không tạo tài khoản này, vui lòng bỏ qua email.`;
+    const text =
+        lang === 'en'
+            ? `Hi ${name},\n\nThanks for registering. Please verify your email by opening the link below (valid for ${expiresMinutes} minutes):\n${verifyUrl}\n\nIf you did not create this account, please ignore this email.`
+            : `Xin chào ${name},\n\nCảm ơn bạn đã đăng ký. Vui lòng xác minh email bằng cách mở liên kết dưới đây (hiệu lực ${expiresMinutes} phút):\n${verifyUrl}\n\nNếu bạn không tạo tài khoản này, vui lòng bỏ qua email.`;
 
     const html = `
         <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto;">
             <h2 style="color:#1a73e8;">${lang === 'en' ? 'Verify your email' : 'Xác minh email'}</h2>
             <p>${lang === 'en' ? `Hi ${name},` : `Xin chào ${name},`}</p>
-            <p>${lang === 'en'
-                ? 'Thanks for registering. Please confirm your email address to activate your account:'
-                : 'Cảm ơn bạn đã đăng ký. Vui lòng xác nhận địa chỉ email để kích hoạt tài khoản:'}</p>
+            <p>${
+                lang === 'en'
+                    ? 'Thanks for registering. Please confirm your email address to activate your account:'
+                    : 'Cảm ơn bạn đã đăng ký. Vui lòng xác nhận địa chỉ email để kích hoạt tài khoản:'
+            }</p>
             <p style="text-align:center; margin:28px 0;">
                 <a href="${verifyUrl}"
                    style="background:#1a73e8;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;display:inline-block;">
@@ -102,9 +108,11 @@ const sendVerificationEmail = async ({ to, fullName, verifyUrl, expiresMinutes, 
                 </a>
             </p>
             <p style="color:#666;font-size:13px;">
-                ${lang === 'en'
-                    ? `This link is valid for ${expiresMinutes} minutes. If you did not create this account, please ignore this email.`
-                    : `Liên kết có hiệu lực trong ${expiresMinutes} phút. Nếu bạn không tạo tài khoản này, vui lòng bỏ qua email.`}
+                ${
+                    lang === 'en'
+                        ? `This link is valid for ${expiresMinutes} minutes. If you did not create this account, please ignore this email.`
+                        : `Liên kết có hiệu lực trong ${expiresMinutes} phút. Nếu bạn không tạo tài khoản này, vui lòng bỏ qua email.`
+                }
             </p>
             <p style="color:#999;font-size:12px;word-break:break-all;">${verifyUrl}</p>
         </div>
