@@ -51,7 +51,7 @@ describe('authentication middleware', () => {
         const error = new Error('passport failed');
         mockPassport([error]);
         const next = jest.fn();
-        optionalAuth({}, {}, next);
+        optionalAuth({ headers: { authorization: 'Bearer token' } }, {}, next);
         expect(next).toHaveBeenCalledWith(error);
     });
 
@@ -60,10 +60,19 @@ describe('authentication middleware', () => {
         [{ id: 2 }, { id: 2 }],
     ])('optionalAuth chấp nhận anonymous hoặc user %#', (passportUser, expected) => {
         mockPassport([null, passportUser]);
-        const req = {};
+        const req = { headers: { authorization: 'Bearer token' } };
         const next = jest.fn();
         optionalAuth(req, {}, next);
         expect(req.user).toEqual(expected);
+        expect(next).toHaveBeenCalledWith();
+    });
+
+    test('optionalAuth bỏ qua Passport cho anonymous không có Authorization', () => {
+        const req = { headers: {} };
+        const next = jest.fn();
+        optionalAuth(req, {}, next);
+        expect(req.user).toBeNull();
+        expect(passport.authenticate).not.toHaveBeenCalled();
         expect(next).toHaveBeenCalledWith();
     });
 });

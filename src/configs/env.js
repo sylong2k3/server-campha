@@ -27,6 +27,7 @@ const ENV_SCHEMA_KEYS = {
         .pattern(/^\d+(?:b|kb|mb|gb)$/i)
         .default('2mb'),
     RATE_LIMIT_MAX: positiveInteger.default(1000),
+    HTTP_ACCESS_LOG_ENABLED: boolean.default('true'),
     SERVER_REQUEST_TIMEOUT_MS: positiveInteger.min(1000).max(600000).default(30000),
     SERVER_HEADERS_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(15000),
     SERVER_KEEP_ALIVE_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(5000),

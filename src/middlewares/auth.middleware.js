@@ -44,12 +44,17 @@ const enforcePasswordChange = (req, res, next) => {
 };
 
 const optionalAuth = (req, res, next) => {
-    passport.authenticate('jwt', { session: false }, (err, user) => {
+    const authorization = req.get?.('authorization') || req.headers?.authorization;
+    if (!authorization) {
+        req.user = null;
+        return next();
+    }
+    return passport.authenticate('jwt', { session: false }, (err, user) => {
         if (err) {
             return next(err);
         }
         req.user = user || null;
-        next();
+        return next();
     })(req, res, next);
 };
 

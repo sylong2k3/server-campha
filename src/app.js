@@ -156,10 +156,8 @@ app.use(
     }),
 );
 
-if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-} else {
-    app.use(morgan('combined'));
+if (process.env.HTTP_ACCESS_LOG_ENABLED !== 'false') {
+    app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 }
 
 const limiter = rateLimit({

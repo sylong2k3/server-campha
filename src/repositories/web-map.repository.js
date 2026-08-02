@@ -126,14 +126,34 @@ const searchLayer = async (layer, term, bbox, limit) => {
     return rows;
 };
 
+const BASEMAP_CACHE_TTL_MS = 60_000;
+let basemapCache = null;
+let basemapCacheExpiresAt = 0;
+let basemapQuery = null;
+
 const basemaps = async () => {
-    const { rows } = await db.query(
-        `SELECT code, name_vi, provider, url_template, attribution, min_zoom, max_zoom
-         FROM gis.basemaps
-         WHERE is_enabled = true AND requires_api_key = false
-         ORDER BY display_order, id`,
-    );
-    return rows;
+    const now = Date.now();
+    if (basemapCache && now < basemapCacheExpiresAt) {
+        return basemapCache;
+    }
+    if (!basemapQuery) {
+        basemapQuery = db
+            .query(
+                `SELECT code, name_vi, provider, url_template, attribution, min_zoom, max_zoom
+                 FROM gis.basemaps
+                 WHERE is_enabled = true AND requires_api_key = false
+                 ORDER BY display_order, id`,
+            )
+            .then(({ rows }) => {
+                basemapCache = rows;
+                basemapCacheExpiresAt = Date.now() + BASEMAP_CACHE_TTL_MS;
+                return rows;
+            })
+            .finally(() => {
+                basemapQuery = null;
+            });
+    }
+    return basemapQuery;
 };
 
 const terrainCatalog = async (actor) => {
