@@ -29,6 +29,6 @@ export const options = {
 export default function () {
   const params = { headers: { Authorization: `Bearer ${token}` }, tags: { sprint: '14', type: 'read' } };
   const response = http.get(`${baseUrl}/api/v1/admin/layers/${layerId}`, params);
-  check(response, { 'read 200': (r) => r.status === 200, 'has ETag': (r) => Boolean(r.headers.ETag) });
+  check(response, { 'read 200': (r) => r.status === 200, 'has ETag': (r) => Boolean(r.headers.Etag) });
   sleep(0.2);
 }

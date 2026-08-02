@@ -18,8 +18,13 @@ BASE_URL=https://staging.example.vn READ_TOKEN='...' LAYER_ID=123 k6 run tests/l
 
 ## Result record
 
-| Thời gian | Commit | Dataset | VU | RPS | p95 | Error | Kết quả |
-|---|---|---:|---:|---:|---:|---:|---|
-| Chưa chạy staging | — | — | 500 | — | — | — | Pending |
+| Thời gian | Môi trường | Commit | Dataset | VU | Requests | RPS | avg | p95 | Max | Error | Kết quả |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| 02/08/2026 11:39 +07 | Local Windows, Node + PostgreSQL cùng máy, `campha_test`, port 3014 | `0bbb4b8` + ETag check fix | 1 layer metadata fixture | 500 | 93.982 | 893,66 | 215,24 ms | **365,62 ms** | 990,02 ms | **0,00%** | Đạt local |
 
-Không suy diễn kết quả load từ localhost/unit test.
+Điều kiện benchmark local: ramp 100 → 500 VU, giữ 500 VU 60 giây, sleep 200 ms; global limiter nâng riêng trong process test (`RATE_LIMIT_MAX=1000000`). Rate limit production không đổi. Tất cả 93.982 response trả HTTP 200. ETag được xác minh riêng; k6 v2 dùng key `headers.Etag` và contract đã sửa từ `headers.ETag`.
+
+Lần chạy chẩn đoán đầu bị 99,74% HTTP 429 do global limiter mặc định 1.000 request/15 phút; đó là policy rejection, không phải backend saturation. Sau khi chỉ nâng limiter benchmark, error = 0%.
+
+> [!IMPORTANT]
+> Local đã vượt mục tiêu p95 < 800 ms ở 500 VU. Staging/VPS sau Nginx/TLS/network vẫn phải chạy full contract 12 phút trước production; không suy diễn local thành staging certification.
