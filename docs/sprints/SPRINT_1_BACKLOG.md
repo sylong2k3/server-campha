@@ -2,7 +2,7 @@
 
 ## Sprint Goal
 
-Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy tiến; MFA giữ dưới feature flag. LDAP/AD đã được loại khỏi phạm vi theo quyết định hạ tầng VPS dùng chung.
+Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy tiến. MFA/TOTP và LDAP/AD đã được loại khỏi phạm vi theo quyết định sản phẩm.
 
 ## Commitment
 
@@ -11,10 +11,10 @@ Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy
 | US-1.1/1.2 | Login/logout/refresh/register/email verification hardening | 8 | Done |
 | US-1.3–1.7 | CRUD/search/role/status/temp password theo organization | 8 | Done |
 | US-1.9 | Progressive account lock + rate limit | 5 | Done |
-| US-1.10 | MFA TOTP enrollment/login/recovery | 13 | Done kỹ thuật; `MFA_ENABLED=false`, defer UAT |
+| US-1.10 | MFA TOTP enrollment/login/recovery | 13 | Retired by product decision; runtime/schema xóa bằng migration `072` |
 | US-1.8 | Microsoft AD qua LDAPS | — | Removed by product decision; runtime/dependency/schema được retire bằng migration `008` |
 
-Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Không còn endpoint, provisioning, dependency hoặc UAT LDAP/AD.
+Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Không còn endpoint, provisioning, dependency hoặc UAT MFA/LDAP/AD.
 
 ## Definition of Ready
 
@@ -37,15 +37,13 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - [x] Register email verification không bypass DB state.
 - [x] Security regression unit tests.
 
-### MFA
+### MFA/TOTP — Retired
 
-- [x] Native RFC 4226/6238 utility; AES-256-GCM.
-- [x] Hashed opaque challenge; hashed single-use recovery codes.
-- [x] Setup/confirm/verify API.
-- [x] Password/Google privileged-role gate.
-- [x] Challenge/factor/recovery/session atomic transaction + rollback self-check.
-- [x] Service unit tests + read-only DB catalog integration.
-- [x] Write integration trên `campha_test`: auth/refresh, cross-org, local create/reset, MFA 4/4.
+- [x] Quyết định sản phẩm: không sử dụng MFA/TOTP.
+- [x] Xóa endpoint, service, repository, validator, cấu hình, Postman/Bruno contract và test MFA.
+- [x] Migration `072` xóa credential, recovery code, challenge và nhánh OAuth MFA theo hướng forward-only.
+- [x] Giữ khóa lũy tiến, rate limit, xác minh email, JWT rotation/replay detection và session revoke.
+- [x] Write integration trên `campha_test`: auth/refresh, cross-org và local create/reset.
 
 ### LDAP/Active Directory — Retired
 
@@ -67,12 +65,12 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 
 ### Contract/quality
 
-- [x] Contract Sprint 1 refresh/MFA/session operations/schemas/errors đã được kiểm chứng; OpenAPI lịch sử retired tại Sprint 6a, Postman được giữ.
+- [x] Contract Sprint 1 refresh/session operations/schemas/errors đã được kiểm chứng; OpenAPI lịch sử retired tại Sprint 6a, Postman được giữ.
 - [x] Authenticated runtime smoke: sample citizen `/auth/me` 200 với `tokenVersion`.
 - [x] Lint, unit, coverage và security audit đạt; số liệu hiện hành ở Acceptance Evidence.
 - [x] Migration 004 áp dụng VPS `campha`; integration read-only 3/3.
-- [x] Postman MFA UAT được defer theo quyết định chưa sử dụng MFA; `MFA_ENABLED=false`.
-- [x] `campha_test` migration rehearsal + write-capable integration suite 12/12.
+- [x] MFA contract đã retire; client chỉ xử lý token trực tiếp từ login/OAuth exchange.
+- [x] `campha_test` migration rehearsal + write-capable integration suite.
 
 ## Acceptance Evidence
 
@@ -80,10 +78,11 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - Coverage branches: `77.15%` (ngưỡng ≥75%).
 - Lint: passed.
 - Security audit production: 0 vulnerabilities.
-- Integration write: register/unverified/verify single-use, refresh rotate/replay, cross-org denial, local create/reset session revoke, MFA enrollment/recovery reuse.
-- Integration DB tổng: foundation + Sprint 1 + Sprint 3, `12/12` trên `campha_test`.
+- Integration write: register/unverified/verify single-use, refresh rotate/replay, cross-org denial, local create/reset session revoke.
+- Integration DB tổng: foundation + Sprint 1 + Sprint 3 trên `campha_test`.
 - Runtime: `GET /api/v1/auth/me` trả 200 với JWT có `tokenVersion` và fresh DB lookup.
-- Security: MFA/JWT secrets sinh local trong `.env`; Google OAuth secret không đưa vào source/log.
+- Security: JWT secrets sinh local trong `.env`; Google OAuth secret không đưa vào source/log.
+- MFA removal: migration `072` forward-only; migration `004` giữ nguyên lịch sử checksum.
 - LDAP removal: migration `005` giữ nguyên lịch sử checksum; migration `008` retire schema forward-only.
 
 ## Blockers

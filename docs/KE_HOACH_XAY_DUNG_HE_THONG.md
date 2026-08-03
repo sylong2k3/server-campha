@@ -48,7 +48,7 @@ Rải khối lượng trên sang từng sprint (velocity cam kết 40 SP/sprint 
 | Sprint | Nội dung | SP | Tỷ lệ tải |
 |---|---|---:|---|
 | S0 | Nền tảng & chuẩn hóa | 40 | 1,0× |
-| S1 | Auth + quản trị người dùng + MFA | 50 | 1,25× ⚠ |
+| S1 | Auth + quản trị người dùng; MFA retired | 37 | 0,93× |
 | S2 | Hạ tầng dữ liệu không gian + COG spike | 45 | 1,1× |
 | S3 | Quản trị lớp bản đồ + Hiệu chỉnh Velocity | 50 | 1,25× ⚠ |
 | S4 | WebGIS front-end API | 58 | 1,45× ⚠ |
@@ -665,9 +665,9 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-1.7 | Cấp lại mật khẩu + buộc đổi lần đăng nhập kế (A.1-3(5)) |
 | US-1.8 | **Removed by product decision:** không triển khai LDAP/Active Directory trên VPS dùng chung; runtime/schema retire bằng migration 008 |
 | US-1.9 | Chống dò mật khẩu: khóa lũy tiến + rate limit theo IP và theo tài khoản |
-| US-1.10 | Tích hợp MFA (TOTP / Google Authenticator) cho tài khoản quản trị (`so_tnmt`, `system_admin`), bao gồm luồng thiết lập, mã khôi phục và test tự động |
+| US-1.10 | **Retired by product decision:** loại bỏ MFA/TOTP; runtime/config/API/schema xóa forward-only bằng migration `072` |
 
-**Bảo mật:** kiểm thử thủ công OWASP ASVS V2 (Authentication) và V3 (Session). Kịch bản bắt buộc: brute-force, token replay, refresh token reuse, IDOR trên `/admin/users/:id`, leo thang vai trò qua sửa payload, xác thực MFA.
+**Bảo mật:** kiểm thử thủ công OWASP ASVS V2 (Authentication) và V3 (Session). Kịch bản bắt buộc: brute-force, token replay, refresh token reuse, IDOR trên `/admin/users/:id`, leo thang vai trò qua sửa payload, khóa lũy tiến và thu hồi session.
 
 ---
 
@@ -1065,7 +1065,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 
 | Tài sản | Mối đe dọa chính | Biện pháp |
 |---|---|---|
-| Tài khoản cơ quan nhà nước | Chiếm quyền, dò mật khẩu | MFA cho TNMT/QT khi được bật, khóa lũy tiến, mật khẩu mạnh, JWT rotation/replay detection |
+| Tài khoản cơ quan nhà nước | Chiếm quyền, dò mật khẩu | Khóa lũy tiến, rate limit, mật khẩu mạnh, email verification, JWT rotation/replay detection, session revoke và giám sát đăng nhập bất thường; MFA đã retire theo quyết định sản phẩm |
 | Dữ liệu bản đồ gốc | Sửa/xóa trái phép (đặc biệt qua mobile B-1(8)) | ACL theo lớp, lịch sử phiên bản hình học, nhật ký đầy đủ |
 | Bộ tham số & kết quả mô hình | Giả mạo kết quả cảnh báo thiên tai | Append-only sau ban hành, checksum, tách quyền lập/ban hành |
 | Khóa API dịch vụ ngoài (GEE, KTTV) | Rò rỉ, lạm dụng hạn mức | Mã hóa lưu trữ, không hiển thị nguyên văn, hạn mức, xoay vòng |
@@ -1104,7 +1104,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 | Mã | Rủi ro | Xử lý trong dự án |
 |---|---|---|
 | API1 | Broken Object Level Authorization | `requireLayerAccess`; test IDOR tự động cho mọi endpoint có `:id` |
-| API2 | Broken Authentication | Sprint 1: khóa lũy tiến, refresh reuse detection (đã có `token_reuse_detected`), MFA cho vai trò cao |
+| API2 | Broken Authentication | Sprint 1: khóa lũy tiến, refresh reuse detection, email verification và session revoke; MFA đã retire theo quyết định sản phẩm |
 | API3 | Broken Object Property Level Authorization | Joi allowlist trường; DTO tách riêng cho response, không trả nguyên bản ghi DB |
 | API4 | Unrestricted Resource Consumption | Giới hạn bbox/LIMIT, job nền cho tác vụ nặng, hạn mức GEE/KTTV |
 | API5 | Broken Function Level Authorization | `MA_TRAN_PHAN_QUYEN.csv` + test sinh tự động 7 tác nhân/5 role DB × mọi endpoint áp dụng |

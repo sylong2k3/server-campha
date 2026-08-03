@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "6e53c6b1-68ae-4e60-b780-e3e46caac001",
-    "name": "Cam Pha GIS API",
-    "description": "## Cam Pha GIS API\n\n**Import xong dung ngay — khong can cau hinh them.**\n\nbaseUrl va tat ca tai khoan da nhung san trong Collection Variables. Khi gui request admin, token tu dong lay neu chua co (pre-request auto-login). Hoac chay thu cong qua folder **Dang nhap theo vai tro** de lay du 5 token cung luc.\n\n### Tai khoan (seed san trong DB local)\n\n| Role | Email | Quyen noi bat |\n|---|---|---|\n| system_admin | admin@campha.gov.vn | Nhat ky, toan quyen CMS |\n| ubnd_tp | ubnd@campha.gov.vn | Xem user & lop ban do |\n| so_tnmt | tnmt@campha.gov.vn | Toan quyen lop & user |\n| so_xd | xaydung@campha.gov.vn | Xem & export lop, quan ly user |\n| citizen | citizen@campha.gov.vn | Chi xem du lieu cong khai |\n\n**Mat khau chung:** `CamPha@2026`\n\n### Rate limit\n| Nhom | Gioi han | Cua so |\n|---|---|---|\n| Tat ca /api/ | 1000 req | 15 phut |\n| Auth | 20 req | 15 phut |\n| Quen/dat lai mat khau | 5 req | 15 phut |\n| Web Map & Map Proxy | 120 req | 1 phut |\n\n### Response envelope\n```\n// Thanh cong\n{ \"message\": \"...\", \"status\": 200, \"data\": { ... } }\n// Danh sach\n{ ..., \"data\": { \"items\": [...] }, \"metadata\": { \"page\", \"limit\", \"total\" } }\n// Loi\n{ \"success\": false, \"message\": \"...\", \"errors\": [] }\n```",
+    "name": "Server C?m Ph? HydroMap API",
+    "description": "## Server C?m Ph? HydroMap API\n\n**Import xong dung ngay — khong can cau hinh them.**\n\nbaseUrl va tat ca tai khoan da nhung san trong Collection Variables. Khi gui request admin, token tu dong lay neu chua co (pre-request auto-login). Hoac chay thu cong qua folder **Dang nhap theo vai tro** de lay du 5 token cung luc.\n\n### Tai khoan (seed san trong DB local)\n\n| Role | Email | Quyen noi bat |\n|---|---|---|\n| system_admin | admin@campha.gov.vn | Nhat ky, toan quyen CMS |\n| ubnd_tp | ubnd@campha.gov.vn | Xem user & lop ban do |\n| so_tnmt | tnmt@campha.gov.vn | Toan quyen lop & user |\n| so_xd | xaydung@campha.gov.vn | Xem & export lop, quan ly user |\n| citizen | citizen@campha.gov.vn | Chi xem du lieu cong khai |\n\n**Mat khau chung:** `CamPha@2026`\n\n### Rate limit\n| Nhom | Gioi han | Cua so |\n|---|---|---|\n| Tat ca /api/ | 1000 req | 15 phut |\n| Auth | 20 req | 15 phut |\n| Quen/dat lai mat khau | 5 req | 15 phut |\n| Web Map & Map Proxy | 120 req | 1 phut |\n\n### Response envelope\n```\n// Thanh cong\n{ \"message\": \"...\", \"status\": 200, \"data\": { ... } }\n// Danh sach\n{ ..., \"data\": { \"items\": [...] }, \"metadata\": { \"page\", \"limit\", \"total\" } }\n// Loi\n{ \"success\": false, \"message\": \"...\", \"errors\": [] }\n```",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -19,7 +19,6 @@
     { "key": "xdToken", "value": "", "type": "string" },
     { "key": "citizenToken", "value": "", "type": "string" },
     { "key": "refreshToken", "value": "", "type": "string" },
-    { "key": "challengeToken", "value": "", "type": "string" },
     { "key": "userId", "value": "2", "type": "string" },
     { "key": "layerId", "value": "1", "type": "string" },
     { "key": "jobId", "value": "1", "type": "string" },
@@ -68,7 +67,7 @@
     },
     {
       "name": "Xac thuc",
-      "description": "Toan bo luong xac thuc: dang nhap, dang ky, MFA, OAuth, quan ly phien.",
+      "description": "Toan bo luong xac thuc: dang nhap, dang ky, OAuth, quan ly phien.",
       "auth": { "type": "noauth" },
       "item": [
         {
@@ -135,27 +134,6 @@
             {
               "name": "Dat lai mat khau",
               "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"token\": \"<reset-token-tu-link-email>\",\n  \"newPassword\": \"NewPass@2026\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] }, "description": "Dat mat khau moi bang token tu email. Token chi dung mot lan." },
-              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
-            }
-          ]
-        },
-        {
-          "name": "Xac thuc 2 buoc MFA",
-          "description": "Luong MFA voi Google Authenticator.\n\n**Thu tu:** Login -> nhan challengeToken -> MFA Setup -> MFA Confirm -> MFA Verify khi dang nhap lan sau.",
-          "item": [
-            {
-              "name": "MFA - Thiet lap",
-              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/mfa/setup", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","mfa","setup"] }, "description": "Buoc 1: Nhan TOTP secret va otpauthUri de scan QR. Tra ve { secret, otpauthUri, qrCodeDataUrl }." },
-              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
-            },
-            {
-              "name": "MFA - Xac nhan (bat MFA)",
-              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\",\n  \"code\": \"123456\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/mfa/confirm", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","mfa","confirm"] }, "description": "Buoc 2: Xac nhan ma TOTP 6 chu so de kich hoat MFA. Tra ve danh sach recovery codes." },
-              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
-            },
-            {
-              "name": "MFA - Xac thuc khi dang nhap",
-              "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"challengeToken\": \"{{challengeToken}}\",\n  \"code\": \"123456\"\n}", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/api/v1/auth/mfa/verify", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","mfa","verify"] }, "description": "Hoan tat dang nhap khi tai khoan bat MFA. Gui code (TOTP 6 so) HOAC recoveryCode. Tra ve { accessToken, refreshToken }." },
               "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] } }]
             }
           ]

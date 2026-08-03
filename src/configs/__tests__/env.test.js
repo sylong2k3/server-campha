@@ -22,7 +22,6 @@ const validEnv = (overrides = {}) => ({
     JWT_SECRET: 'a'.repeat(48),
     JWT_SECRET_REFRESH: 'b'.repeat(48),
     LAYER_WORK_DIR: 'C:/campha/.runtime/layer-worker',
-    MFA_ENABLED: 'false',
     PUSH_ENABLED: 'false',
     LAYER_WORKER_ENABLED: 'false',
     STORAGE_ENABLED: 'false',
@@ -138,8 +137,8 @@ describe('environment configuration', () => {
         const secret = 'do-not-print-this-password';
         let caught;
         try {
-            // MFA_ENCRYPTION_KEY sai pattern -> Joi in ca gia tri ra message, phai bi che.
-            validateEnv(validEnv({ DB_PASSWORD: secret, MFA_ENCRYPTION_KEY: secret }), {
+            // DEVICE_TOKEN_ENCRYPTION_KEY sai pattern -> Joi in ca gia tri ra message, phai bi che.
+            validateEnv(validEnv({ DB_PASSWORD: secret, DEVICE_TOKEN_ENCRYPTION_KEY: secret }), {
                 checkFiles: false,
             });
         } catch (error) {

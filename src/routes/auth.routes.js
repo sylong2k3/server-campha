@@ -20,9 +20,6 @@ const {
     verifyEmailSchema,
     resendVerificationSchema,
     updateProfileSchema,
-    mfaSetupSchema,
-    mfaConfirmSchema,
-    mfaVerifySchema,
     sessionIdSchema,
 } = require('../validators/auth.validator');
 
@@ -84,25 +81,6 @@ router.post(
     validate(resendVerificationSchema),
     asyncHandler(authController.resendVerification),
 );
-router.post(
-    '/mfa/setup',
-    authLimiter,
-    validate(mfaSetupSchema),
-    asyncHandler(authController.mfaSetup),
-);
-router.post(
-    '/mfa/confirm',
-    authLimiter,
-    validate(mfaConfirmSchema),
-    asyncHandler(authController.mfaConfirm),
-);
-router.post(
-    '/mfa/verify',
-    authLimiter,
-    validate(mfaVerifySchema),
-    asyncHandler(authController.mfaVerify),
-);
-
 router.get(
     '/google',
     passport.authenticate('google', { scope: ['profile', 'email'], session: false }),

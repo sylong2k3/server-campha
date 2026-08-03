@@ -1,5 +1,4 @@
 process.env.REQUIRE_EMAIL_VERIFICATION = 'true';
-process.env.MFA_ENABLED = 'true';
 
 if (process.env.DB_NAME !== 'campha_test') {
     throw new Error(
@@ -16,10 +15,7 @@ const db = require('../../../configs/database');
 const userRepository = require('../../../repositories/user.repository');
 const authService = require('../../../services/auth.service');
 const userService = require('../../../services/user.service');
-const mfaService = require('../../../services/mfa.service');
 const { hashPassword, hashToken } = require('../../../utils/cryptoHelper.util');
-const { generateTotp } = require('../../../utils/totp.util');
-const { verifyAccessToken } = require('../../../utils/tokenManager.util');
 
 const PREFIX = 'it.sprint1.';
 const PASSWORD = 'CamPha@2026';
@@ -205,63 +201,4 @@ describe('Sprint 1 write integration', () => {
         });
     });
 
-    test('MFA enrollment/login/recovery atomic; TOTP và recovery code không dùng lại', async () => {
-        const user = await createUser({
-            email: `${PREFIX}mfa@campha.test`,
-            roleCode: 'so_tnmt',
-            orgCode: 'so_tnmt_qn',
-        });
-        const setupLogin = await authService.login(
-            { email: user.email, password: PASSWORD },
-            context,
-        );
-        expect(setupLogin).toMatchObject({ mfaRequired: true, purpose: 'setup' });
-
-        const setup = await mfaService.setup(setupLogin.challengeToken, context);
-        const firstCode = generateTotp(setup.secret);
-        const enrollment = await mfaService.confirm(
-            {
-                challengeToken: setupLogin.challengeToken,
-                code: firstCode,
-            },
-            context,
-        );
-        expect(enrollment.recoveryCodes).toHaveLength(10);
-        expect(verifyAccessToken(enrollment.accessToken).tokenVersion).toBe(user.token_version);
-        await expect(
-            mfaService.confirm(
-                { challengeToken: setupLogin.challengeToken, code: firstCode },
-                context,
-            ),
-        ).rejects.toMatchObject({ status: 401 });
-
-        const recoveryLogin = await authService.login(
-            { email: user.email, password: PASSWORD },
-            context,
-        );
-        expect(recoveryLogin.purpose).toBe('login');
-        const recoveryCode = enrollment.recoveryCodes[0];
-        const recovered = await mfaService.verify(
-            {
-                challengeToken: recoveryLogin.challengeToken,
-                recoveryCode,
-            },
-            context,
-        );
-        expect(recovered.accessToken).toBeTruthy();
-
-        const reusedRecoveryLogin = await authService.login(
-            { email: user.email, password: PASSWORD },
-            context,
-        );
-        await expect(
-            mfaService.verify(
-                {
-                    challengeToken: reusedRecoveryLogin.challengeToken,
-                    recoveryCode,
-                },
-                context,
-            ),
-        ).rejects.toMatchObject({ status: 401 });
-    });
 });

@@ -31,8 +31,10 @@ describe('Cẩm Phả foundation database', () => {
             '024_mobile_gis.sql',
             '025_mobile_gis_routing_sync.sql',
             '026_mobile_gis_audit_integrity.sql',
+            '050_kttv_foundation.sql',
             '070_api_registry.sql',
             '071_api_registry_lifecycle_integrity.sql',
+            '072_remove_mfa.sql',
         ]);
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
@@ -111,7 +113,7 @@ describe('Cẩm Phả foundation database', () => {
         expect(Number(point.latitude)).toBeCloseTo(21.01, 6);
     });
 
-    test('multi-tenant, layer ACL và auth security schema tồn tại', async () => {
+    test('multi-tenant, layer ACL và auth security schema tồn tại; MFA đã retire', async () => {
         const {
             rows: [schema],
         } = await db.query(`
@@ -119,9 +121,9 @@ describe('Cẩm Phả foundation database', () => {
               to_regclass('auth.organizations') IS NOT NULL AS organizations,
               to_regclass('gis.layers') IS NOT NULL AS layers,
               to_regclass('gis.layer_permissions') IS NOT NULL AS layer_permissions,
-              to_regclass('auth.mfa_credentials') IS NOT NULL AS mfa_credentials,
-              to_regclass('auth.mfa_recovery_codes') IS NOT NULL AS mfa_recovery_codes,
-              to_regclass('auth.mfa_challenges') IS NOT NULL AS mfa_challenges,
+              to_regclass('auth.mfa_credentials') IS NULL AS mfa_credentials_removed,
+              to_regclass('auth.mfa_recovery_codes') IS NULL AS mfa_recovery_codes_removed,
+              to_regclass('auth.mfa_challenges') IS NULL AS mfa_challenges_removed,
               to_regclass('auth.ldap_identities') IS NULL AS ldap_removed,
               EXISTS (
                 SELECT 1 FROM information_schema.columns
@@ -135,23 +137,23 @@ describe('Cẩm Phả foundation database', () => {
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'lockout_level'
               ) AS lockout_level,
-              EXISTS (
+              NOT EXISTS (
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'auth' AND table_name = 'oauth_exchange_codes' AND column_name = 'mfa_required'
-              ) AS oauth_mfa_required
+              ) AS oauth_mfa_removed
         `);
         expect(schema).toEqual({
             organizations: true,
             layers: true,
             layer_permissions: true,
-            mfa_credentials: true,
-            mfa_recovery_codes: true,
-            mfa_challenges: true,
+            mfa_credentials_removed: true,
+            mfa_recovery_codes_removed: true,
+            mfa_challenges_removed: true,
             ldap_removed: true,
             users_org_id: true,
             token_version: true,
             lockout_level: true,
-            oauth_mfa_required: true,
+            oauth_mfa_removed: true,
         });
     });
     test('pgRouting và schema Sprint 9b tồn tại', async () => {

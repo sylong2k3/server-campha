@@ -63,27 +63,6 @@ const updateProfileSchema = Joi.object({
     expectedUpdatedAt: Joi.date().iso().optional(),
 });
 
-const mfaSetupSchema = Joi.object({
-    challengeToken: Joi.string().min(40).max(128).required(),
-});
-
-const mfaConfirmSchema = Joi.object({
-    challengeToken: Joi.string().min(40).max(128).required(),
-    code: Joi.string()
-        .pattern(/^\d{6}$/)
-        .required(),
-});
-
-const mfaVerifySchema = Joi.object({
-    challengeToken: Joi.string().min(40).max(128).required(),
-    code: Joi.string()
-        .pattern(/^\d{6}$/)
-        .optional(),
-    recoveryCode: Joi.string()
-        .pattern(/^[A-Z0-9_-]{12}$/i)
-        .optional(),
-}).xor('code', 'recoveryCode');
-
 const sessionIdSchema = Joi.object({
     id: Joi.number().integer().positive().required(),
 });
@@ -102,8 +81,5 @@ module.exports = {
     verifyEmailSchema,
     resendVerificationSchema,
     updateProfileSchema,
-    mfaSetupSchema,
-    mfaConfirmSchema,
-    mfaVerifySchema,
     sessionIdSchema,
 };

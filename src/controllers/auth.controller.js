@@ -2,7 +2,6 @@ const authService = require('../services/auth.service');
 const { OK, CREATED } = require('../core/success.response');
 const { getRequestContext } = require('../utils/context.util');
 const { t } = require('../utils/i18n.util');
-const mfaService = require('../services/mfa.service');
 const tokenRepository = require('../repositories/token.repository');
 
 const register = async (req, res) => {
@@ -118,21 +117,6 @@ const googleMobileLogin = async (req, res) => {
     OK(res, t('login_success', req.lang), result);
 };
 
-const mfaSetup = async (req, res) => {
-    const result = await mfaService.setup(req.body.challengeToken, getRequestContext(req));
-    OK(res, t('mfa_setup_ready', req.lang), result);
-};
-
-const mfaConfirm = async (req, res) => {
-    const result = await mfaService.confirm(req.body, getRequestContext(req));
-    OK(res, t('mfa_enabled', req.lang), result);
-};
-
-const mfaVerify = async (req, res) => {
-    const result = await mfaService.verify(req.body, getRequestContext(req));
-    OK(res, t('login_success', req.lang), result);
-};
-
 const getSessions = async (req, res) => {
     const sessions = await tokenRepository.getUserSessions(req.user.id);
     OK(res, t('sessions_retrieved', req.lang), { sessions });
@@ -167,9 +151,6 @@ module.exports = {
     googleCallback,
     oauthExchange,
     googleMobileLogin,
-    mfaSetup,
-    mfaConfirm,
-    mfaVerify,
     getSessions,
     revokeSession,
     revokeAllSessions,

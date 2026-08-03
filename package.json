@@ -1,7 +1,7 @@
 {
   "name": "server-campha",
   "version": "1.0.0",
-  "description": "App Quản Lý GIS CẨM PHẢ Server API",
+  "description": "Server Cẩm Phả HydroMap API",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

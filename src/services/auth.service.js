@@ -19,7 +19,6 @@ const { sendPasswordResetEmail, sendVerificationEmail } = require('../utils/mail
 const { t } = require('../utils/i18n.util');
 const { PG_UNIQUE_VIOLATION } = require('../core/pg-error-codes');
 const activityLogger = require('../utils/activityLogger.util');
-const mfaService = require('./mfa.service');
 
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_MINUTES = 15;
@@ -92,12 +91,6 @@ const register = async ({ email, password, fullName, phone }, context = {}) => {
 };
 
 const _completeLogin = async (user, context = {}, metadata = {}) => {
-    const mfaChallenge = await mfaService.beginLogin(user);
-    if (mfaChallenge) {
-        await _logActivity(user.id, 'login', 'success', context, { ...metadata, mfaPending: true });
-        return { user: _sanitizeUser(user, context.lang), mfaRequired: true, ...mfaChallenge };
-    }
-
     const tokens = generateTokenPair({
         userId: user.id,
         email: user.email,
@@ -543,14 +536,6 @@ const googleAuthCallback = async (googleProfile, context = {}) => {
         user.email_verified = true;
     }
 
-    if (mfaService.isRequiredForRole(user.role)) {
-        await _logActivity(user.id, 'social_login', 'success', context, {
-            provider: 'google',
-            mfaPending: true,
-        });
-        return { user: _sanitizeUser(user, context.lang), mfaRequired: true, isNewUser };
-    }
-
     const tokens = generateTokenPair({
         userId: user.id,
         email: user.email,
@@ -588,7 +573,6 @@ const createOAuthExchangeCode = async (authResult) => {
         accessToken: authResult.accessToken,
         refreshToken: authResult.refreshToken,
         isNewUser: authResult.isNewUser,
-        mfaRequired: authResult.mfaRequired === true,
         expiresAt,
     });
 
@@ -601,19 +585,6 @@ const exchangeOAuthCode = async ({ code }, context = {}) => {
 
     if (!record) {
         throw new Api400Error(t('invalid_oauth_code', context.lang));
-    }
-
-    if (record.mfa_required) {
-        const user = await userRepository.findById(record.user_id);
-        if (!user?.is_active || !mfaService.isRequiredForRole(user.role)) {
-            throw new Api401Error(t('mfa_challenge_invalid', context.lang));
-        }
-        return {
-            user: _sanitizeUser(user, context.lang),
-            mfaRequired: true,
-            ...(await mfaService.beginLogin(user)),
-            isNewUser: record.is_new_user,
-        };
     }
 
     return {

@@ -1,6 +1,6 @@
-# server-campha
+# Server Cẩm Phả HydroMap
 
-Server API cho hệ thống WebGIS & MobileGIS thành phố Cẩm Phả.
+Server API cho hệ thống WebGIS & MobileGIS Cẩm Phả HydroMap (thành phố Cẩm Phả).
 
 ## Nền tảng hiện có
 

@@ -179,22 +179,13 @@ const saveOAuthExchangeCode = async ({
     accessToken,
     refreshToken,
     isNewUser,
-    mfaRequired = false,
     expiresAt,
 }) => {
     await db.query(
         `INSERT INTO auth.oauth_exchange_codes
-              (code_hash, user_id, access_token, refresh_token, is_new_user, mfa_required, expires_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [
-            codeHash,
-            userId,
-            accessToken || null,
-            refreshToken || null,
-            isNewUser || false,
-            mfaRequired,
-            expiresAt,
-        ],
+              (code_hash, user_id, access_token, refresh_token, is_new_user, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [codeHash, userId, accessToken, refreshToken, isNewUser || false, expiresAt],
     );
 };
 
@@ -202,7 +193,7 @@ const consumeOAuthExchangeCode = async (codeHash) => {
     const { rows } = await db.query(
         `DELETE FROM auth.oauth_exchange_codes
          WHERE code_hash = $1 AND expires_at > NOW()
-         RETURNING user_id, access_token, refresh_token, is_new_user, mfa_required`,
+         RETURNING user_id, access_token, refresh_token, is_new_user`,
         [codeHash],
     );
     return rows[0] || null;

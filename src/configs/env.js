@@ -62,10 +62,6 @@ const ENV_SCHEMA_KEYS = {
     RESET_MAX_REQUESTS: positiveInteger.default(3),
     EMAIL_VERIFICATION_EXPIRES_MINUTES: positiveInteger.default(60),
     EMAIL_VERIFICATION_MAX_REQUESTS: positiveInteger.default(3),
-    MFA_ENABLED: boolean.default('false'),
-    MFA_ENCRYPTION_KEY: Joi.string()
-        .pattern(/^[a-f0-9]{64}$/i)
-        .allow(''),
 
     GOOGLE_CLIENT_ID: Joi.string().trim().allow(''),
     GOOGLE_CLIENT_SECRET: Joi.string().allow(''),
@@ -326,7 +322,6 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
 
         validateProductionUrls(value, errors);
         validateCors(value, errors);
-        requireNames(value, 'MFA_ENABLED', ['MFA_ENCRYPTION_KEY'], errors);
         requireNames(
             value,
             'STORAGE_ENABLED',

@@ -6,7 +6,6 @@ jest.mock('../../utils/cryptoHelper.util');
 jest.mock('../../utils/tokenManager.util');
 jest.mock('../../utils/mailer.util');
 jest.mock('../../utils/activityLogger.util', () => ({ logActivity: jest.fn() }));
-jest.mock('../mfa.service');
 
 const userRepository = require('../../repositories/user.repository');
 const tokenRepository = require('../../repositories/token.repository');
@@ -15,7 +14,6 @@ const cryptoHelper = require('../../utils/cryptoHelper.util');
 const tokenManager = require('../../utils/tokenManager.util');
 const mailer = require('../../utils/mailer.util');
 const activityLogger = require('../../utils/activityLogger.util');
-const mfaService = require('../mfa.service');
 const authService = require('../auth.service');
 const {
     Api400Error,
@@ -63,8 +61,6 @@ beforeEach(() => {
     tokenRepository.addToBlacklist.mockResolvedValue();
     userRepository.updateLoginSuccess.mockResolvedValue();
     activityLogger.logActivity.mockResolvedValue();
-    mfaService.beginLogin.mockResolvedValue(null);
-    mfaService.isRequiredForRole.mockReturnValue(false);
     mailer.sendPasswordResetEmail.mockResolvedValue();
     mailer.sendVerificationEmail.mockResolvedValue();
 });
@@ -122,7 +118,6 @@ describe('register', () => {
             jest.doMock('../../utils/cryptoHelper.util');
             jest.doMock('../../utils/tokenManager.util');
             jest.doMock('../../utils/activityLogger.util', () => ({ logActivity: jest.fn() }));
-            jest.doMock('../mfa.service');
             isolatedUserRepo = require('../../repositories/user.repository');
             isolatedTokenRepo = require('../../repositories/token.repository');
             isolatedTokenManager = require('../../utils/tokenManager.util');
@@ -216,27 +211,16 @@ describe('login', () => {
         ).rejects.toBeInstanceOf(Api403Error);
     });
 
-    test('đăng nhập thành công, không MFA → trả token và lưu refresh', async () => {
+    test('đăng nhập thành công → trả token và lưu refresh', async () => {
         userRepository.findByEmail.mockResolvedValue(baseUser);
-        mfaService.beginLogin.mockResolvedValue(null);
         const result = await authService.login({ email: baseUser.email, password: 'x' }, context);
         expect(result.accessToken).toBe(tokenPair.accessToken);
-        expect(result.mfaRequired).toBeUndefined();
+        expect(result.refreshToken).toBe(tokenPair.refreshToken);
         expect(tokenRepository.saveRefreshToken).toHaveBeenCalled();
         expect(userRepository.updateLoginSuccess).toHaveBeenCalledWith(
             baseUser.id,
             context.ipAddress,
         );
-    });
-
-    test('đăng nhập yêu cầu MFA → không phát token, trả challenge', async () => {
-        userRepository.findByEmail.mockResolvedValue(baseUser);
-        mfaService.beginLogin.mockResolvedValue({ mfaToken: 'chal', purpose: 'login' });
-        const result = await authService.login({ email: baseUser.email, password: 'x' }, context);
-        expect(result.mfaRequired).toBe(true);
-        expect(result.accessToken).toBeUndefined();
-        expect(tokenManager.generateTokenPair).not.toHaveBeenCalled();
-        expect(tokenRepository.saveRefreshToken).not.toHaveBeenCalled();
     });
 });
 
@@ -612,16 +596,6 @@ describe('googleAuthCallback', () => {
         );
     });
 
-    test('yêu cầu MFA cho role → trả challenge, không phát token', async () => {
-        socialRepository.findByProviderId.mockResolvedValue({ user_id: 1 });
-        userRepository.findById.mockResolvedValue(baseUser);
-        mfaService.beginLogin.mockResolvedValue({ mfaToken: 'chal' });
-        mfaService.isRequiredForRole.mockReturnValue(true);
-        const result = await authService.googleAuthCallback(googleProfile, context);
-        expect(result.mfaRequired).toBe(true);
-        expect(result.accessToken).toBeUndefined();
-    });
-
     test('user tồn tại nhưng chưa xác minh email → tự động đánh dấu đã xác minh', async () => {
         socialRepository.findByProviderId.mockResolvedValue({ user_id: 1 });
         userRepository.findById.mockResolvedValue({ ...baseUser, email_verified: false });
@@ -654,34 +628,8 @@ describe('OAuth exchange code', () => {
         );
     });
 
-    test('bản ghi yêu cầu MFA nhưng user không còn hợp lệ → 401', async () => {
+    test('bản ghi hợp lệ → trả thẳng token đã lưu', async () => {
         tokenRepository.consumeOAuthExchangeCode.mockResolvedValue({
-            mfa_required: true,
-            user_id: 1,
-        });
-        userRepository.findById.mockResolvedValue(null);
-        await expect(authService.exchangeOAuthCode({ code: 'x' }, context)).rejects.toBeInstanceOf(
-            Api401Error,
-        );
-    });
-
-    test('bản ghi yêu cầu MFA và user hợp lệ → trả challenge MFA', async () => {
-        tokenRepository.consumeOAuthExchangeCode.mockResolvedValue({
-            mfa_required: true,
-            user_id: 1,
-            is_new_user: false,
-        });
-        userRepository.findById.mockResolvedValue(baseUser);
-        mfaService.isRequiredForRole.mockReturnValue(true);
-        mfaService.beginLogin.mockResolvedValue({ mfaToken: 'chal', purpose: 'login' });
-        const result = await authService.exchangeOAuthCode({ code: 'x' }, context);
-        expect(result.mfaRequired).toBe(true);
-        expect(result.mfaToken).toBe('chal');
-    });
-
-    test('bản ghi thường → trả thẳng token đã lưu', async () => {
-        tokenRepository.consumeOAuthExchangeCode.mockResolvedValue({
-            mfa_required: false,
             access_token: 'a',
             refresh_token: 'r',
             is_new_user: true,
