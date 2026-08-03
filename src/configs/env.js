@@ -151,6 +151,12 @@ const ENV_SCHEMA_KEYS = {
     WEATHER_WIND_GRID_MAX: positiveInteger.max(64).default(16),
     WEATHER_HTTP_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(10000),
 
+    // KTTV (Sprint 10a) — mã hóa credential nguồn + allowlist chặn SSRF khi test kết nối.
+    KTTV_CREDENTIAL_ENCRYPTION_KEY: Joi.string()
+        .pattern(/^[a-f0-9]{64}$/i)
+        .allow(''),
+    KTTV_ALLOWED_SOURCE_HOSTS: Joi.string().trim().allow(''),
+
     UPLOAD_IMAGE_MAX_MB: positiveInteger.default(5),
     UPLOAD_DOCUMENT_MAX_MB: positiveInteger.default(20),
     UPLOAD_MAX_FILES: positiveInteger.max(100).default(20),

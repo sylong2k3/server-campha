@@ -1,0 +1,40 @@
+meta {
+  name: SSRF proof - 169.254.169.254 (cloud metadata) phai bi chan
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/kttv/sources
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "SSRF-PROOF metadata service",
+    "serviceType": "REST",
+    "endpointUrl": "http://169.254.169.254/latest/meta-data/",
+    "isEnabled": true
+  }
+}
+
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.id) {
+    bru.setEnvVar("kttvSsrfSourceId", d.id);
+  }
+}
+
+tests {
+  // Mac dinh (KTTV_ALLOWED_SOURCE_HOSTS chua cau hinh domain nay) se bi tu choi
+  // ngay o lop allowlist. Neu operator lo them domain nay vao allowlist, buoc
+  // test-connection (request ke tiep) van phai bi chan boi lop IP-blocklist doc lap.
+  test("201 tao source thanh cong (viec chan xay ra khi test-connection)", function() {
+    expect(res.getStatus()).to.equal(201);
+  });
+}

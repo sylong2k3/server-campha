@@ -1,0 +1,53 @@
+meta {
+  name: Khai bao nguon KTTV (Open-Meteo)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/kttv/sources
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "name": "Open-Meteo forecast",
+    "provider": "Open-Meteo",
+    "serviceType": "REST",
+    "endpointUrl": "https://api.open-meteo.com/v1/forecast?latitude=21.0089&longitude=107.3368&current=temperature_2m",
+    "responseFormat": "JSON",
+    "isEnabled": true
+  }
+}
+
+script:pre-request {
+  const token = bru.getEnvVar("adminToken");
+  if (!token) {
+    const base = bru.getEnvVar("baseUrl") || "http://localhost:3006";
+    const res = await fetch(`${base}/api/v1/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@campha.gov.vn", password: "CamPha@2026" })
+    });
+    const data = await res.json();
+    if (data.data && data.data.accessToken) {
+      bru.setEnvVar("adminToken", data.data.accessToken);
+    }
+  }
+}
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.id) {
+    bru.setEnvVar("kttvSourceId", d.id);
+    bru.setEnvVar("kttvSourceUpdatedAt", d.updated_at);
+  }
+}
+
+tests {
+  test("201 Created", function() { expect(res.getStatus()).to.equal(201); });
+}

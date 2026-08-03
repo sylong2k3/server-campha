@@ -1,0 +1,42 @@
+meta {
+  name: Khai bao tram quan trac (US-10a.8)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/kttv/stations
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "code": "CP-KT-001",
+    "name": "Tram Khi tuong Cam Pha",
+    "stationType": "khi_tuong_be_mat",
+    "longitude": 107.3368,
+    "latitude": 21.0089,
+    "elevationM": 18.5,
+    "managingOrg": "Dai Khi tuong Thuy van tinh Quang Ninh",
+    "alarmLevel1M": 2.5,
+    "alarmLevel2M": 3.5,
+    "alarmLevel3M": 4.5
+  }
+}
+
+script:post-response {
+  const d = res.getBody().data;
+  if (d && d.code) {
+    bru.setEnvVar("kttvStationCode", d.code);
+    bru.setEnvVar("kttvStationUpdatedAt", d.updated_at);
+  }
+}
+
+tests {
+  test("201 Created", function() { expect(res.getStatus()).to.equal(201); });
+}

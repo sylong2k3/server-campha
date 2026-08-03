@@ -1,0 +1,25 @@
+meta {
+  name: SSRF proof - test-connection toi 169.254.169.254 phai tra 422
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSsrfSourceId}}/test-connection
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("422 - bi chan (allowlist hoac IP-blocklist)", function() {
+    expect(res.getStatus()).to.equal(422);
+  });
+  test("ma loi la SSRF_HOST_NOT_ALLOWED hoac SSRF_BLOCKED_IP", function() {
+    const errors = res.getBody().errors || [];
+    expect(errors.some((e) => e === "SSRF_HOST_NOT_ALLOWED" || e === "SSRF_BLOCKED_IP")).to.be.true;
+  });
+}

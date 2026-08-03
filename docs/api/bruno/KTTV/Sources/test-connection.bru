@@ -1,0 +1,21 @@
+meta {
+  name: Test ket noi + xem truoc du lieu (US-10a.3)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/test-connection
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+tests {
+  test("200 OK - ket noi thanh cong toi domain trong allowlist", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
