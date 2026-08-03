@@ -870,16 +870,20 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 | Story | Nội dung |
 |---|---|
-| US-10a.1 | CRUD nguồn dữ liệu: endpoint, loại dịch vụ, hạn mức, định dạng, điều kiện bản quyền (A.1-10(1)) |
+| US-10a.1 | CRUD nguồn dữ liệu: tên nguồn, đơn vị cung cấp, endpoint, loại dịch vụ, trạng thái bật/tắt, hạn mức, định dạng, điều kiện bản quyền và yêu cầu trích dẫn (A.1-10(1)) |
 | US-10a.2 | Lưu khóa truy cập dạng mã hóa + phương thức xác thực; không bao giờ trả về nguyên văn |
 | US-10a.3 | Kiểm tra kết nối + xem trước dữ liệu trả về (A.1-10(2)) |
 | US-10a.4 | **Lớp chặn SSRF**: allowlist tên miền, chặn IP nội bộ, không theo redirect, timeout, giới hạn dung lượng |
-| US-10a.5 | Cấu hình không gian: bbox, lớp cắt, EPSG nguồn/đích, phương pháp nội suy, độ phân giải đích (A.1-10(3)) |
-| US-10a.6 | Cấu hình thời gian: chu kỳ, múi giờ UTC→UTC+7, độ trễ cho phép, hạn dự báo, hạn lưu trữ (A.1-10(4)) |
+| US-10a.5 | Cấu hình không gian: bbox, lớp cắt, EPSG nguồn/đích, phương pháp nội suy, độ phân giải đích, bán kính ảnh hưởng và số trạm lân cận tối thiểu (A.1-10(3)) |
+| US-10a.6 | Cấu hình thời gian: chu kỳ, múi giờ UTC→UTC+7, độ trễ cho phép, hạn và bước dự báo, hạn lưu trữ, chính sách dọn dữ liệu cũ (A.1-10(4)) |
 | US-10a.7 | Danh mục biến + đơn vị gốc + hệ số quy đổi + NoData + khoảng giá trị hợp lệ (A.1-10(5)) |
-| US-10a.8 | Danh mục trạm quan trắc + trọng số nội suy Thiessen/IDW (A.1-10(7)) |
+| US-10a.8 | Danh mục trạm: mã, tên, tọa độ, cao độ, loại, đơn vị quản lý, trạng thái sử dụng; cho phép chọn trạm lân cận ngoài Cẩm Phả và khai báo trọng số Thiessen/IDW (A.1-10(7)) |
 
-**Nghiệm thu (E.4a):** Postman — khai báo một nguồn thật (Open-Meteo hoặc GSMaP), gọi endpoint kiểm tra kết nối, nhận về bản xem trước đã cắt đúng phạm vi Cẩm Phả. Bắt buộc kèm **bằng chứng chặn SSRF**: thử khai báo endpoint trỏ tới `169.254.169.254` và `127.0.0.1`, cả hai phải bị từ chối.
+**Phân quyền:** khai báo nguồn, kiểm tra kết nối, cấu hình không gian–thời gian–biến và quản lý trạm: **TNMT, XD, QT**. **KH, ND không có quyền**. Mọi endpoint kiểm tra permission trong `auth.roles.permissions` theo `docs/MA_TRAN_PHAN_QUYEN.csv`, không suy quyền từ tên vai trò.
+
+**Nghiệm thu (E.4a):** Postman — khai báo nguồn REST/JSON thật (ưu tiên Open-Meteo hoặc nguồn được chủ đầu tư cấp), gọi endpoint kiểm tra kết nối, nhận bản xem trước đã cắt đúng phạm vi Cẩm Phả; xác nhận khóa bí mật không xuất hiện trong response/log. Bắt buộc kèm **bằng chứng chặn SSRF**: thử endpoint trỏ tới `169.254.169.254` và `127.0.0.1`, cả hai phải bị từ chối. Kiểm thử quyền bằng tài khoản TNMT, XD, QT, KH và ND.
+
+> **Phạm vi adapter:** S10a nghiệm thu adapter REST/JSON trước. WMS/WMTS/WFS/WCS, GEE và FTP chỉ được công bố hỗ trợ sau khi có adapter và kiểm thử tích hợp riêng; không coi trường `service_type` là bằng chứng đã hỗ trợ giao thức.
 
 **Bảo mật — trọng tâm của sprint này:** đây là nơi hệ thống **gọi ra ngoài theo URL do người dùng nhập** → nguy cơ SSRF cao nhất toàn dự án. US-10a.4 là điều kiện tiên quyết, phải xong trước US-10a.3. Bắt buộc: allowlist tên miền, chặn dải IP nội bộ (169.254.0.0/16, 10/8, 172.16/12, 192.168/16, ::1), không đi theo redirect tới host ngoài allowlist, timeout cứng, giới hạn dung lượng tải. Khóa API lưu bằng `pgcrypto`/KMS, chỉ hiển thị 4 ký tự cuối kể cả với TNMT.
 
@@ -891,16 +895,18 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 | Story | Nội dung |
 |---|---|
-| US-10b.1 | Worker thu thập: tải → cắt theo ranh giới → nội suy về lưới → quy đổi đơn vị → ghi `kttv.observations` |
+| US-10b.1 | Worker thu thập: tải → kiểm tra → cắt theo ranh giới → nội suy về lưới → quy đổi đơn vị; dữ liệu điểm/trạm ghi `kttv.observations`, dữ liệu lưới/raster ghi metadata vào `kttv.grid_assets` và tệp vào object storage |
 | US-10b.2 | Quy tắc kiểm soát chất lượng: loại giá trị ngoài khoảng, phát hiện biến thiên đột ngột, đánh dấu trạm mất tín hiệu (A.1-10(8)) |
 | US-10b.3 | Lập lịch thu thập (cron), số lần thử lại, khoảng chờ, nguồn dự phòng theo thứ tự ưu tiên (A.1-10(9)) |
 | US-10b.4 | Nhật ký thu thập, trạng thái kết nối, dung lượng đã tải; đánh dấu lớp quá hạn khi vượt độ trễ cho phép |
-| US-10b.5 | Cấu hình hiển thị lớp: thang màu, ngưỡng phân cấp, độ trong suốt, z-index, tỷ lệ hiển thị — **chỉ TNMT** (A.1-10(6)) |
-| US-10b.6 | Publish lớp dữ liệu động lên WebGIS/Mobile theo cấu hình hiển thị |
+| US-10b.5 | Cấu hình hiển thị lớp: thang màu, ngưỡng phân cấp, độ trong suốt, z-index, tỷ lệ và kiểu hiển thị (raster, đường đẳng trị, điểm trạm, vector hướng gió) — **chỉ TNMT** (A.1-10(6)) |
+| US-10b.6 | Publish lớp dữ liệu động lên WebGIS/Mobile GIS theo cấu hình hiển thị, kèm tên nguồn và nội dung trích dẫn bản quyền |
 | US-10b.7 | Ngưỡng cảnh báo mưa + cấp báo động mực nước I/II/III theo trạm — **TNMT, UB** (A.1-10(8)) |
 | US-10b.8 | Kênh và tần suất gửi cảnh báo: web, ứng dụng di động, thư điện tử |
 
-**Nghiệm thu (E.4a):** để hệ thống chạy qua một chu kỳ thu thập thật, truy vấn `kttv.observations` chứng minh dữ liệu đã về và đã quy đổi đơn vị đúng; **mở lớp mưa/mực nước bằng QGIS qua WMS** để thấy thang màu đã cấu hình. Chặn một nguồn ở tầng mạng để chứng minh nguồn dự phòng và cảnh báo mất tín hiệu hoạt động.
+**Phân quyền:** lập lịch thu thập: **TNMT, XD, QT**; cấu hình hiển thị: **chỉ TNMT**; cấu hình ngưỡng, cấp báo động, kênh và tần suất cảnh báo: **TNMT, UB**; xem trạng thái và nhật ký: **TNMT, UB, XD, QT**. **KH, ND không có quyền**.
+
+**Nghiệm thu (E.4a):** để hệ thống chạy qua một chu kỳ thu thập REST/JSON thật và một nguồn raster thật (ưu tiên GSMaP hoặc GPM); truy vấn `kttv.observations` và `kttv.grid_assets` chứng minh dữ liệu đã về đúng kho, đúng thời gian và đã quy đổi đơn vị. Mở lớp mưa/mực nước bằng QGIS qua WMS để kiểm tra thang màu, kiểu hiển thị và attribution. Gọi API Mobile lấy nhiệt độ, hướng gió, tốc độ gió; gọi hợp đồng dữ liệu đầu vào Sprint 11 để đọc chuỗi mưa/mực nước. Chặn nguồn chính ở tầng mạng để chứng minh retry, nguồn dự phòng, trạng thái quá hạn và cảnh báo mất tín hiệu hoạt động. Kiểm thử ma trận quyền bằng đủ sáu vai trò TNMT, UB, XD, QT, KH, ND.
 
 **Bảo mật:** dữ liệu từ bên thứ ba phải được kiểm tra kiểu và miền giá trị **trước khi** ghi vào DB (OWASP API10). Cảnh báo thiên tai gửi ra ngoài phải ghi nhật ký đầy đủ ai/khi nào/ngưỡng nào kích hoạt.
 

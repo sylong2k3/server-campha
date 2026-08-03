@@ -2,7 +2,12 @@
 
 const Joi = require('joi');
 
+// Toàn bộ giá trị DB cho phép (khớp CHECK constraint kttv.sources.service_type).
 const SERVICE_TYPES = ['REST', 'WMS', 'WMTS', 'WFS', 'WCS', 'GEE', 'FTP'];
+// Theo docs (Sprint 10a): chỉ nghiệm thu adapter REST/JSON trước — WMS/WMTS/WFS/WCS/
+// GEE/FTP chưa có adapter riêng, KHÔNG được phép chọn dù cột DB đã cho phép giá trị
+// này, để tránh hiểu nhầm service_type là bằng chứng đã hỗ trợ giao thức.
+const IMPLEMENTED_SERVICE_TYPES = ['REST'];
 const RESPONSE_FORMATS = ['JSON', 'GeoJSON', 'GeoTIFF', 'NetCDF', 'GRIB2', 'PNG'];
 const STATION_TYPES = ['mua', 'thuy_van', 'hai_van', 'khi_tuong_be_mat'];
 
@@ -17,7 +22,7 @@ const credential = Joi.object().pattern(Joi.string().max(100), Joi.string().max(
 
 const sourceListSchema = Joi.object({
     q: Joi.string().trim().max(100),
-    serviceType: Joi.string().valid(...SERVICE_TYPES),
+    serviceType: Joi.string().valid(...IMPLEMENTED_SERVICE_TYPES),
     isEnabled: Joi.boolean(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
@@ -27,7 +32,7 @@ const sourceCreateSchema = Joi.object({
     name: Joi.string().trim().min(1).max(200).required(),
     provider: Joi.string().trim().max(200).allow(null, ''),
     serviceType: Joi.string()
-        .valid(...SERVICE_TYPES)
+        .valid(...IMPLEMENTED_SERVICE_TYPES)
         .required(),
     endpointUrl: Joi.string()
         .uri({ scheme: ['http', 'https'] })
@@ -58,7 +63,7 @@ const sourceCreateSchema = Joi.object({
 const sourceUpdateSchema = Joi.object({
     name: Joi.string().trim().min(1).max(200),
     provider: Joi.string().trim().max(200).allow(null, ''),
-    serviceType: Joi.string().valid(...SERVICE_TYPES),
+    serviceType: Joi.string().valid(...IMPLEMENTED_SERVICE_TYPES),
     endpointUrl: Joi.string()
         .uri({ scheme: ['http', 'https'] })
         .max(2000),
@@ -90,8 +95,12 @@ const deleteQuerySchema = Joi.object({ expectedUpdatedAt: date.required() });
 const stationCode = Joi.string()
     .trim()
     .pattern(/^[A-Za-z0-9_-]{1,30}$/);
-const longitude = Joi.number().min(107).max(108);
-const latitude = Joi.number().min(20.7).max(21.3);
+// Docs (Sprint 10a, cập nhật): cho phép chọn trạm lân cận NGOÀI Cẩm Phả để nội suy
+// (Thiessen/IDW) — không còn giới hạn cứng trong ranh thành phố. Dùng ranh giới quốc
+// gia Việt Nam (có biên độ nhỏ cho trạm biên giới liên quan lưu vực sông) thay vì
+// unbounded, để vẫn chặn được lỗi nhập liệu tọa độ sai lệch hoàn toàn.
+const longitude = Joi.number().min(102).max(110);
+const latitude = Joi.number().min(8).max(24);
 
 const stationListSchema = Joi.object({
     q: Joi.string().trim().max(100),
@@ -146,6 +155,7 @@ const stationCodeParamsSchema = Joi.object({ code: stationCode.required() });
 
 module.exports = {
     SERVICE_TYPES,
+    IMPLEMENTED_SERVICE_TYPES,
     RESPONSE_FORMATS,
     STATION_TYPES,
     sourceListSchema,
