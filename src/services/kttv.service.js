@@ -72,10 +72,12 @@ const getSource = async (id, actor) => {
 const createSource = async (input, actor) => {
     requirePermission(actor, 'create_source');
     guardDisplayConfig(actor, input);
-    const credentialEnc = input.credential
-        ? encryptCredential(JSON.stringify(input.credential))
-        : null;
-    const row = await repository.createSource({ ...input, credentialEnc });
+    // Tách plaintext `credential` ra khỏi object truyền tiếp — không để nó "trôi"
+    // xuống các tầng dưới (repository, log, error serialization) dù hiện tại
+    // không tầng nào đọc field này; chỉ credentialEnc (đã mã hóa) mới đi tiếp.
+    const { credential, ...rest } = input;
+    const credentialEnc = credential ? encryptCredential(JSON.stringify(credential)) : null;
+    const row = await repository.createSource({ ...rest, credentialEnc });
     audit('kttv_source_created', actor, { sourceId: row.id, serviceType: row.service_type });
     return publicSourceRow(row);
 };
@@ -83,11 +85,9 @@ const createSource = async (input, actor) => {
 const updateSource = async (id, input, actor) => {
     requirePermission(actor, 'create_source');
     guardDisplayConfig(actor, input);
-    const patch = { ...input };
-    if (input.credential !== undefined) {
-        patch.credentialEnc = input.credential
-            ? encryptCredential(JSON.stringify(input.credential))
-            : null;
+    const { credential, ...patch } = input;
+    if (credential !== undefined) {
+        patch.credentialEnc = credential ? encryptCredential(JSON.stringify(credential)) : null;
     }
     const row = await changedOrError(
         await repository.updateSource(id, patch),
