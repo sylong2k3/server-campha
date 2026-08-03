@@ -1,7 +1,7 @@
 const { createUserSchema } = require('../user.validator');
 
-describe('user validator local-only contract', () => {
-    test('chấp nhận local account và từ chối field LDAP đã retire', () => {
+describe('user validator contract', () => {
+    test('chấp nhận local account và từ chối field ngoài contract', () => {
         expect(
             createUserSchema.validate({
                 email: 'staff@campha.gov.vn',
@@ -11,8 +11,9 @@ describe('user validator local-only contract', () => {
         ).toBeUndefined();
         expect(
             createUserSchema.validate({
-                authProvider: 'ldap',
-                directoryUsername: 'staff',
+                email: 'staff@campha.gov.vn',
+                password: 'SafePass123!',
+                unsupportedField: 'unexpected',
             }).error,
         ).toBeTruthy();
     });

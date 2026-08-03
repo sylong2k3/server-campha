@@ -1,4 +1,5 @@
 const db = require('../../../configs/database');
+const { getMigrationFiles } = require('../../migrate');
 
 describe('Cẩm Phả foundation database', () => {
     afterAll(async () => {
@@ -12,30 +13,9 @@ describe('Cẩm Phả foundation database', () => {
             FROM core.schema_migrations
             ORDER BY filename
         `);
-        expect(rows.map((row) => row.filename)).toEqual([
-            '000_init_schema.sql',
-            '001_system_logs.sql',
-            '002_campha_foundation.sql',
-            '003_activity_log_actions.sql',
-            '004_auth_security.sql',
-            '005_ldap_auth.sql',
-            '006_spatial_infrastructure.sql',
-            '007_layer_management.sql',
-            '008_remove_ldap_auth.sql',
-            '009_webgis_frontend_api.sql',
-            '010_cms_content.sql',
-            '020_satellite_catalog.sql',
-            '021_spatial_statistics.sql',
-            '022_spatial_statistics_rbac.sql',
-            '023_field_reports.sql',
-            '024_mobile_gis.sql',
-            '025_mobile_gis_routing_sync.sql',
-            '026_mobile_gis_audit_integrity.sql',
-            '050_kttv_foundation.sql',
-            '070_api_registry.sql',
-            '071_api_registry_lifecycle_integrity.sql',
-            '072_remove_mfa.sql',
-        ]);
+        expect(rows.map((row) => row.filename)).toEqual(
+            getMigrationFiles().map((file) => file.filename),
+        );
         expect(rows.every((row) => row.checksum?.trim().length === 64)).toBe(true);
     });
 
@@ -113,18 +93,33 @@ describe('Cẩm Phả foundation database', () => {
         expect(Number(point.latitude)).toBeCloseTo(21.01, 6);
     });
 
-    test('multi-tenant, layer ACL và auth security schema tồn tại; MFA đã retire', async () => {
+    test('multi-tenant, layer ACL và auth security schema khớp contract hiện hành', async () => {
+        const { rows: authTables } = await db.query(`
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'auth' AND table_type = 'BASE TABLE'
+            ORDER BY table_name
+        `);
+        expect(authTables.map((row) => row.table_name)).toEqual([
+            'activity_logs',
+            'device_tokens',
+            'email_verification_tokens',
+            'oauth_exchange_codes',
+            'organizations',
+            'password_reset_tokens',
+            'refresh_tokens',
+            'roles',
+            'social_accounts',
+            'token_blacklist',
+            'users',
+        ]);
+
         const {
             rows: [schema],
         } = await db.query(`
             SELECT
-              to_regclass('auth.organizations') IS NOT NULL AS organizations,
               to_regclass('gis.layers') IS NOT NULL AS layers,
               to_regclass('gis.layer_permissions') IS NOT NULL AS layer_permissions,
-              to_regclass('auth.mfa_credentials') IS NULL AS mfa_credentials_removed,
-              to_regclass('auth.mfa_recovery_codes') IS NULL AS mfa_recovery_codes_removed,
-              to_regclass('auth.mfa_challenges') IS NULL AS mfa_challenges_removed,
-              to_regclass('auth.ldap_identities') IS NULL AS ldap_removed,
               EXISTS (
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'org_id'
@@ -137,24 +132,53 @@ describe('Cẩm Phả foundation database', () => {
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'auth' AND table_name = 'users' AND column_name = 'lockout_level'
               ) AS lockout_level,
-              NOT EXISTS (
-                SELECT 1 FROM information_schema.columns
-                WHERE table_schema = 'auth' AND table_name = 'oauth_exchange_codes' AND column_name = 'mfa_required'
-              ) AS oauth_mfa_removed
+              pg_get_constraintdef(oid) AS activity_action_check
+            FROM pg_constraint
+            WHERE conrelid = 'auth.activity_logs'::regclass
+              AND conname = 'activity_logs_action_check'
         `);
-        expect(schema).toEqual({
-            organizations: true,
+        expect(schema).toMatchObject({
             layers: true,
             layer_permissions: true,
-            mfa_credentials_removed: true,
-            mfa_recovery_codes_removed: true,
-            mfa_challenges_removed: true,
-            ldap_removed: true,
             users_org_id: true,
             token_version: true,
             lockout_level: true,
-            oauth_mfa_removed: true,
         });
+        const allowedActions = [...schema.activity_action_check.matchAll(/'([^']+)'/g)].map(
+            (match) => match[1],
+        );
+        expect(allowedActions).toEqual([
+            'register',
+            'login',
+            'login_failed',
+            'logout',
+            'refresh_token',
+            'change_password',
+            'set_password',
+            'update_profile',
+            'social_login',
+            'social_link',
+            'social_unlink',
+            'account_locked',
+            'account_unlocked',
+            'force_logout',
+            'session_revoked',
+            'password_reset_request',
+            'password_reset',
+            'password_reset_failed',
+            'email_verification_sent',
+            'email_verified',
+            'token_reuse_detected',
+            'user_create',
+            'user_role_change',
+            'user_active_change',
+            'user_delete',
+            'admin_password_reset',
+            'system_logs_cleanup',
+            'map_feature_update',
+            'map_feature_restore',
+            'mobile_sync',
+        ]);
     });
     test('pgRouting và schema Sprint 9b tồn tại', async () => {
         const {

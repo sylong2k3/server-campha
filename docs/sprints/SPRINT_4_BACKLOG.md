@@ -1,6 +1,6 @@
 # Sprint 4 — WebGIS front-end API (A.2-1)
 
-> Sprint 4 chỉ làm server API theo ranh giới E.0. Không dựng SPA, không Redis, không Docker, không LDAP/AD.
+> Sprint 4 chỉ làm server API theo ranh giới E.0. Không dựng SPA, Redis hoặc Docker.
 
 ## Sprint goal
 

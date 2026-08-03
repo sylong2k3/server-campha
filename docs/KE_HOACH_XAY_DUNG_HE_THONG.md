@@ -14,7 +14,7 @@
 - [Phần C. Thiết kế dữ liệu](#phần-c-thiết-kế-dữ-liệu)
 - [Phần D. Thiết kế phân quyền](#phần-d-thiết-kế-phân-quyền)
 - [Phần E. Quy trình Agile Scrum](#phần-e-quy-trình-agile-scrum)
-- [Phần F. Roadmap 23 sprint](#phần-f-roadmap-23-sprint)
+- [Phần F. Roadmap 22 sprint](#phần-f-roadmap-22-sprint)
 - [Phần G. Bảo mật](#phần-g-bảo-mật)
 - [Phần H. Chiến lược kiểm thử](#phần-h-chiến-lược-kiểm-thử)
 - [Phần I. DevOps & vận hành](#phần-i-devops--vận-hành)
@@ -41,14 +41,14 @@ Phân bổ theo độ phức tạp do tài liệu tự đánh giá:
 | Trung bình | A.1-1, A.1-2, A.1-3, A.1-5, A.2-3, A.2-5, A.2-6, A.2-7 | 20–34 SP/module |
 | Đơn giản | A.1-4, A.1-6, A.1-7, A.1-8, A.2-4, A.2-8, A.2-9, A.2-10, A.2-11, B-2…B-6 | 8–13 SP/module |
 
-## A.1b. Tải trọng theo sprint và cơ sở của con số 23 sprint
+## A.1b. Tải trọng theo sprint và cơ sở của con số 22 sprint
 
 Rải khối lượng trên sang từng sprint (velocity cam kết 40 SP/sprint với 10% dự phòng trong sprint):
 
 | Sprint | Nội dung | SP | Tỷ lệ tải |
 |---|---|---:|---|
 | S0 | Nền tảng & chuẩn hóa | 40 | 1,0× |
-| S1 | Auth + quản trị người dùng; MFA retired | 37 | 0,93× |
+| S1 | Auth + quản trị người dùng | 21 | 0,53× |
 | S2 | Hạ tầng dữ liệu không gian + COG spike | 45 | 1,1× |
 | S3 | Quản trị lớp bản đồ + Hiệu chỉnh Velocity | 50 | 1,25× ⚠ |
 | S4 | WebGIS front-end API | 58 | 1,45× ⚠ |
@@ -64,9 +64,9 @@ Rải khối lượng trên sang từng sprint (velocity cam kết 40 SP/sprint 
 | S13 | Registry API | 40 | 1,0× |
 | S14 | Siêu dữ liệu, hiệu năng, gia cố | 40 | 1,0× |
 | S15 | UAT tổng thể & bàn giao | 0 | 0,0× |
-| | **Tổng** | **812** | |
+| | **Tổng** | **796** | |
 
-**812 SP / 40 = 20,3 → 21 sprint phát triển (gồm 6a/6b, 9a/9b, 10a/10b) + 1 sprint đệm (S12b) + 1 sprint UAT (S15) = 23 sprint × 2 tuần ≈ 10,5–11 tháng.**
+**796 SP / 40 = 19,9 → 20 sprint phát triển (gồm 6a/6b, 9a/9b, 10a/10b) + 1 sprint đệm (S12b) + 1 sprint UAT (S15) = 22 sprint × 2 tuần ≈ 10–10,5 tháng.**
 
 ### ⚠ Độ tin cậy của con số này
 
@@ -75,21 +75,21 @@ Rải khối lượng trên sang từng sprint (velocity cam kết 40 SP/sprint 
 | Yếu tố | Vấn đề |
 |---|---|
 | Velocity 40 SP/sprint | Do người lập kế hoạch đặt ra (đã tính 10% dự phòng trong sprint). Đội **chưa chạy sprint nào** nên chưa có velocity thật để căn. |
-| 812 SP | Quy đổi từ nhãn "Đơn giản / Trung bình / Phức tạp" trong tài liệu yêu cầu — do **người viết đặc tả** gán, không phải đội sẽ viết code. Scrum quy định Development Team tự ước lượng vì chỉ họ biết chỗ nào khó. |
-| Chi phí DoD | Các nhãn trên chắc chắn **không tính** phủ nhánh 75% + test phân quyền 7 tác nhân (5 role DB, KH anonymous, GEE service account) tự động cho mọi endpoint liên quan (E.4). Đây là chi phí thật, hiện chưa nằm trong 812 SP. |
+| 796 SP | Quy đổi từ nhãn "Đơn giản / Trung bình / Phức tạp" trong tài liệu yêu cầu — do **người viết đặc tả** gán, không phải đội sẽ viết code. Scrum quy định Development Team tự ước lượng vì chỉ họ biết chỗ nào khó. |
+| Chi phí DoD | Các nhãn trên chắc chắn **không tính** phủ nhánh 75% + test phân quyền 7 tác nhân (5 role DB, KH anonymous, GEE service account) tự động cho mọi endpoint liên quan (E.4). Đây là chi phí thật, hiện chưa nằm trong 796 SP. |
 
-**Cách đọc đúng: 23 sprint là điểm giữa của khoảng 19–27 sprint (±20%).** Không cam kết mốc 10,5 tháng cố định với chủ đầu tư dựa trên con số này.
+**Cách đọc đúng: 22 sprint là điểm giữa của khoảng 18–26 sprint (±20%).** Không cam kết mốc 10 tháng cố định với chủ đầu tư dựa trên con số này.
 
 **Mốc hiệu chỉnh bắt buộc — cuối Sprint 3 (US-3.8):** khi đã có 3 điểm velocity thật (S1, S2, S3), Scrum Master tính lại velocity trung bình, đội ước lượng lại toàn bộ backlog còn tồn theo Planning Poker, và **thay thế bảng trên bằng số thật**. Trước mốc này, mọi trao đổi về tiến độ với chủ đầu tư phải nêu kèm biên độ ±20%.
 
 ### Dự phòng
 
-Kế hoạch 23 sprint sử dụng hai lớp dự phòng:
+Kế hoạch 22 sprint sử dụng hai lớp dự phòng:
 
 1. **Dự phòng trong sprint — 10% năng lực.** Chỉ cam kết **40 SP/sprint** (so với năng lực lý thuyết 45 SP). Phần 10% dùng cho lỗi phát sinh, hỗ trợ sự cố, và việc chen ngang.
 2. **Sprint đệm — S12b, chèn sau S12.** Không có story nào được lên lịch trước. Dùng để hấp thụ carry-over dồn từ S4/S5/S8 (các sprint ở mức 1,3–1,5×) và rủi ro của nhánh thủy lực. Nếu không dùng đến thì kéo hạng mục từ S14 lên.
 
-**Sau khi tính dự phòng: 23 sprint × 2 tuần ≈ 10,5–11 tháng**, biên độ 19–27 sprint.
+**Sau khi tính dự phòng: 22 sprint × 2 tuần ≈ 10–10,5 tháng**, biên độ 18–26 sprint.
 
 Ba sprint ở mức 1,6–1,9× năng lực (S6, S9, S10) được **tách đôi** trong Phần F thành 6a/6b, 9a/9b, 10a/10b để phản ánh đúng thực tế thay vì dồn dập công việc.
 
@@ -102,7 +102,7 @@ Ba sprint ở mức 1,6–1,9× năng lực (S6, S9, S10) được **tách đôi
 | Thành phần | File | Trạng thái |
 |---|---|---|
 | Express app + middleware chain | `src/app.js`, `server.js` | Dùng được |
-| Xác thực JWT + refresh + blacklist jti | `src/services/auth.service.js`, `src/utils/tokenManager.util.js` | Dùng được; hỗ trợ local password + Google OAuth; LDAP/AD đã retire |
+| Xác thực JWT + refresh + blacklist jti | `src/services/auth.service.js`, `src/utils/tokenManager.util.js` | Dùng được; hỗ trợ local password + Google OAuth |
 | RBAC theo `permissions` JSONB | `src/middlewares/auth.middleware.js` | **Đã bỏ bypass `system_admin`; mọi role dùng quyền DB** |
 | Social login (Google) | `src/configs/passport.js` | Dùng được |
 | Schema nền `core`, `auth`, `gis.layers`, ACL lớp | migrations `000`–`002` | Dùng được; nghiệp vụ GIS khác xây tiếp theo sprint |
@@ -507,7 +507,7 @@ Middleware mới: `requireLayerAccess('view'|'edit'|'delete')` đọc `req.param
 
 | Thành phần | Ai làm | Khi nào | Trạng thái |
 |---|---|---|---|
-| Server API (tài liệu này) | Đội trong E.1 | 23 sprint (≈ 10,5–11 tháng) | Đang lập kế hoạch |
+| Server API (tài liệu này) | Đội trong E.1 | 22 sprint (≈ 10–10,5 tháng) | Đang lập kế hoạch |
 | Ứng dụng di động `campha_moblie` (Flutter) | **Chủ dự án tự làm** | **Sau khi backend xong** | Khung Flutter đã có, chờ API |
 | WebGIS SPA + 10 màn hình quản trị (Leaflet) | **CHƯA CÓ CHỦ** | Chưa xác định | ⚠ **Phụ thuộc ngoài chưa giải quyết** |
 
@@ -539,7 +539,7 @@ Middleware mới: `requireLayerAccess('view'|'edit'|'delete')` đọc `req.param
 | Backlog Refinement | 1,5 giờ | Thứ Tư tuần 2 |
 | Sprint Review (demo) | 1,5 giờ | Thứ Sáu tuần 2 |
 | Sprint Retrospective | 1 giờ | Ngay sau Review |
-| **Sprint** | **2 tuần** | 23 sprint kể cả đệm (≈ 10,5–11 tháng, biên độ 19–27) |
+| **Sprint** | **2 tuần** | 22 sprint kể cả đệm (≈ 10–10,5 tháng, biên độ 18–26) |
 
 ## E.3. Definition of Ready (DoR)
 
@@ -616,9 +616,9 @@ Quy ước commit: Conventional Commits (`feat(gis): import shapefile to PostGIS
 
 ---
 
-# Phần F. Roadmap 23 sprint
+# Phần F. Roadmap 22 sprint
 
-21 sprint công việc + 1 sprint đệm (S12b) + 1 sprint UAT (S15) = 23 sprint × 2 tuần ≈ **10,5–11 tháng**, biên độ 19–27 sprint. Xem A.1b về độ tin cậy của con số này — **không cam kết mốc cứng với chủ đầu tư trước khi hiệu chỉnh ở US-3.8 (cuối Sprint 3)**.
+20 sprint công việc + 1 sprint đệm (S12b) + 1 sprint UAT (S15) = 22 sprint × 2 tuần ≈ **10–10,5 tháng**, biên độ 18–26 sprint. Xem A.1b về độ tin cậy của con số này — **không cam kết mốc cứng với chủ đầu tư trước khi hiệu chỉnh ở US-3.8 (cuối Sprint 3)**.
 
 Cột "Bảo mật" nêu hoạt động an ninh bắt buộc trong sprint đó. Mọi mục "Nghiệm thu" hiểu theo E.4a — nghiệm thu ở mức API, không có giao diện (xem ranh giới phạm vi E.0).
 
@@ -663,9 +663,7 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-1.5 | Tìm kiếm theo email/họ tên/tên đăng nhập, phân trang (A.1-3(3),(6)) |
 | US-1.6 | Khóa/mở khóa tài khoản (A.1-3(4)) |
 | US-1.7 | Cấp lại mật khẩu + buộc đổi lần đăng nhập kế (A.1-3(5)) |
-| US-1.8 | **Removed by product decision:** không triển khai LDAP/Active Directory trên VPS dùng chung; runtime/schema retire bằng migration 008 |
 | US-1.9 | Chống dò mật khẩu: khóa lũy tiến + rate limit theo IP và theo tài khoản |
-| US-1.10 | **Retired by product decision:** loại bỏ MFA/TOTP; runtime/config/API/schema xóa forward-only bằng migration `072` |
 
 **Bảo mật:** kiểm thử thủ công OWASP ASVS V2 (Authentication) và V3 (Session). Kịch bản bắt buộc: brute-force, token replay, refresh token reuse, IDOR trên `/admin/users/:id`, leo thang vai trò qua sửa payload, khóa lũy tiến và thu hồi session.
 
@@ -1065,7 +1063,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 
 | Tài sản | Mối đe dọa chính | Biện pháp |
 |---|---|---|
-| Tài khoản cơ quan nhà nước | Chiếm quyền, dò mật khẩu | Khóa lũy tiến, rate limit, mật khẩu mạnh, email verification, JWT rotation/replay detection, session revoke và giám sát đăng nhập bất thường; MFA đã retire theo quyết định sản phẩm |
+| Tài khoản cơ quan nhà nước | Chiếm quyền, dò mật khẩu | Khóa lũy tiến, rate limit, mật khẩu mạnh, email verification, JWT rotation/replay detection, session revoke và giám sát đăng nhập bất thường |
 | Dữ liệu bản đồ gốc | Sửa/xóa trái phép (đặc biệt qua mobile B-1(8)) | ACL theo lớp, lịch sử phiên bản hình học, nhật ký đầy đủ |
 | Bộ tham số & kết quả mô hình | Giả mạo kết quả cảnh báo thiên tai | Append-only sau ban hành, checksum, tách quyền lập/ban hành |
 | Khóa API dịch vụ ngoài (GEE, KTTV) | Rò rỉ, lạm dụng hạn mức | Mã hóa lưu trữ, không hiển thị nguyên văn, hạn mức, xoay vòng |
@@ -1104,7 +1102,7 @@ Chậm ở S3 (import dữ liệu không gian), S10b (thu thập KTTV) hoặc S1
 | Mã | Rủi ro | Xử lý trong dự án |
 |---|---|---|
 | API1 | Broken Object Level Authorization | `requireLayerAccess`; test IDOR tự động cho mọi endpoint có `:id` |
-| API2 | Broken Authentication | Sprint 1: khóa lũy tiến, refresh reuse detection, email verification và session revoke; MFA đã retire theo quyết định sản phẩm |
+| API2 | Broken Authentication | Sprint 1: khóa lũy tiến, refresh reuse detection, email verification và session revoke |
 | API3 | Broken Object Property Level Authorization | Joi allowlist trường; DTO tách riêng cho response, không trả nguyên bản ghi DB |
 | API4 | Unrestricted Resource Consumption | Giới hạn bbox/LIMIT, job nền cho tác vụ nặng, hạn mức GEE/KTTV |
 | API5 | Broken Function Level Authorization | `MA_TRAN_PHAN_QUYEN.csv` + test sinh tự động 7 tác nhân/5 role DB × mọi endpoint áp dụng |
@@ -1255,7 +1253,7 @@ Bổ sung từ phân tích kỹ thuật:
 
 5. **Engine mô hình thủy văn–thủy lực dùng phần mềm nào?** (SWMM, HEC-RAS, MIKE, TUFLOW…). Quyết định này ảnh hưởng toàn bộ Sprint 11–12: định dạng file tham số, cách gọi, giấy phép, hạ tầng tính toán. **Chưa chốt thì không thể ước lượng chính xác Sprint 12.**
 6. **Realtime dùng Socket.io hay giữ `ws`?** Tài liệu chỉ đích danh Socket.io; codebase đang dùng `ws`.
-7. **Xác thực tài khoản cơ quan:** đã chốt local password + Google OAuth; không triển khai LDAP/AD trên VPS dùng chung.
+7. **Xác thực tài khoản cơ quan:** đã chốt email/password nội bộ + Google OAuth.
 8. **Hạ tầng triển khai:** máy chủ vật lý tại đơn vị hay thuê cloud? Ảnh hưởng phương án sao lưu, chứng thư số, và khả năng dùng Redis/worker riêng.
 9. **Mâu thuẫn mới phát hiện — UB có được chạy mô hình không?** Bảng A.1-9 ghi UB **chỉ được xem** bộ tham số và kết quả kiểm định ("Nhập, chỉnh sửa, chạy thử, hiệu chỉnh: TNMT, XD, QT"), nhưng bảng A.2-10 lại ghi "Chạy mô hình, lưu kịch bản: **UB**, TNMT, XD, QT". Hai ô này nói về cùng một hành vi ở hai màn hình khác nhau. Kế hoạch tạm theo A.2-10 cho module dự báo và theo A.1-9 cho module tham số, đánh dấu trong CSV — cần chốt để tránh lỗ hổng phân quyền.
 10. **Mâu thuẫn nhỏ — QT có được gửi ảnh giám sát hiện trạng không?** B-2 liệt kê "ND, UB, TNMT, XD" (không có QT), trong khi A.1-8 cho QT xem và thống kê nhưng không duyệt. Cần xác nhận QT chỉ có vai trò kỹ thuật, không tham gia nghiệp vụ.

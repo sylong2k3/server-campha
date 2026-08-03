@@ -2,7 +2,7 @@
 
 ## Sprint Goal
 
-Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy tiến. MFA/TOTP và LDAP/AD đã được loại khỏi phạm vi theo quyết định sản phẩm.
+Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy tiến.
 
 ## Commitment
 
@@ -11,10 +11,8 @@ Hoàn thiện JWT auth/user đa tổ chức, session invalidation và khóa lũy
 | US-1.1/1.2 | Login/logout/refresh/register/email verification hardening | 8 | Done |
 | US-1.3–1.7 | CRUD/search/role/status/temp password theo organization | 8 | Done |
 | US-1.9 | Progressive account lock + rate limit | 5 | Done |
-| US-1.10 | MFA TOTP enrollment/login/recovery | 13 | Retired by product decision; runtime/schema xóa bằng migration `072` |
-| US-1.8 | Microsoft AD qua LDAPS | — | Removed by product decision; runtime/dependency/schema được retire bằng migration `008` |
 
-Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Không còn endpoint, provisioning, dependency hoặc UAT MFA/LDAP/AD.
+Xác thực được hỗ trợ: email/password nội bộ và Google OAuth.
 
 ## Definition of Ready
 
@@ -24,7 +22,6 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - [x] Không Docker, Redis, BullMQ, Newman, Testcontainers.
 - [x] PO chốt quyền ảnh vệ tinh: UB, TNMT, XD, QT được thêm/xóa/phân loại theo mục 2.1.
 - [ ] Data owner/deadline Phụ lục 2.
-- [x] US-1.8 được loại khỏi scope; không dựng domain controller/LDAPS trên VPS dùng chung.
 
 ## Tasks
 
@@ -36,21 +33,6 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - [x] Progressive lockout 15/30/60/120; success reset.
 - [x] Register email verification không bypass DB state.
 - [x] Security regression unit tests.
-
-### MFA/TOTP — Retired
-
-- [x] Quyết định sản phẩm: không sử dụng MFA/TOTP.
-- [x] Xóa endpoint, service, repository, validator, cấu hình, Postman/Bruno contract và test MFA.
-- [x] Migration `072` xóa credential, recovery code, challenge và nhánh OAuth MFA theo hướng forward-only.
-- [x] Giữ khóa lũy tiến, rate limit, xác minh email, JWT rotation/replay detection và session revoke.
-- [x] Write integration trên `campha_test`: auth/refresh, cross-org và local create/reset.
-
-### LDAP/Active Directory — Retired
-
-- [x] Quyết định sản phẩm: không triển khai AD/LDAP trên VPS dùng chung.
-- [x] Xóa endpoint, provisioning, refresh revalidation, dependency `ldapts`, cấu hình và runbook.
-- [x] Migration `008` thu hồi session, vô hiệu hóa LDAP-only user và drop `auth.ldap_identities`.
-- [x] User-create contract khi đó chuyển local-only; Google OAuth giữ nguyên. OpenAPI đã retired tại Sprint 6a.
 
 ### User/session
 
@@ -69,7 +51,6 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - [x] Authenticated runtime smoke: sample citizen `/auth/me` 200 với `tokenVersion`.
 - [x] Lint, unit, coverage và security audit đạt; số liệu hiện hành ở Acceptance Evidence.
 - [x] Migration 004 áp dụng VPS `campha`; integration read-only 3/3.
-- [x] MFA contract đã retire; client chỉ xử lý token trực tiếp từ login/OAuth exchange.
 - [x] `campha_test` migration rehearsal + write-capable integration suite.
 
 ## Acceptance Evidence
@@ -82,14 +63,10 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth. Kh�
 - Integration DB tổng: foundation + Sprint 1 + Sprint 3 trên `campha_test`.
 - Runtime: `GET /api/v1/auth/me` trả 200 với JWT có `tokenVersion` và fresh DB lookup.
 - Security: JWT secrets sinh local trong `.env`; Google OAuth secret không đưa vào source/log.
-- MFA removal: migration `072` forward-only; migration `004` giữ nguyên lịch sử checksum.
-- LDAP removal: migration `005` giữ nguyên lịch sử checksum; migration `008` retire schema forward-only.
 
 ## Blockers
 
-### DB integration
-
-Migration `008` đã áp và checksum OK trên `campha_test`; suite xác minh `auth.ldap_identities` không còn tồn tại và local user lifecycle đạt. Production `campha` vẫn pending migration `007` và `008`; chỉ chạy sau backup. Suite write fail-fast nếu `DB_NAME` khác `campha_test`.
+Migration foundation đã áp và checksum OK trên `campha_test`; local user lifecycle đạt. Production `campha` chỉ migrate sau backup. Suite write fail-fast nếu `DB_NAME` khác `campha_test`.
 
 ### Product ownership
 

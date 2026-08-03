@@ -31,7 +31,6 @@ Nhập Shapefile ZIP/Excel vào PostGIS, quản trị metadata/ACL/xóa nền, t
 - Role contract giữ migration `002`: `system_admin`/`so_xd` create/read; chỉ `so_tnmt` update/delete/grant.
 - Strict body/query validation; generated SQL identifiers allowlisted; per-row errors giới hạn/paginated.
 - Carry-over hardening hoàn tất: promote + import completion atomic; import/cleanup terminal writes fenced bởi live lease; cleanup heartbeat; validation errors không nhân bản theo retry.
-- LDAP/AD đã retire ở migration `008`; không thuộc scope hoặc exit gate Sprint 3.
 
 ## Acceptance Evidence
 
@@ -52,10 +51,10 @@ ZIP local-header mismatch: rejected
 
 - US-3.7: chưa có 7 lớp nền địa lý Cẩm Phả và ranh giới phường/xã có mã hành chính; không thể nghiệm thu dữ liệu thật.
 - US-3.8: không tự bịa SP/deadline đồng thuận. Owner A và Owner B cần Planning Poker sau khi xem kết quả Sprint 3.
-- Production DB `campha` chưa áp migration `007` (layer), `008` (retire LDAP) và `009` (WebGIS API); chỉ `campha_test` đã migrate.
+- Production DB `campha` chưa áp migrations `007–009`; chỉ `campha_test` đã migrate.
 - Worker live với MinIO + GeoServer trên VPS chưa bật; `.env` mặc định `LAYER_WORKER_ENABLED=false`.
 - QGIS visual UAT chờ layer nghiệp vụ thật.
 
 ## Exit Gate
 
-Sprint 3 **Done kỹ thuật có điều kiện**. Đóng hoàn toàn khi: backup rồi áp migration `007`, `008`, `009` production, bật worker native VPS, UAT end-to-end MinIO → GDAL → PostGIS → GeoServer → QGIS, nạp dữ liệu thật US-3.7, hoàn tất Planning Poker US-3.8. LDAP/AD không phải điều kiện nghiệm thu.
+Sprint 3 **Done kỹ thuật có điều kiện**. Đóng hoàn toàn khi: backup rồi áp migrations `007–009` production, bật worker native VPS, UAT end-to-end MinIO → GDAL → PostGIS → GeoServer → QGIS, nạp dữ liệu thật US-3.7, hoàn tất Planning Poker US-3.8.

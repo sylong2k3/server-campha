@@ -31,7 +31,7 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 | Bypass/leo thang RBAC | Permission từ DB, không bypass `system_admin`, test hồi quy | Sinh test theo toàn ma trận |
 | IDOR xuyên tổ chức | `org_id` ép ở service/repository | Integration test DB thật |
 | Truy cập lớp trái phép | `gis.layer_permissions`; WMS ép tên layer từ DB; WFS chỉ `GetFeature` qua ACL `export` | Đóng WMS/WFS trực tiếp tại firewall/GeoServer theo lịch vận hành |
-| Brute force/token replay | Rate limit, progressive lockout, token blacklist, refresh rotation/reuse detection; local + Google OAuth identities | MFA đã retire theo quyết định sản phẩm; cần giám sát đăng nhập bất thường |
+| Brute force/token replay | Rate limit, progressive lockout, token blacklist, refresh rotation/reuse detection; local + Google OAuth identities | Giám sát đăng nhập bất thường |
 | Migration chạy đồng thời/bị sửa | Advisory lock, SHA256 checksum, transaction từng file | Backup/restore drill |
 | Upload độc hại/zip bomb | Presigned PUT chỉ vào quarantine; allow-list extension; magic bytes; size limit; ClamAV INSTREAM fail-closed; SHA-256 trước promote | Bật `clamd` native và UAT malware thật; ZIP entry/decompression limits ở Sprint 3 import |
 | SSRF/redirect qua GeoServer | Base URL chỉ từ server config; path nội bộ; resource identifier validation; `redirect: error`; sanitized upstream errors | Outbound firewall allow-list |

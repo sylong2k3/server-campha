@@ -257,9 +257,9 @@ Không dùng WFS-T
 
 ## 10. Xác thực người dùng
 
-Sản phẩm dùng email/password nội bộ và Google OAuth. LDAP/Active Directory đã được loại khỏi phạm vi vì VPS dùng chung cho nhiều dự án; không cài domain controller, Samba AD DC, OpenLDAP hoặc mở cổng directory trên máy này.
+Sản phẩm dùng email/password nội bộ và Google OAuth.
 
-Các kiểm soát bắt buộc vẫn gồm rate limit, khóa lũy tiến, JWT access ngắn hạn, refresh rotation/replay detection, RBAC PostgreSQL và email verification.
+Kiểm soát bắt buộc gồm rate limit, khóa lũy tiến, JWT access ngắn hạn, refresh rotation/replay detection, RBAC PostgreSQL và email verification.
 
 ## 11. Google OAuth, Firebase, GEE, OpenWeather
 
