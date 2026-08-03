@@ -12,7 +12,7 @@
 
 require('dotenv').config();
 
-const db             = require('../../configs/database');
+const db = require('../../configs/database');
 const userRepository = require('../../repositories/user.repository');
 const { hashPassword } = require('../../utils/cryptoHelper.util');
 
@@ -199,7 +199,9 @@ const EXTRA_USERS = [
                 [u.orgCode],
             );
             const orgId = orgs[0]?.id;
-            if (!orgId) throw new Error(`Tổ chức không tồn tại: ${u.orgCode}`);
+            if (!orgId) {
+                throw new Error(`Tổ chức không tồn tại: ${u.orgCode}`);
+            }
 
             const existing = await userRepository.findByEmail(u.email);
 

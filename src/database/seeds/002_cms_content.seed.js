@@ -13,18 +13,29 @@ require('dotenv').config();
 const db = require('../../configs/database');
 
 const ADMIN_EMAIL = 'admin@campha.gov.vn';
-const TNMT_EMAIL  = 'tnmt@campha.gov.vn';
-const UBND_EMAIL  = 'ubnd@campha.gov.vn';
+const TNMT_EMAIL = 'tnmt@campha.gov.vn';
+const UBND_EMAIL = 'ubnd@campha.gov.vn';
 
 // ---------------------------------------------------------------------------
 //  Helper: upsert một file_object placeholder (không có file thật trong MinIO)
 // ---------------------------------------------------------------------------
-async function ensureFileObject({ ownerUserId, orgId, category, bucket, objectKey, originalName, mime, sizeBytes }) {
+async function ensureFileObject({
+    ownerUserId,
+    orgId,
+    category,
+    bucket,
+    objectKey,
+    originalName,
+    mime,
+    sizeBytes,
+}) {
     const { rows } = await db.query(
         `SELECT id FROM core.file_objects WHERE bucket=$1 AND object_key=$2`,
         [bucket, objectKey],
     );
-    if (rows[0]) return rows[0].id;
+    if (rows[0]) {
+        return rows[0].id;
+    }
 
     const { rows: ins } = await db.query(
         `INSERT INTO core.file_objects
@@ -45,7 +56,9 @@ async function getUser(email) {
         `SELECT u.id, u.org_id FROM auth.users u WHERE lower(u.email)=lower($1) AND u.deleted_at IS NULL`,
         [email],
     );
-    if (!rows[0]) throw new Error(`User not found: ${email}`);
+    if (!rows[0]) {
+        throw new Error(`User not found: ${email}`);
+    }
     return rows[0];
 }
 
@@ -55,7 +68,8 @@ async function getUser(email) {
 const NEWS_ITEMS = [
     {
         title: 'Hệ thống quan trắc khí tượng thủy văn tự động chính thức hoạt động tại Cẩm Phả',
-        summary: 'Ngày 15/01/2026, hệ thống 6 trạm quan trắc KTTV tự động được lắp đặt trên địa bàn thành phố Cẩm Phả chính thức đi vào hoạt động, cung cấp số liệu thời gian thực 24/7.',
+        summary:
+            'Ngày 15/01/2026, hệ thống 6 trạm quan trắc KTTV tự động được lắp đặt trên địa bàn thành phố Cẩm Phả chính thức đi vào hoạt động, cung cấp số liệu thời gian thực 24/7.',
         content: `<h2>Cẩm Phả triển khai mạng lưới quan trắc KTTV tự động</h2>
 <p>Ngày 15/01/2026, UBND thành phố Cẩm Phả phối hợp cùng Sở Tài nguyên và Môi trường tỉnh Quảng Ninh tổ chức lễ ra mắt hệ thống 6 trạm quan trắc khí tượng thủy văn (KTTV) tự động trải dài trên địa bàn toàn thành phố.</p>
 <p>Các trạm được trang bị cảm biến hiện đại đo lường đồng thời nhiều thông số: lượng mưa, mực nước, nhiệt độ, độ ẩm, tốc độ và hướng gió, áp suất khí quyển. Dữ liệu được truyền về trung tâm mỗi 10 phút và hiển thị trực quan trên bản đồ WebGIS.</p>
@@ -75,7 +89,8 @@ const NEWS_ITEMS = [
     },
     {
         title: 'Cảnh báo mưa lớn diện rộng tại Cẩm Phả — nguy cơ ngập úng cục bộ',
-        summary: 'Đài Khí tượng Thủy văn tỉnh Quảng Ninh cảnh báo Cẩm Phả có khả năng xảy ra mưa to đến rất to trong 48 giờ tới, tổng lượng mưa có thể đạt 150–250 mm.',
+        summary:
+            'Đài Khí tượng Thủy văn tỉnh Quảng Ninh cảnh báo Cẩm Phả có khả năng xảy ra mưa to đến rất to trong 48 giờ tới, tổng lượng mưa có thể đạt 150–250 mm.',
         content: `<h2>Thông báo cảnh báo mưa lớn</h2>
 <p><strong>Thời gian:</strong> 06:00 ngày 20/07/2026 – 06:00 ngày 22/07/2026</p>
 <p><strong>Khu vực ảnh hưởng:</strong> Toàn bộ địa bàn thành phố Cẩm Phả, đặc biệt các phường Quang Hanh, Mông Dương và Cẩm Thịnh.</p>
@@ -100,7 +115,8 @@ const NEWS_ITEMS = [
     },
     {
         title: 'Kết quả quan trắc môi trường quý 2 năm 2026 — Thành phố Cẩm Phả',
-        summary: 'Tổng hợp kết quả quan trắc chất lượng môi trường không khí, nước mặt và khí hậu trong quý 2/2026 trên địa bàn thành phố Cẩm Phả.',
+        summary:
+            'Tổng hợp kết quả quan trắc chất lượng môi trường không khí, nước mặt và khí hậu trong quý 2/2026 trên địa bàn thành phố Cẩm Phả.',
         content: `<h2>Báo cáo quan trắc môi trường Q2/2026</h2>
 <h3>1. Chất lượng không khí</h3>
 <p>Chỉ số AQI trung bình quý 2 tại trạm trung tâm Cẩm Phả đạt <strong>68</strong> (mức Trung bình — màu vàng). Nồng độ bụi PM2.5 trung bình 24h là 28,4 µg/m³, dưới ngưỡng QCVN 05:2023/BTNMT.</p>
@@ -121,7 +137,8 @@ const NEWS_ITEMS = [
     },
     {
         title: 'Triển khai kế hoạch phòng chống thiên tai và tìm kiếm cứu nạn năm 2026',
-        summary: 'UBND thành phố Cẩm Phả ban hành kế hoạch phòng chống thiên tai và tìm kiếm cứu nạn năm 2026, tập trung vào ứng phó mưa lũ, sạt lở và các hiện tượng thời tiết cực đoan.',
+        summary:
+            'UBND thành phố Cẩm Phả ban hành kế hoạch phòng chống thiên tai và tìm kiếm cứu nạn năm 2026, tập trung vào ứng phó mưa lũ, sạt lở và các hiện tượng thời tiết cực đoan.',
         content: `<h2>Kế hoạch phòng chống thiên tai 2026</h2>
 <p>Thực hiện Quyết định số 1345/QĐ-UBND ngày 10/01/2026, UBND thành phố Cẩm Phả triển khai kế hoạch phòng chống thiên tai và tìm kiếm cứu nạn (PCTT-TKCN) năm 2026.</p>
 <h3>Mục tiêu</h3>
@@ -138,7 +155,8 @@ const NEWS_ITEMS = [
     },
     {
         title: 'Nâng cấp hệ thống GIS quản lý hạ tầng đô thị Cẩm Phả giai đoạn 2',
-        summary: 'Sở Xây dựng Quảng Ninh khởi động giai đoạn 2 nâng cấp hệ thống GIS tích hợp quản lý hạ tầng kỹ thuật đô thị thành phố Cẩm Phả, bao gồm cấp thoát nước, giao thông và cây xanh.',
+        summary:
+            'Sở Xây dựng Quảng Ninh khởi động giai đoạn 2 nâng cấp hệ thống GIS tích hợp quản lý hạ tầng kỹ thuật đô thị thành phố Cẩm Phả, bao gồm cấp thoát nước, giao thông và cây xanh.',
         content: `<h2>GIS hạ tầng đô thị Cẩm Phả — Giai đoạn 2</h2>
 <p>Sau thành công của giai đoạn 1 (2024–2025), Sở Xây dựng Quảng Ninh tiếp tục triển khai giai đoạn 2 của dự án hệ thống GIS quản lý hạ tầng đô thị thành phố Cẩm Phả.</p>
 <h3>Nội dung giai đoạn 2</h3>
@@ -165,7 +183,8 @@ const DOCUMENTS = [
         documentCode: 'BC-HSTMT-2025-CP',
         issuingAgency: 'Sở Tài nguyên và Môi trường Quảng Ninh',
         issuedAt: '2025-12-20',
-        description: 'Báo cáo tổng hợp hiện trạng môi trường không khí, nước mặt, nước ngầm, đất và tiếng ồn trên địa bàn thành phố Cẩm Phả năm 2025. Bao gồm kết quả quan trắc 4 quý, phân tích xu hướng và đề xuất giải pháp cải thiện.',
+        description:
+            'Báo cáo tổng hợp hiện trạng môi trường không khí, nước mặt, nước ngầm, đất và tiếng ồn trên địa bàn thành phố Cẩm Phả năm 2025. Bao gồm kết quả quan trắc 4 quý, phân tích xu hướng và đề xuất giải pháp cải thiện.',
         visibility: 'public',
         fileName: 'BC-HSTMT-2025-CP.pdf',
         mime: 'application/pdf',
@@ -177,7 +196,8 @@ const DOCUMENTS = [
         documentCode: 'KH-PCTT-2026-CP',
         issuingAgency: 'UBND thành phố Cẩm Phả',
         issuedAt: '2026-01-10',
-        description: 'Kế hoạch chi tiết về công tác phòng chống thiên tai, tìm kiếm và cứu nạn trên địa bàn thành phố Cẩm Phả năm 2026. Bao gồm phân công nhiệm vụ, phương án ứng phó và nguồn lực huy động.',
+        description:
+            'Kế hoạch chi tiết về công tác phòng chống thiên tai, tìm kiếm và cứu nạn trên địa bàn thành phố Cẩm Phả năm 2026. Bao gồm phân công nhiệm vụ, phương án ứng phó và nguồn lực huy động.',
         visibility: 'public',
         fileName: 'KH-PCTT-2026-CP.pdf',
         mime: 'application/pdf',
@@ -189,7 +209,8 @@ const DOCUMENTS = [
         documentCode: 'QH-SDD-2021-2030-CP',
         issuingAgency: 'UBND tỉnh Quảng Ninh',
         issuedAt: '2021-06-15',
-        description: 'Quy hoạch sử dụng đất thành phố Cẩm Phả giai đoạn 2021–2030, tầm nhìn đến năm 2045. Bao gồm các chỉ tiêu phân bổ đất đai, danh mục công trình, dự án và bản đồ quy hoạch kèm theo.',
+        description:
+            'Quy hoạch sử dụng đất thành phố Cẩm Phả giai đoạn 2021–2030, tầm nhìn đến năm 2045. Bao gồm các chỉ tiêu phân bổ đất đai, danh mục công trình, dự án và bản đồ quy hoạch kèm theo.',
         visibility: 'public',
         fileName: 'QH-SDD-2021-2030-CamPha.pdf',
         mime: 'application/pdf',
@@ -201,7 +222,8 @@ const DOCUMENTS = [
         documentCode: 'BC-KKDD-2024-CP',
         issuingAgency: 'UBND thành phố Cẩm Phả',
         issuedAt: '2024-12-31',
-        description: 'Kết quả kiểm kê đất đai toàn thành phố Cẩm Phả năm 2024 theo Chỉ thị 15/CT-TTg. Số liệu thống kê diện tích các loại đất, biến động so với năm 2019 và bản đồ kiểm kê kèm theo.',
+        description:
+            'Kết quả kiểm kê đất đai toàn thành phố Cẩm Phả năm 2024 theo Chỉ thị 15/CT-TTg. Số liệu thống kê diện tích các loại đất, biến động so với năm 2019 và bản đồ kiểm kê kèm theo.',
         visibility: 'internal',
         fileName: 'BC-KKDD-2024-CP.pdf',
         mime: 'application/pdf',
@@ -213,7 +235,8 @@ const DOCUMENTS = [
         documentCode: 'QCKT-NM-QN-2023',
         issuingAgency: 'UBND tỉnh Quảng Ninh',
         issuedAt: '2023-09-01',
-        description: 'Quy chuẩn kỹ thuật địa phương tỉnh Quảng Ninh về chất lượng nước mặt áp dụng cho các vùng đặc thù khai thác than, ban hành theo Quyết định số 2890/QĐ-UBND.',
+        description:
+            'Quy chuẩn kỹ thuật địa phương tỉnh Quảng Ninh về chất lượng nước mặt áp dụng cho các vùng đặc thù khai thác than, ban hành theo Quyết định số 2890/QĐ-UBND.',
         visibility: 'public',
         fileName: 'QCKT-NM-QN-2023.pdf',
         mime: 'application/pdf',
@@ -225,7 +248,8 @@ const DOCUMENTS = [
         documentCode: 'DTM-MONTHUONG-MR-2025',
         issuingAgency: 'Vinacomin — Công ty than Mông Dương',
         issuedAt: '2025-03-20',
-        description: 'Báo cáo đánh giá tác động môi trường (ĐTM) dự án mở rộng khai thác mỏ than Mông Dương giai đoạn 2025–2035. Đã được Bộ TN&MT phê duyệt tại Quyết định 456/QĐ-BTNMT.',
+        description:
+            'Báo cáo đánh giá tác động môi trường (ĐTM) dự án mở rộng khai thác mỏ than Mông Dương giai đoạn 2025–2035. Đã được Bộ TN&MT phê duyệt tại Quyết định 456/QĐ-BTNMT.',
         visibility: 'public',
         fileName: 'DTM-MongDuong-MoRong-2025.pdf',
         mime: 'application/pdf',
@@ -243,7 +267,8 @@ const PDF_MAPS = [
         scaleLabel: '1:25.000',
         mapYear: 2023,
         preparingAgency: 'Cục Đo đạc, Bản đồ và Thông tin địa lý Việt Nam',
-        description: 'Bản đồ địa hình phủ trùm toàn bộ thành phố Cẩm Phả, hệ tọa độ VN-2000 múi 3° kinh tuyến trục 107°45\'. Thể hiện đầy đủ địa hình, thủy văn, giao thông và dân cư.',
+        description:
+            "Bản đồ địa hình phủ trùm toàn bộ thành phố Cẩm Phả, hệ tọa độ VN-2000 múi 3° kinh tuyến trục 107°45'. Thể hiện đầy đủ địa hình, thủy văn, giao thông và dân cư.",
         visibility: 'public',
         fileName: 'BanDo-DiaThanh-CamPha-25000-2023.pdf',
         sizeBytes: 18400000,
@@ -254,7 +279,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2021,
         preparingAgency: 'Sở Tài nguyên và Môi trường Quảng Ninh',
-        description: 'Bản đồ quy hoạch sử dụng đất thành phố Cẩm Phả đến năm 2030, tỷ lệ 1:10.000. Thể hiện các loại đất theo phân loại quy hoạch: đất ở, đất sản xuất, đất lâm nghiệp, đất khai thác khoáng sản.',
+        description:
+            'Bản đồ quy hoạch sử dụng đất thành phố Cẩm Phả đến năm 2030, tỷ lệ 1:10.000. Thể hiện các loại đất theo phân loại quy hoạch: đất ở, đất sản xuất, đất lâm nghiệp, đất khai thác khoáng sản.',
         visibility: 'public',
         fileName: 'BanDo-QH-SDD-CamPha-2030.pdf',
         sizeBytes: 9200000,
@@ -265,7 +291,8 @@ const PDF_MAPS = [
         scaleLabel: '1:25.000',
         mapYear: 2024,
         preparingAgency: 'Viện Khoa học Khí tượng Thủy văn và Biến đổi Khí hậu',
-        description: 'Bản đồ mô phỏng vùng có nguy cơ ngập lụt theo kịch bản biến đổi khí hậu RCP 4.5 năm 2050 cho thành phố Cẩm Phả. Độ phân giải 10m, thể hiện độ sâu ngập và thời gian ngập dự báo.',
+        description:
+            'Bản đồ mô phỏng vùng có nguy cơ ngập lụt theo kịch bản biến đổi khí hậu RCP 4.5 năm 2050 cho thành phố Cẩm Phả. Độ phân giải 10m, thể hiện độ sâu ngập và thời gian ngập dự báo.',
         visibility: 'public',
         fileName: 'BanDo-NgapLut-RCP45-CamPha-2024.pdf',
         sizeBytes: 14700000,
@@ -276,7 +303,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2024,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ hiện trạng sử dụng đất thành phố Cẩm Phả năm 2024, được thành lập từ ảnh vệ tinh độ phân giải cao và số liệu kiểm kê đất đai. Phục vụ công tác quản lý đất đai và quy hoạch.',
+        description:
+            'Bản đồ hiện trạng sử dụng đất thành phố Cẩm Phả năm 2024, được thành lập từ ảnh vệ tinh độ phân giải cao và số liệu kiểm kê đất đai. Phục vụ công tác quản lý đất đai và quy hoạch.',
         visibility: 'public',
         fileName: 'BanDo-HTSDDD-CamPha-2024.pdf',
         sizeBytes: 11300000,
@@ -287,7 +315,8 @@ const PDF_MAPS = [
         scaleLabel: '1:100.000',
         mapYear: 2025,
         preparingAgency: 'Đài Khí tượng Thủy văn tỉnh Quảng Ninh',
-        description: 'Bản đồ thể hiện vị trí các trạm quan trắc khí tượng thủy văn (tự động và thủ công) trên địa bàn tỉnh Quảng Ninh, tập trung vào khu vực thành phố Cẩm Phả và phụ cận.',
+        description:
+            'Bản đồ thể hiện vị trí các trạm quan trắc khí tượng thủy văn (tự động và thủ công) trên địa bàn tỉnh Quảng Ninh, tập trung vào khu vực thành phố Cẩm Phả và phụ cận.',
         visibility: 'public',
         fileName: 'BanDo-TramKTTV-QuangNinh-2025.pdf',
         sizeBytes: 6800000,
@@ -298,7 +327,8 @@ const PDF_MAPS = [
         scaleLabel: '1:25.000',
         mapYear: 2023,
         preparingAgency: 'Viện Địa chất — Viện Hàn lâm Khoa học và Công nghệ Việt Nam',
-        description: 'Bản đồ phân vùng nguy cơ sạt lở đất thành phố Cẩm Phả tỷ lệ 1:25.000. Phân loại nguy cơ: rất cao, cao, trung bình, thấp. Dùng trong công tác phòng ngừa thiên tai và quy hoạch xây dựng.',
+        description:
+            'Bản đồ phân vùng nguy cơ sạt lở đất thành phố Cẩm Phả tỷ lệ 1:25.000. Phân loại nguy cơ: rất cao, cao, trung bình, thấp. Dùng trong công tác phòng ngừa thiên tai và quy hoạch xây dựng.',
         visibility: 'internal',
         fileName: 'BanDo-SatLo-CamPha-2023.pdf',
         sizeBytes: 8950000,
@@ -359,7 +389,16 @@ const PDF_MAPS = [
             await db.query(
                 `INSERT INTO cms.documents(title,document_code,issuing_agency,issued_at,description,visibility,file_object_id,created_by)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
-                [d.title, d.documentCode, d.issuingAgency, d.issuedAt, d.description, d.visibility, fileId, actor.id],
+                [
+                    d.title,
+                    d.documentCode,
+                    d.issuingAgency,
+                    d.issuedAt,
+                    d.description,
+                    d.visibility,
+                    fileId,
+                    actor.id,
+                ],
             );
             console.log(`  [OK]   Văn bản: ${d.documentCode}`);
             docCount++;
@@ -393,7 +432,16 @@ const PDF_MAPS = [
             await db.query(
                 `INSERT INTO cms.pdf_maps(title,scale_label,map_year,preparing_agency,description,visibility,file_object_id,created_by,updated_by)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$8)`,
-                [m.title, m.scaleLabel, m.mapYear, m.preparingAgency, m.description, m.visibility, fileId, actor.id],
+                [
+                    m.title,
+                    m.scaleLabel,
+                    m.mapYear,
+                    m.preparingAgency,
+                    m.description,
+                    m.visibility,
+                    fileId,
+                    actor.id,
+                ],
             );
             console.log(`  [OK]   Bản đồ PDF: "${m.title.substring(0, 60)}..."`);
             mapCount++;
