@@ -11,15 +11,22 @@ const paginate = (params, page, limit) => {
     params.push(limit, (page - 1) * limit);
     return `LIMIT $${params.length - 1} OFFSET $${params.length}`;
 };
+const queryOne = async (sql, params, client = db) => {
+    const {
+        rows: [row],
+    } = await client.query(sql, params);
+    return row || null;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // kttv.sources
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SOURCE_COLUMNS = `id,name,provider,service_type,endpoint_url,auth_method,credential_enc,
-    rate_limit_per_min,rate_limit_per_day,response_format,license_note,spatial_config,
-    temporal_config,variables,display_config,cron_expr,retry_count,retry_delay_sec,
-    fallback_source_id,is_enabled,created_at,updated_at`;
+    rate_limit_per_min,rate_limit_per_day,response_format,license_note,
+    spatial_config,temporal_config,variables,display_config,cron_expr,retry_count,retry_delay_sec,
+    fallback_source_id,is_enabled,last_attempt_at,last_success_at,last_error_code,last_http_status,
+    last_response_bytes,created_at,updated_at`;
 
 const listSources = async (filter) => {
     const params = [];
@@ -46,11 +53,37 @@ const listSources = async (filter) => {
     return pageResult(rows);
 };
 
-const findSource = async (id) => {
-    const {
-        rows: [row],
-    } = await db.query(`SELECT ${SOURCE_COLUMNS} FROM kttv.sources WHERE id=$1`, [id]);
-    return row || null;
+const findSource = async (id) =>
+    queryOne(`SELECT ${SOURCE_COLUMNS} FROM kttv.sources WHERE id=$1`, [id]);
+
+const markCollectionSuccess = async (id, { httpStatus, responseBytes }) => {
+    await db.query(
+        `UPDATE kttv.sources SET last_attempt_at=NOW(),last_success_at=NOW(),last_error_code=NULL,
+         last_http_status=$2,last_response_bytes=$3 WHERE id=$1`,
+        [id, httpStatus, responseBytes],
+    );
+};
+
+const markCollectionFailure = async (id, { errorCode, httpStatus, responseBytes }) => {
+    await db.query(
+        `UPDATE kttv.sources SET last_attempt_at=NOW(),last_error_code=$2,
+         last_http_status=$3,last_response_bytes=$4 WHERE id=$1`,
+        [
+            id,
+            String(errorCode || 'SOURCE_COLLECTION_FAILED').slice(0, 80),
+            httpStatus,
+            responseBytes,
+        ],
+    );
+};
+
+const listScheduledSources = async () => {
+    const { rows } = await db.query(
+        `SELECT ${SOURCE_COLUMNS} FROM kttv.sources
+         WHERE is_enabled=true AND service_type='REST' AND response_format='JSON'
+           AND cron_expr IS NOT NULL ORDER BY id`,
+    );
+    return rows;
 };
 
 const createSource = async (input) => {
@@ -275,15 +308,313 @@ const deleteStation = async (code, expectedUpdatedAt) => {
     return row || null;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// hydro.scenarios + kttv.input_batches
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SCENARIO_COLUMNS = `id,code,version,name,description,match_rule,match_priority,status,
+    is_enabled,effective_from,effective_to,created_by,published_by,published_at,created_at,updated_at`;
+const INPUT_COLUMNS = `b.id,b.input_mode,b.station_code,b.observed_at,b.values_snapshot,b.source_id,
+    b.entered_by,b.match_status,b.scenario_id,b.candidate_scenario_ids,b.created_at`;
+const INPUT_DETAIL_COLUMNS = `${INPUT_COLUMNS},b.raw_payload`;
+
+const listScenarios = async (filter) => {
+    const params = [];
+    const conditions = ['TRUE'];
+    if (filter.q) {
+        params.push(`%${filter.q}%`);
+        conditions.push(
+            `(unaccent(lower(name)) ILIKE unaccent(lower($${params.length})) OR code ILIKE $${params.length})`,
+        );
+    }
+    if (filter.status) {
+        params.push(filter.status);
+        conditions.push(`status=$${params.length}`);
+    }
+    if (filter.isEnabled !== undefined) {
+        params.push(filter.isEnabled);
+        conditions.push(`is_enabled=$${params.length}`);
+    }
+    const paging = paginate(params, filter.page, filter.limit);
+    const { rows } = await db.query(
+        `SELECT ${SCENARIO_COLUMNS},COUNT(*) OVER()::int total_count FROM hydro.scenarios
+         WHERE ${conditions.join(' AND ')} ORDER BY code,version DESC ${paging}`,
+        params,
+    );
+    return pageResult(rows);
+};
+const findScenario = async (id, client = db) =>
+    queryOne(`SELECT ${SCENARIO_COLUMNS} FROM hydro.scenarios WHERE id=$1`, [id], client);
+const createScenario = async (input, actor) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [input.code]);
+        const {
+            rows: [version],
+        } = await client.query(
+            `SELECT COALESCE(MAX(version),0)+1 next_version FROM hydro.scenarios WHERE code=$1`,
+            [input.code],
+        );
+        const row = await queryOne(
+            `INSERT INTO hydro.scenarios(code,version,name,description,match_rule,match_priority,
+                effective_from,effective_to,created_by)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${SCENARIO_COLUMNS}`,
+            [
+                input.code,
+                version.next_version,
+                input.name,
+                input.description || null,
+                JSON.stringify(input.matchRule),
+                input.matchPriority,
+                input.effectiveFrom || null,
+                input.effectiveTo || null,
+                actor.id,
+            ],
+            client,
+        );
+        await client.query('COMMIT');
+        return row;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+const updateScenario = async (id, input) => {
+    const sets = [];
+    const params = [];
+    const push = (column, value) => {
+        params.push(value);
+        sets.push(`${column}=$${params.length}`);
+    };
+    const scalarFields = {
+        name: 'name',
+        description: 'description',
+        matchPriority: 'match_priority',
+        effectiveFrom: 'effective_from',
+        effectiveTo: 'effective_to',
+    };
+    for (const [key, column] of Object.entries(scalarFields)) {
+        if (input[key] !== undefined) {
+            push(column, input[key] === '' ? null : input[key]);
+        }
+    }
+    if (input.matchRule !== undefined) {
+        push('match_rule', JSON.stringify(input.matchRule));
+    }
+    params.push(id, input.expectedUpdatedAt);
+    const idIndex = params.length - 1;
+    const version = versionCondition(params.length);
+    return queryOne(
+        `UPDATE hydro.scenarios SET ${sets.join(',')} WHERE id=$${idIndex} AND status='draft'${version}
+         RETURNING ${SCENARIO_COLUMNS}`,
+        params,
+    );
+};
+const publishScenario = async (id, expectedUpdatedAt, isEnabled, actor) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const current = await queryOne(
+            `SELECT ${SCENARIO_COLUMNS} FROM hydro.scenarios WHERE id=$1 FOR UPDATE`,
+            [id],
+            client,
+        );
+        if (!current) {
+            await client.query('ROLLBACK');
+            return { conflict: 'SCENARIO_NOT_FOUND' };
+        }
+        if (current.status !== 'draft') {
+            await client.query('ROLLBACK');
+            return { conflict: 'SCENARIO_NOT_DRAFT' };
+        }
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [current.code]);
+        if (isEnabled) {
+            await client.query(
+                `UPDATE hydro.scenarios SET status='archived',is_enabled=false
+                 WHERE code=$1 AND status='official' AND is_enabled=true`,
+                [current.code],
+            );
+        }
+        const row = await queryOne(
+            `UPDATE hydro.scenarios SET status='official',is_enabled=$2,published_by=$3,published_at=NOW()
+             WHERE id=$1 AND status='draft'${versionCondition(4)} RETURNING ${SCENARIO_COLUMNS}`,
+            [id, isEnabled, actor.id, expectedUpdatedAt],
+            client,
+        );
+        if (!row) {
+            await client.query('ROLLBACK');
+            return { conflict: 'OPTIMISTIC_LOCK_CONFLICT' };
+        }
+        await client.query('COMMIT');
+        return row;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+const listMatchableScenarios = async (observedAt) => {
+    const { rows } = await db.query(
+        `SELECT ${SCENARIO_COLUMNS} FROM hydro.scenarios
+         WHERE status='official' AND is_enabled=true
+           AND (effective_from IS NULL OR effective_from <= $1)
+           AND (effective_to IS NULL OR effective_to > $1)
+         ORDER BY match_priority,id`,
+        [observedAt],
+    );
+    return rows;
+};
+
+const listInputs = async (filter) => {
+    const params = [];
+    const conditions = ['TRUE'];
+    const add = (value, sql) => {
+        params.push(value);
+        conditions.push(sql(params.length));
+    };
+    if (filter.inputMode) {
+        add(filter.inputMode, (i) => `b.input_mode=$${i}`);
+    }
+    if (filter.matchStatus) {
+        add(filter.matchStatus, (i) => `b.match_status=$${i}`);
+    }
+    if (filter.stationCode) {
+        add(filter.stationCode, (i) => `b.station_code=$${i}`);
+    }
+    if (filter.from) {
+        add(filter.from, (i) => `b.observed_at >= $${i}`);
+    }
+    if (filter.to) {
+        add(filter.to, (i) => `b.observed_at < $${i}`);
+    }
+    const paging = paginate(params, filter.page, filter.limit);
+    const { rows } = await db.query(
+        `SELECT ${INPUT_COLUMNS},s.code scenario_code,s.version scenario_version,
+            COUNT(*) OVER()::int total_count
+         FROM kttv.input_batches b LEFT JOIN hydro.scenarios s ON s.id=b.scenario_id
+         WHERE ${conditions.join(' AND ')} ORDER BY b.created_at DESC,b.id DESC ${paging}`,
+        params,
+    );
+    return pageResult(rows);
+};
+const findInput = async (id) => {
+    const row = await queryOne(
+        `SELECT ${INPUT_DETAIL_COLUMNS},s.code scenario_code,s.version scenario_version
+         FROM kttv.input_batches b LEFT JOIN hydro.scenarios s ON s.id=b.scenario_id WHERE b.id=$1`,
+        [id],
+    );
+    if (!row) {
+        return null;
+    }
+    const { rows } = await db.query(
+        `SELECT variable,value,unit,quality_flag FROM kttv.observations
+         WHERE input_batch_id=$1 ORDER BY variable`,
+        [id],
+    );
+    return { ...row, observations: rows };
+};
+const ensureObservationPartition = async (client, observedAt) => {
+    const date = new Date(observedAt);
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const nextYear = month === 12 ? year + 1 : year;
+    const nextMonth = month === 12 ? 1 : month + 1;
+    const suffix = `${year}_${String(month).padStart(2, '0')}`;
+    const from = `${year}-${String(month).padStart(2, '0')}-01T00:00:00Z`;
+    const to = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01T00:00:00Z`;
+    // year/month chỉ sinh từ Date hợp lệ; suffix và literals không nhận từ người dùng.
+    await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `kttv.observations_${suffix}`,
+    ]);
+    await client.query(
+        `CREATE TABLE IF NOT EXISTS kttv.observations_${suffix}
+         PARTITION OF kttv.observations FOR VALUES FROM ('${from}') TO ('${to}')`,
+    );
+};
+const createInput = async (input) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        await ensureObservationPartition(client, input.observedAt);
+        const batch = await queryOne(
+            `INSERT INTO kttv.input_batches AS b (input_mode,station_code,observed_at,values_snapshot,
+                raw_payload,source_id,entered_by,match_status,scenario_id,candidate_scenario_ids)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING ${INPUT_COLUMNS}`,
+            [
+                input.inputMode,
+                input.stationCode,
+                input.observedAt,
+                JSON.stringify(input.values),
+                JSON.stringify(input.rawPayload),
+                input.sourceId || null,
+                input.enteredBy || null,
+                input.match.status,
+                input.match.scenarioId,
+                input.match.candidateScenarioIds,
+            ],
+            client,
+        );
+        for (const [variable, reading] of Object.entries(input.values)) {
+            await client.query(
+                `INSERT INTO kttv.observations(station_code,variable,observed_at,value,quality_flag,
+                    source_id,unit,input_batch_id,input_mode,entered_by,raw_payload)
+                 VALUES($1,$2,$3,$4,'valid',$5,$6,$7,$8,$9,$10)`,
+                [
+                    input.stationCode,
+                    variable,
+                    input.observedAt,
+                    reading.value,
+                    input.sourceId || null,
+                    reading.unit,
+                    batch.id,
+                    input.inputMode,
+                    input.enteredBy || null,
+                    JSON.stringify(input.rawPayload),
+                ],
+            );
+        }
+        await client.query('COMMIT');
+        return batch;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        if (error.code === '23505' && input.inputMode === 'automatic') {
+            return queryOne(
+                `SELECT ${INPUT_COLUMNS} FROM kttv.input_batches b
+                 WHERE source_id=$1 AND station_code=$2 AND observed_at=$3`,
+                [input.sourceId, input.stationCode, input.observedAt],
+            );
+        }
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
     listSources,
     findSource,
     createSource,
     updateSource,
     deleteSource,
+    markCollectionSuccess,
+    markCollectionFailure,
+    listScheduledSources,
     listStations,
     findStation,
     createStation,
     updateStation,
     deleteStation,
+    listScenarios,
+    findScenario,
+    createScenario,
+    updateScenario,
+    publishScenario,
+    listMatchableScenarios,
+    listInputs,
+    findInput,
+    createInput,
 };

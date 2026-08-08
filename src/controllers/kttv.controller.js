@@ -73,6 +73,61 @@ const deleteStation = async (req, res) =>
         await service.deleteStation(req.params.code, req.query.expectedUpdatedAt, buildActor(req)),
     );
 
+// ─── Scenarios + input batches ────────────────────────────────────────────────
+
+const listScenarios = async (req, res) =>
+    list(
+        res,
+        await service.listScenarios(req.query, buildActor(req)),
+        req.query,
+        'Danh sách kịch bản',
+    );
+const getScenario = async (req, res) =>
+    OK(res, 'Chi tiết kịch bản', await service.getScenario(Number(req.params.id), buildActor(req)));
+const createScenario = async (req, res) =>
+    CREATED(
+        res,
+        'Đã tạo phiên bản kịch bản nháp',
+        await service.createScenario(req.body, buildActor(req)),
+    );
+const updateScenario = async (req, res) =>
+    OK(
+        res,
+        'Đã cập nhật kịch bản nháp',
+        await service.updateScenario(Number(req.params.id), req.body, buildActor(req)),
+    );
+const publishScenario = async (req, res) =>
+    OK(
+        res,
+        'Đã ban hành kịch bản',
+        await service.publishScenario(Number(req.params.id), req.body, buildActor(req)),
+    );
+const submitManualInput = async (req, res) =>
+    CREATED(
+        res,
+        'Đã nhận dữ liệu KTTV thủ công',
+        await service.submitManualInput(req.body, buildActor(req)),
+    );
+const collectSource = async (req, res) =>
+    CREATED(
+        res,
+        'Đã thu thập dữ liệu Weather API',
+        await service.collectSource(Number(req.params.id), buildActor(req)),
+    );
+const listInputs = async (req, res) =>
+    list(
+        res,
+        await service.listInputs(req.query, buildActor(req)),
+        req.query,
+        'Danh sách dữ liệu đầu vào KTTV',
+    );
+const getInput = async (req, res) =>
+    OK(
+        res,
+        'Chi tiết dữ liệu đầu vào KTTV',
+        await service.getInput(Number(req.params.id), buildActor(req)),
+    );
+
 module.exports = {
     listSources,
     getSource,
@@ -85,4 +140,13 @@ module.exports = {
     createStation,
     updateStation,
     deleteStation,
+    listScenarios,
+    getScenario,
+    createScenario,
+    updateScenario,
+    publishScenario,
+    submitManualInput,
+    collectSource,
+    listInputs,
+    getInput,
 };

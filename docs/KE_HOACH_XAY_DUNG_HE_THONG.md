@@ -57,7 +57,7 @@ Rải khối lượng trên sang từng sprint (velocity cam kết 40 SP/sprint 
 | S7 | Phân tích không gian, thống kê | 43 | 1,1× |
 | S8 | Phản ánh cộng đồng + realtime + SPIKE-8.8 | 55 | 1,35× ⚠ |
 | S9a/S9b | Mobile GIS core (tách đôi) | 73 | 0,91× (avg) |
-| S10a/S10b | KTTV trực tuyến 7.7 (tách đôi) | 80 | 1,0× (avg) |
+| S10a/S10b | KTTV trực tuyến + nhập thủ công + chuẩn bị/khớp kịch bản (tách đôi) | 80 | 1,0× (avg) |
 | S11 | Tham số thủy văn–thủy lực (7.6) | 45 | 1,1× |
 | S12 | Chạy mô hình + dự báo ngập | 48 | 1,2× ⚠ |
 | S12b | Sprint đệm hấp thụ carry-over | 0 | 0,0× |
@@ -309,6 +309,9 @@ CREATE TABLE hydro.scenarios (            -- kịch bản mô phỏng
     impervious_ratio_pct NUMERIC(5,2),
     tide_combination VARCHAR(50),
     sea_level_rise_cm NUMERIC(6,2),
+    match_rule JSONB,                     -- điều kiện trên bộ biến KTTV đã chuẩn hóa
+    match_priority INT NOT NULL DEFAULT 100, -- số nhỏ được ưu tiên trước
+    is_enabled BOOLEAN NOT NULL DEFAULT false,
     status VARCHAR(20) NOT NULL DEFAULT 'draft',  -- draft|calibrated|official
     created_by BIGINT REFERENCES auth.users(id),
     published_by BIGINT REFERENCES auth.users(id),  -- chỉ TNMT
@@ -340,6 +343,8 @@ CREATE TABLE hydro.runs (                 -- lần chạy mô hình
     scenario_id BIGINT NOT NULL REFERENCES hydro.scenarios(id),
     param_version_id BIGINT NOT NULL REFERENCES hydro.param_versions(id), -- FK tới bản manifest đã khóa
     run_type VARCHAR(20) NOT NULL,        -- trial|calibration|validation|forecast
+    input_mode VARCHAR(20),               -- automatic|manual; bắt buộc với forecast
+    input_snapshot JSONB,                 -- dữ liệu chuẩn hóa + nguồn gốc tại thời điểm khớp
     status VARCHAR(20) NOT NULL,          -- queued|running|succeeded|failed
     job_id VARCHAR(64),                   -- BullMQ
     started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ,
@@ -355,6 +360,13 @@ CREATE TABLE hydro.metrics (              -- NSE, R2, PBIAS, RMSE
     PRIMARY KEY (run_id, station_code, variable)
 );
 ```
+
+**Luồng chọn kịch bản đã chốt — 2 chế độ:**
+
+1. **Tự động:** hệ thống lấy dữ liệu từ Weather API → kiểm tra và chuẩn hóa → khớp với kịch bản tương ứng.
+2. **Thủ công:** cán bộ nhập dữ liệu cùng bộ trường chuẩn → kiểm tra và chuẩn hóa → khớp với kịch bản tương ứng.
+
+**Danh mục kịch bản do đơn vị nghiệp vụ/chủ đầu tư chuẩn bị và bàn giao.** Hệ thống chỉ tiếp nhận, quản lý phiên bản và khớp dữ liệu; không tự sinh kịch bản. Cả hai chế độ dùng **cùng một schema chuẩn hóa và cùng một bộ khớp**. Chỉ kịch bản `official` + `is_enabled = true` được xét. Không khớp hoặc khớp nhiều kịch bản cùng mức ưu tiên thì dừng với trạng thái `no_match`/`ambiguous`, không tự chạy mô hình. Khi chạy dự báo, `hydro.runs.input_snapshot` giữ bản chụp bất biến của dữ liệu và nguồn gốc đã dùng.
 
 **Lý do dùng JSONB cho `params`:** 45 tham số phân nhóm, số lượng thay đổi theo phương pháp được chọn (SCS-CN / Horton / Green-Ampt là 3 tập tham số khác nhau). Ràng buộc kiểu và miền giá trị thực thi bằng **JSON Schema ở tầng validator**, không bằng cột SQL — tránh bảng 45 cột đa số NULL. Bù lại phải có test bao phủ mọi tổ hợp phương pháp.
 
@@ -403,7 +415,15 @@ CREATE TABLE kttv.observations (
     observed_at TIMESTAMPTZ NOT NULL,
     value NUMERIC(14,4),
     quality_flag SMALLINT NOT NULL DEFAULT 0,  -- 0 ok, 1 ngoài khoảng, 2 nhảy bậc, 3 mất tín hiệu
-    source_id BIGINT REFERENCES kttv.sources(id)
+    input_mode VARCHAR(20) NOT NULL,       -- automatic|manual
+    source_id BIGINT REFERENCES kttv.sources(id), -- bắt buộc khi automatic
+    entered_by BIGINT REFERENCES auth.users(id),  -- bắt buộc khi manual
+    raw_payload JSONB,                     -- dữ liệu gốc phục vụ truy vết
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (
+        (input_mode = 'automatic' AND source_id IS NOT NULL AND entered_by IS NULL) OR
+        (input_mode = 'manual' AND source_id IS NULL AND entered_by IS NOT NULL)
+    )
 ) PARTITION BY RANGE (observed_at);
 
 -- Dữ liệu KTTV dạng lưới/raster (GSMaP, GPM, ERA5, NetCDF, GeoTIFF)
@@ -462,6 +482,7 @@ Migration `002_campha_foundation.sql` đổi `ubnd_tinh`→`ubnd_tp`, thay `so_n
 | `field_report:approve` | – | – | ✔ | ✔ | ✔ | ✖ |
 | `hydro:edit_params` / `hydro:run` | – | – | ✖ | ✔ | ✔ | ✔ |
 | `hydro:publish_scenario` | – | – | ✖ | ✔ | ✖ | ✖ |
+| `kttv:manual_input` / `kttv:match_scenario` | – | – | ✖ | ✔ | ✔ | ✔ |
 | `kttv:display_config` | – | – | ✖ | ✔ | ✖ | ✖ |
 | `kttv:alarm_threshold` | – | – | ✔ | ✔ | ✖ | ✖ |
 | `map_feature:update` (mobile B-1(8)) | – | – | ✖ | ✔ | ✖ | ✖ |
@@ -864,9 +885,9 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 ---
 
-## Sprint 10a — Khai báo nguồn KTTV & danh mục trạm (Công việc 7.7, phần cấu hình) — 40 SP
+## Sprint 10a — Khai báo nguồn KTTV, danh mục trạm & chuẩn bị kịch bản — 40 SP
 
-**Mục tiêu sprint:** khai báo và kết nối thành công tới ít nhất một nguồn KTTV thật, xem trước được dữ liệu trả về.
+**Mục tiêu sprint:** kết nối được nguồn KTTV thật; tiếp nhận và cấu hình xong các kịch bản do đơn vị nghiệp vụ chuẩn bị để sẵn sàng khớp dữ liệu.
 
 | Story | Nội dung |
 |---|---|
@@ -878,10 +899,11 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-10a.6 | Cấu hình thời gian: chu kỳ, múi giờ UTC→UTC+7, độ trễ cho phép, hạn và bước dự báo, hạn lưu trữ, chính sách dọn dữ liệu cũ (A.1-10(4)) |
 | US-10a.7 | Danh mục biến + đơn vị gốc + hệ số quy đổi + NoData + khoảng giá trị hợp lệ (A.1-10(5)) |
 | US-10a.8 | Danh mục trạm: mã, tên, tọa độ, cao độ, loại, đơn vị quản lý, trạng thái sử dụng; cho phép chọn trạm lân cận ngoài Cẩm Phả và khai báo trọng số Thiessen/IDW (A.1-10(7)) |
+| US-10a.9 | Tiếp nhận/nhập danh mục kịch bản do đơn vị nghiệp vụ chuẩn bị; cấu hình điều kiện khớp trên bộ biến KTTV chuẩn hóa, mức ưu tiên, hiệu lực và phiên bản. Dữ liệu đến không tự tạo kịch bản mới |
 
-**Phân quyền:** khai báo nguồn, kiểm tra kết nối, cấu hình không gian–thời gian–biến và quản lý trạm: **TNMT, XD, QT**. **KH, ND không có quyền**. Mọi endpoint kiểm tra permission trong `auth.roles.permissions` theo `docs/MA_TRAN_PHAN_QUYEN.csv`, không suy quyền từ tên vai trò.
+**Phân quyền:** khai báo nguồn, kiểm tra kết nối, cấu hình không gian–thời gian–biến, quản lý trạm và chuẩn bị quy tắc kịch bản: **TNMT, XD, QT**. Chỉ **TNMT** được ban hành/kích hoạt kịch bản chính thức. **KH, ND không có quyền**. Mọi endpoint kiểm tra permission trong `auth.roles.permissions` theo `docs/MA_TRAN_PHAN_QUYEN.csv`, không suy quyền từ tên vai trò.
 
-**Nghiệm thu (E.4a):** Postman — khai báo nguồn REST/JSON thật (ưu tiên Open-Meteo hoặc nguồn được chủ đầu tư cấp), gọi endpoint kiểm tra kết nối, nhận bản xem trước đã cắt đúng phạm vi Cẩm Phả; xác nhận khóa bí mật không xuất hiện trong response/log. Bắt buộc kèm **bằng chứng chặn SSRF**: thử endpoint trỏ tới `169.254.169.254` và `127.0.0.1`, cả hai phải bị từ chối. Kiểm thử quyền bằng tài khoản TNMT, XD, QT, KH và ND.
+**Nghiệm thu (E.4a):** Postman — khai báo nguồn REST/JSON thật (ưu tiên Open-Meteo hoặc nguồn được chủ đầu tư cấp), gọi endpoint kiểm tra kết nối, nhận bản xem trước đã cắt đúng phạm vi Cẩm Phả; xác nhận khóa bí mật không xuất hiện trong response/log. Nhập tối thiểu hai kịch bản nghiệp vụ có quy tắc rõ ràng, ban hành phiên bản chính thức và chứng minh chỉ TNMT kích hoạt được. Bắt buộc kèm **bằng chứng chặn SSRF**: thử endpoint trỏ tới `169.254.169.254` và `127.0.0.1`, cả hai phải bị từ chối. Kiểm thử quyền bằng tài khoản TNMT, XD, QT, KH và ND.
 
 > **Phạm vi adapter:** S10a nghiệm thu adapter REST/JSON trước. WMS/WMTS/WFS/WCS, GEE và FTP chỉ được công bố hỗ trợ sau khi có adapter và kiểm thử tích hợp riêng; không coi trường `service_type` là bằng chứng đã hỗ trợ giao thức.
 
@@ -889,13 +911,13 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 ---
 
-## Sprint 10b — Thu thập tự động, kiểm soát chất lượng & cảnh báo — 40 SP
+## Sprint 10b — Nhận dữ liệu tự động/thủ công, khớp kịch bản & cảnh báo — 40 SP
 
-**Mục tiêu sprint:** dữ liệu KTTV tự chảy về theo lịch, qua kiểm soát chất lượng, và lên bản đồ động.
+**Mục tiêu sprint:** dữ liệu KTTV từ Weather API hoặc nhập thủ công đi qua cùng chuẩn hóa, chọn đúng kịch bản đã chuẩn bị ở S10a và sẵn sàng làm đầu vào chạy mô hình.
 
 | Story | Nội dung |
 |---|---|
-| US-10b.1 | Worker thu thập: tải → kiểm tra → cắt theo ranh giới → nội suy về lưới → quy đổi đơn vị; dữ liệu điểm/trạm ghi `kttv.observations`, dữ liệu lưới/raster ghi metadata vào `kttv.grid_assets` và tệp vào object storage |
+| US-10b.1 | **Luồng tự động:** worker lấy dữ liệu từ Weather API → kiểm tra → cắt theo ranh giới → nội suy → quy đổi đơn vị → chuẩn hóa; dữ liệu điểm/trạm ghi `kttv.observations`, dữ liệu lưới/raster ghi metadata vào `kttv.grid_assets` và tệp vào object storage |
 | US-10b.2 | Quy tắc kiểm soát chất lượng: loại giá trị ngoài khoảng, phát hiện biến thiên đột ngột, đánh dấu trạm mất tín hiệu (A.1-10(8)) |
 | US-10b.3 | Lập lịch thu thập (cron), số lần thử lại, khoảng chờ, nguồn dự phòng theo thứ tự ưu tiên (A.1-10(9)) |
 | US-10b.4 | Nhật ký thu thập, trạng thái kết nối, dung lượng đã tải; đánh dấu lớp quá hạn khi vượt độ trễ cho phép |
@@ -903,14 +925,18 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-10b.6 | Publish lớp dữ liệu động lên WebGIS/Mobile GIS theo cấu hình hiển thị, kèm tên nguồn và nội dung trích dẫn bản quyền |
 | US-10b.7 | Ngưỡng cảnh báo mưa + cấp báo động mực nước I/II/III theo trạm — **TNMT, UB** (A.1-10(8)) |
 | US-10b.8 | Kênh và tần suất gửi cảnh báo: web, ứng dụng di động, thư điện tử |
+| US-10b.9 | **Luồng thủ công:** nhập cùng bộ trường KTTV chuẩn; kiểm tra kiểu, đơn vị, thời điểm và miền giá trị; chuẩn hóa giống luồng API; ghi người nhập, thời điểm và dữ liệu gốc |
+| US-10b.10 | **Bộ khớp dùng chung:** nhận dữ liệu chuẩn hóa từ tự động hoặc thủ công → chọn `scenario_id` trong danh mục S10a theo điều kiện + độ ưu tiên; trả `no_match`/`ambiguous` thay vì tự tạo kịch bản hoặc tự chạy mô hình |
 
-**Phân quyền:** lập lịch thu thập: **TNMT, XD, QT**; cấu hình hiển thị: **chỉ TNMT**; cấu hình ngưỡng, cấp báo động, kênh và tần suất cảnh báo: **TNMT, UB**; xem trạng thái và nhật ký: **TNMT, UB, XD, QT**. **KH, ND không có quyền**.
+**Phân quyền:** nhập dữ liệu thủ công, lập lịch thu thập: **TNMT, XD, QT**; cấu hình hiển thị: **chỉ TNMT**; cấu hình ngưỡng, cấp báo động, kênh và tần suất cảnh báo: **TNMT, UB**; xem trạng thái, kết quả khớp và nhật ký: **TNMT, UB, XD, QT**. **KH, ND không có quyền**.
 
-**Nghiệm thu (E.4a):** để hệ thống chạy qua một chu kỳ thu thập REST/JSON thật và một nguồn raster thật (ưu tiên GSMaP hoặc GPM); truy vấn `kttv.observations` và `kttv.grid_assets` chứng minh dữ liệu đã về đúng kho, đúng thời gian và đã quy đổi đơn vị. Mở lớp mưa/mực nước bằng QGIS qua WMS để kiểm tra thang màu, kiểu hiển thị và attribution. Gọi API Mobile lấy nhiệt độ, hướng gió, tốc độ gió; gọi hợp đồng dữ liệu đầu vào Sprint 11 để đọc chuỗi mưa/mực nước. Chặn nguồn chính ở tầng mạng để chứng minh retry, nguồn dự phòng, trạng thái quá hạn và cảnh báo mất tín hiệu hoạt động. Kiểm thử ma trận quyền bằng đủ sáu vai trò TNMT, UB, XD, QT, KH, ND.
+**Nghiệm thu (E.4a):** dùng một payload Weather API và nhập thủ công bộ dữ liệu tương đương; hai luồng phải chuẩn hóa ra cùng giá trị và chọn cùng `scenario_id`, đồng thời lưu đúng nguồn gốc `automatic`/`manual`. Chứng minh dữ liệu không khớp trả `no_match`, quy tắc xung đột trả `ambiguous`, cả hai không tạo kịch bản và không kích hoạt mô hình. Sau đó để hệ thống chạy qua một chu kỳ REST/JSON thật và một nguồn raster thật (ưu tiên GSMaP hoặc GPM); truy vấn `kttv.observations` và `kttv.grid_assets` chứng minh dữ liệu đã về đúng kho, đúng thời gian và đúng đơn vị. Mở lớp mưa/mực nước bằng QGIS qua WMS để kiểm tra hiển thị và attribution. Chặn nguồn chính ở tầng mạng để chứng minh retry, nguồn dự phòng, trạng thái quá hạn và cảnh báo mất tín hiệu. Kiểm thử đủ sáu vai trò TNMT, UB, XD, QT, KH, ND.
 
-**Bảo mật:** dữ liệu từ bên thứ ba phải được kiểm tra kiểu và miền giá trị **trước khi** ghi vào DB (OWASP API10). Cảnh báo thiên tai gửi ra ngoài phải ghi nhật ký đầy đủ ai/khi nào/ngưỡng nào kích hoạt.
+> **Ranh giới Sprint 10:** S10 chuẩn bị kịch bản và chọn kịch bản tương ứng cho cả hai nguồn vào. S10 **chưa chạy engine mô hình**; gắn bộ tham số hoàn chỉnh ở S11 và chạy dự báo ở S12.
 
-**Rủi ro cao (lý do đặt ở nửa sau):** phụ thuộc R4 (dịch vụ KTTV có cho truy cập lập trình hay không). Nếu bế tắc, S10a đã nghiệm thu phần cấu hình và có thể chuyển sang nguồn mở (GSMaP, GPM IMERG, ERA5, Open-Meteo) mà không mất công đã làm.
+**Bảo mật:** dữ liệu từ bên thứ ba và dữ liệu nhập thủ công phải được kiểm tra kiểu, đơn vị, thời điểm và miền giá trị **trước khi** ghi vào DB (OWASP API10). Cảnh báo thiên tai gửi ra ngoài phải ghi nhật ký đầy đủ ai/khi nào/ngưỡng nào kích hoạt.
+
+**Rủi ro cao (lý do đặt ở nửa sau):** phụ thuộc R4 (dịch vụ KTTV có cho truy cập lập trình hay không). Nếu bế tắc, luồng nhập thủ công vẫn phải nghiệm thu được bằng cùng schema và bộ khớp; adapter có thể chuyển sang nguồn mở (GSMaP, GPM IMERG, ERA5, Open-Meteo) mà không đổi kịch bản.
 
 ---
 
@@ -928,7 +954,7 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 | US-11.6 | Quản lý phiên bản bộ tham số: lưu, sao chép, so sánh (diff), khôi phục |
 | US-11.7 | Nhập/xuất bộ tham số JSON/XML/CSV |
 | US-11.8 | Thiết lập ngưỡng cảnh báo ngập: độ sâu, thời gian duy trì, diện tích theo phường/xã |
-| US-11.9 | Tạo và quản lý kịch bản; **chỉ TNMT** được ban hành kịch bản chính thức |
+| US-11.9 | Gắn bộ tham số đã phiên bản hóa vào kịch bản được chuẩn bị tại Sprint 10; không tạo lại danh mục kịch bản. **Chỉ TNMT** được ban hành bộ tham số chính thức |
 
 **Bảo mật:** import bộ tham số XML → bắt buộc tắt xử lý thực thể ngoài (chống XXE). Kiểm tra miền giá trị vật lý mọi tham số (ví dụ Manning n ∈ [0.008, 0.25], CN ∈ [30, 98]) để tránh mô hình hội tụ về giá trị phi vật lý — yêu cầu này tài liệu nêu rõ.
 
@@ -938,7 +964,7 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 | Story | Nội dung |
 |---|---|
-| US-12.1 | Worker điều phối chạy engine mô phỏng; theo dõi tiến độ, hủy, timeout |
+| US-12.1 | Worker nhận `scenario_id` + `input_snapshot` từ luồng tự động/thủ công của S10, điều phối chạy engine mô phỏng; theo dõi tiến độ, hủy, timeout |
 | US-12.2 | Nhật ký lỗi và cảnh báo hội tụ hiển thị được trên giao diện |
 | US-12.3 | Hiệu chỉnh/kiểm định theo trận lũ thực đo; tính NSE, R², PBIAS, RMSE |
 | US-12.4 | Ngưỡng chấp nhận theo Moriasi 2007 (NSE > 0,50 chấp nhận; > 0,75 tốt) |
@@ -1017,7 +1043,7 @@ Từ Sprint 5 trở đi, **mỗi Sprint Review có ít nhất một người dù
 | S7 | Lãnh đạo UBND TP | Biểu đồ, báo cáo thống kê xuất ra |
 | S8 | Cán bộ tiếp nhận phản ánh + 2–3 người dân | Luồng gửi và duyệt phản ánh |
 | S9a, S9b | Cán bộ đi thực địa | Hợp đồng API cho app di động (bên tự làm — E.0) |
-| S10a, S10b | Cán bộ dự báo KTTV | Nguồn dữ liệu, ngưỡng cảnh báo |
+| S10a, S10b | Cán bộ dự báo KTTV | Nguồn dữ liệu, bộ trường nhập thủ công, danh mục và quy tắc khớp kịch bản, ngưỡng cảnh báo |
 | S11, S12 | Chuyên gia thủy văn + Sở TN&MT | Bộ tham số, chỉ tiêu kiểm định |
 
 Yêu cầu bắt buộc: phản hồi thu được phải vào backlog **ngay trong sprint đó**, không gom lại để cuối dự án xử lý.

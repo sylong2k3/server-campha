@@ -46,7 +46,11 @@
     {"key":"apiFeatureId","type":"string","value":"ext-1"},
     {"key":"apiFeatureVersion","type":"string","value":"1"},
     {"key":"readEtag","value":"","type":"string"},
-    {"key":"metricsToken","value":"","type":"secret"}
+    {"key":"metricsToken","value":"","type":"secret"},
+    {"key":"kttvScenarioId","value":""},
+    {"key":"kttvScenarioUpdatedAt","value":""},
+    {"key":"kttvInputId","value":""},
+    {"key":"kttvSourceId","value":""}
   ],
   "item": [
     {
@@ -2043,6 +2047,235 @@
         ]
       }
     ]
-  }
+  },
+    {
+      "name": "Sprint 10 - KTTV hai che do",
+      "description": "Kich ban do don vi nghiep vu tao/ban hanh. Automatic Weather API va manual input dung chung matcher; khong tu sinh kich ban, khong chay mo hinh.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{tnmtToken}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Tao tram CP-WEATHER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CP-WEATHER\",\n  \"name\": \"Tram Weather Cam Pha\",\n  \"stationType\": \"mua\",\n  \"longitude\": 107.3368,\n  \"latitude\": 21.0089\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/admin/kttv/stations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created ho?c ?? t?n t?i', () => pm.expect(pm.response.code).to.be.oneOf([201,409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tao kich ban nhap",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"MUA_LON\",\n  \"name\": \"Mua lon\",\n  \"matchPriority\": 10,\n  \"matchRule\": {\n    \"all\": [\n      {\n        \"variable\": \"rain_1h_mm\",\n        \"unit\": \"mm\",\n        \"op\": \"gte\",\n        \"value\": 30\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const d=pm.response.json().data;pm.collectionVariables.set('kttvScenarioId',d.id);pm.collectionVariables.set('kttvScenarioUpdatedAt',d.updated_at);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ban hanh kich ban",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"expectedUpdatedAt\": \"{{kttvScenarioUpdatedAt}}\",\n  \"isEnabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}/publish"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d=pm.response.json().data;pm.collectionVariables.set('kttvScenarioUpdatedAt',d.updated_at);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nhap KTTV thu cong",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stationCode\": \"CP-WEATHER\",\n  \"observedAt\": \"2026-08-07T09:00:00Z\",\n  \"values\": {\n    \"rain_1h_mm\": {\n      \"value\": 35.2,\n      \"unit\": \"mm\"\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/admin/kttv/inputs/manual"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const d=pm.response.json().data;pm.collectionVariables.set('kttvInputId',d.id);pm.test('scenario matched',()=>pm.expect(d.match_status).to.eql('matched'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tao nguon Weather API REST JSON",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Open-Meteo Cẩm Phả\",\n  \"provider\": \"Open-Meteo\",\n  \"serviceType\": \"REST\",\n  \"endpointUrl\": \"https://api.open-meteo.com/v1/forecast?latitude=21.01&longitude=107.33&current=precipitation\",\n  \"responseFormat\": \"JSON\",\n  \"variables\": {\n    \"observedAtPath\": \"current.time\",\n    \"observedAtFormat\": \"iso\",\n    \"stationCode\": \"CP-WEATHER\",\n    \"mappings\": [\n      { \"path\": \"current.precipitation\", \"variable\": \"rain_1h_mm\", \"unit\": \"mm\", \"factor\": 1, \"offset\": 0, \"min\": 0, \"max\": 500 }\n    ]\n  },\n  \"retryCount\": 3,\n  \"retryDelaySec\": 60,\n  \"isEnabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{baseUrl}}/api/v1/admin/kttv/sources"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const d=pm.response.json().data;pm.collectionVariables.set('kttvSourceId',d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Thu thap Weather API",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/collect"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const d=pm.response.json().data;pm.collectionVariables.set('kttvInputId',d.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Danh sach input KTTV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/kttv/inputs?page=1&limit=20"
+          }
+        },
+        {
+          "name": "Chi tiet input KTTV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/kttv/inputs/{{kttvInputId}}"
+          }
+        },
+        {
+          "name": "Danh sach kich ban",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios?page=1&limit=20"
+          }
+        }
+      ]
+    }
   ]
 }

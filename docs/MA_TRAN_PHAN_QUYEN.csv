@@ -56,6 +56,8 @@ A.1-10,Cấu hình tham số thời gian,kttv,config_temporal,0,0,0,1,1,1,
 A.1-10,Chọn biến và hệ số quy đổi,kttv,config_variables,0,0,0,1,1,1,
 A.1-10,Quản lý danh mục trạm quan trắc,kttv,manage_stations,0,0,0,1,1,1,
 A.1-10,Lập lịch thu thập tự động,kttv,schedule,0,0,0,1,1,1,
+A.1-10,Nhập dữ liệu KTTV thủ công,kttv,manual_input,0,0,0,1,1,1,Ghi người nhập thời điểm và dữ liệu gốc
+A.1-10,Chuẩn bị và khớp kịch bản theo dữ liệu KTTV,kttv,match_scenario,0,0,0,1,1,1,Chỉ TNMT được ban hành hoặc kích hoạt kịch bản chính thức
 A.1-10,Cấu hình hiển thị lớp dữ liệu,kttv,display_config,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
 A.1-10,Thiết lập ngưỡng cảnh báo và cấp báo động,kttv,alarm_threshold,0,0,1,1,0,0,TNMT và UB
 A.1-10,Xem trạng thái kết nối và nhật ký thu thập,kttv,read,0,0,1,1,1,1,

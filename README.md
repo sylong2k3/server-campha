@@ -20,7 +20,13 @@ Tạo `.env` và khai báo tối thiểu:
 - `DB_*`, `JWT_SECRET*`, `SMTP_*`, `GOOGLE_*`
 - `MINIO_*`, `GEOSERVER_*`, `OPENWEATHER_API_KEY`
 - `FIREBASE_SERVICE_ACCOUNT*`
+- `KTTV_CREDENTIAL_ENCRYPTION_KEY`: 64 ký tự hex, dùng riêng từng môi trường.
+- `KTTV_ALLOWED_SOURCE_HOSTS`: allowlist host Weather API, phân tách bằng dấu phẩy.
+- `KTTV_COLLECTION_ENABLED=true`: bật scheduler REST/JSON; mặc định `false`.
+- `KTTV_SCHEDULE_SYNC_CRON`: lịch đồng bộ cấu hình nguồn, mặc định `*/5 * * * *`.
 
+Scheduler KTTV chỉ chạy trên singleton worker (`CLUSTER_WORKER_ID=0` hoặc tiến trình không cluster).
+Với nhiều replica độc lập, chỉ đặt `KTTV_COLLECTION_ENABLED=true` trên một replica/worker.
 Secret dịch vụ phải nằm ngoài mã nguồn và không dùng chung giữa các môi trường.
 
 ## Chạy dự án

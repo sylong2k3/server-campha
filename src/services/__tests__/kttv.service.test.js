@@ -1,7 +1,7 @@
 'use strict';
 
 jest.mock('../../repositories/kttv.repository');
-jest.mock('../../utils/systemLogger.util', () => ({ logInfo: jest.fn() }));
+jest.mock('../../utils/systemLogger.util', () => ({ logInfo: jest.fn(), logError: jest.fn() }));
 jest.mock('../../utils/ssrf-safe-fetch.util', () => ({ fetchSafely: jest.fn() }));
 jest.mock('../../utils/kttv-credential.util', () => ({
     encryptCredential: jest.fn(),
@@ -29,7 +29,11 @@ const admin = {
             create_source: true,
             test_source: true,
             manage_stations: true,
+            schedule: true,
+            manual_input: true,
+            match_scenario: true,
         },
+        hydro: { read: true },
     },
 };
 const tnmt = {
@@ -43,7 +47,11 @@ const tnmt = {
             test_source: true,
             manage_stations: true,
             display_config: true,
+            schedule: true,
+            manual_input: true,
+            match_scenario: true,
         },
+        hydro: { read: true, publish_scenario: true },
     },
 };
 const soXd = {
@@ -56,7 +64,11 @@ const soXd = {
             create_source: true,
             test_source: true,
             manage_stations: true,
+            schedule: true,
+            manual_input: true,
+            match_scenario: true,
         },
+        hydro: { read: true },
     },
 };
 const ubndTp = {
@@ -121,7 +133,17 @@ describe('kttv service — permission gating (theo MA_TRAN_PHAN_QUYEN.csv)', () 
             } else {
                 await expect(
                     service.createSource(
-                        { name: 'x', serviceType: 'REST', endpointUrl: 'https://x' },
+                        {
+                            name: 'x',
+                            serviceType: 'REST',
+                            endpointUrl: 'https://x',
+                            responseFormat: 'JSON',
+                            variables: {
+                                observedAtPath: 'time',
+                                stationCode: 'CP',
+                                mappings: [{ path: 'rain', variable: 'rain_mm', unit: 'mm' }],
+                            },
+                        },
                         actor,
                     ),
                 ).rejects.toMatchObject({ status: 403 });
@@ -249,6 +271,7 @@ describe('kttv service — không bao giờ lộ credential thô', () => {
                 name: 'x',
                 serviceType: 'REST',
                 endpointUrl: 'https://x',
+                authMethod: 'api_key',
                 credential: { apiKey: 'plaintext-secret' },
             },
             admin,
@@ -362,11 +385,267 @@ describe('kttv service — testSourceConnection', () => {
         });
     });
 
+    test('khóa truy cập hỏng trả 422 thay vì 500 hoặc rò nội dung', async () => {
+        decryptCredential.mockImplementation(() => {
+            throw new Error('decrypt details must not escape');
+        });
+        repository.findSource.mockResolvedValue({
+            ...rawSource,
+            auth_method: 'bearer',
+            credential_enc: Buffer.from('broken'),
+        });
+
+        await expect(service.testSourceConnection(10, admin)).rejects.toMatchObject({
+            status: 422,
+            errors: ['SOURCE_CREDENTIAL_INVALID'],
+        });
+        expect(fetchSafely).not.toHaveBeenCalled();
+    });
+
     test('không tìm thấy nguồn -> 404', async () => {
         repository.findSource.mockResolvedValue(null);
         await expect(service.testSourceConnection(999, admin)).rejects.toMatchObject({
             status: 404,
         });
         expect(fetchSafely).not.toHaveBeenCalled();
+    });
+});
+
+describe('kttv service — nguồn thu thập và publish scenario được chốt an toàn', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    test('không cho bật nguồn thiếu JSON mapping', async () => {
+        repository.findSource.mockResolvedValue({
+            ...rawSource,
+            response_format: null,
+            variables: {},
+            is_enabled: false,
+        });
+
+        await expect(
+            service.updateSource(
+                10,
+                { isEnabled: true, expectedUpdatedAt: new Date('2026-01-01') },
+                admin,
+            ),
+        ).rejects.toMatchObject({ status: 422, errors: ['SOURCE_NOT_COLLECTABLE'] });
+        expect(repository.updateSource).not.toHaveBeenCalled();
+    });
+
+    test('PATCH responseFormat=null trên nguồn đang bật bị chặn theo trạng thái sẽ lưu', async () => {
+        repository.findSource.mockResolvedValue({
+            ...rawSource,
+            response_format: 'JSON',
+            variables: {
+                observedAtPath: 'time',
+                stationCode: 'CP',
+                mappings: [{ path: 'rain', variable: 'rain_1h_mm', unit: 'mm' }],
+            },
+            is_enabled: true,
+        });
+
+        await expect(
+            service.updateSource(
+                10,
+                { responseFormat: null, expectedUpdatedAt: new Date('2026-01-01') },
+                admin,
+            ),
+        ).rejects.toMatchObject({ status: 422, errors: ['SOURCE_NOT_COLLECTABLE'] });
+        expect(repository.updateSource).not.toHaveBeenCalled();
+    });
+
+    test('PATCH authMethod=null không được để credential cũ mồ côi', async () => {
+        repository.findSource.mockResolvedValue({
+            ...rawSource,
+            auth_method: 'bearer',
+            credential_enc: Buffer.from('encrypted'),
+        });
+
+        await expect(
+            service.updateSource(
+                10,
+                { authMethod: null, expectedUpdatedAt: new Date('2026-01-01') },
+                admin,
+            ),
+        ).rejects.toMatchObject({ status: 422, errors: ['SOURCE_AUTH_INCOMPLETE'] });
+        expect(repository.updateSource).not.toHaveBeenCalled();
+    });
+
+    test('partial PATCH effective date xung đột với draft hiện tại trả 422', async () => {
+        repository.findScenario.mockResolvedValue({
+            id: 7,
+            status: 'draft',
+            effective_from: new Date('2026-08-01T00:00:00Z'),
+            effective_to: new Date('2026-08-31T00:00:00Z'),
+        });
+        await expect(
+            service.updateScenario(
+                7,
+                {
+                    effectiveFrom: new Date('2026-09-01T00:00:00Z'),
+                    expectedUpdatedAt: new Date('2026-07-01T00:00:00Z'),
+                },
+                admin,
+            ),
+        ).rejects.toMatchObject({ status: 422, errors: ['INVALID_EFFECTIVE_RANGE'] });
+        expect(repository.updateScenario).not.toHaveBeenCalled();
+    });
+
+    test('publish trả 404 khi repository xác nhận scenario không tồn tại', async () => {
+        repository.publishScenario.mockResolvedValue({ conflict: 'SCENARIO_NOT_FOUND' });
+        await expect(
+            service.publishScenario(
+                999,
+                { expectedUpdatedAt: new Date('2026-01-01'), isEnabled: true },
+                tnmt,
+            ),
+        ).rejects.toMatchObject({ status: 404 });
+    });
+});
+
+describe('kttv service — hai chế độ dùng cùng normalize/matcher', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    const rule = {
+        all: [{ variable: 'rain_1h_mm', unit: 'mm', op: 'gte', value: 30 }],
+    };
+    const matchable = {
+        id: 77,
+        match_priority: 10,
+        match_rule: rule,
+        effective_from: null,
+        effective_to: null,
+    };
+
+    test('manual lưu enteredBy và chọn scenario tương ứng', async () => {
+        repository.findStation.mockResolvedValue({ code: 'CP-WEATHER' });
+        repository.listMatchableScenarios.mockResolvedValue([matchable]);
+        repository.createInput.mockImplementation(async (input) => ({
+            id: 1,
+            input_mode: input.inputMode,
+            entered_by: input.enteredBy,
+            match_status: input.match.status,
+            scenario_id: input.match.scenarioId,
+        }));
+
+        await expect(
+            service.submitManualInput(
+                {
+                    stationCode: 'CP-WEATHER',
+                    observedAt: '2026-08-07T09:00:00Z',
+                    values: { rain_1h_mm: { value: 35, unit: 'mm' } },
+                },
+                tnmt,
+            ),
+        ).resolves.toMatchObject({
+            input_mode: 'manual',
+            entered_by: tnmt.id,
+            match_status: 'matched',
+            scenario_id: 77,
+        });
+        expect(repository.listMatchableScenarios).toHaveBeenCalledWith('2026-08-07T09:00:00Z');
+    });
+
+    test('automatic mapping tương đương chọn cùng scenario và lưu sourceId', async () => {
+        const source = {
+            ...rawSource,
+            is_enabled: true,
+            response_format: 'JSON',
+            variables: {
+                observedAtPath: 'current.time',
+                observedAtFormat: 'iso',
+                stationCode: 'CP-WEATHER',
+                mappings: [
+                    {
+                        path: 'current.precipitation',
+                        variable: 'rain_1h_mm',
+                        unit: 'mm',
+                        factor: 1,
+                        offset: 0,
+                        min: 0,
+                        max: 500,
+                    },
+                ],
+            },
+        };
+        repository.findSource.mockResolvedValue(source);
+        repository.findStation.mockResolvedValue({ code: 'CP-WEATHER' });
+        repository.listMatchableScenarios.mockResolvedValue([matchable]);
+        repository.createInput.mockImplementation(async (input) => ({
+            id: 2,
+            input_mode: input.inputMode,
+            source_id: input.sourceId,
+            match_status: input.match.status,
+            scenario_id: input.match.scenarioId,
+        }));
+        fetchSafely.mockResolvedValue({
+            status: 200,
+            body: JSON.stringify({
+                current: { time: '2026-08-07T09:00:00Z', precipitation: 35 },
+            }),
+        });
+
+        await expect(service.collectSource(10, admin)).resolves.toMatchObject({
+            input_mode: 'automatic',
+            source_id: 10,
+            match_status: 'matched',
+            scenario_id: 77,
+        });
+        expect(repository.listMatchableScenarios).toHaveBeenCalledWith('2026-08-07T09:00:00.000Z');
+        expect(repository.markCollectionSuccess).toHaveBeenCalledWith(10, {
+            httpStatus: 200,
+            responseBytes: expect.any(Number),
+        });
+    });
+
+    test('mapping null và HTTP lỗi bị chặn trước persistence', async () => {
+        expect(() =>
+            service.normalizeSourcePayload(
+                {
+                    variables: {
+                        observedAtPath: 'time',
+                        stationCode: 'CP',
+                        mappings: [{ path: 'rain', variable: 'rain_1h_mm', unit: 'mm' }],
+                    },
+                },
+                { time: '2026-08-07T09:00:00Z', rain: null },
+            ),
+        ).toThrow('Giá trị rain_1h_mm không hợp lệ');
+
+        repository.findSource.mockResolvedValue({
+            ...rawSource,
+            is_enabled: true,
+            response_format: 'JSON',
+            variables: { observedAtPath: 'time', stationCode: 'CP', mappings: [] },
+        });
+        fetchSafely.mockResolvedValue({ status: 503, body: '{}' });
+        await expect(service.collectSource(10, admin)).rejects.toMatchObject({
+            status: 422,
+            errors: ['SOURCE_HTTP_ERROR'],
+        });
+        expect(repository.createInput).not.toHaveBeenCalled();
+        expect(repository.markCollectionFailure).toHaveBeenCalledWith(10, {
+            errorCode: 'SOURCE_HTTP_ERROR',
+            httpStatus: 503,
+            responseBytes: 2,
+        });
+    });
+
+    test('lỗi ghi collection health không che lỗi Weather API gốc', async () => {
+        repository.findSource.mockResolvedValue({
+            ...rawSource,
+            is_enabled: true,
+            response_format: 'JSON',
+            variables: { observedAtPath: 'time', stationCode: 'CP', mappings: [] },
+        });
+        fetchSafely.mockResolvedValue({ status: 503, body: '{}' });
+        repository.markCollectionFailure.mockRejectedValue(
+            Object.assign(new Error('DB down'), { code: '08006' }),
+        );
+
+        await expect(service.collectSource(10, admin)).rejects.toMatchObject({
+            status: 422,
+            errors: ['SOURCE_HTTP_ERROR'],
+        });
     });
 });

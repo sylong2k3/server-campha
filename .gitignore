@@ -22,3 +22,7 @@ ACCOUNTS.md
 # Generated test coverage
 coverage/
 .runtime/
+
+# Local Office backups created while updating functional-flow documents
+docs/*.before_flow_*.docx
+docs/*.before_flow_*.xlsx

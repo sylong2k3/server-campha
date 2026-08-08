@@ -22,6 +22,8 @@
     "test:coverage": "jest --coverage",
     "test:integration": "jest --config jest.integration.config.js --runInBand",
     "api:test": "node scripts/api-smoke.js",
+    "acceptance:bootstrap": "node scripts/api-mobile-bootstrap.js",
+    "acceptance:verify": "node scripts/api-mobile-verify.js",
     "security:audit": "npm audit --omit=dev --audit-level=high"
   },
   "dependencies": {

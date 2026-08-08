@@ -49,7 +49,19 @@ const maskCredential = (packed) => {
         return null;
     }
     const plaintext = decryptCredential(packed);
-    return plaintext.length <= 4 ? '****' : `****${plaintext.slice(-4)}`;
+    let secret = plaintext;
+    try {
+        const credential = JSON.parse(plaintext);
+        secret =
+            credential.apiKey ||
+            credential.token ||
+            credential.password ||
+            credential.username ||
+            '';
+    } catch {
+        // Hỗ trợ ciphertext legacy chứa trực tiếp secret thay vì JSON.
+    }
+    return secret.length <= 4 ? '****' : `****${secret.slice(-4)}`;
 };
 
 module.exports = { encryptCredential, decryptCredential, maskCredential };

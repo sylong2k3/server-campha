@@ -37,6 +37,20 @@ const app = require('../../../app');
 
 const ROLES = ['citizen', 'system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'];
 const PREFIX = 'it_s10a_';
+const sourceVariables = {
+    observedAtPath: 'current.time',
+    observedAtFormat: 'iso',
+    stationCode: `${PREFIX}ST01`,
+    mappings: [
+        {
+            path: 'current.temperature_2m',
+            variable: 'temperature_c',
+            unit: '°C',
+            min: -20,
+            max: 60,
+        },
+    ],
+};
 let rolePermissions;
 
 const authAs = (req, role) =>
@@ -98,6 +112,8 @@ describe('Sprint 10a KTTV — sources/stations RBAC + SSRF (HTTP integration)', 
                 serviceType: 'REST',
                 endpointUrl:
                     'https://api.open-meteo.com/v1/forecast?latitude=21.0089&longitude=107.3368&current=temperature_2m',
+                responseFormat: 'JSON',
+                variables: sourceVariables,
                 isEnabled: true,
             });
             expect(res.status).toBe(201);
@@ -138,6 +154,8 @@ describe('Sprint 10a KTTV — sources/stations RBAC + SSRF (HTTP integration)', 
                 serviceType: 'REST',
                 endpointUrl:
                     'https://api.open-meteo.com/v1/forecast?latitude=21.0089&longitude=107.3368&current=temperature_2m',
+                responseFormat: 'JSON',
+                variables: sourceVariables,
                 isEnabled: true,
             });
             expect(created.status).toBe(201);
@@ -161,7 +179,7 @@ describe('Sprint 10a KTTV — sources/stations RBAC + SSRF (HTTP integration)', 
                 name: `${PREFIX}ssrf-metadata`,
                 serviceType: 'REST',
                 endpointUrl: 'http://169.254.169.254/latest/meta-data/',
-                isEnabled: true,
+                isEnabled: false,
             });
             expect(created.status).toBe(201);
 
@@ -183,7 +201,7 @@ describe('Sprint 10a KTTV — sources/stations RBAC + SSRF (HTTP integration)', 
                 name: `${PREFIX}ssrf-loopback`,
                 serviceType: 'REST',
                 endpointUrl: 'http://127.0.0.1:9999/secret',
-                isEnabled: true,
+                isEnabled: false,
             });
             expect(created.status).toBe(201);
 
@@ -205,7 +223,7 @@ describe('Sprint 10a KTTV — sources/stations RBAC + SSRF (HTTP integration)', 
                 name: `${PREFIX}test-connection-citizen`,
                 serviceType: 'REST',
                 endpointUrl: 'https://api.open-meteo.com/v1/forecast',
-                isEnabled: true,
+                isEnabled: false,
             });
             expect(created.status).toBe(201);
 

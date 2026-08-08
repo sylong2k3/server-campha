@@ -81,4 +81,50 @@ adminRouter.delete(
     asyncHandler(controller.deleteStation),
 );
 
+adminRouter.get(
+    '/scenarios',
+    strict(v.scenarioListSchema, 'query'),
+    asyncHandler(controller.listScenarios),
+);
+adminRouter.post(
+    '/scenarios',
+    strict(v.scenarioCreateSchema),
+    asyncHandler(controller.createScenario),
+);
+adminRouter.get(
+    '/scenarios/:id',
+    strict(v.scenarioIdParamsSchema, 'params'),
+    asyncHandler(controller.getScenario),
+);
+adminRouter.patch(
+    '/scenarios/:id',
+    strict(v.scenarioIdParamsSchema, 'params'),
+    strict(v.scenarioUpdateSchema),
+    asyncHandler(controller.updateScenario),
+);
+adminRouter.post(
+    '/scenarios/:id/publish',
+    strict(v.scenarioIdParamsSchema, 'params'),
+    strict(v.scenarioPublishSchema),
+    asyncHandler(controller.publishScenario),
+);
+
+adminRouter.post(
+    '/inputs/manual',
+    strict(v.manualInputSchema),
+    asyncHandler(controller.submitManualInput),
+);
+adminRouter.post(
+    '/sources/:id/collect',
+    testConnectionLimiter,
+    strict(v.sourceIdParamsSchema, 'params'),
+    asyncHandler(controller.collectSource),
+);
+adminRouter.get('/inputs', strict(v.inputListSchema, 'query'), asyncHandler(controller.listInputs));
+adminRouter.get(
+    '/inputs/:id',
+    strict(v.inputIdParamsSchema, 'params'),
+    asyncHandler(controller.getInput),
+);
+
 module.exports = { adminRouter };

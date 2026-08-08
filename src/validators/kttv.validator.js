@@ -14,9 +14,74 @@ const STATION_TYPES = ['mua', 'thuy_van', 'hai_van', 'khi_tuong_be_mat'];
 const id = Joi.number().integer().positive();
 const date = Joi.date().iso();
 const jsonConfig = Joi.object().unknown(true);
-// Credential: cặp khóa-giá trị tự do (apiKey, username, password, token...) — được
-// serialize JSON rồi mã hóa AES-256-GCM ở service, không bao giờ trả lại nguyên văn.
-const credential = Joi.object().pattern(Joi.string().max(100), Joi.string().max(500)).max(20);
+const finite = Joi.number().custom((value, helpers) =>
+    Number.isFinite(value) ? value : helpers.error('number.base'),
+);
+const variableName = Joi.string()
+    .trim()
+    .pattern(/^[a-z][a-z0-9_]{1,49}$/);
+const unit = Joi.string().trim().min(1).max(30);
+const jsonPath = Joi.string()
+    .trim()
+    .pattern(/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/)
+    .max(300);
+const mapping = Joi.object({
+    path: jsonPath.required(),
+    variable: variableName.required(),
+    unit: unit.required(),
+    factor: finite.default(1),
+    offset: finite.default(0),
+    min: finite,
+    max: finite,
+}).custom((value, helpers) =>
+    value.min !== undefined && value.max !== undefined && value.min > value.max
+        ? helpers.error('any.invalid')
+        : value,
+);
+const sourceVariables = Joi.object({
+    observedAtPath: jsonPath.required(),
+    observedAtFormat: Joi.string().valid('iso', 'unix_seconds', 'unix_milliseconds').default('iso'),
+    stationCode: Joi.string()
+        .trim()
+        .pattern(/^[A-Za-z0-9_-]{1,30}$/)
+        .required(),
+    mappings: Joi.array().items(mapping).min(1).max(50).unique('variable').required(),
+});
+const AUTH_METHODS = ['api_key', 'bearer', 'basic'];
+const credential = Joi.object({
+    apiKey: Joi.string().max(500),
+    token: Joi.string().max(2000),
+    username: Joi.string().max(500),
+    password: Joi.string().max(500).allow(''),
+})
+    .custom((value, helpers) => {
+        if (!Object.values(value).some((item) => item !== undefined)) {
+            return helpers.error('object.min');
+        }
+        return value;
+    })
+    .max(4);
+
+const validateSourceConfig = (value, helpers) => {
+    const authRequirements = {
+        api_key: 'apiKey',
+        bearer: 'token',
+        basic: 'username',
+    };
+    if (value.authMethod) {
+        const requiredKey = authRequirements[value.authMethod];
+        if (!value.credential?.[requiredKey]) {
+            return helpers.error('any.invalid');
+        }
+    }
+    if (value.credential && !value.authMethod) {
+        return helpers.error('any.invalid');
+    }
+    if ((value.isEnabled || value.cronExpr) && value.responseFormat !== 'JSON') {
+        return helpers.error('any.invalid');
+    }
+    return value;
+};
 
 // ─── kttv.sources ────────────────────────────────────────────────────────────
 
@@ -38,7 +103,9 @@ const sourceCreateSchema = Joi.object({
         .uri({ scheme: ['http', 'https'] })
         .max(2000)
         .required(),
-    authMethod: Joi.string().trim().max(50).allow(null, ''),
+    authMethod: Joi.string()
+        .valid(...AUTH_METHODS)
+        .allow(null, ''),
     credential: credential.allow(null),
     rateLimitPerMin: Joi.number().integer().positive().max(100000),
     rateLimitPerDay: Joi.number().integer().positive().max(10000000),
@@ -48,14 +115,13 @@ const sourceCreateSchema = Joi.object({
     licenseNote: Joi.string().trim().max(2000).allow(null, ''),
     spatialConfig: jsonConfig,
     temporalConfig: jsonConfig,
-    variables: jsonConfig,
+    variables: sourceVariables,
     displayConfig: jsonConfig,
     cronExpr: Joi.string().trim().max(50).allow(null, ''),
     retryCount: Joi.number().integer().min(0).max(10).default(3),
     retryDelaySec: Joi.number().integer().min(1).max(3600).default(60),
-    fallbackSourceId: id.allow(null),
     isEnabled: Joi.boolean().default(false),
-});
+}).custom(validateSourceConfig);
 
 // Viết tách riêng (không .fork() từ createSchema) để KHÔNG có .default() nào —
 // tránh Joi tự điền giá trị mặc định vào các field người dùng không gửi, dẫn tới
@@ -67,7 +133,9 @@ const sourceUpdateSchema = Joi.object({
     endpointUrl: Joi.string()
         .uri({ scheme: ['http', 'https'] })
         .max(2000),
-    authMethod: Joi.string().trim().max(50).allow(null, ''),
+    authMethod: Joi.string()
+        .valid(...AUTH_METHODS)
+        .allow(null, ''),
     credential: credential.allow(null),
     rateLimitPerMin: Joi.number().integer().positive().max(100000).allow(null),
     rateLimitPerDay: Joi.number().integer().positive().max(10000000).allow(null),
@@ -77,15 +145,31 @@ const sourceUpdateSchema = Joi.object({
     licenseNote: Joi.string().trim().max(2000).allow(null, ''),
     spatialConfig: jsonConfig,
     temporalConfig: jsonConfig,
-    variables: jsonConfig,
+    variables: sourceVariables,
     displayConfig: jsonConfig,
     cronExpr: Joi.string().trim().max(50).allow(null, ''),
     retryCount: Joi.number().integer().min(0).max(10),
     retryDelaySec: Joi.number().integer().min(1).max(3600),
-    fallbackSourceId: id.allow(null),
     isEnabled: Joi.boolean(),
     expectedUpdatedAt: date.required(),
-}).min(2);
+})
+    .min(2)
+    .custom((value, helpers) => {
+        if (value.authMethod && value.credential) {
+            return validateSourceConfig(value, helpers);
+        }
+        if (value.credential && !value.authMethod) {
+            return helpers.error('any.invalid');
+        }
+        if (
+            (value.isEnabled || value.cronExpr) &&
+            value.responseFormat &&
+            value.responseFormat !== 'JSON'
+        ) {
+            return helpers.error('any.invalid');
+        }
+        return value;
+    });
 
 const sourceIdParamsSchema = Joi.object({ id: id.required() });
 const deleteQuerySchema = Joi.object({ expectedUpdatedAt: date.required() });
@@ -153,11 +237,94 @@ const stationUpdateSchema = Joi.object({
 
 const stationCodeParamsSchema = Joi.object({ code: stationCode.required() });
 
+// ─── Scenarios + input batches ────────────────────────────────────────────────
+
+const condition = Joi.object({
+    variable: variableName.required(),
+    unit: unit.required(),
+    op: Joi.string().valid('eq', 'gt', 'gte', 'lt', 'lte', 'between').required(),
+    value: Joi.alternatives().conditional('op', {
+        is: 'between',
+        then: Joi.array()
+            .items(finite.required())
+            .length(2)
+            .custom((range, helpers) =>
+                range[0] <= range[1] ? range : helpers.error('any.invalid'),
+            ),
+        otherwise: finite.required(),
+    }),
+});
+const matchRule = Joi.object({
+    all: Joi.array().items(condition).min(1).max(20),
+    any: Joi.array().items(condition).min(1).max(20),
+}).xor('all', 'any');
+const scenarioCode = Joi.string()
+    .trim()
+    .uppercase()
+    .pattern(/^[A-Z0-9][A-Z0-9_-]{1,79}$/);
+const scenarioListSchema = Joi.object({
+    q: Joi.string().trim().max(100),
+    status: Joi.string().valid('draft', 'official', 'archived'),
+    isEnabled: Joi.boolean(),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+});
+const scenarioCreateSchema = Joi.object({
+    code: scenarioCode.required(),
+    name: Joi.string().trim().min(1).max(200).required(),
+    description: Joi.string().trim().max(5000).allow(null, ''),
+    matchRule: matchRule.required(),
+    matchPriority: Joi.number().integer().min(1).max(10000).default(100),
+    effectiveFrom: date.allow(null),
+    effectiveTo: date.allow(null),
+}).custom((value, helpers) =>
+    value.effectiveFrom && value.effectiveTo && value.effectiveFrom >= value.effectiveTo
+        ? helpers.error('any.invalid')
+        : value,
+);
+const scenarioUpdateSchema = Joi.object({
+    name: Joi.string().trim().min(1).max(200),
+    description: Joi.string().trim().max(5000).allow(null, ''),
+    matchRule,
+    matchPriority: Joi.number().integer().min(1).max(10000),
+    effectiveFrom: date.allow(null),
+    effectiveTo: date.allow(null),
+    expectedUpdatedAt: date.required(),
+})
+    .min(2)
+    .custom((value, helpers) =>
+        value.effectiveFrom && value.effectiveTo && value.effectiveFrom >= value.effectiveTo
+            ? helpers.error('any.invalid')
+            : value,
+    );
+const scenarioIdParamsSchema = Joi.object({ id: id.required() });
+const scenarioPublishSchema = Joi.object({
+    expectedUpdatedAt: date.required(),
+    isEnabled: Joi.boolean().default(true),
+});
+const reading = Joi.object({ value: finite.required(), unit: unit.required() });
+const manualInputSchema = Joi.object({
+    stationCode: stationCode.required(),
+    observedAt: date.required(),
+    values: Joi.object().pattern(variableName, reading).min(1).max(50).required(),
+});
+const inputListSchema = Joi.object({
+    inputMode: Joi.string().valid('automatic', 'manual'),
+    matchStatus: Joi.string().valid('matched', 'no_match', 'ambiguous'),
+    stationCode,
+    from: date,
+    to: date,
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+});
+const inputIdParamsSchema = Joi.object({ id: id.required() });
+
 module.exports = {
     SERVICE_TYPES,
     IMPLEMENTED_SERVICE_TYPES,
     RESPONSE_FORMATS,
     STATION_TYPES,
+    AUTH_METHODS,
     sourceListSchema,
     sourceCreateSchema,
     sourceUpdateSchema,
@@ -167,4 +334,14 @@ module.exports = {
     stationCreateSchema,
     stationUpdateSchema,
     stationCodeParamsSchema,
+    sourceVariables,
+    matchRule,
+    scenarioListSchema,
+    scenarioCreateSchema,
+    scenarioUpdateSchema,
+    scenarioIdParamsSchema,
+    scenarioPublishSchema,
+    manualInputSchema,
+    inputListSchema,
+    inputIdParamsSchema,
 };
