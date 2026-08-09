@@ -885,54 +885,19 @@ Nguyên tắc áp dụng khi tách: **lát cắt dọc, không cắt ngang.** M�
 
 ---
 
-## Sprint 10a — Khai báo nguồn KTTV, danh mục trạm & chuẩn bị kịch bản — 40 SP
+## Sprint 10 — Lựa chọn chỉ số & Xuất bản bản đồ chuyên đề tương ứng — 80 SP
 
-**Mục tiêu sprint:** kết nối được nguồn KTTV thật; tiếp nhận và cấu hình xong các kịch bản do đơn vị nghiệp vụ chuẩn bị để sẵn sàng khớp dữ liệu.
-
-| Story | Nội dung |
-|---|---|
-| US-10a.1 | CRUD nguồn dữ liệu: tên nguồn, đơn vị cung cấp, endpoint, loại dịch vụ, trạng thái bật/tắt, hạn mức, định dạng, điều kiện bản quyền và yêu cầu trích dẫn (A.1-10(1)) |
-| US-10a.2 | Lưu khóa truy cập dạng mã hóa + phương thức xác thực; không bao giờ trả về nguyên văn |
-| US-10a.3 | Kiểm tra kết nối + xem trước dữ liệu trả về (A.1-10(2)) |
-| US-10a.4 | **Lớp chặn SSRF**: allowlist tên miền, chặn IP nội bộ, không theo redirect, timeout, giới hạn dung lượng |
-| US-10a.5 | Cấu hình không gian: bbox, lớp cắt, EPSG nguồn/đích, phương pháp nội suy, độ phân giải đích, bán kính ảnh hưởng và số trạm lân cận tối thiểu (A.1-10(3)) |
-| US-10a.6 | Cấu hình thời gian: chu kỳ, múi giờ UTC→UTC+7, độ trễ cho phép, hạn và bước dự báo, hạn lưu trữ, chính sách dọn dữ liệu cũ (A.1-10(4)) |
-| US-10a.7 | Danh mục biến + đơn vị gốc + hệ số quy đổi + NoData + khoảng giá trị hợp lệ (A.1-10(5)) |
-| US-10a.8 | Danh mục trạm: mã, tên, tọa độ, cao độ, loại, đơn vị quản lý, trạng thái sử dụng; cho phép chọn trạm lân cận ngoài Cẩm Phả và khai báo trọng số Thiessen/IDW (A.1-10(7)) |
-| US-10a.9 | Tiếp nhận/nhập danh mục kịch bản do đơn vị nghiệp vụ chuẩn bị; cấu hình điều kiện khớp trên bộ biến KTTV chuẩn hóa, mức ưu tiên, hiệu lực và phiên bản. Dữ liệu đến không tự tạo kịch bản mới |
-
-**Phân quyền:** khai báo nguồn, kiểm tra kết nối, cấu hình không gian–thời gian–biến, quản lý trạm và chuẩn bị quy tắc kịch bản: **TNMT, XD, QT**. Chỉ **TNMT** được ban hành/kích hoạt kịch bản chính thức. **KH, ND không có quyền**. Mọi endpoint kiểm tra permission trong `auth.roles.permissions` theo `docs/MA_TRAN_PHAN_QUYEN.csv`, không suy quyền từ tên vai trò.
-
-**Nghiệm thu (E.4a):** Postman — khai báo nguồn REST/JSON thật (ưu tiên Open-Meteo hoặc nguồn được chủ đầu tư cấp), gọi endpoint kiểm tra kết nối, nhận bản xem trước đã cắt đúng phạm vi Cẩm Phả; xác nhận khóa bí mật không xuất hiện trong response/log. Nhập tối thiểu hai kịch bản nghiệp vụ có quy tắc rõ ràng, ban hành phiên bản chính thức và chứng minh chỉ TNMT kích hoạt được. Bắt buộc kèm **bằng chứng chặn SSRF**: thử endpoint trỏ tới `169.254.169.254` và `127.0.0.1`, cả hai phải bị từ chối. Kiểm thử quyền bằng tài khoản TNMT, XD, QT, KH và ND.
-
-> **Phạm vi adapter:** S10a nghiệm thu adapter REST/JSON trước. WMS/WMTS/WFS/WCS, GEE và FTP chỉ được công bố hỗ trợ sau khi có adapter và kiểm thử tích hợp riêng; không coi trường `service_type` là bằng chứng đã hỗ trợ giao thức.
-
-**Bảo mật — trọng tâm của sprint này:** đây là nơi hệ thống **gọi ra ngoài theo URL do người dùng nhập** → nguy cơ SSRF cao nhất toàn dự án. US-10a.4 là điều kiện tiên quyết, phải xong trước US-10a.3. Bắt buộc: allowlist tên miền, chặn dải IP nội bộ (169.254.0.0/16, 10/8, 172.16/12, 192.168/16, ::1), không đi theo redirect tới host ngoài allowlist, timeout cứng, giới hạn dung lượng tải. Khóa API lưu bằng `pgcrypto`/KMS, chỉ hiển thị 4 ký tự cuối kể cả với TNMT.
-
----
-
-## Sprint 10b — Nhận dữ liệu tự động/thủ công, khớp kịch bản & cảnh báo — 40 SP
-
-**Mục tiêu sprint:** dữ liệu KTTV từ Weather API hoặc nhập thủ công đi qua cùng chuẩn hóa, chọn đúng kịch bản đã chuẩn bị ở S10a và sẵn sàng làm đầu vào chạy mô hình.
+**Mục tiêu sprint:** Thay vì tự động khớp kịch bản cứng, hệ thống cho phép người dùng/đơn vị quản lý lựa chọn các chỉ số chuyên đề (chỉ số mưa, mực nước, nguy cơ ngập, chất lượng môi trường, cảnh báo...) để tra cứu và xuất ra các lớp bản đồ tương ứng (Vector Tile MVT, WMS Raster, GeoJSON).
 
 | Story | Nội dung |
 |---|---|
-| US-10b.1 | **Luồng tự động:** worker lấy dữ liệu từ Weather API → kiểm tra → cắt theo ranh giới → nội suy → quy đổi đơn vị → chuẩn hóa; dữ liệu điểm/trạm ghi `kttv.observations`, dữ liệu lưới/raster ghi metadata vào `kttv.grid_assets` và tệp vào object storage |
-| US-10b.2 | Quy tắc kiểm soát chất lượng: loại giá trị ngoài khoảng, phát hiện biến thiên đột ngột, đánh dấu trạm mất tín hiệu (A.1-10(8)) |
-| US-10b.3 | Lập lịch thu thập (cron), số lần thử lại, khoảng chờ, nguồn dự phòng theo thứ tự ưu tiên (A.1-10(9)) |
-| US-10b.4 | Nhật ký thu thập, trạng thái kết nối, dung lượng đã tải; đánh dấu lớp quá hạn khi vượt độ trễ cho phép |
-| US-10b.5 | Cấu hình hiển thị lớp: thang màu, ngưỡng phân cấp, độ trong suốt, z-index, tỷ lệ và kiểu hiển thị (raster, đường đẳng trị, điểm trạm, vector hướng gió) — **chỉ TNMT** (A.1-10(6)) |
-| US-10b.6 | Publish lớp dữ liệu động lên WebGIS/Mobile GIS theo cấu hình hiển thị, kèm tên nguồn và nội dung trích dẫn bản quyền |
-| US-10b.7 | Ngưỡng cảnh báo mưa + cấp báo động mực nước I/II/III theo trạm — **TNMT, UB** (A.1-10(8)) |
-| US-10b.8 | Kênh và tần suất gửi cảnh báo: web, ứng dụng di động, thư điện tử |
-| US-10b.9 | **Luồng thủ công:** nhập cùng bộ trường KTTV chuẩn; kiểm tra kiểu, đơn vị, thời điểm và miền giá trị; chuẩn hóa giống luồng API; ghi người nhập, thời điểm và dữ liệu gốc |
-| US-10b.10 | **Bộ khớp dùng chung:** nhận dữ liệu chuẩn hóa từ tự động hoặc thủ công → chọn `scenario_id` trong danh mục S10a theo điều kiện + độ ưu tiên; trả `no_match`/`ambiguous` thay vì tự tạo kịch bản hoặc tự chạy mô hình |
+| US-10.1 | Quản lý danh mục chỉ số chuyên đề: mã chỉ số, tên chỉ số, đơn vị đo, khoảng ngưỡng và phân loại |
+| US-10.2 | Ánh xạ chỉ số với Lớp bản đồ (Indicator-to-Layer Mapping): gán 1 hoặc nhiều chỉ số với các lớp bản đồ GIS tương ứng |
+| US-10.3 | API tra cứu chỉ số → Trả về các lớp bản đồ GIS tương ứng kèm cấu hình hiển thị (thang màu, opacity, legend) |
+| US-10.4 | Phân quyền hiển thị bản đồ chỉ số theo vai trò (TNMT, UBND, XD, ND) |
+| US-10.5 | Tích hợp hiển thị lớp bản đồ chỉ số lên WebGIS Catalog và Mobile GIS MVT |
 
-**Phân quyền:** nhập dữ liệu thủ công, lập lịch thu thập: **TNMT, XD, QT**; cấu hình hiển thị: **chỉ TNMT**; cấu hình ngưỡng, cấp báo động, kênh và tần suất cảnh báo: **TNMT, UB**; xem trạng thái, kết quả khớp và nhật ký: **TNMT, UB, XD, QT**. **KH, ND không có quyền**.
-
-**Nghiệm thu (E.4a):** dùng một payload Weather API và nhập thủ công bộ dữ liệu tương đương; hai luồng phải chuẩn hóa ra cùng giá trị và chọn cùng `scenario_id`, đồng thời lưu đúng nguồn gốc `automatic`/`manual`. Chứng minh dữ liệu không khớp trả `no_match`, quy tắc xung đột trả `ambiguous`, cả hai không tạo kịch bản và không kích hoạt mô hình. Sau đó để hệ thống chạy qua một chu kỳ REST/JSON thật và một nguồn raster thật (ưu tiên GSMaP hoặc GPM); truy vấn `kttv.observations` và `kttv.grid_assets` chứng minh dữ liệu đã về đúng kho, đúng thời gian và đúng đơn vị. Mở lớp mưa/mực nước bằng QGIS qua WMS để kiểm tra hiển thị và attribution. Chặn nguồn chính ở tầng mạng để chứng minh retry, nguồn dự phòng, trạng thái quá hạn và cảnh báo mất tín hiệu. Kiểm thử đủ sáu vai trò TNMT, UB, XD, QT, KH, ND.
-
-> **Ranh giới Sprint 10:** S10 chuẩn bị kịch bản và chọn kịch bản tương ứng cho cả hai nguồn vào. S10 **chưa chạy engine mô hình**; gắn bộ tham số hoàn chỉnh ở S11 và chạy dự báo ở S12.
+**Nghiệm thu:** Gọi API tra cứu chỉ số theo bộ tham số đầu vào → Hệ thống trả về chính xác danh sách các lớp bản đồ GIS tương ứng, xem được WMS/MVT trực tiếp trên WebGIS và Mobile.
 
 **Bảo mật:** dữ liệu từ bên thứ ba và dữ liệu nhập thủ công phải được kiểm tra kiểu, đơn vị, thời điểm và miền giá trị **trước khi** ghi vào DB (OWASP API10). Cảnh báo thiên tai gửi ra ngoài phải ghi nhật ký đầy đủ ai/khi nào/ngưỡng nào kích hoạt.
 
