@@ -13,9 +13,6 @@ const fieldReportRoutes = require('./field-report.routes');
 const mobileGisRoutes = require('./mobile-gis.routes');
 const apiRegistryRoutes = require('./api-registry.routes');
 const sharedLayerRoutes = require('./shared-layer.routes');
-// // TẠM BỎ SPRINT 10 CŨ — ĐANG ĐIỀU CHỈNH THEO HƯỚNG BẢN ĐỒ CHỈ SỐ MỚI
-// const kttvRoutes = require('./kttv.routes');
-
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -37,6 +34,5 @@ router.use('/devices', fieldReportRoutes.deviceRouter);
 router.use('/mobile', mobileGisRoutes);
 router.use('/admin/api-registry', apiRegistryRoutes);
 router.use('/shared', sharedLayerRoutes);
-// router.use('/admin/kttv', kttvRoutes.adminRouter);
 
 module.exports = router;
