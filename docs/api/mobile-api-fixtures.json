@@ -1,173 +1,173 @@
 {
-    "schemaVersion": 1,
-    "generatedAt": "2026-08-08T09:19:43.310Z",
-    "baseUrl": "http://127.0.0.1:3018",
-    "apiBaseUrl": "http://127.0.0.1:3018/api/v1",
-    "prefix": "MOBACC",
-    "database": "campha_mobile_acceptance",
-    "fixturePolicy": "business fixtures created and read back through HTTP API only",
-    "accounts": [
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-08T15:08:20.984Z",
+  "baseUrl": "http://127.0.0.1:3018",
+  "apiBaseUrl": "http://127.0.0.1:3018/api/v1",
+  "prefix": "MOBACC",
+  "database": "campha_mobile_acceptance",
+  "fixturePolicy": "business fixtures created and read back through HTTP API only",
+  "accounts": [
+    {
+      "role": "system_admin",
+      "email": "admin@campha.gov.vn"
+    },
+    {
+      "role": "ubnd_tp",
+      "email": "ubnd@campha.gov.vn"
+    },
+    {
+      "role": "so_tnmt",
+      "email": "tnmt@campha.gov.vn"
+    },
+    {
+      "role": "so_xd",
+      "email": "xaydung@campha.gov.vn"
+    },
+    {
+      "role": "citizen",
+      "email": "citizen@campha.gov.vn"
+    }
+  ],
+  "fixtures": {
+    "news": {
+      "id": 1,
+      "title": "MOBACC Bản tin phục vụ phát triển mobile",
+      "commentId": 1
+    },
+    "content": {
+      "document": {
+        "id": 1,
+        "code": "MOBACC-DOC-001"
+      },
+      "pdfMap": {
+        "id": 1,
+        "title": "MOBACC Bản đồ PDF mobile"
+      }
+    },
+    "raster": {
+      "id": 1,
+      "sceneCode": "MOBACC-S2-20260808"
+    },
+    "fieldReport": {
+      "id": 1,
+      "referenceCode": "CP-2026-00000001",
+      "status": "approved"
+    },
+    "mobile": {
+      "draft": {
+        "id": 1,
+        "title": "MOBACC Vùng khảo sát mobile"
+      },
+      "weatherReady": true,
+      "weatherBlocker": null
+    },
+    "kttv": {
+      "station": {
+        "code": "MOBACC01",
+        "name": "MOBACC Trạm Cẩm Phả"
+      },
+      "scenarios": [
         {
-            "role": "system_admin",
-            "email": "admin@campha.gov.vn"
+          "id": 1,
+          "code": "MOBACC_RAIN_NORMAL",
+          "status": "official"
         },
         {
-            "role": "ubnd_tp",
-            "email": "ubnd@campha.gov.vn"
-        },
-        {
-            "role": "so_tnmt",
-            "email": "tnmt@campha.gov.vn"
-        },
-        {
-            "role": "so_xd",
-            "email": "xaydung@campha.gov.vn"
-        },
-        {
-            "role": "citizen",
-            "email": "citizen@campha.gov.vn"
+          "id": 2,
+          "code": "MOBACC_RAIN_HEAVY",
+          "status": "official"
         }
-    ],
-    "fixtures": {
-        "news": {
-            "id": 1,
-            "title": "MOBACC Bản tin phục vụ phát triển mobile",
-            "commentId": 1
-        },
-        "content": {
-            "document": {
-                "id": 1,
-                "code": "MOBACC-DOC-001"
-            },
-            "pdfMap": {
-                "id": 1,
-                "title": "MOBACC Bản đồ PDF mobile"
-            }
-        },
-        "raster": {
-            "id": 1,
-            "sceneCode": "MOBACC-S2-20260808"
-        },
-        "fieldReport": {
-            "id": 1,
-            "referenceCode": "CP-2026-00000001",
-            "status": "approved"
-        },
-        "mobile": {
-            "draft": {
-                "id": 1,
-                "title": "MOBACC Vùng khảo sát mobile"
-            },
-            "weatherReady": true,
-            "weatherBlocker": null
-        },
-        "kttv": {
-            "station": {
-                "code": "MOBACC01",
-                "name": "MOBACC Trạm Cẩm Phả"
-            },
-            "scenarios": [
-                {
-                    "id": 1,
-                    "code": "MOBACC_RAIN_NORMAL",
-                    "status": "official"
-                },
-                {
-                    "id": 2,
-                    "code": "MOBACC_RAIN_HEAVY",
-                    "status": "official"
-                }
-            ],
-            "manualInput": {
-                "id": 3,
-                "matchStatus": "matched",
-                "scenarioId": 2
-            },
-            "source": {
-                "id": 1,
-                "name": "MOBACC Open-Meteo Weather API"
-            },
-            "automaticInput": {
-                "id": 5,
-                "matchStatus": "matched",
-                "scenarioId": 1
-            },
-            "automaticBlocker": null
-        },
-        "layer": {
-            "id": 1,
-            "code": "mobacc_mobile_points",
-            "featureId": "2",
-            "publishStatus": "published",
-            "tableName": "layer_1_ff2c2e81",
-            "blocker": null
-        },
-        "registry": {
-            "ready": true,
-            "id": 1,
-            "slug": "mobacc-mobile-points",
-            "keyIssued": true,
-            "keyBlocker": null
-        }
+      ],
+      "manualInput": {
+        "id": 3,
+        "matchStatus": "matched",
+        "scenarioId": 2
+      },
+      "source": {
+        "id": 1,
+        "name": "MOBACC Open-Meteo Weather API"
+      },
+      "automaticInput": {
+        "id": 8,
+        "matchStatus": "matched",
+        "scenarioId": 1
+      },
+      "automaticBlocker": null
     },
-    "modules": {
-        "auth": {
-            "status": "ready"
-        },
-        "cms": {
-            "status": "ready"
-        },
-        "files": {
-            "status": "ready"
-        },
-        "raster": {
-            "status": "ready"
-        },
-        "fieldReports": {
-            "status": "ready"
-        },
-        "mobileDraftMeasure": {
-            "status": "ready"
-        },
-        "mobileWeather": {
-            "status": "ready"
-        },
-        "kttvManual": {
-            "status": "ready"
-        },
-        "kttvAutomatic": {
-            "status": "ready"
-        },
-        "map": {
-            "status": "ready"
-        },
-        "apiRegistry": {
-            "status": "ready"
-        },
-        "routingOfflineEdit": {
-            "status": "deferred",
-            "blocker": "Fixture Excel chỉ có Point; cần line/editable layer nghiệp vụ qua import API."
-        }
+    "layer": {
+      "id": 1,
+      "code": "mobacc_mobile_points",
+      "featureId": "2",
+      "publishStatus": "published",
+      "tableName": "layer_1_ff2c2e81",
+      "blocker": null
     },
-    "endpoints": {
-        "login": "/api/v1/auth/login",
-        "refresh": "/api/v1/auth/refresh",
-        "news": "/api/v1/cms/news",
-        "documents": "/api/v1/cms/documents",
-        "pdfMaps": "/api/v1/cms/pdf-maps",
-        "fieldReports": "/api/v1/field-reports/public",
-        "drafts": "/api/v1/mobile/drafts",
-        "measure": "/api/v1/mobile/measure",
-        "weather": "/api/v1/mobile/weather/current?longitude=107.31&latitude=21.01",
-        "mapCatalog": "/api/v1/web-map/layers",
-        "kttvStations": "/api/v1/admin/kttv/stations",
-        "kttvScenarios": "/api/v1/admin/kttv/scenarios",
-        "kttvInputs": "/api/v1/admin/kttv/inputs"
+    "registry": {
+      "ready": true,
+      "id": 1,
+      "slug": "mobacc-mobile-points",
+      "keyIssued": true,
+      "keyBlocker": null
+    }
+  },
+  "modules": {
+    "auth": {
+      "status": "ready"
     },
-    "evidence": {
-        "requestCount": 54,
-        "writes": 10,
-        "readBacks": 25
+    "cms": {
+      "status": "ready"
     },
-    "secrets": "No token, API key, password or credential stored."
+    "files": {
+      "status": "ready"
+    },
+    "raster": {
+      "status": "ready"
+    },
+    "fieldReports": {
+      "status": "ready"
+    },
+    "mobileDraftMeasure": {
+      "status": "ready"
+    },
+    "mobileWeather": {
+      "status": "ready"
+    },
+    "kttvManual": {
+      "status": "ready"
+    },
+    "kttvAutomatic": {
+      "status": "ready"
+    },
+    "map": {
+      "status": "ready"
+    },
+    "apiRegistry": {
+      "status": "ready"
+    },
+    "routingOfflineEdit": {
+      "status": "deferred",
+      "blocker": "Fixture Excel chỉ có Point; cần line/editable layer nghiệp vụ qua import API."
+    }
+  },
+  "endpoints": {
+    "login": "/api/v1/auth/login",
+    "refresh": "/api/v1/auth/refresh",
+    "news": "/api/v1/cms/news",
+    "documents": "/api/v1/cms/documents",
+    "pdfMaps": "/api/v1/cms/pdf-maps",
+    "fieldReports": "/api/v1/field-reports/public",
+    "drafts": "/api/v1/mobile/drafts",
+    "measure": "/api/v1/mobile/measure",
+    "weather": "/api/v1/mobile/weather/current?longitude=107.31&latitude=21.01",
+    "mapCatalog": "/api/v1/web-map/layers",
+    "kttvStations": "/api/v1/admin/kttv/stations",
+    "kttvScenarios": "/api/v1/admin/kttv/scenarios",
+    "kttvInputs": "/api/v1/admin/kttv/inputs"
+  },
+  "evidence": {
+    "requestCount": 54,
+    "writes": 10,
+    "readBacks": 25
+  },
+  "secrets": "No token, API key, password or credential stored."
 }

@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -57,7 +58,11 @@ const corsAllowCredentials = true;
 if (corsAllowCredentials && allowedOrigins.includes('*')) {
     // Credentialed requests can't use "*" — set CORS_ORIGINS in .env for
     // your deployment. These are dev-only fallbacks.
-    allowedOrigins = ['http://localhost:5173', 'http://localhost:5174'];
+    allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:3018',
+        'http://127.0.0.1:3018',
+    ];
 }
 
 app.use(
@@ -66,6 +71,8 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+                'style-src': ["'self'", 'https://fonts.googleapis.com'],
+                'font-src': ["'self'", 'https://fonts.gstatic.com'],
                 'frame-ancestors': ["'self'", ...allowedOrigins],
             },
         },
@@ -142,6 +149,14 @@ app.use(
     }),
 );
 app.use('/uploads', express.static('public/uploads'));
+if (process.env.NODE_ENV !== 'production') {
+    const acceptanceDir = path.join(__dirname, '..', 'public', 'acceptance');
+    app.get('/acceptance/fixtures.json', (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        res.sendFile(path.join(__dirname, '..', 'docs', 'api', 'mobile-api-fixtures.json'));
+    });
+    app.use('/acceptance', express.static(acceptanceDir, { index: 'index.html' }));
+}
 app.use(
     compression({
         filter: (req, res) => {

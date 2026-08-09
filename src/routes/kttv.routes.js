@@ -1,5 +1,10 @@
 'use strict';
 
+/**
+ * [TẠM BỎ SPRINT 10 CŨ — ĐANG ĐIỀU CHỈNH THEO HƯỚNG MỚI]
+ * Hướng mới: Lựa chọn chỉ số -> Tra cứu/Xuất ra lớp bản đồ tương ứng.
+ */
+
 const { Router } = require('express');
 const rateLimit = require('express-rate-limit');
 const asyncHandler = require('../helpers/async-handler');

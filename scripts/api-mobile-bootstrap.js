@@ -779,7 +779,7 @@ const ensureLayer = async () => {
             `/mobile/layers/${layer.id}/nearby?longitude=107.3&latitude=21.0&radiusMeters=2000&limit=20`,
             { role: 'citizen', label: 'Read-back mobile nearby' },
         );
-        await request(`/mobile/layers/${layer.id}/tiles/10/817/452.mvt`, {
+        await request(`/mobile/layers/${layer.id}/tiles/10/817/450.mvt`, {
             role: 'citizen',
             label: 'Read-back MVT',
         });

@@ -7,10 +7,11 @@ API local đã nghiệm thu: `http://127.0.0.1:3018/api/v1`
 ## Kết luận
 
 **GO cho phát triển mobile** với auth, CMS, văn bản/PDF, raster catalog, phản ánh hiện trường,
-weather, draft/measure, bản đồ điểm/MVT/nearby/feature, KTTV manual/automatic và API registry.
+weather, draft/measure, bản đồ điểm/MVT/nearby/feature, KTTV manual/automatic, API registry,
+offline sync, feature edit/history/restore và routing shortest-path.
 
-**DEFERRED** routing, offline edit/sync end-to-end vì fixture hiện tại là lớp Point. Hạng mục này cần
-lớp LineString/PostGIS editable nghiệp vụ và topology thật.
+Routing live acceptance dùng mạng LineString tạm nhập hoàn toàn qua API: topology `ready`,
+2 edge, 3 vertex, 1 component; shortest route 200. Dữ liệu tuyến nghiệp vụ thật vẫn cần nạp khi UAT.
 
 GEE không thuộc gate mobile này. Server đã chạy degraded khi GEE unavailable.
 
@@ -119,14 +120,32 @@ POST /api/v1/admin/kttv/sources/:id/collect
 
 ## Kết quả nghiệm thu lưu tại thời điểm handoff
 
+- Inventory tĩnh: **158 route handlers**.
+- Live HTTP happy-path: **150/158 route**; tăng từ 72 lên 150.
+- 8 route còn lại được phân loại, không giả PASS:
+  - 7 auth route cần Google/email/OAuth account thật.
+  - 1 terrain URL chưa có API ingest tạo `geotiff_minio` fixture.
+- `/metrics` đã live 200, payload Prometheus 62.651 bytes; count reconciled ngoài parser `/api/v1`.
+- GeoServer retry publish đã sửa exact `already exists`; `POST /admin/layers/1/publish` live 200.
+- Registry delete live: temporary published layer, create 201, delete 200, read-back 404,
+  layer cleanup; fixture registry `1` vẫn `GET`-only.
+- Statistics create/update/refresh/compare đã live 200/201 trên hai polygon layer tạm.
+- Routing rebuild/topology/shortest đã live 200 trên connected LineString layer tạm.
+- Ba layer polygon/routing đã soft-delete qua API; detail 404; fixture chính vẫn nguyên.
+- Lifecycle tạm đã dọn qua HTTP: users, sessions, storage, CMS, raster, field report,
+  draft, shared feature/key, KTTV source/station, Shapefile layer.
 - Bootstrap lần đầu: 96 request HTTP.
 - Bootstrap rerun idempotent: đạt; không tạo lại manual fixture hoặc API key sau fix.
-- Verify: 30/30 kiểm tra HTTP đạt.
+- Verify sau cleanup: 30/30; MVT đúng content type và body **150 bytes**.
+- HTML acceptance console: 45 case; người dùng chạy browser và xác nhận xanh toàn bộ.
 - Unit: 47 suites, 338 tests đạt; 1 suite/6 tests skip có chủ đích.
-- Integration trên `campha_test`: 20 suites, 92/92 tests đạt.
+- Integration trên `campha_test`: 20/20 suites, 92/92 tests đạt.
+- Coverage baseline: lines 38,50%, functions 31,46%, branches 30,42%.
+- K6 local: 20 VU/15 giây, 1.500 request, 0% lỗi, p95 2,1 ms.
 - ESLint: đạt.
-- `git diff --check`: đạt; chỉ có cảnh báo LF/CRLF.
+- `git diff --check`: đạt; chỉ cảnh báo LF/CRLF.
 - Production dependency audit: 0 vulnerabilities.
+- Credential scan: 241 file; không phát hiện private key/JWT/AWS/Google API key.
 
 ## Gate ngoài local acceptance
 

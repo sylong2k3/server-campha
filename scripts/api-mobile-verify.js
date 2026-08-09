@@ -29,13 +29,17 @@ const request = async (route, options = {}) => {
         headers,
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
-    const text = await response.text();
     let body = null;
-    if (text) {
-        try {
-            body = JSON.parse(text);
-        } catch {
-            body = text;
+    if (options.binary) {
+        body = await response.arrayBuffer();
+    } else {
+        const text = await response.text();
+        if (text) {
+            try {
+                body = JSON.parse(text);
+            } catch {
+                body = text;
+            }
         }
     }
     const expected = options.expected || [200];
@@ -261,9 +265,17 @@ const fixtureInList = (body, id) =>
             `/mobile/layers/${layer.id}/nearby?longitude=107.3&latitude=21.0&radiusMeters=2000&limit=20`,
             { role: 'citizen', label: 'Mobile map nearby' },
         );
-        await request(`/mobile/layers/${layer.id}/tiles/10/817/452.mvt`, {
+        await request(`/mobile/layers/${layer.id}/tiles/10/817/450.mvt`, {
             role: 'citizen',
-            label: 'Mobile MVT',
+            binary: true,
+            label: 'Mobile MVT non-empty',
+            assert: (body, response) => {
+                assert(
+                    response.headers.get('content-type')?.includes('mapbox-vector-tile'),
+                    'Sai MVT content-type',
+                );
+                assert(body.byteLength > 0, 'MVT fixture rỗng');
+            },
         });
     }
 

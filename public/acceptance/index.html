@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Bảng nghiệm thu HTML cho toàn bộ server API Cẩm Phả trước khi phát triển mobile.">
+  <meta name="color-scheme" content="dark">
+  <title>Cẩm Phả API Acceptance Console</title>
+  <link rel="stylesheet" href="./acceptance.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Cẩm Phả API Acceptance Console"><span class="brand-mark">CP</span><span><strong>API Acceptance</strong><small>Server gate trước mobile</small></span></a>
+    <div class="runtime-pill" id="runtime-pill"><span class="pulse"></span><span id="runtime-label">Chưa kiểm tra</span></div>
+  </header>
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy"><span class="eyebrow">Acceptance workspace · HTTP API thật</span><h1>Test server kỹ.<br><em>Không báo đạt giả.</em></h1><p>Console HTML tĩnh, không framework. Token và mật khẩu chỉ giữ trong RAM của tab. Reload là mất.</p><div class="hero-actions"><button id="run-all" class="button primary" type="button">Chạy toàn bộ kiểm thử</button><button id="stop-run" class="button ghost" type="button" disabled>Dừng</button></div></div>
+      <div class="score-card" aria-live="polite"><div class="score-ring" id="score-ring"><span id="score-value">—</span><small>đạt</small></div><div class="score-meta"><strong id="score-title">Chưa chạy</strong><span id="score-subtitle">Cấu hình bên dưới rồi bắt đầu</span></div></div>
+    </section>
+    <section class="control-grid" aria-labelledby="config-title">
+      <article class="panel config-panel">
+        <div class="panel-heading"><div><span class="section-index">01</span><h2 id="config-title">Cấu hình phiên</h2></div><span class="secure-note">RAM only</span></div>
+        <div class="field-grid"><label><span>API base URL</span><input id="base-url" type="url" value="/api/v1" autocomplete="off"></label><label><span>Mật khẩu test</span><input id="password" type="password" placeholder="API_TEST_PASSWORD" autocomplete="off"></label></div>
+        <div class="account-grid" id="account-grid"></div>
+        <div class="inline-actions"><button id="health-check" class="button subtle" type="button">Health + security headers</button><button id="login-all" class="button subtle" type="button">Login 5 vai trò</button><button id="clear-secrets" class="button danger-text" type="button">Xóa secrets</button></div>
+      </article>
+      <article class="panel manifest-panel">
+        <div class="panel-heading"><div><span class="section-index">02</span><h2>Fixture manifest</h2></div><span id="manifest-state" class="status neutral">Chưa tải</span></div>
+        <dl class="manifest-facts" id="manifest-facts"><div><dt>Database</dt><dd>—</dd></div><div><dt>Generated</dt><dd>—</dd></div><div><dt>Layer</dt><dd>—</dd></div><div><dt>Registry</dt><dd>—</dd></div></dl>
+        <p class="muted">Đọc từ manifest server. Không chứa password, token hoặc API key.</p>
+      </article>
+    </section>
+    <section class="metrics" aria-label="Tổng quan kết quả"><article><span>Tổng case</span><strong id="total-count">0</strong></article><article><span>Đạt</span><strong class="good" id="pass-count">0</strong></article><article><span>Lỗi</span><strong class="bad" id="fail-count">0</strong></article><article><span>Bỏ qua</span><strong class="warn" id="skip-count">0</strong></article><article><span>Thời gian</span><strong id="duration-value">0.0s</strong></article></section>
+    <section class="results-section" aria-labelledby="results-title">
+      <div class="results-toolbar"><div><span class="section-index">03</span><h2 id="results-title">Ma trận kiểm thử</h2></div><div class="toolbar-actions"><label class="search"><span class="sr-only">Tìm case</span><input id="search-tests" type="search" placeholder="Tìm module, endpoint…"></label><select id="status-filter" aria-label="Lọc trạng thái"><option value="all">Tất cả</option><option value="pass">Đạt</option><option value="fail">Lỗi</option><option value="skip">Bỏ qua</option><option value="pending">Chờ</option></select><button id="download-report" class="button ghost compact" type="button" disabled>Tải JSON</button></div></div>
+      <div id="module-tabs" class="module-tabs" role="tablist" aria-label="Nhóm kiểm thử"></div><div id="test-list" class="test-list" aria-live="polite"></div>
+    </section>
+    <section class="limitations panel"><div class="panel-heading"><div><span class="section-index">04</span><h2>Gate ngoài console</h2></div><span class="status conditional">Conditional</span></div><div class="limit-grid"><article><strong>Frontend sản phẩm</strong><p>Repo không có WebGIS SPA. Console này test API từ browser, không thay thế UI sản phẩm.</p></article><article><strong>Dữ liệu không gian thật</strong><p>QGIS, DEM, 7 lớp nền và LineString routing vẫn cần UAT riêng.</p></article><article><strong>Dịch vụ ngoài</strong><p>OAuth, SMTP, Firebase, GEE, staging load, restore drill và pentest cần môi trường thật.</p></article></div></section>
+  </main>
+  <dialog id="detail-dialog"><div class="dialog-head"><div><span id="detail-status" class="status neutral">Case</span><h3 id="detail-title">Chi tiết</h3></div><button id="close-dialog" class="icon-button" aria-label="Đóng">×</button></div><pre id="detail-content"></pre></dialog>
+  <footer>Acceptance console · Không lưu secret · <span id="footer-time"></span></footer>
+  <script src="./acceptance.js" defer></script>
+</body>
+</html>

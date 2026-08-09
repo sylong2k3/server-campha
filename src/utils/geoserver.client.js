@@ -66,19 +66,28 @@ const publishVectorLayer = async (layer) => {
     const featureName = layer.table_name;
     const srs = `EPSG:${layer.epsg_code || 4326}`;
 
-    await requestGeoserver(`/rest/workspaces/${workspace}/datastores/${datastore}/featuretypes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            featureType: {
-                name: featureName,
-                nativeName: featureName,
-                srs,
-                enabled: layer.is_active !== false,
-                title: layer.name_vi || featureName,
+    try {
+        await requestGeoserver(
+            `/rest/workspaces/${workspace}/datastores/${datastore}/featuretypes`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    featureType: {
+                        name: featureName,
+                        nativeName: featureName,
+                        srs,
+                        enabled: layer.is_active !== false,
+                        title: layer.name_vi || featureName,
+                    },
+                }),
             },
-        }),
-    });
+        );
+    } catch (err) {
+        if (!isAlreadyExistsError(err)) {
+            throw err;
+        }
+    }
 
     return `${workspace}:${featureName}`;
 };

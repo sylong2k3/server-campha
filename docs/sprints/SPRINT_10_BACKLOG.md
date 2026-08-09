@@ -1,4 +1,11 @@
-# Sprint 10 — KTTV hai chế độ → kịch bản
+# Sprint 10 — KTTV hai chế độ → kịch bản & bản đồ tương ứng
+
+> [!WARNING]
+> **THÔNG BÁO TẠM DỪNG / ĐANG ĐIỀU CHỈNH THEO HƯỚNG MỚI:**
+> Luồng kịch bản cũ (nhận số liệu KTTV -> matcher chọn kịch bản `scenario_id`) đang được cập nhật lại theo yêu cầu mới từ bên cung cấp.
+> **Hướng mới:** Người dùng / Hệ thống chọn các chỉ số (Rainfall, Water Level, Wind, etc.) -> Tra cứu và hiển thị lớp bản đồ (Vector/Raster/WMS) tương ứng.
+
+Hướng dẫn nghiệp vụ, API và vận hành: [SPRINT_10_GUIDE.md](./SPRINT_10_GUIDE.md).
 
 ## Mục tiêu
 
