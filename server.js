@@ -11,7 +11,6 @@ const geoserverConfig = require('./src/configs/geoserver');
 const geoserverClient = require('./src/utils/geoserver.client');
 
 const tokenCleanupJob = require('./src/jobs/token-cleanup.job');
-const kttvCollectionJob = require('./src/jobs/kttv-collection.job');
 const { initWebSocketServer, closeWebSocketServer } = require('./src/realtime/websocket.server');
 const systemLogger = require('./src/utils/systemLogger.util');
 const layerWorkerManager = require('./src/workers/layer-worker.manager');
@@ -108,7 +107,6 @@ async function gracefulShutdown(signal) {
     systemLogger.logWarn('server', `Server đang tắt (tín hiệu: ${signal})`, { signal });
 
     tokenCleanupJob.stop();
-    await kttvCollectionJob.stop();
     closeWebSocketServer();
     await fieldReportListener.stop();
     await layerWorkerManager.stop();
@@ -161,7 +159,6 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
     fieldReportListener.start({ sendPush: IS_SINGLETON_WORKER });
     if (IS_SINGLETON_WORKER) {
         tokenCleanupJob.start();
-        kttvCollectionJob.start();
         layerWorkerManager.start();
     }
 
