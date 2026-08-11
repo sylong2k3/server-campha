@@ -19,23 +19,61 @@ const getAccessible = async (id, actor, options) => {
     return layer;
 };
 
-const serializeLayer = (layer) => ({
-    id: layer.id,
-    code: layer.code,
-    nameVi: layer.name_vi,
-    category: layer.category,
-    geometryType: layer.geometry_type,
-    srid: layer.srid,
-    geoserverLayer: layer.geoserver_layer,
-    styleName: layer.style_name,
-    minZoom: layer.min_zoom,
-    maxZoom: layer.max_zoom,
-    legend: layer.legend_config,
-    isPublic: layer.is_public,
-});
+const canEditLayer = (layer, actor) =>
+    actor?.role === 'so_tnmt' &&
+    actor.permissions?.map_feature?.update === true &&
+    layer.role_can_edit === true;
+const safeEditableFields = (layer, actor) => {
+    if (!canEditLayer(layer, actor)) {
+        return [];
+    }
+    const configuredId = layer.metadata?.idField,
+        idField =
+            typeof configuredId === 'string' && repository.FIELD.test(configuredId)
+                ? configuredId
+                : layer.metadata?.importType === 'excel'
+                  ? 'source_row'
+                  : 'source_fid';
+    const blocked = new Set([
+        'geom',
+        'source',
+        'target',
+        'cost',
+        'reverse_cost',
+        idField.toLowerCase(),
+    ]);
+    const fields = Array.isArray(layer.metadata?.editableFields)
+        ? layer.metadata.editableFields.filter(
+              (field) =>
+                  typeof field === 'string' &&
+                  repository.FIELD.test(field) &&
+                  !blocked.has(field.toLowerCase()),
+          )
+        : [];
+    return [...new Set(fields)].slice(0, 30);
+};
+const serializeLayer = (layer, actor) => {
+    const editableFields = safeEditableFields(layer, actor);
+    return {
+        id: layer.id,
+        code: layer.code,
+        nameVi: layer.name_vi,
+        category: layer.category,
+        geometryType: layer.geometry_type,
+        srid: layer.srid,
+        geoserverLayer: layer.geoserver_layer,
+        styleName: layer.style_name,
+        minZoom: layer.min_zoom,
+        maxZoom: layer.max_zoom,
+        legend: layer.legend_config,
+        isPublic: layer.is_public,
+        canEdit: canEditLayer(layer, actor),
+        editableFields,
+    };
+};
 const listLayers = async (category, actor) => {
     assertMap(actor, 'view');
-    return (await repository.catalog(actor, category)).map(serializeLayer);
+    return (await repository.catalog(actor, category)).map((layer) => serializeLayer(layer, actor));
 };
 const getFeature = async (layerId, featureId, includeGeometry, actor) => {
     assertMap(actor, 'view_attributes');

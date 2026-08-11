@@ -29,7 +29,13 @@ const layer = {
     min_zoom: 8,
     max_zoom: 18,
     legend_config: { type: 'single' },
-    metadata: { searchFields: ['ten'], displayFields: ['ten'] },
+    metadata: {
+        searchFields: ['ten'],
+        displayFields: ['ten'],
+        idField: 'source_fid',
+        editableFields: ['ten', 'geom', 'source_fid', 'ten'],
+    },
+    role_can_edit: true,
 };
 
 describe('web map service', () => {
@@ -43,9 +49,31 @@ describe('web map service', () => {
         ]);
         expect(anonymous[0]).not.toHaveProperty('table_name');
         expect(anonymous[0]).not.toHaveProperty('metadata');
+        expect(anonymous[0]).toMatchObject({ canEdit: false, editableFields: [] });
         await expect(
             service.listLayers(undefined, { permissions: { map: { view: false } } }),
         ).rejects.toMatchObject({ status: 403 });
+    });
+
+    test('TNMT receives only sanitized per-layer editable fields', async () => {
+        repository.catalog.mockResolvedValue([layer]);
+        const tnmt = {
+            role: 'so_tnmt',
+            permissions: {
+                map: { view: true },
+                map_feature: { update: true },
+            },
+        };
+        await expect(service.listLayers(undefined, tnmt)).resolves.toEqual([
+            expect.objectContaining({ canEdit: true, editableFields: ['ten'] }),
+        ]);
+
+        repository.catalog.mockResolvedValue([
+            { ...layer, metadata: { ...layer.metadata, editableFields: [] } },
+        ]);
+        await expect(service.listLayers(undefined, tnmt)).resolves.toEqual([
+            expect.objectContaining({ canEdit: true, editableFields: [] }),
+        ]);
     });
 
     test('feature query is ACL-filtered and rejects raster', async () => {

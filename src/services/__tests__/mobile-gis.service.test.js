@@ -1,9 +1,11 @@
 'use strict';
 jest.mock('../../repositories/mobile-gis.repository');
 jest.mock('../../repositories/web-map.repository');
+jest.mock('../../repositories/mobile-feature-edit.repository');
 jest.mock('../../utils/openweather.client');
 const repository = require('../../repositories/mobile-gis.repository');
 const webMap = require('../../repositories/web-map.repository');
+const editRepository = require('../../repositories/mobile-feature-edit.repository');
 const weather = require('../../utils/openweather.client');
 const config = require('../../configs/weather');
 const service = require('../mobile-gis.service');
@@ -38,6 +40,39 @@ describe('mobile GIS service', () => {
             actor,
         );
         expect(webMap.accessibleLayer).toHaveBeenCalledTimes(2);
+    });
+    test('TNMT feature detail returns authoritative snapshot and version', async () => {
+        webMap.accessibleLayer.mockResolvedValue({
+            id: 1,
+            storage_kind: 'postgis',
+            table_name: 'roads',
+            publish_status: 'published',
+            role_can_edit: true,
+        });
+        webMap.featureById.mockResolvedValue({ source_fid: '7', name: 'display' });
+        editRepository.snapshot.mockResolvedValue({
+            feature_id: '7',
+            attributes: { name: 'editable' },
+            geometry: { type: 'Point', coordinates: [107.3, 21] },
+        });
+        editRepository.state.mockResolvedValue({ version: 4 });
+        const tnmt = {
+            ...actor,
+            role: 'so_tnmt',
+            permissions: {
+                ...actor.permissions,
+                map_feature: { update: true },
+            },
+        };
+        await expect(service.feature(1, '7', tnmt)).resolves.toEqual({
+            layerId: 1,
+            feature: {
+                source_fid: '7',
+                name: 'editable',
+                geometry: { type: 'Point', coordinates: [107.3, 21] },
+                version: 4,
+            },
+        });
     });
     test('blocks permission and hides other owner draft', async () => {
         await expect(

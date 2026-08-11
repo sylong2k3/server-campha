@@ -1,6 +1,7 @@
 'use strict';
 const repository = require('../repositories/mobile-gis.repository');
 const webMapRepository = require('../repositories/web-map.repository');
+const editRepository = require('../repositories/mobile-feature-edit.repository');
 const weatherClient = require('../utils/openweather.client');
 const weatherConfig = require('../configs/weather');
 const {
@@ -40,6 +41,25 @@ const feature = async (id, featureId, actor) => {
         item = await webMapRepository.featureById(row, featureId, true);
     if (!item) {
         throw new Api404Error('Không tìm thấy đối tượng');
+    }
+    if (
+        actor?.role === 'so_tnmt' &&
+        actor.permissions?.map_feature?.update === true &&
+        row.role_can_edit
+    ) {
+        const snapshot = await editRepository.snapshot(row, featureId),
+            current = await editRepository.state(row.id, featureId);
+        if (snapshot) {
+            return {
+                layerId: row.id,
+                feature: {
+                    ...item,
+                    ...snapshot.attributes,
+                    geometry: snapshot.geometry,
+                    version: Number(current?.version || 1),
+                },
+            };
+        }
     }
     return { layerId: row.id, feature: item };
 };
