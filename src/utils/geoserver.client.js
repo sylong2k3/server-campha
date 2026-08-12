@@ -372,19 +372,20 @@ const publishS3GeoTiffLayer = async ({ storeName, s3Bucket, s3Key, title, enable
     }
 
     // 2. Coverage.
+    const coverageBody = JSON.stringify({
+        coverage: {
+            name: storeName,
+            title: title || storeName,
+            enabled,
+        },
+    });
     try {
         await requestGeoserver(
             `/rest/workspaces/${workspace}/coveragestores/${storeName}/coverages`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    coverage: {
-                        name: storeName,
-                        title: title || storeName,
-                        enabled,
-                    },
-                }),
+                body: coverageBody,
             },
         );
         dbg(`coverage CREATED`);
@@ -395,7 +396,15 @@ const publishS3GeoTiffLayer = async ({ storeName, s3Bucket, s3Key, title, enable
             );
             throw err;
         }
-        dbg(`coverage already exists — kept`);
+        await requestGeoserver(
+            `/rest/workspaces/${workspace}/coveragestores/${storeName}/coverages/${storeName}`,
+            {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: coverageBody,
+            },
+        );
+        dbg(`coverage UPDATED`);
     }
 
     const layerName = `${workspace}:${storeName}`;

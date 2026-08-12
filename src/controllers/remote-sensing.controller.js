@@ -54,10 +54,26 @@ const categorize = async (req, res) =>
         t('satellite_categorized_success', req.lang),
         await service.categorize(Number(req.params.id), req.body, buildActor(req)),
     );
+const publish = async (req, res) =>
+    OK(
+        res,
+        'Xuất bản ảnh GeoTIFF lên Web Map thành công',
+        await service.publish(Number(req.params.id), req.body, buildActor(req)),
+    );
 const remove = async (req, res) =>
     OK(
         res,
         t('satellite_deleted_success', req.lang),
         await service.remove(Number(req.params.id), req.query.expectedUpdatedAt, buildActor(req)),
     );
-module.exports = { list, listAdmin, get, compare, download, create, categorize, remove };
+module.exports = {
+    list,
+    listAdmin,
+    get,
+    compare,
+    download,
+    create,
+    categorize,
+    publish,
+    remove,
+};

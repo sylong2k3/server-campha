@@ -36,6 +36,30 @@ const categorySchema = Joi.object({
     thematicGroup: Joi.string().trim().min(1).max(80).required(),
     expectedUpdatedAt: date.required(),
 });
+const publishSchema = Joi.object({
+    code: Joi.string()
+        .pattern(/^[a-z][a-z0-9_]{0,62}$/)
+        .required(),
+    nameVi: Joi.string().trim().min(1).max(200).required(),
+    category: Joi.string().trim().min(1).max(50).required(),
+    srid: Joi.number().integer().min(1).max(999999).required(),
+    minZoom: Joi.number().integer().min(0).max(24).allow(null),
+    maxZoom: Joi.number().integer().min(0).max(24).allow(null),
+    legendConfig: Joi.object().max(30).default({}),
+    metadata: Joi.object().max(50).default({}),
+    isPublic: Joi.boolean().default(false),
+}).custom((value, helpers) => {
+    if (
+        value.minZoom !== null &&
+        value.maxZoom !== null &&
+        value.minZoom !== undefined &&
+        value.maxZoom !== undefined &&
+        value.minZoom > value.maxZoom
+    ) {
+        return helpers.error('any.invalid');
+    }
+    return value;
+}, 'zoom range validation');
 const idParamsSchema = Joi.object({ id: id.required() });
 const compareSchema = Joi.object({
     beforeId: id.required(),
@@ -50,6 +74,7 @@ module.exports = {
     listSchema,
     createSchema,
     categorySchema,
+    publishSchema,
     idParamsSchema,
     compareSchema,
     deleteQuerySchema,
