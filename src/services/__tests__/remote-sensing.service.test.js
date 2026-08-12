@@ -1,11 +1,11 @@
 'use strict';
 jest.mock('../../repositories/remote-sensing.repository');
 jest.mock('../../repositories/web-map.repository', () => ({ invalidateLayerCache: jest.fn() }));
-jest.mock('../minio.service', () => ({ getPresignedDownloadUrl: jest.fn() }));
-jest.mock('../../utils/geoserver.client', () => ({ publishS3GeoTiffLayer: jest.fn() }));
-jest.mock('../../configs/minioClient', () => ({
-    getBucketForCategory: jest.fn(() => 'raster-bucket'),
+jest.mock('../minio.service', () => ({
+    getPresignedDownloadUrl: jest.fn(),
+    getObjectStream: jest.fn(),
 }));
+jest.mock('../../utils/geoserver.client', () => ({ publishGeoTiffStream: jest.fn() }));
 jest.mock('../../utils/systemLogger.util', () => ({ logInfo: jest.fn() }));
 const repository = require('../../repositories/remote-sensing.repository');
 const webMapRepository = require('../../repositories/web-map.repository');
@@ -32,6 +32,7 @@ describe('remote sensing service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'signed', expiresAt: new Date() });
+        minio.getObjectStream.mockResolvedValue({ pipe: jest.fn() });
     });
     test('delegates public catalog and hides object key from compare', async () => {
         repository.list.mockResolvedValue({ items: [], total: 0 });
@@ -80,18 +81,20 @@ describe('remote sensing service', () => {
             image: { id: 7, object_key: 'raster/2026/file.tif' },
             layer: { id: 9, code: 'lop_phu_2024', name_vi: 'Lớp phủ 2024' },
         });
-        geoserver.publishS3GeoTiffLayer.mockResolvedValue('campha:lop_phu_2024');
+        geoserver.publishGeoTiffStream.mockResolvedValue('campha:lop_phu_2024');
         repository.setPublishState.mockResolvedValue({ id: 9, publish_status: 'published' });
         await expect(service.publish(7, {}, admin)).resolves.toMatchObject({
             imageId: 7,
             geoserverLayer: 'campha:lop_phu_2024',
             layer: { publish_status: 'published' },
         });
-        expect(geoserver.publishS3GeoTiffLayer).toHaveBeenCalledWith({
+        expect(minio.getObjectStream).toHaveBeenCalledWith({
+            category: 'raster',
+            objectKey: 'raster/2026/file.tif',
+        });
+        expect(geoserver.publishGeoTiffStream).toHaveBeenCalledWith({
             storeName: 'lop_phu_2024',
-            s3Bucket: 'raster-bucket',
-            s3Key: 'raster/2026/file.tif',
-            title: 'Lớp phủ 2024',
+            stream: expect.objectContaining({ pipe: expect.any(Function) }),
         });
         expect(webMapRepository.invalidateLayerCache).toHaveBeenCalledWith(9);
     });
@@ -103,7 +106,7 @@ describe('remote sensing service', () => {
             image: { id: 7, object_key: 'raster/file.tif' },
             layer: { id: 9, code: 'lop_phu_2024', name_vi: 'Lớp phủ 2024' },
         });
-        geoserver.publishS3GeoTiffLayer.mockRejectedValue(new Error('GeoServer failed'));
+        geoserver.publishGeoTiffStream.mockRejectedValue(new Error('GeoServer failed'));
         repository.setPublishState.mockResolvedValue({ id: 9, publish_status: 'failed' });
         await expect(service.publish(7, {}, admin)).rejects.toThrow('GeoServer failed');
         expect(repository.setPublishState).toHaveBeenCalledWith(7, 9, 'failed');

@@ -29,7 +29,7 @@ const requestGeoserver = async (path, options = {}) => {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        const res = await fetch(url, {
+        const fetchOptions = {
             ...options,
             redirect: 'error',
             signal: controller.signal,
@@ -37,7 +37,11 @@ const requestGeoserver = async (path, options = {}) => {
                 Authorization: authHeader(config),
                 ...(options.headers || {}),
             },
-        });
+        };
+        if (options.body && typeof options.body.pipe === 'function') {
+            fetchOptions.duplex = 'half';
+        }
+        const res = await fetch(url, fetchOptions);
 
         if (!res.ok) {
             const body = await res.text().catch(() => '');
@@ -294,7 +298,11 @@ const verifyLayer = async (geoserverLayerName) => {
     );
     const body = await response.json();
     if (!body?.layer?.name) {
-        throw new GeoServerError('GeoServer layer verification returned an invalid payload', 502, '');
+        throw new GeoServerError(
+            'GeoServer layer verification returned an invalid payload',
+            502,
+            '',
+        );
     }
     return body.layer;
 };
@@ -423,6 +431,26 @@ const publishS3GeoTiffLayer = async ({ storeName, s3Bucket, s3Key, title, enable
     return layerName;
 };
 
+const publishGeoTiffStream = async ({ storeName, stream }) => {
+    const config = assertGeoserverConfigured();
+    const workspace = config.workspace;
+    const name = validateResourceName(storeName, 'storeName');
+    if (!stream || typeof stream.pipe !== 'function') {
+        throw new TypeError('GeoTIFF stream is required');
+    }
+    await requestGeoserver(
+        `/rest/workspaces/${workspace}/coveragestores/${name}/file.geotiff?configure=first&coverageName=${encodeURIComponent(name)}`,
+        {
+            method: 'PUT',
+            headers: { 'Content-Type': 'image/tiff' },
+            body: stream,
+        },
+    );
+    const layerName = `${workspace}:${name}`;
+    await verifyLayer(layerName);
+    return layerName;
+};
+
 /**
  * Publish 1 GeoTIFF nằm trên filesystem (đã copy vào GEOSERVER_DATA_DIR
  * hoặc path GeoServer đọc được) qua CoverageStore type `GeoTIFF` — dùng cho
@@ -547,6 +575,7 @@ module.exports = {
     publishVectorLayer,
     publishRasterLayer,
     publishS3GeoTiffLayer,
+    publishGeoTiffStream,
     publishFsGeoTiffLayer,
     publishTimelapseLayer,
     unpublishLayer,

@@ -4,7 +4,6 @@ const repository = require('../repositories/remote-sensing.repository');
 const webMapRepository = require('../repositories/web-map.repository');
 const minioService = require('./minio.service');
 const geoserverClient = require('../utils/geoserver.client');
-const { getBucketForCategory } = require('../configs/minioClient');
 const systemLogger = require('../utils/systemLogger.util');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
@@ -144,11 +143,12 @@ const publish = async (id, input, actor) => {
     }
     const { image, layer } = prepared;
     try {
-        const geoserverLayer = await geoserverClient.publishS3GeoTiffLayer({
+        const geoserverLayer = await geoserverClient.publishGeoTiffStream({
             storeName: layer.code,
-            s3Bucket: getBucketForCategory('raster'),
-            s3Key: image.object_key,
-            title: layer.name_vi,
+            stream: await minioService.getObjectStream({
+                category: 'raster',
+                objectKey: image.object_key,
+            }),
         });
         const published = await repository.setPublishState(
             image.id,

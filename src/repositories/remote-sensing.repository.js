@@ -162,9 +162,13 @@ const preparePublish = async (id, input, actorId) => {
                      storage_kind='geotiff_minio',table_name=NULL,object_key=$5,source_file_id=$6,
                      min_zoom=$7,max_zoom=$8,legend_config=$9::jsonb,metadata=$10::jsonb,
                      is_public=$11,publish_status='pending',version=version+1
-                 WHERE id=$13 AND deleted_at IS NULL RETURNING *`,
-                [...values, image.layer_id],
+                 WHERE id=$12 AND deleted_at IS NULL RETURNING *`,
+                [...values.slice(0, 11), image.layer_id],
             );
+            if (!updated) {
+                await client.query('ROLLBACK');
+                return null;
+            }
             layer = updated;
         } else {
             const {
