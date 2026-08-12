@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "6e53c6b1-68ae-4e60-b780-e3e46caac001",
-    "name": "Server C?m Ph? HydroMap API",
-    "description": "## Server C?m Ph? HydroMap API\n\n**Import xong dung ngay — khong can cau hinh them.**\n\nbaseUrl va tat ca tai khoan da nhung san trong Collection Variables. Khi gui request admin, token tu dong lay neu chua co (pre-request auto-login). Hoac chay thu cong qua folder **Dang nhap theo vai tro** de lay du 5 token cung luc.\n\n### Tai khoan (seed san trong DB local)\n\n| Role | Email | Quyen noi bat |\n|---|---|---|\n| system_admin | admin@campha.gov.vn | Nhat ky, toan quyen CMS |\n| ubnd_tp | ubnd@campha.gov.vn | Xem user & lop ban do |\n| so_tnmt | tnmt@campha.gov.vn | Toan quyen lop & user |\n| so_xd | xaydung@campha.gov.vn | Xem & export lop, quan ly user |\n| citizen | citizen@campha.gov.vn | Chi xem du lieu cong khai |\n\n**Mat khau chung:** `CamPha@2026`\n\n### Rate limit\n| Nhom | Gioi han | Cua so |\n|---|---|---|\n| Tat ca /api/ | 1000 req | 15 phut |\n| Auth | 20 req | 15 phut |\n| Quen/dat lai mat khau | 5 req | 15 phut |\n| Web Map & Map Proxy | 120 req | 1 phut |\n\n### Response envelope\n```\n// Thanh cong\n{ \"message\": \"...\", \"status\": 200, \"data\": { ... } }\n// Danh sach\n{ ..., \"data\": { \"items\": [...] }, \"metadata\": { \"page\", \"limit\", \"total\" } }\n// Loi\n{ \"success\": false, \"message\": \"...\", \"errors\": [] }\n```",
+    "name": "Server Cẩm Phả HydroMap API",
+    "description": "## Server Cẩm Phả HydroMap API\n\n**Nhập xong dùng ngay — không cần cấu hình thêm.**\n\nbaseUrl và tất cả tài khoản đã được cấu hình sẵn trong Collection Variables. Khi gửi request quản trị, token tự động được lấy nếu chưa có (pre-request auto-login). Hoặc chạy thủ công qua thư mục **Đăng nhập theo vai trò** để lấy đủ 5 token cùng lúc.\n\n### Tài khoản (đã seed trong DB local)\n\n| Role | Email | Quyền nổi bật |\n|---|---|---|\n| system_admin | admin@campha.gov.vn | Nhật ký, toàn quyền CMS |\n| ubnd_tp | ubnd@campha.gov.vn | Xem người dùng và lớp bản đồ |\n| so_tnmt | tnmt@campha.gov.vn | Toàn quyền lớp và người dùng |\n| so_xd | xaydung@campha.gov.vn | Xem và xuất lớp, quản lý người dùng |\n| citizen | citizen@campha.gov.vn | Chỉ xem dữ liệu công khai |\n\n**Mật khẩu chung:** `CamPha@2026`\n\n### Rate limit\n| Nhóm | Giới hạn | Cửa sổ |\n|---|---|---|\n| Tất cả /api/ | 1000 req | 15 phút |\n| Auth | 20 req | 15 phút |\n| Quên/đặt lại mật khẩu | 5 req | 15 phút |\n| Web Map & Map Proxy | 120 req | 1 phút |\n\n### Response envelope\n```\n// Thành công\n{ \"message\": \"...\", \"status\": 200, \"data\": { ... } }\n// Danh sách\n{ ..., \"data\": { \"items\": [...] }, \"metadata\": { \"page\", \"limit\", \"total\" } }\n// Lỗi\n{ \"success\": false, \"message\": \"...\", \"errors\": [] }\n```",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -10,13 +10,13 @@
       "key": "baseUrl",
       "value": "http://localhost:3006",
       "type": "string",
-      "description": "Doi cong theo PORT trong .env"
+      "description": "Đổi cổng theo PORT trong .env"
     },
     {
       "key": "testPassword",
       "value": "CamPha@2026",
       "type": "string",
-      "description": "Mat khau chung (dev only)"
+      "description": "Mật khẩu chung (dev only)"
     },
     {
       "key": "adminEmail",
@@ -312,7 +312,7 @@
   ],
   "item": [
     {
-      "name": "System",
+      "name": "Hệ thống",
       "item": [
         {
           "name": "Health Check",
@@ -331,7 +331,7 @@
                 "health"
               ]
             },
-            "description": "Tra ve `{ status: 'OK', timestamp }`. Xac nhan server dang chay."
+            "description": "Trả về `{ status: 'OK', timestamp }`. Xac nhan server dang chay."
           },
           "event": [
             {
@@ -354,8 +354,14 @@
             "auth": {
               "type": "noauth"
             },
-            "url": "{{baseUrl}}/",
-            "description": "Thong tin dich vu va phien ban API."
+            "url": {
+              "raw": "{{baseUrl}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": []
+            },
+            "description": "Thông tin dịch vụ và phiên bản API."
           },
           "event": [
             {
@@ -368,19 +374,115 @@
               }
             }
           ]
+        },
+        {
+          "name": "GET Dev Acceptance Fixtures",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/acceptance/fixtures.json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "acceptance",
+                "fixtures.json"
+              ]
+            },
+            "description": "Tải dữ liệu thử nghiệm acceptance (chỉ khả dụng trong môi trường dev khi NODE_ENV !== 'production')."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK hoac 404', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Metrics có xác thực",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{metricsToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Prometheus',()=>{pm.response.to.have.status(200);pm.expect(pm.response.text()).to.include('campha_http_requests_total');});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Metrics không xác thực",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "metrics"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 or disabled',()=>pm.expect(pm.response.code).to.be.oneOf([401,404]));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Xac thuc",
+      "name": "Xác thực",
       "description": "Toan bo luong xac thuc: dang nhap, dang ky, OAuth, quan ly phien.",
       "auth": {
         "type": "noauth"
       },
       "item": [
         {
-          "name": "Dang nhap theo vai tro",
-          "description": "Chay tat ca 5 request de dien token vao Collection Variables. Token cung tu dong lay qua auto-login khi can.",
+          "name": "Đăng nhập theo vai trò",
+          "description": "Chay tat ca 5 request de dien token vao Collection Variables. Token cung tự động lay qua auto-login khi can.",
           "item": [
             {
               "name": "Login - system_admin",
@@ -416,7 +518,7 @@
                     "login"
                   ]
                 },
-                "description": "Dang nhap system_admin. Token -> adminToken + refreshToken."
+                "description": "Đăng nhập system_admin. Token -> adminToken + refreshToken."
               },
               "event": [
                 {
@@ -471,7 +573,7 @@
                     "login"
                   ]
                 },
-                "description": "Dang nhap ubnd_tp. Token -> ubndToken."
+                "description": "Đăng nhập ubnd_tp. Token -> ubndToken."
               },
               "event": [
                 {
@@ -521,7 +623,7 @@
                     "login"
                   ]
                 },
-                "description": "Dang nhap so_tnmt. Token -> tnmtToken. Co day du quyen lop ban do va user."
+                "description": "Đăng nhập so_tnmt. Token -> tnmtToken. Có đầy đủ quyền lớp bản đồ và người dùng."
               },
               "event": [
                 {
@@ -571,7 +673,7 @@
                     "login"
                   ]
                 },
-                "description": "Dang nhap so_xd. Token -> xdToken."
+                "description": "Đăng nhập so_xd. Token -> xdToken."
               },
               "event": [
                 {
@@ -621,7 +723,7 @@
                     "login"
                   ]
                 },
-                "description": "Dang nhap citizen. Token -> citizenToken. Dung de test RBAC."
+                "description": "Đăng nhập citizen. Token -> citizenToken. Dùng để kiểm tra RBAC."
               },
               "event": [
                 {
@@ -640,11 +742,11 @@
           ]
         },
         {
-          "name": "Dang ky & Xac minh Email",
-          "description": "Luong tu dang ky tai khoan nguoi dan. Rate limit: 20 req/15 phut.",
+          "name": "Đăng ký và xác minh email",
+          "description": "Luồng tự đăng ký tài khoản người dân. Rate limit: 20 req/15 phút.",
           "item": [
             {
-              "name": "Dang ky tai khoan",
+              "name": "Đăng ký tài khoản",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -692,7 +794,7 @@
               ]
             },
             {
-              "name": "Xac minh Email",
+              "name": "Xác minh email",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -725,7 +827,7 @@
                     "verify-email"
                   ]
                 },
-                "description": "Xac minh dia chi email bang token tu email. Token dung mot lan va co thoi han."
+                "description": "Xác minh địa chỉ email bằng token từ email. Token dùng một lần và có thời hạn."
               },
               "event": [
                 {
@@ -740,7 +842,7 @@
               ]
             },
             {
-              "name": "Gui lai Email xac minh",
+              "name": "Gửi lại email xác minh",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -773,7 +875,7 @@
                     "resend-verification"
                   ]
                 },
-                "description": "Gui lai email xac minh. Rate limit: 5 req/15 phut."
+                "description": "Gửi lại email xác minh. Rate limit: 5 req/15 phút."
               },
               "event": [
                 {
@@ -790,11 +892,11 @@
           ]
         },
         {
-          "name": "Quen & Dat lai mat khau",
-          "description": "Khoi phuc mat khau qua email. Rate limit: 5 req/15 phut.",
+          "name": "Quên và đặt lại mật khẩu",
+          "description": "Khôi phục mật khẩu qua email. Rate limit: 5 req/15 phút.",
           "item": [
             {
-              "name": "Quen mat khau",
+              "name": "Quên mật khẩu",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -827,7 +929,7 @@
                     "forgot-password"
                   ]
                 },
-                "description": "Yeu cau gui link dat lai mat khau. Luon tra ve 200 du email co ton tai hay khong."
+                "description": "Yêu cầu gửi liên kết đặt lại mật khẩu. Luôn trả về 200 dù email có tồn tại hay không."
               },
               "event": [
                 {
@@ -842,7 +944,7 @@
               ]
             },
             {
-              "name": "Dat lai mat khau",
+              "name": "Đặt lại mật khẩu",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -875,7 +977,7 @@
                     "reset-password"
                   ]
                 },
-                "description": "Dat mat khau moi bang token tu email. Token chi dung mot lan."
+                "description": "Đặt mật khẩu mới bằng token từ email. Token chỉ dùng một lần."
               },
               "event": [
                 {
@@ -929,7 +1031,7 @@
                     "mobile"
                   ]
                 },
-                "description": "Dang nhap tu app mobile bang Firebase ID token. Tra ve { accessToken, refreshToken, isNewUser }."
+                "description": "Đăng nhập từ ứng dụng di động bằng Firebase ID token. Trả về { accessToken, refreshToken, isNewUser }."
               },
               "event": [
                 {
@@ -944,7 +1046,7 @@
               ]
             },
             {
-              "name": "Google OAuth - Doi code lay token (Web)",
+              "name": "Google OAuth - Đổi mã lấy token (Web)",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -978,7 +1080,7 @@
                     "exchange"
                   ]
                 },
-                "description": "Frontend nhan ?code=... tu callback, goi endpoint nay de doi lay JWT. Code het han rat nhanh."
+                "description": "Frontend nhận ?code=... từ callback, gọi endpoint này để đổi lấy JWT. Mã hết hạn rất nhanh."
               },
               "event": [
                 {
@@ -995,11 +1097,11 @@
           ]
         },
         {
-          "name": "Ho so & Phien dang nhap",
-          "description": "Tat ca endpoint yeu cau Bearer token. Mac dinh dung adminToken.",
+          "name": "Hồ sơ và phiên đăng nhập",
+          "description": "Tất cả endpoint yeu cau Bearer token. Mac dinh dung adminToken.",
           "item": [
             {
-              "name": "Lam moi Token (Refresh)",
+              "name": "Làm mới token (Refresh)",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -1032,7 +1134,7 @@
                     "refresh"
                   ]
                 },
-                "description": "Doi refresh token lay cap token moi (rotation). Access token cu bi thu hoi ngay."
+                "description": "Đổi refresh token lấy cặp token mới (rotation). Access token cũ bị thu hồi ngay."
               },
               "event": [
                 {
@@ -1047,7 +1149,7 @@
               ]
             },
             {
-              "name": "Thong tin ca nhan (GET /me)",
+              "name": "Thông tin cá nhân (GET /me)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1087,7 +1189,7 @@
               ]
             },
             {
-              "name": "Thong tin ca nhan - khong token (401)",
+              "name": "Thông tin cá nhân - không có token (401)",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -1120,7 +1222,7 @@
               ]
             },
             {
-              "name": "Cap nhat ho so (PATCH /me)",
+              "name": "Cập nhật hồ sơ (PATCH /me)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1167,7 +1269,7 @@
                     "me"
                   ]
                 },
-                "description": "Gui dang multipart/form-data. JPEG/PNG/GIF/WEBP, toi da 5 MB."
+                "description": "Gửi dạng multipart/form-data. JPEG/PNG/GIF/WEBP, tối đa 5 MB."
               },
               "event": [
                 {
@@ -1182,7 +1284,7 @@
               ]
             },
             {
-              "name": "Doi mat khau",
+              "name": "Đổi mật khẩu",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1236,7 +1338,7 @@
               ]
             },
             {
-              "name": "Dat mat khau lan dau (Google account)",
+              "name": "Đặt mật khẩu lần đầu (Google account)",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1276,7 +1378,7 @@
                     "set-password"
                   ]
                 },
-                "description": "Danh cho tai khoan Google chua co mat khau. Thiet lap mat khau de dang nhap bang email/password."
+                "description": "Dành cho tài khoản Google chưa có mật khẩu. Thiết lập mật khẩu để đăng nhập bằng email/password."
               },
               "event": [
                 {
@@ -1291,7 +1393,7 @@
               ]
             },
             {
-              "name": "Dang xuat",
+              "name": "Đăng xuất",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1345,7 +1447,7 @@
               ]
             },
             {
-              "name": "Danh sach phien dang nhap",
+              "name": "Danh sách phiên đăng nhập",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1386,7 +1488,7 @@
               ]
             },
             {
-              "name": "Thu hoi mot phien",
+              "name": "Thu hồi một phiên",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1427,7 +1529,7 @@
               ]
             },
             {
-              "name": "Thu hoi tat ca phien",
+              "name": "Thu hồi tất cả phiên",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -1470,15 +1572,26 @@
           ]
         },
         {
-          "name": "Google OAuth - Khoi tao Web",
+          "name": "Google OAuth - Khởi tạo Web",
           "request": {
             "method": "GET",
             "header": [],
             "auth": {
               "type": "noauth"
             },
-            "url": "{{baseUrl}}/api/v1/auth/google",
-            "description": "Khoi tao OAuth web. Tat Follow redirects de kiem tra response 302 va Location cua Google."
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/google",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "google"
+              ]
+            },
+            "description": "Khởi tạo OAuth web. Tắt Follow redirects để kiểm tra response 302 và Location của Google."
           },
           "event": [
             {
@@ -1501,8 +1614,26 @@
             "auth": {
               "type": "noauth"
             },
-            "url": "{{baseUrl}}/api/v1/auth/google/callback?code=invalid-postman-code",
-            "description": "Contract callback OAuth web. Code mau khong hop le; endpoint chuyen ve trang dang nhap loi."
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/google/callback?code=invalid-postman-code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "google",
+                "callback"
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "invalid-postman-code"
+                }
+              ]
+            },
+            "description": "Contract callback OAuth web. Mã mẫu không hợp lệ; endpoint chuyển về trang đăng nhập lỗi."
           },
           "event": [
             {
@@ -1519,8 +1650,8 @@
       ]
     },
     {
-      "name": "Admin - Nguoi dung",
-      "description": "Quan ly tai khoan. Token: tnmtToken (so_tnmt co day du quyen users.*).",
+      "name": "Quản trị người dùng",
+      "description": "Quản lý tài khoản. Token: tnmtToken (so_tnmt có đầy đủ quyền users.*).",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -1553,7 +1684,7 @@
       ],
       "item": [
         {
-          "name": "Danh sach nguoi dung",
+          "name": "Danh sách người dùng",
           "request": {
             "method": "GET",
             "header": [],
@@ -1609,7 +1740,7 @@
           ]
         },
         {
-          "name": "Tao nguoi dung moi",
+          "name": "Tạo người dùng mới",
           "request": {
             "method": "POST",
             "header": [
@@ -1654,7 +1785,7 @@
           ]
         },
         {
-          "name": "Chi tiet nguoi dung",
+          "name": "Chi tiết người dùng",
           "request": {
             "method": "GET",
             "header": [],
@@ -1685,7 +1816,7 @@
           ]
         },
         {
-          "name": "Thay doi vai tro",
+          "name": "Thay đổi vai trò",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1717,7 +1848,7 @@
                 "role"
               ]
             },
-            "description": "roleCode: system_admin|ubnd_tp|so_tnmt|so_xd|citizen. Chi so_tnmt co quyen users.change_role."
+            "description": "roleCode: system_admin|ubnd_tp|so_tnmt|so_xd|citizen. Chỉ so_tnmt có quyền users.change_role."
           },
           "event": [
             {
@@ -1732,7 +1863,7 @@
           ]
         },
         {
-          "name": "Kich hoat / Vo hieu hoa tai khoan",
+          "name": "Kích hoạt / Vô hiệu hóa tài khoản",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1778,7 +1909,7 @@
           ]
         },
         {
-          "name": "Dat lai mat khau (Admin reset)",
+          "name": "Đặt lại mật khẩu (Admin reset)",
           "request": {
             "method": "POST",
             "header": [
@@ -1825,7 +1956,7 @@
           ]
         },
         {
-          "name": "Xoa nguoi dung",
+          "name": "Xóa người dùng",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -1856,7 +1987,7 @@
           ]
         },
         {
-          "name": "Citizen bi tu choi truy cap admin (403)",
+          "name": "Citizen bị từ chối truy cập admin (403)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -1882,7 +2013,7 @@
                 "users"
               ]
             },
-            "description": "Kiem tra RBAC: citizen goi admin endpoint -> 403 Forbidden."
+            "description": "Kiểm tra RBAC: công dân gọi endpoint quản trị -> 403 Forbidden."
           },
           "event": [
             {
@@ -1899,7 +2030,7 @@
       ]
     },
     {
-      "name": "Admin - Nhat ky",
+      "name": "Nhật ký hệ thống",
       "description": "Tra cuu nhat ky. Token: adminToken (system_admin co system_logs.read va system_logs.manage).",
       "auth": {
         "type": "bearer",
@@ -1933,7 +2064,7 @@
       ],
       "item": [
         {
-          "name": "Danh sach nhat ky",
+          "name": "Danh sách nhật ký",
           "request": {
             "method": "GET",
             "header": [],
@@ -1984,7 +2115,7 @@
           ]
         },
         {
-          "name": "Nhat ky - citizen bi tu choi (403)",
+          "name": "Nhật ký - công dân bị từ chối (403)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2024,7 +2155,7 @@
           ]
         },
         {
-          "name": "Don dep nhat ky cu",
+          "name": "Dọn dẹp nhật ký cũ",
           "request": {
             "method": "DELETE",
             "header": [
@@ -2055,7 +2186,7 @@
                 "cleanup"
               ]
             },
-            "description": "Xoa nhat ky cu hon N ngay (1-3650). Tra ve { deleted: N }."
+            "description": "Xóa nhật ký cũ hơn N ngày (1-3650). Trả về { deleted: N }."
           },
           "event": [
             {
@@ -2072,8 +2203,8 @@
       ]
     },
     {
-      "name": "Storage",
-      "description": "Upload/download tep qua MinIO presigned URL.\n\n**Luong upload:** (1) Presign -> nhan PUT URL -> (2) PUT tep truc tiep len MinIO -> (3) Commit.\n\nToken: adminToken.",
+      "name": "Lưu trữ tệp",
+      "description": "Upload/download tệp qua MinIO presigned URL.\n\n**Luong upload:** (1) Presign -> nhan PUT URL -> (2) PUT tệp truc tiep len MinIO -> (3) Commit.\n\nToken: adminToken.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -2106,7 +2237,7 @@
       ],
       "item": [
         {
-          "name": "Tao presigned URL upload",
+          "name": "Tạo URL tải lên đã ký trước",
           "request": {
             "method": "POST",
             "header": [
@@ -2137,7 +2268,7 @@
                 "presign"
               ]
             },
-            "description": "category: layers|raster|documents|field-photos. Tra ve { uploadUrl, objectId }."
+            "description": "category: layers|raster|documents|field-photos. Trả về { uploadUrl, objectId }."
           },
           "event": [
             {
@@ -2153,7 +2284,7 @@
           ]
         },
         {
-          "name": "Xac nhan tep da upload (Commit)",
+          "name": "Xác nhận tệp đã tải lên (Commit)",
           "request": {
             "method": "POST",
             "header": [],
@@ -2171,7 +2302,7 @@
                 "commit"
               ]
             },
-            "description": "Server quet virus (ClamAV) -> chuyen tep tu bucket quarantine sang bucket chinh."
+            "description": "Server quét virus (ClamAV) -> chuyển tệp từ bucket quarantine sang bucket chính."
           },
           "event": [
             {
@@ -2186,7 +2317,7 @@
           ]
         },
         {
-          "name": "Lay URL tai xuong",
+          "name": "Lấy URL tải xuống",
           "request": {
             "method": "GET",
             "header": [],
@@ -2224,7 +2355,7 @@
           ]
         },
         {
-          "name": "Xoa tep",
+          "name": "Xóa tệp",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -2257,8 +2388,8 @@
       ]
     },
     {
-      "name": "Admin - Lop ban do",
-      "description": "Quan ly lop du lieu GIS. Token: tnmtToken.",
+      "name": "Quản trị lớp bản đồ",
+      "description": "Quan ly lop dữ liệu GIS. Token: tnmtToken.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -2291,8 +2422,8 @@
       ],
       "item": [
         {
-          "name": "Import du lieu",
-          "description": "Import lop tu Shapefile hoac Excel. Thu tu: Upload qua Storage -> lay storageObjectId -> goi Import -> theo doi Job.",
+          "name": "Nhập dữ liệu",
+          "description": "Nhập lớp từ Shapefile hoặc Excel. Thứ tự: Tải lên qua Lưu trữ -> lấy storageObjectId -> gọi API nhập dữ liệu -> theo dõi tác vụ.",
           "item": [
             {
               "name": "Import Shapefile",
@@ -2306,7 +2437,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"fileObjectId\": {{storageObjectId}},\n  \"code\": \"ranh_gioi_phuong\",\n  \"nameVi\": \"Ranh gioi phuong\",\n  \"category\": \"boundary\",\n  \"targetSrid\": 4326,\n  \"isPublic\": false,\n  \"sourceEncoding\": \"UTF-8\"\n}",
+                  "raw": "{\n  \"fileObjectId\": \"{{storageObjectId}}\",\n  \"code\": \"ranh_gioi_phuong\",\n  \"nameVi\": \"Ranh gioi phuong\",\n  \"category\": \"boundary\",\n  \"targetSrid\": 4326,\n  \"isPublic\": false,\n  \"sourceEncoding\": \"UTF-8\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2327,7 +2458,7 @@
                     "shapefile"
                   ]
                 },
-                "description": "code: chu thuong, bat dau bang chu cai, dung _, 3-59 ky tu. Tra ve { jobId }."
+                "description": "code: chữ thường, bắt đầu bằng chữ cái, dùng _, dài 3-59 ký tự. Trả về { jobId }."
               },
               "event": [
                 {
@@ -2343,7 +2474,7 @@
               ]
             },
             {
-              "name": "Import Excel (diem toa do)",
+              "name": "Import Excel (điểm tọa độ)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -2354,7 +2485,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"fileObjectId\": {{storageObjectId}},\n  \"code\": \"diem_quan_trac\",\n  \"nameVi\": \"Diem quan trac moi truong\",\n  \"category\": \"monitoring\",\n  \"sheetName\": \"Sheet1\",\n  \"xColumn\": \"longitude\",\n  \"yColumn\": \"latitude\",\n  \"sourceSrid\": 4326,\n  \"targetSrid\": 4326,\n  \"isPublic\": false\n}",
+                  "raw": "{\n  \"fileObjectId\": \"{{storageObjectId}}\",\n  \"code\": \"diem_quan_trac\",\n  \"nameVi\": \"Diem quan trac moi truong\",\n  \"category\": \"monitoring\",\n  \"sheetName\": \"Sheet1\",\n  \"xColumn\": \"longitude\",\n  \"yColumn\": \"latitude\",\n  \"sourceSrid\": 4326,\n  \"targetSrid\": 4326,\n  \"isPublic\": false\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2390,7 +2521,7 @@
               ]
             },
             {
-              "name": "Trang thai Import Job",
+              "name": "Trạng thái tác vụ nhập",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -2408,7 +2539,7 @@
                     "{{jobId}}"
                   ]
                 },
-                "description": "Trang thai: pending|processing|completed|failed. Khi completed, tra ve layerId."
+                "description": "Trạng thái: pending|processing|completed|failed. Khi completed, tra ve layerId."
               },
               "event": [
                 {
@@ -2424,7 +2555,7 @@
               ]
             },
             {
-              "name": "Loi Import Job",
+              "name": "Lỗi Import Job",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -2469,7 +2600,7 @@
           ]
         },
         {
-          "name": "Danh sach lop ban do",
+          "name": "Danh sách lớp bản đồ",
           "request": {
             "method": "GET",
             "header": [],
@@ -2525,7 +2656,7 @@
           ]
         },
         {
-          "name": "Chi tiet lop ban do",
+          "name": "Chi tiết lớp bản đồ",
           "request": {
             "method": "GET",
             "header": [],
@@ -2556,7 +2687,7 @@
           ]
         },
         {
-          "name": "Cap nhat lop ban do",
+          "name": "Cập nhật lớp bản đồ",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2567,7 +2698,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\",\n  \"nameVi\": \"Ranh gioi phuong (cap nhat)\",\n  \"isPublic\": true,\n  \"minZoom\": 10,\n  \"maxZoom\": 18\n}",
+              "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\",\n  \"nameVi\": \"Ranh gioi phuong (cập nhật)\",\n  \"isPublic\": true,\n  \"minZoom\": 10,\n  \"maxZoom\": 18\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2602,7 +2733,7 @@
           ]
         },
         {
-          "name": "Phan quyen lop ban do",
+          "name": "Phân quyền lớp bản đồ",
           "request": {
             "method": "PUT",
             "header": [
@@ -2634,7 +2765,7 @@
                 "permissions"
               ]
             },
-            "description": "Thiet lap phan quyen theo vai tro (ghi de toan bo). Toi da 5 phan tu."
+            "description": "Thiết lập phân quyền theo vai trò (ghi đè toàn bộ). Tối đa 5 phần tử."
           },
           "event": [
             {
@@ -2649,7 +2780,7 @@
           ]
         },
         {
-          "name": "Publish len GeoServer",
+          "name": "Xuất bản lên GeoServer",
           "request": {
             "method": "POST",
             "header": [],
@@ -2681,7 +2812,7 @@
           ]
         },
         {
-          "name": "Xoa lop ban do",
+          "name": "Xóa lớp bản đồ",
           "request": {
             "method": "DELETE",
             "header": [
@@ -2725,18 +2856,223 @@
               }
             }
           ]
+        },
+        {
+          "name": "Cập nhật metadata chuẩn",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tnmtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedUpdatedAt\":\"{{layerUpdatedAt}}\",\"metadataIdentifier\":\"campha.layer.{{layerId}}\",\"language\":\"vie\",\"characterSet\":\"utf8\",\"hierarchyLevel\":\"dataset\",\"dateStamp\":\"2026-08-02\",\"contact\":{\"organizationName\":\"Sở Tài nguyên và Môi trường Quảng Ninh\",\"email\":\"gis@example.vn\",\"role\":\"owner\"},\"referenceSystem\":{\"code\":\"EPSG:5899\",\"codeSpace\":\"EPSG\"},\"identification\":{\"title\":\"Lớp dữ liệu Cẩm Phả\",\"abstract\":\"Siêu dữ liệu địa lý phục vụ quản lý thành phố Cẩm Phả\",\"purpose\":\"Quản lý nhà nước\",\"status\":\"completed\",\"citationDate\":\"2026-08-02\",\"citationDateType\":\"creation\",\"language\":\"vie\",\"characterSet\":\"utf8\",\"topicCategories\":[\"planningCadastre\"],\"keywords\":[\"Cẩm Phả\",\"GIS\"],\"extent\":{\"description\":\"Thành phố Cẩm Phả\",\"westBoundLongitude\":107.1,\"eastBoundLongitude\":107.6,\"southBoundLatitude\":20.8,\"northBoundLatitude\":21.2}},\"constraints\":{\"accessConstraints\":\"restricted\",\"useConstraints\":\"license\",\"otherConstraints\":\"Theo phân quyền hệ thống\"},\"dataQuality\":{\"scope\":\"dataset\",\"lineage\":\"Dữ liệu được kiểm tra hình học và chuẩn hóa hệ quy chiếu\"},\"distribution\":{\"formatName\":\"PostGIS\",\"formatVersion\":\"3\",\"onlineResources\":[]}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "layers",
+                "{{layerId}}",
+                "standard-metadata"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Lấy metadata chuẩn",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tnmtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "layers",
+                "{{layerId}}",
+                "standard-metadata"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Xuất XML ISO 19139",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tnmtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata.xml",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "layers",
+                "{{layerId}}",
+                "standard-metadata.xml"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('XML',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.get('Content-Type')).to.include('application/xml');});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đọc dữ liệu kèm ETag",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/web-map/basemaps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "web-map",
+                "basemaps"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('ETag',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.has('ETag')).to.be.true;pm.collectionVariables.set('readEtag',pm.response.headers.get('ETag'));});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Đọc có điều kiện trả về 304",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "If-None-Match",
+                "value": "{{readEtag}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/web-map/basemaps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "web-map",
+                "basemaps"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('304',()=>pm.response.to.have.status(304));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Web Map",
-      "description": "API cho WebGIS phia client. Dung optionalAuth — token khong bat buoc nhung neu co se mo rong du lieu theo vai tro.\n\nRate limit: 120 req/phut.",
+      "name": "Bản đồ Web",
+      "description": "API cho WebGIS phía client. Dung optionalAuth — token không bắt buộc nhưng nếu có sẽ mở rộng dữ liệu theo vai trò.\n\nRate limit: 120 req/phút.",
       "auth": {
         "type": "noauth"
       },
       "item": [
         {
-          "name": "Danh sach lop (khong dang nhap)",
+          "name": "Danh sách lớp (không đăng nhập)",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2753,16 +3089,9 @@
                 "v1",
                 "web-map",
                 "layers"
-              ],
-              "query": [
-                {
-                  "key": "category",
-                  "value": "boundary",
-                  "disabled": true
-                }
               ]
             },
-            "description": "Chi thay lop isPublic = true."
+            "description": "Chỉ thấy lớp isPublic = true."
           },
           "event": [
             {
@@ -2778,7 +3107,7 @@
           ]
         },
         {
-          "name": "Danh sach lop (so_tnmt)",
+          "name": "Danh sách lớp (so_tnmt)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2804,7 +3133,7 @@
                 "layers"
               ]
             },
-            "description": "Bao gom ca lop rieng tu. So sanh voi request an danh de thay su khac biet."
+            "description": "Bao gồm cả lớp riêng tư. So sánh với request ẩn danh để thấy sự khác biệt."
           },
           "event": [
             {
@@ -2819,7 +3148,7 @@
           ]
         },
         {
-          "name": "Chi tiet Feature",
+          "name": "Chi tiết đối tượng",
           "request": {
             "auth": {
               "type": "bearer",
@@ -2868,7 +3197,7 @@
           ]
         },
         {
-          "name": "Tim kiem feature (toan van)",
+          "name": "Tìm kiếm đối tượng (toàn văn)",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2903,7 +3232,7 @@
                 }
               ]
             },
-            "description": "Tu khoa >= 2 ky tu."
+            "description": "Từ khóa >= 2 ký tự."
           },
           "event": [
             {
@@ -2919,7 +3248,7 @@
           ]
         },
         {
-          "name": "Tim kiem - validation loi (400)",
+          "name": "Tìm kiếm - lỗi kiểm tra dữ liệu (400)",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2949,7 +3278,7 @@
                 }
               ]
             },
-            "description": "q < 2 ky tu + limit > 50 -> 400 Bad Request."
+            "description": "q < 2 ký tự + limit > 50 -> 400 Bad Request."
           },
           "event": [
             {
@@ -2964,7 +3293,7 @@
           ]
         },
         {
-          "name": "Style & Legend lop",
+          "name": "Kiểu hiển thị và chú giải lớp",
           "request": {
             "auth": {
               "type": "noauth"
@@ -2999,7 +3328,7 @@
           ]
         },
         {
-          "name": "Danh sach Basemap",
+          "name": "Danh sách bản đồ nền",
           "request": {
             "auth": {
               "type": "noauth"
@@ -3032,7 +3361,7 @@
           ]
         },
         {
-          "name": "Danh sach Terrain / DEM",
+          "name": "Danh sách địa hình / DEM",
           "request": {
             "auth": {
               "type": "noauth"
@@ -3065,7 +3394,7 @@
           ]
         },
         {
-          "name": "URL tile Terrain",
+          "name": "URL tile địa hình",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3115,14 +3444,14 @@
       ]
     },
     {
-      "name": "Map Proxy - GeoServer",
-      "description": "Proxy den GeoServer phuc vu WMS (anh) va WFS (vector). Rate limit: 120 req/phut.",
+      "name": "Proxy bản đồ GeoServer",
+      "description": "Proxy den GeoServer phuc vu WMS (anh) va WFS (vector). Rate limit: 120 req/phút.",
       "auth": {
         "type": "noauth"
       },
       "item": [
         {
-          "name": "WMS - GetMap (anh ban do)",
+          "name": "WMS - GetMap (ảnh bản đồ)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3180,7 +3509,7 @@
                 }
               ]
             },
-            "description": "Response la anh nhi phan PNG/JPEG — khong phai JSON. Nhan Send and Download de thay anh."
+            "description": "Response là ảnh nhị phân PNG/JPEG — không phải JSON. Nhấn Send and Download để xem ảnh."
           },
           "event": [
             {
@@ -3195,7 +3524,7 @@
           ]
         },
         {
-          "name": "WFS - GetFeature (du lieu vector / export)",
+          "name": "WFS - GetFeature (dữ liệu vector / xuất dữ liệu)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -3242,7 +3571,7 @@
                 }
               ]
             },
-            "description": "Xuat du lieu vector GeoJSON tu GeoServer. Can quyen can_export."
+            "description": "Xuất dữ liệu vector GeoJSON từ GeoServer. Cần quyền can_export."
           },
           "event": [
             {
@@ -3259,18 +3588,18 @@
       ]
     },
     {
-      "name": "CMS",
-      "description": "API CMS day du: tin tuc, tai lieu, ban do PDF — bao gom ca CRUD admin.\n\nLuu y DELETE: dung expectedUpdatedAt la query param (?expectedUpdatedAt=...), khong phai body.",
+      "name": "Quản lý nội dung",
+      "description": "API CMS đầy đủ: tin tức, tài liệu, bản đồ PDF — bao gồm CRUD quản trị.\n\nLưu ý DELETE: dùng expectedUpdatedAt làm query param (?expectedUpdatedAt=...), không phải body.",
       "auth": {
         "type": "noauth"
       },
       "item": [
         {
-          "name": "Tin tuc (Public)",
-          "description": "Endpoint cong khai. Khong can token.",
+          "name": "Tin tức (Công khai)",
+          "description": "Endpoint công khai. Khong can token.",
           "item": [
             {
-              "name": "Danh sach tin tuc",
+              "name": "Danh sách tin tức",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3319,7 +3648,7 @@
               ]
             },
             {
-              "name": "Chi tiet tin tuc",
+              "name": "Chi tiết tin tức",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3353,7 +3682,7 @@
               ]
             },
             {
-              "name": "Danh sach binh luan",
+              "name": "Danh sách bình luận",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3384,7 +3713,7 @@
                     }
                   ]
                 },
-                "description": "Chi hien thi binh luan da duyet (approved)."
+                "description": "Chỉ hiển thị bình luận đã duyệt (approved)."
               },
               "event": [
                 {
@@ -3399,7 +3728,7 @@
               ]
             },
             {
-              "name": "Gui binh luan",
+              "name": "Gửi bình luận",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -3441,7 +3770,7 @@
                     "comments"
                   ]
                 },
-                "description": "Can dang nhap. Binh luan vao trang thai pending — admin phai duyet moi hien thi. Rate limit: 10 req/15 phut."
+                "description": "Can dang nhap. Binh luan vao trang thai pending — admin phai duyet moi hien thi. Rate limit: 10 req/15 phút."
               },
               "event": [
                 {
@@ -3458,11 +3787,11 @@
           ]
         },
         {
-          "name": "Tai lieu (Public)",
-          "description": "Danh muc tai lieu / van ban cong khai.",
+          "name": "Tài liệu (Công khai)",
+          "description": "Danh mục tài liệu / văn bản công khai.",
           "item": [
             {
-              "name": "Danh sach tai lieu",
+              "name": "Danh sách tài liệu",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3511,7 +3840,7 @@
               ]
             },
             {
-              "name": "Chi tiet tai lieu",
+              "name": "Chi tiết tài liệu",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3545,7 +3874,7 @@
               ]
             },
             {
-              "name": "URL tai tai lieu",
+              "name": "URL tải tài liệu",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -3596,11 +3925,11 @@
           ]
         },
         {
-          "name": "Ban do PDF (Public)",
-          "description": "Danh muc ban do PDF cong khai.",
+          "name": "Bản đồ PDF (Công khai)",
+          "description": "Danh mục bản đồ PDF công khai.",
           "item": [
             {
-              "name": "Danh sach ban do PDF",
+              "name": "Danh sách bản đồ PDF",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3649,7 +3978,7 @@
               ]
             },
             {
-              "name": "Chi tiet ban do PDF",
+              "name": "Chi tiết bản đồ PDF",
               "request": {
                 "auth": {
                   "type": "noauth"
@@ -3683,7 +4012,7 @@
               ]
             },
             {
-              "name": "URL tai ban do PDF",
+              "name": "URL tải bản đồ PDF",
               "request": {
                 "auth": {
                   "type": "bearer",
@@ -3734,8 +4063,8 @@
           ]
         },
         {
-          "name": "Admin CMS",
-          "description": "Quan ly toan bo noi dung CMS. Token: adminToken (tu dong lay neu chua co).\n\nDELETE dung expectedUpdatedAt la QUERY PARAM, khong phai body.",
+          "name": "Quản trị nội dung",
+          "description": "Quản lý toàn bộ nội dung CMS. Token: adminToken (tự động lấy nếu chưa có).\n\nDELETE dùng expectedUpdatedAt làm QUERY PARAM, không phải body.",
           "auth": {
             "type": "bearer",
             "bearer": [
@@ -3768,11 +4097,11 @@
           ],
           "item": [
             {
-              "name": "Admin - Tin tuc",
+              "name": "Quản trị tin tức",
               "description": "CRUD tin tuc + quan ly binh luan.",
               "item": [
                 {
-                  "name": "Danh sach tin tuc (admin)",
+                  "name": "Danh sách tin tức (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -3809,7 +4138,7 @@
                         }
                       ]
                     },
-                    "description": "Bao gom ca draft, archived. Test script tu luu newsId va newsUpdatedAt."
+                    "description": "Bao gồm cả draft, archived. Test script tự lưu newsId va newsUpdatedAt."
                   },
                   "event": [
                     {
@@ -3825,7 +4154,7 @@
                   ]
                 },
                 {
-                  "name": "Tao tin tuc",
+                  "name": "Tạo tin tức",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -3872,7 +4201,7 @@
                   ]
                 },
                 {
-                  "name": "Chi tiet tin tuc (admin)",
+                  "name": "Chi tiết tin tức (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -3890,7 +4219,7 @@
                         "{{newsId}}"
                       ]
                     },
-                    "description": "Chi tiet bat ke trang thai (ke ca draft). Dung de lay updatedAt moi nhat."
+                    "description": "Chi tiết bất kể trạng thái (kể cả draft). Dùng để lấy updatedAt mới nhất."
                   },
                   "event": [
                     {
@@ -3906,7 +4235,7 @@
                   ]
                 },
                 {
-                  "name": "Cap nhat tin tuc",
+                  "name": "Cập nhật tin tức",
                   "request": {
                     "method": "PATCH",
                     "header": [
@@ -3917,7 +4246,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"expectedUpdatedAt\": \"{{newsUpdatedAt}}\",\n  \"title\": \"Thong bao Cam Pha (cap nhat)\",\n  \"status\": \"published\",\n  \"publishedAt\": \"2026-08-01T07:00:00.000Z\"\n}",
+                      "raw": "{\n  \"expectedUpdatedAt\": \"{{newsUpdatedAt}}\",\n  \"title\": \"Thong bao Cam Pha (cập nhật)\",\n  \"status\": \"published\",\n  \"publishedAt\": \"2026-08-01T07:00:00.000Z\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -3954,7 +4283,7 @@
                   ]
                 },
                 {
-                  "name": "Xoa tin tuc",
+                  "name": "Xóa tin tức",
                   "request": {
                     "method": "DELETE",
                     "header": [],
@@ -3975,11 +4304,11 @@
                         {
                           "key": "expectedUpdatedAt",
                           "value": "{{newsUpdatedAt}}",
-                          "description": "Bat buoc — gia tri updatedAt hien tai (QUERY PARAM, khong phai body)"
+                          "description": "Bắt buộc — giá trị updatedAt hiện tại (QUERY PARAM, không phải body)"
                         }
                       ]
                     },
-                    "description": "expectedUpdatedAt la QUERY PARAM. Lay tu newsUpdatedAt tu dong luu."
+                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ newsUpdatedAt tự động lưu."
                   },
                   "event": [
                     {
@@ -3994,7 +4323,7 @@
                   ]
                 },
                 {
-                  "name": "Danh sach binh luan (admin)",
+                  "name": "Danh sách bình luận (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -4028,7 +4357,7 @@
                         }
                       ]
                     },
-                    "description": "Bao gom ca pending va rejected. Lay commentId de duyet."
+                    "description": "Bao gồm cả pending và rejected. Lấy commentId để duyệt."
                   },
                   "event": [
                     {
@@ -4044,7 +4373,7 @@
                   ]
                 },
                 {
-                  "name": "Duyet binh luan",
+                  "name": "Duyệt bình luận",
                   "request": {
                     "method": "PATCH",
                     "header": [
@@ -4077,7 +4406,7 @@
                         "{{commentId}}"
                       ]
                     },
-                    "description": "status: approved hoac rejected. commentId tu dong luu tu Danh sach binh luan (admin)."
+                    "description": "status: approved hoặc rejected. commentId tự động lưu từ Danh sách bình luận (quản trị)."
                   },
                   "event": [
                     {
@@ -4094,11 +4423,11 @@
               ]
             },
             {
-              "name": "Admin - Tai lieu",
+              "name": "Quản trị tài liệu",
               "description": "Quan ly tai lieu / van ban. Khong co PATCH — thay the bang cach xoa roi tao moi.",
               "item": [
                 {
-                  "name": "Danh sach tai lieu (admin)",
+                  "name": "Danh sách tài liệu (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -4130,7 +4459,7 @@
                         }
                       ]
                     },
-                    "description": "Bao gom ca internal. Test script tu luu documentId va documentUpdatedAt."
+                    "description": "Bao gồm cả internal. Test script tự lưu documentId va documentUpdatedAt."
                   },
                   "event": [
                     {
@@ -4146,7 +4475,7 @@
                   ]
                 },
                 {
-                  "name": "Tao tai lieu",
+                  "name": "Tạo tài liệu",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -4157,7 +4486,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"Bao cao kinh te xa hoi 2026\",\n  \"documentCode\": \"BC-KTXH-2026\",\n  \"issuingAgency\": \"UBND TP Cam Pha\",\n  \"issuedAt\": \"2026-01-15T00:00:00.000Z\",\n  \"description\": \"Bao cao tong hop tinh hinh kinh te xa hoi nam 2026\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": {{storageObjectId}}\n}",
+                      "raw": "{\n  \"title\": \"Bao cao kinh te xa hoi 2026\",\n  \"documentCode\": \"BC-KTXH-2026\",\n  \"issuingAgency\": \"UBND TP Cam Pha\",\n  \"issuedAt\": \"2026-01-15T00:00:00.000Z\",\n  \"description\": \"Bao cao tong hop tinh hinh kinh te xa hoi nam 2026\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": \"{{storageObjectId}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -4177,7 +4506,7 @@
                         "documents"
                       ]
                     },
-                    "description": "title, documentCode, issuingAgency bat buoc. fileObjectId tu Storage."
+                    "description": "title, documentCode, issuingAgency bắt buộc. fileObjectId từ Lưu trữ."
                   },
                   "event": [
                     {
@@ -4193,7 +4522,7 @@
                   ]
                 },
                 {
-                  "name": "Chi tiet tai lieu (admin)",
+                  "name": "Chi tiết tài liệu (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -4227,7 +4556,7 @@
                   ]
                 },
                 {
-                  "name": "Xoa tai lieu",
+                  "name": "Xóa tài liệu",
                   "request": {
                     "method": "DELETE",
                     "header": [],
@@ -4248,11 +4577,11 @@
                         {
                           "key": "expectedUpdatedAt",
                           "value": "{{documentUpdatedAt}}",
-                          "description": "Bat buoc — QUERY PARAM"
+                          "description": "Bắt buộc — QUERY PARAM"
                         }
                       ]
                     },
-                    "description": "expectedUpdatedAt la QUERY PARAM. Lay tu documentUpdatedAt tu dong luu."
+                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ documentUpdatedAt tự động lưu."
                   },
                   "event": [
                     {
@@ -4269,11 +4598,11 @@
               ]
             },
             {
-              "name": "Admin - Ban do PDF",
-              "description": "Quan ly ban do PDF: them, cap nhat, xoa.",
+              "name": "Quản trị bản đồ PDF",
+              "description": "Quan ly ban do PDF: them, cập nhật, xoa.",
               "item": [
                 {
-                  "name": "Danh sach ban do PDF (admin)",
+                  "name": "Danh sách bản đồ PDF (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -4305,7 +4634,7 @@
                         }
                       ]
                     },
-                    "description": "Test script tu luu pdfMapId va pdfMapUpdatedAt."
+                    "description": "Test script tự lưu pdfMapId va pdfMapUpdatedAt."
                   },
                   "event": [
                     {
@@ -4321,7 +4650,7 @@
                   ]
                 },
                 {
-                  "name": "Tao ban do PDF",
+                  "name": "Tạo bản đồ PDF",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -4332,7 +4661,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"title\": \"Ban do quy hoach su dung dat 2026\",\n  \"scaleLabel\": \"1:10.000\",\n  \"mapYear\": 2026,\n  \"preparingAgency\": \"UBND TP Cam Pha\",\n  \"description\": \"Ban do quy hoach su dung dat ky 2021-2026\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": {{storageObjectId}}\n}",
+                      "raw": "{\n  \"title\": \"Ban do quy hoach su dung dat 2026\",\n  \"scaleLabel\": \"1:10.000\",\n  \"mapYear\": 2026,\n  \"preparingAgency\": \"UBND TP Cam Pha\",\n  \"description\": \"Ban do quy hoach su dung dat ky 2021-2026\",\n  \"visibility\": \"public\",\n  \"fileObjectId\": \"{{storageObjectId}}\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -4352,7 +4681,7 @@
                         "pdf-maps"
                       ]
                     },
-                    "description": "scaleLabel vi du: 1:10.000. mapYear: 1900-2200. fileObjectId bat buoc."
+                    "description": "scaleLabel ví dụ: 1:10.000. mapYear: 1900-2200. fileObjectId bắt buộc."
                   },
                   "event": [
                     {
@@ -4368,7 +4697,7 @@
                   ]
                 },
                 {
-                  "name": "Chi tiet ban do PDF (admin)",
+                  "name": "Chi tiết bản đồ PDF (quản trị)",
                   "request": {
                     "method": "GET",
                     "header": [],
@@ -4386,7 +4715,7 @@
                         "{{pdfMapId}}"
                       ]
                     },
-                    "description": "Dung de lay updatedAt truoc khi cap nhat hoac xoa."
+                    "description": "Dung de lay updatedAt truoc khi cập nhật hoac xoa."
                   },
                   "event": [
                     {
@@ -4402,7 +4731,7 @@
                   ]
                 },
                 {
-                  "name": "Cap nhat ban do PDF",
+                  "name": "Cập nhật bản đồ PDF",
                   "request": {
                     "method": "PATCH",
                     "header": [
@@ -4413,7 +4742,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"expectedUpdatedAt\": \"{{pdfMapUpdatedAt}}\",\n  \"title\": \"Ban do quy hoach SDD 2026 (cap nhat)\",\n  \"visibility\": \"public\"\n}",
+                      "raw": "{\n  \"expectedUpdatedAt\": \"{{pdfMapUpdatedAt}}\",\n  \"title\": \"Ban do quy hoach SDD 2026 (cập nhật)\",\n  \"visibility\": \"public\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -4450,7 +4779,7 @@
                   ]
                 },
                 {
-                  "name": "Xoa ban do PDF",
+                  "name": "Xóa bản đồ PDF",
                   "request": {
                     "method": "DELETE",
                     "header": [],
@@ -4471,11 +4800,11 @@
                         {
                           "key": "expectedUpdatedAt",
                           "value": "{{pdfMapUpdatedAt}}",
-                          "description": "Bat buoc — QUERY PARAM"
+                          "description": "Bắt buộc — QUERY PARAM"
                         }
                       ]
                     },
-                    "description": "expectedUpdatedAt la QUERY PARAM. Lay tu pdfMapUpdatedAt tu dong luu."
+                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ pdfMapUpdatedAt tự động lưu."
                   },
                   "event": [
                     {
@@ -4496,11 +4825,11 @@
       ]
     },
     {
-      "name": "Sprint 7 - Thong ke khong gian",
-      "description": "Nguon polygon PostGIS da publish; khong phu thuoc Google Earth Engine.",
+      "name": "Thống kê không gian",
+      "description": "Nguồn polygon PostGIS đã publish; không phụ thuộc Google Earth Engine.",
       "item": [
         {
-          "name": "Danh sach nguon",
+          "name": "Danh sách nguồn",
           "request": {
             "method": "GET",
             "header": [
@@ -4524,7 +4853,7 @@
           }
         },
         {
-          "name": "Dang ky nguon ngap",
+          "name": "Đăng ký nguồn ngập",
           "request": {
             "method": "POST",
             "header": [
@@ -4539,7 +4868,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"layerId\": {{layerId}},\n  \"sourceType\": \"flood\",\n  \"observedYear\": 2026,\n  \"geometryColumn\": \"geom\"\n}",
+              "raw": "{\n  \"layerId\": \"{{layerId}}\",\n  \"sourceType\": \"flood\",\n  \"observedYear\": 2026,\n  \"geometryColumn\": \"geom\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4574,7 +4903,7 @@
           ]
         },
         {
-          "name": "Lam moi so lieu",
+          "name": "Làm mới số liệu",
           "request": {
             "method": "POST",
             "header": [
@@ -4614,7 +4943,7 @@
           }
         },
         {
-          "name": "Dien tich",
+          "name": "Diện tích",
           "request": {
             "method": "GET",
             "header": [
@@ -4648,7 +4977,7 @@
           }
         },
         {
-          "name": "Chuoi thoi gian",
+          "name": "Chuỗi thời gian",
           "request": {
             "method": "GET",
             "header": [
@@ -4678,7 +5007,7 @@
           }
         },
         {
-          "name": "So sanh hai thoi diem",
+          "name": "So sánh hai thời điểm",
           "request": {
             "method": "GET",
             "header": [
@@ -4712,7 +5041,7 @@
           }
         },
         {
-          "name": "Cap nhat nguon thong ke",
+          "name": "Cập nhật nguồn thống kê",
           "request": {
             "method": "PATCH",
             "header": [
@@ -4740,7 +5069,20 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/statistics/sources/{{statisticsSourceId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/statistics/sources/{{statisticsSourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "statistics",
+                "sources",
+                "{{statisticsSourceId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -4758,11 +5100,11 @@
       ]
     },
     {
-      "name": "Sprint 8 - Phan anh cong dong",
-      "description": "Phan anh, do dac, duyet, clustering, FCM device token; khong Google Earth Engine.",
+      "name": "Phản ánh cộng đồng",
+      "description": "Phản ánh, đo đạc, duyệt, clustering, FCM device token; không dùng Google Earth Engine.",
       "item": [
         {
-          "name": "Gui phan anh",
+          "name": "Gửi phản ánh",
           "request": {
             "method": "POST",
             "header": [
@@ -4810,7 +5152,7 @@
           ]
         },
         {
-          "name": "Phan anh cua toi",
+          "name": "Phản ánh của tôi",
           "request": {
             "method": "GET",
             "header": [
@@ -4834,7 +5176,7 @@
           }
         },
         {
-          "name": "Duyet phan anh",
+          "name": "Duyệt phản ánh",
           "request": {
             "method": "PATCH",
             "header": [
@@ -4873,7 +5215,7 @@
           }
         },
         {
-          "name": "Phan anh cong khai",
+          "name": "Phản ánh công khai",
           "request": {
             "method": "GET",
             "header": [],
@@ -4892,7 +5234,7 @@
           }
         },
         {
-          "name": "Thay doi gan vi tri",
+          "name": "Thay đổi gần vị trí",
           "request": {
             "method": "GET",
             "header": [],
@@ -4933,7 +5275,7 @@
           }
         },
         {
-          "name": "Cum phan anh",
+          "name": "Cụm phản ánh",
           "request": {
             "method": "GET",
             "header": [
@@ -4976,7 +5318,7 @@
           }
         },
         {
-          "name": "Dang ky FCM token",
+          "name": "Đăng ký FCM token",
           "request": {
             "method": "PUT",
             "header": [
@@ -5013,7 +5355,7 @@
           }
         },
         {
-          "name": "Danh sach phan anh admin",
+          "name": "Danh sách phản ánh (quản trị)",
           "request": {
             "method": "GET",
             "header": [],
@@ -5027,7 +5369,28 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/field-reports?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/field-reports?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "field-reports"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -5042,7 +5405,7 @@
           ]
         },
         {
-          "name": "Chi tiet phan anh",
+          "name": "Chi tiết phản ánh",
           "request": {
             "method": "GET",
             "header": [],
@@ -5056,7 +5419,18 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/field-reports/{{fieldReportId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/field-reports/{{fieldReportId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "field-reports",
+                "{{fieldReportId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -5072,7 +5446,7 @@
           ]
         },
         {
-          "name": "Huy phan anh cua toi",
+          "name": "Hủy phản ánh của tôi",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -5086,8 +5460,25 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/field-reports/{{fieldReportId}}?expectedUpdatedAt={{fieldReportUpdatedAt}}",
-            "description": "Request pha huy. Chay truoc khi admin duyet, hoac tao phan anh rieng de test."
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/field-reports/{{fieldReportId}}?expectedUpdatedAt={{fieldReportUpdatedAt}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "field-reports",
+                "{{fieldReportId}}"
+              ],
+              "query": [
+                {
+                  "key": "expectedUpdatedAt",
+                  "value": "{{fieldReportUpdatedAt}}"
+                }
+              ]
+            },
+            "description": "Request phá hủy. Chay truoc khi admin duyet, hoac tao phan anh rieng de test."
           },
           "event": [
             {
@@ -5102,7 +5493,7 @@
           ]
         },
         {
-          "name": "Huy dang ky FCM token",
+          "name": "Hủy đăng ký FCM token",
           "request": {
             "method": "DELETE",
             "header": [
@@ -5130,7 +5521,18 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/devices/push-token"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/devices/push-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "devices",
+                "push-token"
+              ]
+            }
           },
           "event": [
             {
@@ -5147,14 +5549,30 @@
       ]
     },
     {
-      "name": "Sprint 9a - Mobile GIS",
+      "name": "GIS di động",
       "item": [
         {
           "name": "Vector tile MVT",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/tiles/{{mobileTileZ}}/{{mobileTileX}}/{{mobileTileY}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/tiles/{{mobileTileZ}}/{{mobileTileX}}/{{mobileTileY}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "layers",
+                "{{mobileLayerId}}",
+                "tiles",
+                "{{mobileTileZ}}",
+                "{{mobileTileX}}",
+                "{{mobileTileY}}"
+              ]
+            }
           },
           "event": [
             {
@@ -5170,25 +5588,70 @@
           ]
         },
         {
-          "name": "Thuoc tinh doi tuong",
+          "name": "Thuộc tính đối tượng",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{mobileFeatureId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{mobileFeatureId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "layers",
+                "{{mobileLayerId}}",
+                "features",
+                "{{mobileFeatureId}}"
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Doi tuong lan can GPS",
+          "name": "Đối tượng lân cận GPS",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/nearby?longitude=107.335&latitude=21.01&radiusMeters=200&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/nearby?longitude=107.335&latitude=21.01&radiusMeters=200&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "layers",
+                "{{mobileLayerId}}",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "longitude",
+                  "value": "107.335"
+                },
+                {
+                  "key": "latitude",
+                  "value": "21.01"
+                },
+                {
+                  "key": "radiusMeters",
+                  "value": "200"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Do chieu dai VN-2000",
+          "name": "Đo chiều dài VN-2000",
           "request": {
             "method": "POST",
             "header": [
@@ -5197,7 +5660,18 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/v1/mobile/measure",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/measure",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "measure"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"geometry\": {\n    \"type\": \"LineString\",\n    \"coordinates\": [\n      [\n        107.335,\n        21.01\n      ],\n      [\n        107.336,\n        21.01\n      ]\n    ]\n  }\n}",
@@ -5211,7 +5685,7 @@
           "event": []
         },
         {
-          "name": "Tao ban phac thao",
+          "name": "Tạo bản phác thảo",
           "request": {
             "method": "POST",
             "header": [
@@ -5220,7 +5694,18 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/v1/mobile/drafts",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/drafts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "drafts"
+              ]
+            },
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Khu vuc khao sat\",\n  \"properties\": {\n    \"note\": \"Ban nhap mobile\"\n  },\n  \"geometry\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [\n          107.33,\n          21\n        ],\n        [\n          107.331,\n          21\n        ],\n        [\n          107.331,\n          21.001\n        ],\n        [\n          107.33,\n          21\n        ]\n      ]\n    ]\n  }\n}",
@@ -5255,11 +5740,32 @@
           ]
         },
         {
-          "name": "Danh sach ban phac thao",
+          "name": "Danh sách bản phác thảo",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/drafts?page=1&limit=20",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/drafts?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "drafts"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -5274,11 +5780,29 @@
           "event": []
         },
         {
-          "name": "Xoa ban phac thao",
+          "name": "Xóa bản phác thảo",
           "request": {
             "method": "DELETE",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/drafts/{{mobileDraftId}}?expectedUpdatedAt={{mobileDraftUpdatedAt}}",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/drafts/{{mobileDraftId}}?expectedUpdatedAt={{mobileDraftUpdatedAt}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "drafts",
+                "{{mobileDraftId}}"
+              ],
+              "query": [
+                {
+                  "key": "expectedUpdatedAt",
+                  "value": "{{mobileDraftUpdatedAt}}"
+                }
+              ]
+            },
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -5293,16 +5817,38 @@
           "event": []
         },
         {
-          "name": "Thoi tiet hien tai",
+          "name": "Thời tiết hiện tại",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/weather/current?longitude=107.335&latitude=21.01"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/weather/current?longitude=107.335&latitude=21.01",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "weather",
+                "current"
+              ],
+              "query": [
+                {
+                  "key": "longitude",
+                  "value": "107.335"
+                },
+                {
+                  "key": "latitude",
+                  "value": "21.01"
+                }
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Chi tiet ban phac thao",
+          "name": "Chi tiết bản phác thảo",
           "request": {
             "method": "GET",
             "header": [],
@@ -5316,7 +5862,19 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/mobile/drafts/{{mobileDraftId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/drafts/{{mobileDraftId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "drafts",
+                "{{mobileDraftId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -5329,67 +5887,9 @@
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "Sprint 9b - Routing va Offline Sync",
-      "description": "pgRouting, TNMT source edits, immutable history, restore and bounded conflict-aware sync.",
-      "item": [
-        {
-          "name": "Xay dung topology mang duong",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"directed\":false,\"snapToleranceMeters\":0.5}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": "{{baseUrl}}/api/v1/mobile/admin/routing-networks/{{mobileLayerId}}/rebuild"
-          },
-          "event": []
         },
         {
-          "name": "Bang chung topology",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/admin/routing-networks/{{mobileLayerId}}/topology"
-          },
-          "event": []
-        },
-        {
-          "name": "Tim duong ngan nhat",
+          "name": "Tìm đường ngắn nhất",
           "request": {
             "method": "POST",
             "header": [
@@ -5400,19 +5900,31 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"layerId\":{{mobileLayerId}},\"start\":[107.33,21.0],\"end\":[107.34,21.0],\"snapRadiusMeters\":100,\"maxDistanceMeters\":50000}",
+              "raw": "{\"start\":[107.33,21.0],\"end\":[107.34,21.0],\"profile\":\"driving\"}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/mobile/routes/shortest"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/routes/shortest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "routes",
+                "shortest"
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Sua thuoc tinh doi tuong TNMT",
+          "name": "Sửa thuộc tính đối tượng TNMT",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5440,12 +5952,26 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "layers",
+                "{{mobileLayerId}}",
+                "features",
+                "{{featureId}}"
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Lich su phien ban doi tuong",
+          "name": "Lịch sử phiên bản đối tượng",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5459,12 +5985,27 @@
             },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}/history"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}/history",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "layers",
+                "{{mobileLayerId}}",
+                "features",
+                "{{featureId}}",
+                "history"
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Khoi phuc version 1",
+          "name": "Khôi phục phiên bản 1",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5492,12 +6033,28 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}/restore/{{mobileFeatureRestoreVersion}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/layers/{{mobileLayerId}}/features/{{featureId}}/restore/{{mobileFeatureRestoreVersion}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "layers",
+                "{{mobileLayerId}}",
+                "features",
+                "{{featureId}}",
+                "restore",
+                "{{mobileFeatureRestoreVersion}}"
+              ]
+            }
           },
           "event": []
         },
         {
-          "name": "Offline sync idempotent",
+          "name": "Đồng bộ ngoại tuyến idempotent",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5518,25 +6075,36 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"clientId\":\"785d9ba2-4d51-4d3a-b8af-28d285dc36d2\",\"changes\":[{\"clientChangeId\":\"8fd3461c-8a73-423b-8cca-e513696bba25\",\"layerId\":{{mobileLayerId}},\"featureId\":\"{{featureId}}\",\"baseVersion\":1,\"attributes\":{\"name\":\"Offline update\"}}]}",
+              "raw": "{\"clientId\":\"785d9ba2-4d51-4d3a-b8af-28d285dc36d2\",\"changes\":[{\"clientChangeId\":\"8fd3461c-8a73-423b-8cca-e513696bba25\",\"layerId\": \"{{mobileLayerId}}\",\"featureId\":\"{{featureId}}\",\"baseVersion\":1,\"attributes\":{\"name\":\"Offline update\"}}]}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/mobile/sync"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/mobile/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "mobile",
+                "sync"
+              ]
+            }
           },
           "event": []
         }
       ]
     },
     {
-      "name": "Sprint 13 - Registry API lop",
+      "name": "Đăng ký API lớp dữ liệu",
       "description": "Postman la contract duy nhat. Share JWT tach user JWT; token plaintext chi tra khi issue/rotate; TNMT phe duyet write scope; PostgreSQL quota va immutable audit.",
       "item": [
         {
-          "name": "List registries",
+          "name": "Danh sách đăng ký API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5559,10 +6127,20 @@
                 "api",
                 "v1",
                 "admin",
-                "api-registry?page=1&limit=20"
+                "api-registry"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -5577,7 +6155,7 @@
           ]
         },
         {
-          "name": "Create registry",
+          "name": "Tạo đăng ký API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5608,10 +6186,10 @@
                 "api-registry"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
-              "raw": "{\"layerId\":{{layerId}},\"slug\":\"{{apiRegistrySlug}}\",\"name\":\"Shared layer\",\"readFields\":[\"name\"],\"writeFields\":[\"name\"],\"searchFields\":[\"name\"],\"allowedMethods\":[\"GET\",\"POST\",\"PUT\",\"DELETE\"],\"defaultSortField\":\"name\"}",
+              "raw": "{\"layerId\": \"{{layerId}}\",\"slug\":\"{{apiRegistrySlug}}\",\"name\":\"Shared layer\",\"readFields\":[\"name\"],\"writeFields\":[\"name\"],\"searchFields\":[\"name\"],\"allowedMethods\":[\"GET\",\"POST\",\"PUT\",\"DELETE\"],\"defaultSortField\":\"name\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5633,7 +6211,7 @@
           ]
         },
         {
-          "name": "Get registry",
+          "name": "Chi tiết đăng ký API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5660,7 +6238,7 @@
                 "{{apiRegistryId}}"
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -5675,7 +6253,7 @@
           ]
         },
         {
-          "name": "Update registry",
+          "name": "Cập nhật đăng ký API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5707,10 +6285,10 @@
                 "{{apiRegistryId}}"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
-              "raw": "{\"expectedVersion\":{{apiRegistryVersion}},\"name\":\"Shared layer updated\"}",
+              "raw": "{\"expectedVersion\": \"{{apiRegistryVersion}}\",\"name\":\"Shared layer updated\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5731,7 +6309,7 @@
           ]
         },
         {
-          "name": "Issue scoped key",
+          "name": "Cấp khóa API theo phạm vi",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5764,7 +6342,7 @@
                 "keys"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
               "raw": "{\"name\":\"Portal integration\",\"consumer\":\"Partner portal\",\"scopes\":[\"features:read\",\"features:create\",\"features:update\",\"features:delete\"],\"quotaPerMinute\":60,\"expiresInHours\":720}",
@@ -5789,7 +6367,7 @@
           ]
         },
         {
-          "name": "List keys",
+          "name": "Danh sách khóa API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5817,7 +6395,7 @@
                 "keys"
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -5832,7 +6410,7 @@
           ]
         },
         {
-          "name": "Rotate key",
+          "name": "Xoay vòng khóa API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5866,7 +6444,7 @@
                 "rotate"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
               "raw": "{\"expiresInHours\":720}",
@@ -5891,7 +6469,7 @@
           ]
         },
         {
-          "name": "Usage dashboard",
+          "name": "Thống kê sử dụng API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5919,7 +6497,7 @@
                 "usage"
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -5934,7 +6512,7 @@
           ]
         },
         {
-          "name": "Shared feature list",
+          "name": "Danh sách đối tượng chia sẻ",
           "request": {
             "auth": {
               "type": "bearer",
@@ -5958,10 +6536,28 @@
                 "v1",
                 "shared",
                 "{{apiRegistrySlug}}",
-                "features?page=1&limit=20&sortBy=name&sortOrder=ASC"
+                "features"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "name"
+                },
+                {
+                  "key": "sortOrder",
+                  "value": "ASC"
+                }
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -5976,7 +6572,7 @@
           ]
         },
         {
-          "name": "Shared feature detail",
+          "name": "Chi tiết đối tượng chia sẻ",
           "request": {
             "auth": {
               "type": "bearer",
@@ -6004,7 +6600,7 @@
                 "{{apiFeatureId}}"
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -6019,7 +6615,7 @@
           ]
         },
         {
-          "name": "Shared feature create",
+          "name": "Tạo đối tượng chia sẻ",
           "request": {
             "auth": {
               "type": "bearer",
@@ -6051,7 +6647,7 @@
                 "features"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
               "raw": "{\"featureId\":\"{{apiFeatureId}}\",\"attributes\":{\"name\":\"External feature\"},\"geometry\":{\"type\":\"Point\",\"coordinates\":[107.335,21.01]}}",
@@ -6076,7 +6672,7 @@
           ]
         },
         {
-          "name": "Shared feature update",
+          "name": "Cập nhật đối tượng chia sẻ",
           "request": {
             "auth": {
               "type": "bearer",
@@ -6109,10 +6705,10 @@
                 "{{apiFeatureId}}"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
-              "raw": "{\"baseVersion\":{{apiFeatureVersion}},\"attributes\":{\"name\":\"External feature updated\"}}",
+              "raw": "{\"baseVersion\": \"{{apiFeatureVersion}}\",\"attributes\":{\"name\":\"External feature updated\"}}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6134,7 +6730,7 @@
           ]
         },
         {
-          "name": "Shared feature delete",
+          "name": "Xóa đối tượng chia sẻ",
           "request": {
             "auth": {
               "type": "bearer",
@@ -6167,10 +6763,10 @@
                 "{{apiFeatureId}}"
               ]
             },
-            "description": "Sprint 13 Registry API",
+            "description": "API đăng ký và chia sẻ lớp dữ liệu",
             "body": {
               "mode": "raw",
-              "raw": "{\"baseVersion\":{{apiFeatureVersion}}}",
+              "raw": "{\"baseVersion\": \"{{apiFeatureVersion}}\"}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6191,7 +6787,7 @@
           ]
         },
         {
-          "name": "Revoke key",
+          "name": "Thu hồi khóa API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -6220,7 +6816,7 @@
                 "revoke"
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -6235,7 +6831,7 @@
           ]
         },
         {
-          "name": "Delete registry",
+          "name": "Xóa đăng ký API",
           "request": {
             "auth": {
               "type": "bearer",
@@ -6259,10 +6855,16 @@
                 "v1",
                 "admin",
                 "api-registry",
-                "{{apiRegistryId}}?expectedVersion={{apiRegistryVersion}}"
+                "{{apiRegistryId}}"
+              ],
+              "query": [
+                {
+                  "key": "expectedVersion",
+                  "value": "{{apiRegistryVersion}}"
+                }
               ]
             },
-            "description": "Sprint 13 Registry API"
+            "description": "API đăng ký và chia sẻ lớp dữ liệu"
           },
           "event": [
             {
@@ -6279,205 +6881,8 @@
       ]
     },
     {
-      "name": "Sprint 14 - Metadata and Hardening",
-      "item": [
-        {
-          "name": "Update standard metadata",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\"expectedUpdatedAt\":\"{{layerUpdatedAt}}\",\"metadataIdentifier\":\"campha.layer.{{layerId}}\",\"language\":\"vie\",\"characterSet\":\"utf8\",\"hierarchyLevel\":\"dataset\",\"dateStamp\":\"2026-08-02\",\"contact\":{\"organizationName\":\"Sở Tài nguyên và Môi trường Quảng Ninh\",\"email\":\"gis@example.vn\",\"role\":\"owner\"},\"referenceSystem\":{\"code\":\"EPSG:5899\",\"codeSpace\":\"EPSG\"},\"identification\":{\"title\":\"Lớp dữ liệu Cẩm Phả\",\"abstract\":\"Siêu dữ liệu địa lý phục vụ quản lý thành phố Cẩm Phả\",\"purpose\":\"Quản lý nhà nước\",\"status\":\"completed\",\"citationDate\":\"2026-08-02\",\"citationDateType\":\"creation\",\"language\":\"vie\",\"characterSet\":\"utf8\",\"topicCategories\":[\"planningCadastre\"],\"keywords\":[\"Cẩm Phả\",\"GIS\"],\"extent\":{\"description\":\"Thành phố Cẩm Phả\",\"westBoundLongitude\":107.1,\"eastBoundLongitude\":107.6,\"southBoundLatitude\":20.8,\"northBoundLatitude\":21.2}},\"constraints\":{\"accessConstraints\":\"restricted\",\"useConstraints\":\"license\",\"otherConstraints\":\"Theo phân quyền hệ thống\"},\"dataQuality\":{\"scope\":\"dataset\",\"lineage\":\"Dữ liệu được kiểm tra hình học và chuẩn hóa hệ quy chiếu\"},\"distribution\":{\"formatName\":\"PostGIS\",\"formatVersion\":\"3\",\"onlineResources\":[]}}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200',()=>pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get standard metadata",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('200',()=>pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Export ISO 19139 XML",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": "{{baseUrl}}/api/v1/admin/layers/{{layerId}}/standard-metadata.xml"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('XML',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.get('Content-Type')).to.include('application/xml');});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "ETag read",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/v1/web-map/basemaps"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('ETag',()=>{pm.response.to.have.status(200);pm.expect(pm.response.headers.has('ETag')).to.be.true;pm.collectionVariables.set('readEtag',pm.response.headers.get('ETag'));});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Conditional read 304",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "If-None-Match",
-                "value": "{{readEtag}}"
-              }
-            ],
-            "url": "{{baseUrl}}/api/v1/web-map/basemaps"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('304',()=>pm.response.to.have.status(304));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Metrics authorized",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{metricsToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "url": "{{baseUrl}}/metrics"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Prometheus',()=>{pm.response.to.have.status(200);pm.expect(pm.response.text()).to.include('campha_http_requests_total');});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Metrics unauthorized",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/metrics"
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('401 or disabled',()=>pm.expect(pm.response.code).to.be.oneOf([401,404]));"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "Sprint 10 - KTTV hai che do",
-      "description": "Kich ban do don vi nghiep vu tao/ban hanh. Automatic Weather API va manual input dung chung matcher; khong tu sinh kich ban, khong chay mo hinh.",
+      "name": "Khí tượng thủy văn",
+      "description": "Kịch bản do đơn vị nghiệp vụ tạo/ban hành. Weather API tự động và dữ liệu nhập tay dùng chung bộ đối sánh; không tự sinh kịch bản, không chạy mô hình.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -6490,7 +6895,7 @@
       },
       "item": [
         {
-          "name": "Tao tram CP-WEATHER",
+          "name": "Tạo trạm CP-WEATHER",
           "request": {
             "method": "POST",
             "header": [
@@ -6508,7 +6913,19 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/stations"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "stations"
+              ]
+            }
           },
           "event": [
             {
@@ -6523,7 +6940,7 @@
           ]
         },
         {
-          "name": "Tao kich ban nhap",
+          "name": "Tạo kịch bản nháp",
           "request": {
             "method": "POST",
             "header": [
@@ -6541,7 +6958,19 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "scenarios"
+              ]
+            }
           },
           "event": [
             {
@@ -6557,7 +6986,7 @@
           ]
         },
         {
-          "name": "Ban hanh kich ban",
+          "name": "Ban hành kịch bản",
           "request": {
             "method": "POST",
             "header": [
@@ -6575,7 +7004,21 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}/publish"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "scenarios",
+                "{{kttvScenarioId}}",
+                "publish"
+              ]
+            }
           },
           "event": [
             {
@@ -6591,7 +7034,7 @@
           ]
         },
         {
-          "name": "Nhap KTTV thu cong",
+          "name": "Nhập KTTV thủ công",
           "request": {
             "method": "POST",
             "header": [
@@ -6609,7 +7052,20 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/inputs/manual"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/inputs/manual",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "inputs",
+                "manual"
+              ]
+            }
           },
           "event": [
             {
@@ -6625,7 +7081,7 @@
           ]
         },
         {
-          "name": "Tao nguon Weather API REST JSON",
+          "name": "Tạo nguồn Weather API REST JSON",
           "request": {
             "method": "POST",
             "header": [
@@ -6643,7 +7099,19 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources"
+              ]
+            }
           },
           "event": [
             {
@@ -6659,11 +7127,25 @@
           ]
         },
         {
-          "name": "Thu thap Weather API",
+          "name": "Thu thập Weather API",
           "request": {
             "method": "POST",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/collect"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/collect",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources",
+                "{{kttvSourceId}}",
+                "collect"
+              ]
+            }
           },
           "event": [
             {
@@ -6679,31 +7161,88 @@
           ]
         },
         {
-          "name": "Danh sach input KTTV",
+          "name": "Danh sách đầu vào KTTV",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/admin/kttv/inputs?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/inputs?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "inputs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           }
         },
         {
-          "name": "Chi tiet input KTTV",
+          "name": "Chi tiết đầu vào KTTV",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/admin/kttv/inputs/{{kttvInputId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/inputs/{{kttvInputId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "inputs",
+                "{{kttvInputId}}"
+              ]
+            }
           }
         },
         {
-          "name": "Danh sach kich ban",
+          "name": "Danh sách kịch bản",
           "request": {
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "scenarios"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           }
         },
         {
-          "name": "Danh sach nguon KTTV",
+          "name": "Danh sách nguồn KTTV",
           "request": {
             "method": "GET",
             "header": [],
@@ -6717,7 +7256,29 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -6732,7 +7293,7 @@
           ]
         },
         {
-          "name": "Chi tiet nguon KTTV",
+          "name": "Chi tiết nguồn KTTV",
           "request": {
             "method": "GET",
             "header": [],
@@ -6746,7 +7307,20 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources",
+                "{{kttvSourceId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -6762,7 +7336,7 @@
           ]
         },
         {
-          "name": "Cap nhat nguon KTTV",
+          "name": "Cập nhật nguồn KTTV",
           "request": {
             "method": "PATCH",
             "header": [
@@ -6790,7 +7364,20 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources",
+                "{{kttvSourceId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -6806,7 +7393,7 @@
           ]
         },
         {
-          "name": "Kiem tra ket noi nguon KTTV",
+          "name": "Kiểm tra kết nối nguồn KTTV",
           "request": {
             "method": "POST",
             "header": [],
@@ -6820,7 +7407,21 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/test-connection"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/test-connection",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources",
+                "{{kttvSourceId}}",
+                "test-connection"
+              ]
+            }
           },
           "event": [
             {
@@ -6835,7 +7436,7 @@
           ]
         },
         {
-          "name": "Xoa nguon KTTV",
+          "name": "Xóa nguồn KTTV",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -6849,8 +7450,27 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}?expectedUpdatedAt={{kttvSourceUpdatedAt}}",
-            "description": "Request pha huy. Chay sau cung sau khi test nguon."
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}?expectedUpdatedAt={{kttvSourceUpdatedAt}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "sources",
+                "{{kttvSourceId}}"
+              ],
+              "query": [
+                {
+                  "key": "expectedUpdatedAt",
+                  "value": "{{kttvSourceUpdatedAt}}"
+                }
+              ]
+            },
+            "description": "Request phá hủy. Chay sau cung sau khi test nguon."
           },
           "event": [
             {
@@ -6865,7 +7485,7 @@
           ]
         },
         {
-          "name": "Danh sach tram KTTV",
+          "name": "Danh sách trạm KTTV",
           "request": {
             "method": "GET",
             "header": [],
@@ -6879,7 +7499,29 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/stations?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "stations"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -6894,7 +7536,7 @@
           ]
         },
         {
-          "name": "Chi tiet tram KTTV",
+          "name": "Chi tiết trạm KTTV",
           "request": {
             "method": "GET",
             "header": [],
@@ -6908,7 +7550,20 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "stations",
+                "{{kttvStationCode}}"
+              ]
+            }
           },
           "event": [
             {
@@ -6924,7 +7579,7 @@
           ]
         },
         {
-          "name": "Cap nhat tram KTTV",
+          "name": "Cập nhật trạm KTTV",
           "request": {
             "method": "PATCH",
             "header": [
@@ -6952,7 +7607,20 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "stations",
+                "{{kttvStationCode}}"
+              ]
+            }
           },
           "event": [
             {
@@ -6968,7 +7636,7 @@
           ]
         },
         {
-          "name": "Xoa tram KTTV",
+          "name": "Xóa trạm KTTV",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -6982,8 +7650,27 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}?expectedUpdatedAt={{kttvStationUpdatedAt}}",
-            "description": "Request pha huy. Chay sau cung khi tram khong con duoc input tham chieu."
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}?expectedUpdatedAt={{kttvStationUpdatedAt}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "stations",
+                "{{kttvStationCode}}"
+              ],
+              "query": [
+                {
+                  "key": "expectedUpdatedAt",
+                  "value": "{{kttvStationUpdatedAt}}"
+                }
+              ]
+            },
+            "description": "Request phá hủy. Chạy sau cùng khi trạm không còn được dữ liệu đầu vào tham chiếu."
           },
           "event": [
             {
@@ -6998,7 +7685,7 @@
           ]
         },
         {
-          "name": "Chi tiet kich ban KTTV",
+          "name": "Chi tiết kịch bản KTTV",
           "request": {
             "method": "GET",
             "header": [],
@@ -7012,7 +7699,20 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "scenarios",
+                "{{kttvScenarioId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -7028,7 +7728,7 @@
           ]
         },
         {
-          "name": "Cap nhat kich ban KTTV",
+          "name": "Cập nhật kịch bản KTTV",
           "request": {
             "method": "PATCH",
             "header": [
@@ -7056,7 +7756,20 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "kttv",
+                "scenarios",
+                "{{kttvScenarioId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -7074,18 +7787,39 @@
       ]
     },
     {
-      "name": "Vien tham - Day du router",
-      "description": "Danh sach, chi tiet, so sanh, tai xuong va quan tri anh vien tham.",
+      "name": "Viễn thám",
+      "description": "Danh sách, chi tiết, so sánh, tải xuống và quản trị ảnh viễn thám.",
       "item": [
         {
-          "name": "Danh sach anh vien tham",
+          "name": "Danh sách ảnh viễn thám",
           "request": {
             "method": "GET",
             "header": [],
             "auth": {
               "type": "noauth"
             },
-            "url": "{{baseUrl}}/api/v1/remote-sensing/images?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/images?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "images"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -7100,14 +7834,26 @@
           ]
         },
         {
-          "name": "Chi tiet anh vien tham",
+          "name": "Chi tiết ảnh viễn thám",
           "request": {
             "method": "GET",
             "header": [],
             "auth": {
               "type": "noauth"
             },
-            "url": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}"
+              ]
+            }
           },
           "event": [
             {
@@ -7123,14 +7869,35 @@
           ]
         },
         {
-          "name": "So sanh hai anh vien tham",
+          "name": "So sánh hai ảnh viễn thám",
           "request": {
             "method": "GET",
             "header": [],
             "auth": {
               "type": "noauth"
             },
-            "url": "{{baseUrl}}/api/v1/remote-sensing/compare?beforeId={{satelliteImageBeforeId}}&afterId={{satelliteImageAfterId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/compare?beforeId={{satelliteImageBeforeId}}&afterId={{satelliteImageAfterId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "compare"
+              ],
+              "query": [
+                {
+                  "key": "beforeId",
+                  "value": "{{satelliteImageBeforeId}}"
+                },
+                {
+                  "key": "afterId",
+                  "value": "{{satelliteImageAfterId}}"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -7145,7 +7912,7 @@
           ]
         },
         {
-          "name": "URL tai anh vien tham",
+          "name": "URL tải ảnh viễn thám",
           "request": {
             "method": "GET",
             "header": [],
@@ -7159,7 +7926,26 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}/download-url?expireSeconds=300"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/remote-sensing/images/{{satelliteImageId}}/download-url?expireSeconds=300",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}",
+                "download-url"
+              ],
+              "query": [
+                {
+                  "key": "expireSeconds",
+                  "value": "300"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -7174,7 +7960,7 @@
           ]
         },
         {
-          "name": "Danh sach anh vien tham admin",
+          "name": "Danh sách ảnh viễn thám (quản trị)",
           "request": {
             "method": "GET",
             "header": [],
@@ -7188,7 +7974,29 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/remote-sensing/images?page=1&limit=20"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
           },
           "event": [
             {
@@ -7203,7 +8011,7 @@
           ]
         },
         {
-          "name": "Tao metadata anh vien tham",
+          "name": "Tạo metadata ảnh viễn thám",
           "request": {
             "method": "POST",
             "header": [
@@ -7231,7 +8039,19 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/remote-sensing/images"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images"
+              ]
+            }
           },
           "event": [
             {
@@ -7247,7 +8067,7 @@
           ]
         },
         {
-          "name": "Phan loai anh vien tham",
+          "name": "Phân loại ảnh viễn thám",
           "request": {
             "method": "PATCH",
             "header": [
@@ -7275,7 +8095,21 @@
                 }
               }
             },
-            "url": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}/category"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}/category",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}",
+                "category"
+              ]
+            }
           },
           "event": [
             {
@@ -7291,7 +8125,7 @@
           ]
         },
         {
-          "name": "Xoa anh vien tham",
+          "name": "Xóa ảnh viễn thám",
           "request": {
             "method": "DELETE",
             "header": [],
@@ -7305,8 +8139,27 @@
                 }
               ]
             },
-            "url": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}",
-            "description": "Request pha huy. Chay sau cung sau khi da tao metadata thu nghiem."
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}"
+              ],
+              "query": [
+                {
+                  "key": "expectedUpdatedAt",
+                  "value": "{{satelliteImageUpdatedAt}}"
+                }
+              ]
+            },
+            "description": "Request phá hủy. Chay sau cung sau khi da tao metadata thu nghiem."
           },
           "event": [
             {

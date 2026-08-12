@@ -61,14 +61,6 @@ const route = (req, res) =>
     routingService
         .shortest(req.body, buildActor(req))
         .then((data) => OK(res, t('mobile_route_success', req.lang), data));
-const rebuildNetwork = (req, res) =>
-    routingService
-        .rebuild(Number(req.params.layerId), req.body, buildActor(req))
-        .then((data) => OK(res, t('mobile_topology_rebuilt_success', req.lang), data));
-const topology = (req, res) =>
-    routingService
-        .topology(Number(req.params.layerId), buildActor(req))
-        .then((data) => OK(res, t('mobile_topology_success', req.lang), data));
 const updateFeature = (req, res) =>
     editService
         .update(Number(req.params.layerId), req.params.featureId, req.body, buildActor(req))
@@ -102,8 +94,6 @@ module.exports = {
     removeDraft,
     weather,
     route,
-    rebuildNetwork,
-    topology,
     updateFeature,
     featureHistory,
     restoreFeature,

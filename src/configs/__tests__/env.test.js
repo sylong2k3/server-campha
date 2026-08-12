@@ -41,6 +41,7 @@ describe('environment configuration', () => {
         expect(target.SERVER_REQUEST_TIMEOUT_MS).toBe('30000');
         expect(target.METRICS_ENABLED).toBe('false');
         expect(target.HTTP_ACCESS_LOG_ENABLED).toBe('true');
+        expect(target.MAPBOX_DIRECTIONS_TIMEOUT_MS).toBe('10000');
     });
 
     test('rejects invalid ranges and cross-field values', () => {

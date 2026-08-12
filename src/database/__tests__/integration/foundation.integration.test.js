@@ -180,14 +180,14 @@ describe('Cẩm Phả foundation database', () => {
             'mobile_sync',
         ]);
     });
-    test('pgRouting và schema Sprint 9b tồn tại', async () => {
+    test('giữ pgRouting extension, bỏ graph nội bộ và giữ schema đồng bộ', async () => {
         const {
             rows: [schema],
         } = await db.query(`
             SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname='pgrouting') AS pgrouting,
-                   to_regclass('gis.routing_networks') IS NOT NULL AS routing_networks,
-                   to_regclass('gis.routing_vertices') IS NOT NULL AS routing_vertices,
-                   to_regclass('gis.routing_edges') IS NOT NULL AS routing_edges,
+                   to_regclass('gis.routing_networks') IS NULL AS no_routing_networks,
+                   to_regclass('gis.routing_vertices') IS NULL AS no_routing_vertices,
+                   to_regclass('gis.routing_edges') IS NULL AS no_routing_edges,
                    to_regclass('gis.feature_states') IS NOT NULL AS feature_states,
                    to_regclass('gis.feature_versions') IS NOT NULL AS feature_versions,
                    to_regclass('gis.mobile_sync_receipts') IS NOT NULL AS mobile_sync_receipts

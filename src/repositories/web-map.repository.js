@@ -4,6 +4,10 @@ const db = require('../configs/database');
 
 const IDENTIFIER = /^[a-z][a-z0-9_]{0,62}$/;
 const FIELD = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+const ACCESSIBLE_LAYER_CACHE_TTL_MS = 5_000;
+const ACCESSIBLE_LAYER_CACHE_MAX = 500;
+const accessibleLayerCache = new Map();
+const accessibleLayerQueries = new Map();
 const qid = (value, pattern = IDENTIFIER) => {
     if (!pattern.test(value)) {
         throw new TypeError('Unsafe database identifier');
@@ -26,7 +30,8 @@ const catalog = async (actor, category) => {
     const { rows } = await db.query(
         `SELECT l.id, l.code, l.name_vi, l.category, l.geometry_type, l.srid,
                 l.storage_kind, l.table_name, l.geoserver_layer, l.style_name,
-                l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.metadata
+                l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.metadata,
+                COALESCE(lp.can_edit, false) AS role_can_edit
          FROM gis.layers l
          LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $1
          WHERE ${where.join(' AND ')}
@@ -37,19 +42,49 @@ const catalog = async (actor, category) => {
 };
 
 const accessibleLayer = async (id, actor, { terrain = false } = {}) => {
-    const {
-        rows: [row],
-    } = await db.query(
-        `SELECT l.*, COALESCE(lp.can_view, false) AS role_can_view,
-                COALESCE(lp.can_edit, false) AS role_can_edit
-         FROM gis.layers l
-         LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $2
-         WHERE l.id = $1 AND l.deleted_at IS NULL
-           AND (l.is_public = true OR COALESCE(lp.can_view, false) = true)
-           ${terrain ? "AND l.storage_kind = 'geotiff_minio' AND l.object_key IS NOT NULL" : ''}`,
-        [id, actorRole(actor)],
-    );
-    return row || null;
+    const role = actorRole(actor) || '';
+    const key = `${id}:${role}:${terrain ? 'terrain' : 'map'}`;
+    const now = Date.now();
+    const cached = accessibleLayerCache.get(key);
+    if (cached && cached.expiresAt > now) {
+        return cached.value;
+    }
+    if (accessibleLayerQueries.has(key)) {
+        return accessibleLayerQueries.get(key);
+    }
+    const pending = db
+        .query(
+            `SELECT l.*, COALESCE(lp.can_view, false) AS role_can_view,
+                    COALESCE(lp.can_edit, false) AS role_can_edit
+             FROM gis.layers l
+             LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $2
+             WHERE l.id = $1 AND l.deleted_at IS NULL
+               AND (l.is_public = true OR COALESCE(lp.can_view, false) = true)
+               ${terrain ? "AND l.storage_kind = 'geotiff_minio' AND l.object_key IS NOT NULL" : ''}`,
+            [id, role || null],
+        )
+        .then(({ rows: [row] }) => {
+            const value = row || null;
+            if (accessibleLayerCache.size >= ACCESSIBLE_LAYER_CACHE_MAX) {
+                accessibleLayerCache.delete(accessibleLayerCache.keys().next().value);
+            }
+            accessibleLayerCache.set(key, {
+                value,
+                expiresAt: Date.now() + ACCESSIBLE_LAYER_CACHE_TTL_MS,
+            });
+            return value;
+        })
+        .finally(() => accessibleLayerQueries.delete(key));
+    accessibleLayerQueries.set(key, pending);
+    return pending;
+};
+const invalidateLayerCache = (id) => {
+    const prefix = `${id}:`;
+    for (const key of accessibleLayerCache.keys()) {
+        if (key.startsWith(prefix)) {
+            accessibleLayerCache.delete(key);
+        }
+    }
 };
 
 const safeField = (field) =>
@@ -172,6 +207,7 @@ const terrainCatalog = async (actor) => {
 module.exports = {
     catalog,
     accessibleLayer,
+    invalidateLayerCache,
     configuredFields,
     searchFields,
     idFieldFor,

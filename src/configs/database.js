@@ -13,6 +13,9 @@ const pool = new Pool({
     connectionTimeoutMillis: parseInt(process.env.DB_CONN_TIMEOUT_MS, 10) || 10000,
     statement_timeout: parseInt(process.env.DB_STATEMENT_TIMEOUT, 10) || 30000,
     query_timeout: parseInt(process.env.DB_QUERY_TIMEOUT, 10) || 30000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
+    application_name: process.env.APP_NAME || 'server-campha',
     options: '-c search_path=public,core,auth',
 });
 
@@ -21,11 +24,28 @@ pool.on('error', (err) => {
 });
 
 const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.DB_SLOW_QUERY_MS, 10) || 500;
+const CONNECTION_ERROR_CODES = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED']);
+const MUTATING_SQL = /\b(INSERT|UPDATE|DELETE|MERGE|CALL|DO|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|COPY)\b/i;
+const isReadOnlyQuery = (text) =>
+    /^\s*(SELECT|WITH)\b/i.test(text) && !MUTATING_SQL.test(text);
+const isConnectionError = (error) =>
+    CONNECTION_ERROR_CODES.has(error.code) ||
+    /connection terminated unexpectedly|connection ended unexpectedly/i.test(error.message || '');
+// ponytail: Một retry chỉ xử lý socket pool chết đơn lẻ; dùng PgBouncer/HA proxy khi DB lỗi kéo dài.
 
 const query = async (text, params) => {
     const start = Date.now();
     try {
-        const res = await pool.query(text, params);
+        let res;
+        try {
+            res = await pool.query(text, params);
+        } catch (error) {
+            if (!isReadOnlyQuery(text) || !isConnectionError(error)) {
+                throw error;
+            }
+            console.warn(`[DB RETRY] ${error.code || '-'} | retrying read-only query once`);
+            res = await pool.query(text, params);
+        }
         const duration = Date.now() - start;
         if (duration > SLOW_QUERY_THRESHOLD_MS) {
             const shortSql = text.replace(/\s+/g, ' ').substring(0, 200);

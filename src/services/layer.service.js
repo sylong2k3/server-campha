@@ -1,6 +1,7 @@
 'use strict';
 
 const layerRepository = require('../repositories/layer.repository');
+const webMapRepository = require('../repositories/web-map.repository');
 const jobRepository = require('../repositories/layer-job.repository');
 const geoserverClient = require('../utils/geoserver.client');
 const systemLogger = require('../utils/systemLogger.util');
@@ -107,6 +108,7 @@ const updateStandardMetadata = async (id, input, actor) => {
             'OPTIMISTIC_LOCK_CONFLICT',
         ]);
     }
+    webMapRepository.invalidateLayerCache(id);
     audit('layer_standard_metadata_updated', actor, {
         layerId: id,
         metadataIdentifier: profile.metadataIdentifier,
@@ -138,6 +140,7 @@ const updateLayer = async (id, input, actor) => {
             'OPTIMISTIC_LOCK_CONFLICT',
         ]);
     }
+    webMapRepository.invalidateLayerCache(id);
     audit('layer_updated', actor, {
         layerId: id,
         fields: Object.keys(input).filter((key) => key !== 'expectedUpdatedAt'),
@@ -164,6 +167,7 @@ const replacePermissions = async (id, input, actor) => {
     if (!layer) {
         throw new Api404Error('Không tìm thấy lớp dữ liệu');
     }
+    webMapRepository.invalidateLayerCache(id);
     audit('layer_permissions_replaced', actor, { layerId: id, roleCodes });
     return layer;
 };
@@ -180,6 +184,7 @@ const deleteLayer = async (id, expectedUpdatedAt, actor) => {
             'OPTIMISTIC_LOCK_CONFLICT',
         ]);
     }
+    webMapRepository.invalidateLayerCache(id);
     audit('layer_soft_deleted', actor, { layerId: id });
     return { id: layer.id, cleanupStatus: layer.cleanup_status };
 };
@@ -198,9 +203,12 @@ const retryPublish = async (id, actor) => {
             ...layer,
             epsg_code: layer.srid,
         });
-        return layerRepository.setPublishState(id, 'published', geoserverLayer);
+        const published = await layerRepository.setPublishState(id, 'published', geoserverLayer);
+        webMapRepository.invalidateLayerCache(id);
+        return published;
     } catch (error) {
         await layerRepository.setPublishState(id, 'failed');
+        webMapRepository.invalidateLayerCache(id);
         throw error;
     }
 };

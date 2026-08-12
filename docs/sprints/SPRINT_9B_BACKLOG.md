@@ -1,5 +1,7 @@
 # Sprint 9b — pgRouting, chỉnh sửa dữ liệu gốc và offline sync
 
+> **Superseded 2026-08-11:** phần pgRouting/rebuild/topology đã được thay bằng Mapbox Directions qua backend proxy. Phần version history/restore/offline sync vẫn hiện hành.
+
 ## Phạm vi
 
 - Graph định tuyến riêng: không thêm `source`/`target` vào bảng layer import.

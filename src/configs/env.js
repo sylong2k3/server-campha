@@ -206,6 +206,9 @@ const ENV_SCHEMA_KEYS = {
     RASTER_INGEST_WORKER_POLL_CRON: Joi.string().trim().min(9).default('*/15 * * * * *'),
     GDAL_CACHEMAX_MB: positiveInteger.min(64).default(512),
 
+    MAPBOX_DIRECTIONS_TOKEN: Joi.string().trim().allow(''),
+    MAPBOX_DIRECTIONS_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(10000),
+
     OPENWEATHER_API_KEY: Joi.string().trim().allow(''),
     OPENWEATHER_BASE_URL: httpUrl.default('https://api.openweathermap.org/data/2.5'),
     OPENWEATHER_TILE_URL: httpUrl.default('https://tile.openweathermap.org/map'),
