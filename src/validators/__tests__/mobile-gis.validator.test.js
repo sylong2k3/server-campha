@@ -17,8 +17,18 @@ describe('mobile GIS validator', () => {
             }).error,
         ).toBeUndefined();
         expect(
-            v.routeBody.validate({ layerId: 1, start: [107.3, 21], end: [107.31, 21.01] }).error,
+            v.routeBody.validate({
+                start: [107.3, 21],
+                end: [107.31, 21.01],
+                profile: 'walking',
+            }).error,
         ).toBeUndefined();
+        expect(
+            v.routeBody.validate(
+                { layerId: 1, start: [107.3, 21], end: [107.31, 21.01] },
+                { allowUnknown: false },
+            ).error,
+        ).toBeDefined();
     });
     test('rejects tile outside zoom grid, point measurement, open polygon and oversized radius', () => {
         expect(v.tileParams.validate({ layerId: 1, z: 0, x: 1, y: '0.mvt' }).error).toBeDefined();

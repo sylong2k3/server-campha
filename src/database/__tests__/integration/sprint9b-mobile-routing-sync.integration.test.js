@@ -34,6 +34,33 @@ jest.mock('../../../middlewares/auth.middleware', () => {
 const request = require('supertest'),
     db = require('../../../configs/database'),
     app = require('../../../app');
+const originalFetch = global.fetch;
+const mapboxFetch = jest.fn(async (url) => {
+    if (!String(url).startsWith('https://api.mapbox.com/directions/')) {
+        return originalFetch(url);
+    }
+    return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+            code: 'Ok',
+            routes: [
+                {
+                    distance: 1012.45,
+                    duration: 120,
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: [
+                            [107.3301, 21],
+                            [107.3399, 21],
+                        ],
+                    },
+                },
+            ],
+            waypoints: [{ location: [107.3301, 21] }, { location: [107.3399, 21] }],
+        }),
+    };
+});
 const PREFIX = 'it_s9b_';
 let userId, layerId;
 const clientId = '785d9ba2-4d51-4d3a-b8af-28d285dc36d2',
@@ -56,6 +83,8 @@ const cleanup = async () => {
     await db.query(`DROP TABLE IF EXISTS gis.${PREFIX}roads`);
 };
 beforeAll(async () => {
+    process.env.MAPBOX_DIRECTIONS_TOKEN = 'pk.integration-test-not-real';
+    global.fetch = mapboxFetch;
     if (process.env.DB_NAME !== 'campha_test') {
         throw new Error('Sprint 9b integration requires campha_test');
     }
@@ -92,35 +121,27 @@ beforeAll(async () => {
     );
 });
 afterAll(async () => {
+    global.fetch = originalFetch;
     await cleanup();
     db.stopPoolMonitor();
     await db.pool.end();
 });
 describe('Sprint 9b routing, versioning and offline sync', () => {
-    test('rebuilds a connected graph, returns topology evidence and shortest route', async () => {
-        const rebuilt = await auth(
-            request(app).post(`/api/v1/mobile/admin/routing-networks/${layerId}/rebuild`),
-        )
-            .send({ directed: false, snapToleranceMeters: 0.5 })
-            .expect(200);
-        expect(rebuilt.body.data.status).toBe('ready');
-        expect(rebuilt.body.data.evidence.components).toBe(1);
-        const topology = await auth(
-            request(app).get(`/api/v1/mobile/admin/routing-networks/${layerId}/topology`),
-        ).expect(200);
-        expect(topology.body.data.evidence.unNodedCrossings).toBe(0);
+    test('returns a Mapbox shortest route without an internal topology build', async () => {
         const route = await request(app)
             .post('/api/v1/mobile/routes/shortest')
             .send({
-                layerId,
                 start: [107.3301, 21],
                 end: [107.3399, 21],
-                snapRadiusMeters: 100,
-                maxDistanceMeters: 5000,
+                profile: 'driving',
             })
             .expect(200);
+        expect(route.body.data.provider).toBe('mapbox');
+        expect(route.body.data.profile).toBe('driving');
+        expect(route.body.data.duration_s).toBe(120);
         expect(route.body.data.geometry.type).toBe('LineString');
         expect(Number(route.body.data.distance_m)).toBeGreaterThan(900);
+        expect(mapboxFetch).toHaveBeenCalled();
     });
     test('strictly limits source edits, records history and restores a version', async () => {
         await auth(request(app).patch(`/api/v1/mobile/layers/${layerId}/features/1`), 'citizen')

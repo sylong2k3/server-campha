@@ -88,15 +88,9 @@ const weatherQuery = Joi.object({
     latitude: Joi.number().min(20.7).max(21.3).required(),
 });
 const routeBody = Joi.object({
-    layerId: Joi.number().integer().positive().required(),
     start: coordinate.required(),
     end: coordinate.invalid(Joi.ref('start')).required(),
-    snapRadiusMeters: Joi.number().integer().min(10).max(500).default(100),
-    maxDistanceMeters: Joi.number().integer().min(100).max(100000).default(50000),
-});
-const rebuildBody = Joi.object({
-    directed: Joi.boolean().default(false),
-    snapToleranceMeters: Joi.number().min(0.01).max(20).default(0.5),
+    profile: Joi.string().valid('driving', 'walking', 'cycling').default('driving'),
 });
 const scalar = Joi.alternatives().try(
     Joi.string().max(2000),
@@ -140,7 +134,6 @@ module.exports = {
     deleteQuery,
     weatherQuery,
     routeBody,
-    rebuildBody,
     featureChange,
     versionParams,
     restoreBody,

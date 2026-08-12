@@ -5334,60 +5334,8 @@
     },
     {
       "name": "Sprint 9b - Routing va Offline Sync",
-      "description": "pgRouting, TNMT source edits, immutable history, restore and bounded conflict-aware sync.",
+      "description": "Mapbox Directions proxy, TNMT source edits, immutable history, restore and bounded conflict-aware sync.",
       "item": [
-        {
-          "name": "Xay dung topology mang duong",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\"directed\":false,\"snapToleranceMeters\":0.5}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": "{{baseUrl}}/api/v1/mobile/admin/routing-networks/{{mobileLayerId}}/rebuild"
-          },
-          "event": []
-        },
-        {
-          "name": "Bang chung topology",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{tnmtToken}}",
-                  "type": "string"
-                }
-              ]
-            },
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/api/v1/mobile/admin/routing-networks/{{mobileLayerId}}/topology"
-          },
-          "event": []
-        },
         {
           "name": "Tim duong ngan nhat",
           "request": {
@@ -5400,7 +5348,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"layerId\":{{mobileLayerId}},\"start\":[107.33,21.0],\"end\":[107.34,21.0],\"snapRadiusMeters\":100,\"maxDistanceMeters\":50000}",
+              "raw": "{\"start\":[107.33,21.0],\"end\":[107.34,21.0],\"profile\":\"driving\"}",
               "options": {
                 "raw": {
                   "language": "json"

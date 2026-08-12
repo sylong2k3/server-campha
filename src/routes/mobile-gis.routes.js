@@ -79,19 +79,6 @@ router.delete(
     strict(v.deleteQuery, 'query'),
     asyncHandler(controller.removeDraft),
 );
-router.post(
-    '/admin/routing-networks/:layerId/rebuild',
-    writeLimiter,
-    strict(v.layerParams, 'params'),
-    strict(v.rebuildBody),
-    asyncHandler(controller.rebuildNetwork),
-);
-router.get(
-    '/admin/routing-networks/:layerId/topology',
-    readLimiter,
-    strict(v.layerParams, 'params'),
-    asyncHandler(controller.topology),
-);
 router.patch(
     '/layers/:layerId/features/:featureId',
     writeLimiter,

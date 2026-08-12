@@ -141,6 +141,9 @@ const ENV_SCHEMA_KEYS = {
     MAP_PROXY_MAX_RESPONSE_MB: positiveInteger.default(25),
     RASTER_INGEST_DEBUG: boolean.default('false'),
 
+    MAPBOX_DIRECTIONS_TOKEN: Joi.string().trim().allow(''),
+    MAPBOX_DIRECTIONS_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(10000),
+
     OPENWEATHER_API_KEY: Joi.string().trim().allow(''),
     OPENWEATHER_BASE_URL: httpUrl.default('https://api.openweathermap.org/data/2.5'),
     OPENWEATHER_TILE_URL: httpUrl.default('https://tile.openweathermap.org/map'),
