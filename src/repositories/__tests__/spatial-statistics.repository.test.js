@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../../configs/database', () => ({ query: jest.fn(), getClient: jest.fn() }));
 const { quote } = require('../spatial-statistics.repository');
 describe('statistics SQL identifiers', () => {
     test('quotes allowlisted identifiers', () => {

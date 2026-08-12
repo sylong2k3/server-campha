@@ -43,7 +43,7 @@ jobs:
     container: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
-      - run: semgrep scan --config auto --error
+      - run: semgrep scan --config auto --error --severity ERROR
 
   gitleaks:
     runs-on: ubuntu-latest

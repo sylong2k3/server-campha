@@ -5,6 +5,7 @@ const mockOn = jest.fn();
 const mockConnect = jest.fn();
 const mockEnd = jest.fn();
 let poolOptions;
+let loadedDatabase;
 
 jest.mock('pg', () => ({
     Pool: jest.fn().mockImplementation((options) => {
@@ -24,7 +25,8 @@ jest.mock('pg', () => ({
 
 const loadDatabase = () => {
     jest.resetModules();
-    return require('../database');
+    loadedDatabase = require('../database');
+    return loadedDatabase;
 };
 
 describe('database query connection recovery', () => {
@@ -34,6 +36,11 @@ describe('database query connection recovery', () => {
         mockConnect.mockReset();
         mockEnd.mockReset();
         poolOptions = undefined;
+        loadedDatabase = undefined;
+    });
+
+    afterEach(() => {
+        loadedDatabase?.stopPoolMonitor();
     });
 
     test('enables TCP keepalive for remote PostgreSQL connections', () => {

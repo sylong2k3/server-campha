@@ -25,6 +25,7 @@ const decrypt = (row) => {
         'aes-256-gcm',
         getKey(),
         Buffer.from(row.token_iv, 'base64'),
+        { authTagLength: 16 },
     );
     decipher.setAuthTag(Buffer.from(row.token_auth_tag, 'hex'));
     return Buffer.concat([

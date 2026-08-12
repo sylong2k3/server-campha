@@ -1,4 +1,5 @@
 'use strict';
+jest.mock('../../configs/database', () => ({ query: jest.fn(), getClient: jest.fn() }));
 const repository = require('../device-token.repository');
 describe('Sprint 8 device token encryption', () => {
     beforeEach(() => {
@@ -16,6 +17,16 @@ describe('Sprint 8 device token encryption', () => {
             }),
         ).toBe(token);
         expect(repository.hash(token)).toHaveLength(64);
+    });
+    test('rejects truncated GCM authentication tags', () => {
+        const encrypted = repository.encrypt('x'.repeat(64));
+        expect(() =>
+            repository.decrypt({
+                token_ciphertext: encrypted.ciphertext,
+                token_iv: encrypted.iv,
+                token_auth_tag: encrypted.authTag.slice(0, -2),
+            }),
+        ).toThrow();
     });
     test('rejects missing encryption key', () => {
         delete process.env.DEVICE_TOKEN_ENCRYPTION_KEY;

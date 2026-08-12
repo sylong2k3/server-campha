@@ -32,6 +32,7 @@ const EMAIL_VERIFICATION_EXPIRES_MINUTES =
 const EMAIL_VERIFICATION_MAX_REQUESTS =
     parseInt(process.env.EMAIL_VERIFICATION_MAX_REQUESTS, 10) || 3;
 
+// nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash -- public dummy value equalizes unknown-user login timing; never authenticates an account.
 const DUMMY_PASSWORD_HASH = '$2b$12$12l7tm6QooEdqRW4HUyj9uFsD0VvZqZh8YrVLdjN2No.SKaXrfhl6';
 
 const _normalizeNullable = (value) => (value === '' ? null : value);

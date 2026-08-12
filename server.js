@@ -43,9 +43,12 @@ function printStartupBanner({ dbStatus, minioStatus, earthEngineStatus, geoserve
     const COL = 13;
     const row = (label, value) => `  ${label.padEnd(COL)}: ${value}`;
 
+    const isTls = /^https:/i.test(process.env.APP_URL || '');
+    const httpProtocol = isTls ? 'https' : 'http';
+    const wsProtocol = isTls ? 'wss' : 'ws';
     const appRows = [
-        row('HTTP', `http://${publicHost}:${PORT}`),
-        row('WebSocket', `ws://${publicHost}:${PORT}${WS_PATH}`),
+        row('HTTP', `${httpProtocol}://${publicHost}:${PORT}`),
+        row('WebSocket', `${wsProtocol}://${publicHost}:${PORT}${WS_PATH}`),
         row('Environment', env),
     ];
     const svcRows = [

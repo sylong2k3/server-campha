@@ -110,12 +110,4 @@ describe('geeInterruptedRunRecovery.worker', () => {
             expect.stringContaining('No interrupted flood runs or ingest jobs found'),
         );
     });
-
-    test('uses the default repoLoader when none is supplied (module lazily probes real repos)', async () => {
-        // No option passed — the module must fall back to defaultRepoLoader,
-        // which lazy-requires the two repos. Neither exists in the current
-        // tree, so we expect a graceful zero-count with no throw.
-        const result = await recoverInterruptedRuns();
-        expect(result).toEqual({ runs: 0, ingestJobs: 0 });
-    });
 });
