@@ -8067,6 +8067,65 @@
           ]
         },
         {
+          "name": "Xuất bản GeoTIFF lên Web Map",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{tnmtToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"lop_phu_sau_ngap_2024\",\n  \"nameVi\": \"Lớp phủ sau ngập Cẩm Phả năm 2024\",\n  \"category\": \"lop-phu-ngap\",\n  \"srid\": 32648,\n  \"minZoom\": 8,\n  \"maxZoom\": 18,\n  \"legendConfig\": {\n    \"type\": \"rgb\",\n    \"bands\": [\n      \"red\",\n      \"green\",\n      \"blue\"\n    ]\n  },\n  \"metadata\": {\n    \"dataType\": \"land-cover\",\n    \"phase\": \"after-flood\",\n    \"year\": 2024\n  },\n  \"isPublic\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "remote-sensing",
+                "images",
+                "{{satelliteImageId}}",
+                "publish"
+              ]
+            },
+            "description": "Tạo hoặc cập nhật lớp raster Web Map từ GeoTIFF đã upload, sau đó publish CoverageStore lên GeoServer. Request hỗ trợ retry theo ảnh viễn thám."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const d=pm.response.json().data;if(d?.layer){pm.collectionVariables.set('layerId',d.layer.id);}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Phân loại ảnh viễn thám",
           "request": {
             "method": "PATCH",

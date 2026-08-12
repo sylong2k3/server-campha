@@ -1,7 +1,10 @@
 'use strict';
 
 const repository = require('../repositories/remote-sensing.repository');
+const webMapRepository = require('../repositories/web-map.repository');
 const minioService = require('./minio.service');
+const geoserverClient = require('../utils/geoserver.client');
+const { getBucketForCategory } = require('../configs/minioClient');
 const systemLogger = require('../utils/systemLogger.util');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
@@ -120,4 +123,60 @@ const listAdmin = (filter, actor) => {
     requirePermission(actor, 'read');
     return repository.list(filter);
 };
-module.exports = { list, get, compare, download, create, categorize, remove, listAdmin };
+const publish = async (id, input, actor) => {
+    requirePermission(actor, 'create');
+    if (actor?.permissions?.layers?.create !== true) {
+        throw new Api403Error('Không có quyền tạo lớp dữ liệu Web Map');
+    }
+    let prepared;
+    try {
+        prepared = await repository.preparePublish(id, input, actor.id);
+    } catch (error) {
+        if (error.code === '23505') {
+            throw new Api409Error('Mã lớp đã tồn tại hoặc file đã liên kết với lớp khác', [
+                'RASTER_LAYER_CONFLICT',
+            ]);
+        }
+        throw error;
+    }
+    if (!prepared) {
+        throw new Api404Error(t('satellite_not_found', actor.lang));
+    }
+    const { image, layer } = prepared;
+    try {
+        const geoserverLayer = await geoserverClient.publishS3GeoTiffLayer({
+            storeName: layer.code,
+            s3Bucket: getBucketForCategory('raster'),
+            s3Key: image.object_key,
+            title: layer.name_vi,
+        });
+        const published = await repository.setPublishState(
+            image.id,
+            layer.id,
+            'published',
+            geoserverLayer,
+        );
+        webMapRepository.invalidateLayerCache(layer.id);
+        audit('satellite_published', actor, {
+            satelliteImageId: image.id,
+            layerId: layer.id,
+            geoserverLayer,
+        });
+        return { imageId: image.id, layer: published, geoserverLayer };
+    } catch (error) {
+        await repository.setPublishState(image.id, layer.id, 'failed').catch(() => {});
+        webMapRepository.invalidateLayerCache(layer.id);
+        throw error;
+    }
+};
+module.exports = {
+    list,
+    get,
+    compare,
+    download,
+    create,
+    categorize,
+    remove,
+    listAdmin,
+    publish,
+};

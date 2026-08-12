@@ -60,6 +60,7 @@ const serializeLayer = (layer, actor) => {
         nameVi: layer.name_vi,
         category: layer.category,
         geometryType: layer.geometry_type,
+        storageKind: layer.storage_kind,
         srid: layer.srid,
         geoserverLayer: layer.geoserver_layer,
         styleName: layer.style_name,

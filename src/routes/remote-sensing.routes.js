@@ -37,6 +37,12 @@ const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);
 adminRouter.get('/images', strict(v.listSchema, 'query'), asyncHandler(controller.listAdmin));
 adminRouter.post('/images', strict(v.createSchema), asyncHandler(controller.create));
+adminRouter.post(
+    '/images/:id/publish',
+    strict(v.idParamsSchema, 'params'),
+    strict(v.publishSchema),
+    asyncHandler(controller.publish),
+);
 adminRouter.patch(
     '/images/:id/category',
     strict(v.idParamsSchema, 'params'),

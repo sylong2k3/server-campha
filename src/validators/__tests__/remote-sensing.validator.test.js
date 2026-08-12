@@ -27,4 +27,23 @@ describe('remote sensing validators', () => {
             }).error,
         ).toBeDefined();
     });
+    test('validates bounded Web Map publish fields', () => {
+        const valid = {
+            code: 'lop_phu_sau_ngap_2024',
+            nameVi: 'Lớp phủ sau ngập Cẩm Phả năm 2024',
+            category: 'lop-phu-ngap',
+            srid: 32648,
+            minZoom: 8,
+            maxZoom: 18,
+            legendConfig: { type: 'rgb' },
+            metadata: { resolutionM: 20 },
+            isPublic: true,
+        };
+        expect(v.publishSchema.validate(valid).error).toBeUndefined();
+        expect(v.publishSchema.validate({ ...valid, code: '../bad' }).error).toBeDefined();
+        expect(
+            v.publishSchema.validate({ ...valid, minZoom: 19, maxZoom: 18 }).error,
+        ).toBeDefined();
+        expect(v.publishSchema.validate({ ...valid, srid: 0 }).error).toBeDefined();
+    });
 });
