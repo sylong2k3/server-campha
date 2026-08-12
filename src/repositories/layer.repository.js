@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../configs/database');
+const fileCleanupRepository = require('./file-cleanup.repository');
 const { versionCondition } = require('../utils/optimistic-lock.util');
 
 const SORT_COLUMNS = Object.freeze({
@@ -243,7 +244,7 @@ const replacePermissions = async (layerId, permissions) => {
     }
 };
 
-const softDeleteAndEnqueue = async (id, expectedUpdatedAt) => {
+const softDeleteAndEnqueue = async (id, expectedUpdatedAt, actorId, deleteFiles = false) => {
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
@@ -265,8 +266,31 @@ const softDeleteAndEnqueue = async (id, expectedUpdatedAt) => {
              ON CONFLICT (layer_id) WHERE status IN ('queued', 'running') DO NOTHING`,
             [id],
         );
+        if (deleteFiles && deleted.source_file_id) {
+            const references = await fileCleanupRepository.lockedActiveReferences(
+                deleted.source_file_id,
+                client,
+            );
+            if (references.length) {
+                await client.query('ROLLBACK');
+                return { conflict: 'FILE_STILL_IN_USE', references };
+            }
+        }
+        let fileJob = null;
+        if (deleteFiles && deleted.source_file_id) {
+            fileJob = await fileCleanupRepository.enqueue(client, {
+                fileObjectId: deleted.source_file_id,
+                requestedBy: actorId,
+                sourceType: 'layer',
+                sourceId: deleted.id,
+            });
+        }
         await client.query('COMMIT');
-        return deleted;
+        return {
+            ...deleted,
+            fileCleanupQueued: Boolean(fileJob),
+            fileObjectIds: deleteFiles && deleted.source_file_id ? [deleted.source_file_id] : [],
+        };
     } catch (error) {
         await client.query('ROLLBACK');
         throw error;

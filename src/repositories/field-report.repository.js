@@ -1,5 +1,6 @@
 'use strict';
 const db = require('../configs/database');
+const fileCleanupRepository = require('./file-cleanup.repository');
 const { versionCondition } = require('../utils/optimistic-lock.util');
 const pageResult = (rows) => ({
     items: rows.map(({ total_count: _total, ...row }) => row),
@@ -152,29 +153,65 @@ const review = async (id, input, actor) => {
         client.release();
     }
 };
-const remove = async (id, expectedUpdatedAt, actor) => {
+const remove = async (id, expectedUpdatedAt, actor, deleteFiles = false) => {
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
+        const { rows: photos } = deleteFiles
+            ? await client.query(
+                  `SELECT p.file_object_id
+                   FROM community.field_report_photos p
+                   JOIN community.field_reports r ON r.id=p.report_id
+                   WHERE r.id=$1 AND r.sender_user_id=$2 AND r.deleted_at IS NULL
+                   ORDER BY p.sort_order FOR UPDATE OF r`,
+                  [id, actor.id],
+              )
+            : { rows: [] };
         const version = versionCondition(3, 'r.updated_at');
         const {
             rows: [row],
         } = await client.query(
-            `UPDATE community.field_reports r SET deleted_at=NOW() WHERE id=$1 AND sender_user_id=$2 AND deleted_at IS NULL${version} RETURNING id`,
+            `UPDATE community.field_reports r SET deleted_at=NOW()
+             WHERE id=$1 AND sender_user_id=$2 AND deleted_at IS NULL${version} RETURNING id`,
             [id, actor.id, expectedUpdatedAt],
         );
-        if (row) {
-            await client.query('COMMIT');
-            return row;
+        if (!row) {
+            const {
+                rows: [deleted],
+            } = await client.query(
+                'SELECT id FROM community.field_reports WHERE id=$1 AND sender_user_id=$2 AND deleted_at IS NOT NULL',
+                [id, actor.id],
+            );
+            await client.query(deleted ? 'COMMIT' : 'ROLLBACK');
+            return deleted ? { ...deleted, fileCleanupQueued: false, fileObjectIds: [] } : null;
         }
-        const {
-            rows: [deleted],
-        } = await client.query(
-            'SELECT id FROM community.field_reports WHERE id=$1 AND sender_user_id=$2 AND deleted_at IS NOT NULL',
-            [id, actor.id],
-        );
-        await client.query(deleted ? 'COMMIT' : 'ROLLBACK');
-        return deleted || null;
+        if (deleteFiles) {
+            for (const photo of photos) {
+                const references = await fileCleanupRepository.lockedActiveReferences(
+                    photo.file_object_id,
+                    client,
+                );
+                if (references.length) {
+                    await client.query('ROLLBACK');
+                    return { conflict: 'FILE_STILL_IN_USE', references };
+                }
+            }
+        }
+        let jobs = [];
+        if (deleteFiles) {
+            jobs = await fileCleanupRepository.enqueueMany(client, {
+                fileObjectIds: photos.map((photo) => photo.file_object_id),
+                requestedBy: actor.id,
+                sourceType: 'field_report',
+                sourceId: row.id,
+            });
+        }
+        await client.query('COMMIT');
+        return {
+            id: row.id,
+            fileCleanupQueued: jobs.length > 0,
+            fileObjectIds: deleteFiles ? photos.map((photo) => photo.file_object_id) : [],
+        };
     } catch (error) {
         await client.query('ROLLBACK');
         throw error;
@@ -222,15 +259,6 @@ const photoObjects = async (id) => {
     );
     return rows;
 };
-const markPhotoDeleted = async (fileId, ownerId) => {
-    const {
-        rows: [row],
-    } = await db.query(
-        `UPDATE core.file_objects SET lifecycle_status='deleted',deleted_at=NOW() WHERE id=$1 AND owner_user_id=$2 AND lifecycle_status='ready' RETURNING id`,
-        [fileId, ownerId],
-    );
-    return row || null;
-};
 const eventSummary = async (id) => {
     const {
         rows: [row],
@@ -250,7 +278,6 @@ module.exports = {
     nearby,
     clusters,
     photoObjects,
-    markPhotoDeleted,
     eventSummary,
     assertPhotos,
 };

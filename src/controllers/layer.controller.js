@@ -100,6 +100,7 @@ const deleteLayer = async (req, res) => {
         await layerService.deleteLayer(
             Number(req.params.layerId),
             req.body.expectedUpdatedAt,
+            req.body.deleteFiles,
             buildActor(req),
         ),
     );

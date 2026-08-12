@@ -229,7 +229,10 @@ const permissionItem = Joi.object({
 const permissionsSchema = Joi.object({
     permissions: Joi.array().items(permissionItem).max(5).unique('roleCode').required(),
 });
-const deleteLayerSchema = Joi.object({ expectedUpdatedAt: Joi.date().iso().required() });
+const deleteLayerSchema = Joi.object({
+    expectedUpdatedAt: Joi.date().iso().required(),
+    deleteFiles: Joi.boolean().default(false),
+});
 
 module.exports = {
     shapefileImportSchema,

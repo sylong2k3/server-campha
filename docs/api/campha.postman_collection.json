@@ -2879,7 +2879,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\"\n}",
+              "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\",\n  \"deleteFiles\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2899,7 +2899,7 @@
                 "{{layerId}}"
               ]
             },
-            "description": "expectedUpdatedAt bat buoc. Khong the hoan tac."
+            "description": "expectedUpdatedAt bat buoc. Khong the hoan tac.\n\ndeleteFiles=true: xóa object MinIO sau cleanup lớp; false: giữ file nguồn."
           },
           "event": [
             {
@@ -4344,7 +4344,7 @@
                     "method": "DELETE",
                     "header": [],
                     "url": {
-                      "raw": "{{baseUrl}}/api/v1/admin/cms/news/{{newsId}}?expectedUpdatedAt={{newsUpdatedAt}}",
+                      "raw": "{{baseUrl}}/api/v1/admin/cms/news/{{newsId}}?expectedUpdatedAt={{newsUpdatedAt}}&deleteFiles=true",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -4361,10 +4361,15 @@
                           "key": "expectedUpdatedAt",
                           "value": "{{newsUpdatedAt}}",
                           "description": "Bắt buộc — giá trị updatedAt hiện tại (QUERY PARAM, không phải body)"
+                        },
+                        {
+                          "key": "deleteFiles",
+                          "value": "true",
+                          "description": "true: xóa cả object MinIO; false: chỉ xóa metadata"
                         }
                       ]
                     },
-                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ newsUpdatedAt tự động lưu."
+                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ newsUpdatedAt tự động lưu.\n\ndeleteFiles=true: xóa cả object MinIO; false: chỉ xóa metadata."
                   },
                   "event": [
                     {
@@ -4617,7 +4622,7 @@
                     "method": "DELETE",
                     "header": [],
                     "url": {
-                      "raw": "{{baseUrl}}/api/v1/admin/cms/documents/{{documentId}}?expectedUpdatedAt={{documentUpdatedAt}}",
+                      "raw": "{{baseUrl}}/api/v1/admin/cms/documents/{{documentId}}?expectedUpdatedAt={{documentUpdatedAt}}&deleteFiles=true",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -4634,10 +4639,15 @@
                           "key": "expectedUpdatedAt",
                           "value": "{{documentUpdatedAt}}",
                           "description": "Bắt buộc — QUERY PARAM"
+                        },
+                        {
+                          "key": "deleteFiles",
+                          "value": "true",
+                          "description": "true: xóa cả object MinIO; false: chỉ xóa metadata"
                         }
                       ]
                     },
-                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ documentUpdatedAt tự động lưu."
+                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ documentUpdatedAt tự động lưu.\n\ndeleteFiles=true: xóa cả object MinIO; false: chỉ xóa metadata."
                   },
                   "event": [
                     {
@@ -4840,7 +4850,7 @@
                     "method": "DELETE",
                     "header": [],
                     "url": {
-                      "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps/{{pdfMapId}}?expectedUpdatedAt={{pdfMapUpdatedAt}}",
+                      "raw": "{{baseUrl}}/api/v1/admin/cms/pdf-maps/{{pdfMapId}}?expectedUpdatedAt={{pdfMapUpdatedAt}}&deleteFiles=true",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -4857,10 +4867,15 @@
                           "key": "expectedUpdatedAt",
                           "value": "{{pdfMapUpdatedAt}}",
                           "description": "Bắt buộc — QUERY PARAM"
+                        },
+                        {
+                          "key": "deleteFiles",
+                          "value": "true",
+                          "description": "true: xóa cả object MinIO; false: chỉ xóa metadata"
                         }
                       ]
                     },
-                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ pdfMapUpdatedAt tự động lưu."
+                    "description": "expectedUpdatedAt la QUERY PARAM. Lấy từ pdfMapUpdatedAt tự động lưu.\n\ndeleteFiles=true: xóa cả object MinIO; false: chỉ xóa metadata."
                   },
                   "event": [
                     {
@@ -5517,7 +5532,7 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/field-reports/{{fieldReportId}}?expectedUpdatedAt={{fieldReportUpdatedAt}}",
+              "raw": "{{baseUrl}}/api/v1/field-reports/{{fieldReportId}}?expectedUpdatedAt={{fieldReportUpdatedAt}}&deleteFiles=true",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -5531,10 +5546,15 @@
                 {
                   "key": "expectedUpdatedAt",
                   "value": "{{fieldReportUpdatedAt}}"
+                },
+                {
+                  "key": "deleteFiles",
+                  "value": "true",
+                  "description": "true: xóa cả object MinIO; false: chỉ xóa metadata"
                 }
               ]
             },
-            "description": "Request phá hủy. Chay truoc khi admin duyet, hoac tao phan anh rieng de test."
+            "description": "Request phá hủy. Chay truoc khi admin duyet, hoac tao phan anh rieng de test.\n\ndeleteFiles=true: xóa cả object MinIO; false: chỉ xóa metadata."
           },
           "event": [
             {
@@ -8255,7 +8275,7 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}",
+              "raw": "{{baseUrl}}/api/v1/admin/remote-sensing/images/{{satelliteImageId}}?expectedUpdatedAt={{satelliteImageUpdatedAt}}&deleteFiles=true",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -8271,10 +8291,15 @@
                 {
                   "key": "expectedUpdatedAt",
                   "value": "{{satelliteImageUpdatedAt}}"
+                },
+                {
+                  "key": "deleteFiles",
+                  "value": "true",
+                  "description": "true: xóa cả object MinIO; false: chỉ xóa metadata"
                 }
               ]
             },
-            "description": "Request phá hủy. Chay sau cung sau khi da tao metadata thu nghiem."
+            "description": "Request phá hủy. Chay sau cung sau khi da tao metadata thu nghiem.\n\ndeleteFiles=true: xóa cả object MinIO; false: chỉ xóa metadata."
           },
           "event": [
             {

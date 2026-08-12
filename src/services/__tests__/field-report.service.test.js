@@ -31,4 +31,23 @@ describe('Sprint 8 field report RBAC service', () => {
             status: 'approved',
         });
     });
+    test('queues photo cleanup and rejects active references', async () => {
+        repo.remove.mockResolvedValue({
+            id: 1,
+            fileCleanupQueued: true,
+            fileObjectIds: [8, 9],
+        });
+        await expect(service.remove(1, new Date(), true, citizen)).resolves.toMatchObject({
+            fileObjectIds: [8, 9],
+        });
+        expect(repo.remove).toHaveBeenCalledWith(1, expect.any(Date), citizen, true);
+        repo.remove.mockResolvedValue({
+            conflict: 'FILE_STILL_IN_USE',
+            references: ['field_report'],
+        });
+        await expect(service.remove(1, new Date(), true, citizen)).rejects.toMatchObject({
+            status: 409,
+            errors: ['FILE_STILL_IN_USE', 'field_report'],
+        });
+    });
 });

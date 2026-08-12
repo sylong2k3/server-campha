@@ -64,7 +64,12 @@ const remove = async (req, res) =>
     OK(
         res,
         t('satellite_deleted_success', req.lang),
-        await service.remove(Number(req.params.id), req.query.expectedUpdatedAt, buildActor(req)),
+        await service.remove(
+            Number(req.params.id),
+            req.query.expectedUpdatedAt,
+            req.query.deleteFiles,
+            buildActor(req),
+        ),
     );
 module.exports = {
     list,

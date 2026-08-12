@@ -54,6 +54,9 @@ const enqueueImport = async (importType, input, actor) => {
         });
         return job;
     } catch (error) {
+        if (error?.code === '23514' && error.constraint === 'file_cleanup_reference_guard') {
+            throw new Api409Error('File đang chờ xóa', ['FILE_DELETE_PENDING']);
+        }
         if (error.code === '23505') {
             throw new Api409Error('File đang có import job hoạt động', ['IMPORT_ALREADY_ACTIVE']);
         }
@@ -172,9 +175,20 @@ const replacePermissions = async (id, input, actor) => {
     return layer;
 };
 
-const deleteLayer = async (id, expectedUpdatedAt, actor) => {
+const deleteLayer = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     assertPermission(actor, 'delete');
-    const layer = await layerRepository.softDeleteAndEnqueue(id, expectedUpdatedAt);
+    const layer = await layerRepository.softDeleteAndEnqueue(
+        id,
+        expectedUpdatedAt,
+        actor.id,
+        deleteFiles,
+    );
+    if (layer?.conflict === 'FILE_STILL_IN_USE') {
+        throw new Api409Error('File nguồn vẫn đang được ảnh viễn thám sử dụng', [
+            'FILE_STILL_IN_USE',
+            ...layer.references,
+        ]);
+    }
     if (!layer) {
         const existing = await layerRepository.findById(id, true);
         if (!existing || existing.deleted_at) {
@@ -185,8 +199,13 @@ const deleteLayer = async (id, expectedUpdatedAt, actor) => {
         ]);
     }
     webMapRepository.invalidateLayerCache(id);
-    audit('layer_soft_deleted', actor, { layerId: id });
-    return { id: layer.id, cleanupStatus: layer.cleanup_status };
+    audit('layer_soft_deleted', actor, { layerId: id, deleteFiles });
+    return {
+        id: layer.id,
+        cleanupStatus: layer.cleanup_status,
+        fileCleanupQueued: layer.fileCleanupQueued,
+        fileObjectIds: layer.fileObjectIds,
+    };
 };
 
 const retryPublish = async (id, actor) => {

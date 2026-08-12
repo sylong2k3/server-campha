@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../configs/database');
+const fileCleanupRepository = require('./file-cleanup.repository');
 
 const createQuarantine = async ({
     category,
@@ -99,17 +100,41 @@ const resetPending = async (id) => {
     );
 };
 
-const markDeleted = async (id, actorId) => {
-    const {
-        rows: [row],
-    } = await db.query(
-        `UPDATE core.file_objects
-         SET lifecycle_status = 'deleted', deleted_at = NOW()
-         WHERE id = $1 AND owner_user_id = $2 AND lifecycle_status = 'ready'
-         RETURNING *`,
-        [id, actorId],
-    );
-    return row || null;
+const enqueueDelete = async (id, actorId) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const {
+            rows: [file],
+        } = await client.query(
+            `SELECT id FROM core.file_objects
+             WHERE id=$1 AND owner_user_id=$2 AND lifecycle_status='ready' AND deleted_at IS NULL
+             FOR UPDATE`,
+            [id, actorId],
+        );
+        if (!file) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+        const references = await fileCleanupRepository.lockedActiveReferences(id, client);
+        if (references.length) {
+            await client.query('ROLLBACK');
+            return { conflict: 'FILE_STILL_IN_USE', references };
+        }
+        const job = await fileCleanupRepository.enqueue(client, {
+            fileObjectId: id,
+            requestedBy: actorId,
+            sourceType: 'storage_object',
+            sourceId: id,
+        });
+        await client.query('COMMIT');
+        return { id, fileCleanupQueued: Boolean(job), fileObjectIds: [id] };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
 };
 
 module.exports = {
@@ -119,5 +144,5 @@ module.exports = {
     markReady,
     markRejected,
     resetPending,
-    markDeleted,
+    enqueueDelete,
 };

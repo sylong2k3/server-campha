@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../configs/database');
+const fileCleanupRepository = require('./file-cleanup.repository');
 const { versionCondition } = require('../utils/optimistic-lock.util');
 
 const pageResult = (rows) => ({
@@ -235,17 +236,71 @@ const createDocument = async (input, actorId) => {
     );
     return row || null;
 };
-const deleteDocument = async (id, expectedUpdatedAt) => {
-    const params = [id, expectedUpdatedAt];
-    const version = versionCondition(2);
-    const {
-        rows: [row],
-    } = await db.query(
-        `UPDATE cms.documents SET deleted_at=NOW() WHERE id=$1 AND deleted_at IS NULL ${version} RETURNING id`,
-        params,
-    );
-    return row || null;
+const deleteFileEntity = async ({
+    table,
+    sourceType,
+    id,
+    expectedUpdatedAt,
+    actorId,
+    deleteFiles,
+}) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const version = versionCondition(2);
+        const {
+            rows: [row],
+        } = await client.query(
+            `UPDATE ${table} SET deleted_at=NOW()
+             WHERE id=$1 AND deleted_at IS NULL${version}
+             RETURNING id,file_object_id`,
+            [id, expectedUpdatedAt],
+        );
+        if (!row) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+        if (deleteFiles) {
+            const references = await fileCleanupRepository.lockedActiveReferences(
+                row.file_object_id,
+                client,
+            );
+            if (references.length) {
+                await client.query('ROLLBACK');
+                return { conflict: 'FILE_STILL_IN_USE', references };
+            }
+        }
+        let job = null;
+        if (deleteFiles) {
+            job = await fileCleanupRepository.enqueue(client, {
+                fileObjectId: row.file_object_id,
+                requestedBy: actorId,
+                sourceType,
+                sourceId: row.id,
+            });
+        }
+        await client.query('COMMIT');
+        return {
+            id: row.id,
+            fileCleanupQueued: Boolean(job),
+            fileObjectIds: deleteFiles ? [row.file_object_id] : [],
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
 };
+const deleteDocument = (id, expectedUpdatedAt, actorId, deleteFiles = false) =>
+    deleteFileEntity({
+        table: 'cms.documents',
+        sourceType: 'cms_document',
+        id,
+        expectedUpdatedAt,
+        actorId,
+        deleteFiles,
+    });
 
 const listPdfMaps = async (filter, mode) => {
     const params = [];
@@ -335,17 +390,15 @@ const updatePdfMap = async (id, input, actorId) => {
     );
     return row || null;
 };
-const deletePdfMap = async (id, expectedUpdatedAt) => {
-    const params = [id, expectedUpdatedAt];
-    const version = versionCondition(2);
-    const {
-        rows: [row],
-    } = await db.query(
-        `UPDATE cms.pdf_maps SET deleted_at=NOW() WHERE id=$1 AND deleted_at IS NULL ${version} RETURNING id`,
-        params,
-    );
-    return row || null;
-};
+const deletePdfMap = (id, expectedUpdatedAt, actorId, deleteFiles = false) =>
+    deleteFileEntity({
+        table: 'cms.pdf_maps',
+        sourceType: 'cms_pdf_map',
+        id,
+        expectedUpdatedAt,
+        actorId,
+        deleteFiles,
+    });
 
 module.exports = {
     listNews,

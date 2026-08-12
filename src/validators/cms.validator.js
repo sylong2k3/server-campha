@@ -69,7 +69,10 @@ const pdfMapUpdateSchema = pdfMapCreateSchema
     )
     .keys({ expectedUpdatedAt: Joi.date().iso().required() })
     .min(2);
-const deleteQuerySchema = Joi.object({ expectedUpdatedAt: Joi.date().iso().required() });
+const deleteQuerySchema = Joi.object({
+    expectedUpdatedAt: Joi.date().iso().required(),
+    deleteFiles: Joi.boolean().default(false),
+});
 const downloadQuerySchema = Joi.object({
     expireSeconds: Joi.number().integer().min(60).max(900).default(300),
 });

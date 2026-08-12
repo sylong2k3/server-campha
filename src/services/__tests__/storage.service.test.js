@@ -27,7 +27,7 @@ jest.mock('../../repositories/storage.repository', () => ({
     markRejected: jest.fn(),
     resetPending: jest.fn(),
     findAccessibleById: jest.fn(),
-    markDeleted: jest.fn(),
+    enqueueDelete: jest.fn(),
 }));
 const { Readable } = require('stream');
 const minio = require('../minio.service');
@@ -182,9 +182,25 @@ describe('storage quarantine workflow', () => {
         });
         minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'download' });
         await expect(service.getDownloadUrl(11, 900, actor)).resolves.toEqual({ url: 'download' });
-        repo.markDeleted.mockResolvedValue({ id: 11 });
-        await expect(service.deleteObject(11, actor)).resolves.toEqual({ id: 11 });
-        expect(minio.removeObject).toHaveBeenCalledWith({ objectKey: 'o', category: 'documents' });
+        repo.enqueueDelete.mockResolvedValue({
+            id: 11,
+            fileCleanupQueued: true,
+            fileObjectIds: [11],
+        });
+        await expect(service.deleteObject(11, actor)).resolves.toEqual({
+            id: 11,
+            fileCleanupQueued: true,
+            fileObjectIds: [11],
+        });
+        expect(minio.removeObject).not.toHaveBeenCalled();
+        repo.enqueueDelete.mockResolvedValue({
+            conflict: 'FILE_STILL_IN_USE',
+            references: ['cms_document'],
+        });
+        await expect(service.deleteObject(11, actor)).rejects.toMatchObject({
+            status: 409,
+            errors: ['FILE_STILL_IN_USE', 'cms_document'],
+        });
     });
     test('direct upload streams to quarantine, scans and returns ready object', async () => {
         const requestStream = stream('II*\0clean-raster');

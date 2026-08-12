@@ -36,7 +36,12 @@ const remove = async (req, res) =>
     OK(
         res,
         t('field_report_deleted_success', req.lang),
-        await service.remove(Number(req.params.id), req.query.expectedUpdatedAt, actor(req)),
+        await service.remove(
+            Number(req.params.id),
+            req.query.expectedUpdatedAt,
+            req.query.deleteFiles,
+            actor(req),
+        ),
     );
 const listAdmin = async (req, res) => {
     const result = await service.listAdmin(req.query, actor(req));

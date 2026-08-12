@@ -129,10 +129,23 @@ describe('layer service', () => {
         await expect(service.replacePermissions(1, { permissions }, actor)).resolves.toMatchObject({
             id: 1,
         });
-        layerRepository.softDeleteAndEnqueue.mockResolvedValue({ id: 1, cleanup_status: 'queued' });
-        await expect(service.deleteLayer(1, new Date(), actor)).resolves.toEqual({
+        layerRepository.softDeleteAndEnqueue.mockResolvedValue({
+            id: 1,
+            cleanup_status: 'queued',
+            fileCleanupQueued: true,
+            fileObjectIds: [32],
+        });
+        await expect(service.deleteLayer(1, new Date(), true, actor)).resolves.toEqual({
             id: 1,
             cleanupStatus: 'queued',
+            fileCleanupQueued: true,
+            fileObjectIds: [32],
         });
+        expect(layerRepository.softDeleteAndEnqueue).toHaveBeenCalledWith(
+            1,
+            expect.any(Date),
+            7,
+            true,
+        );
     });
 });

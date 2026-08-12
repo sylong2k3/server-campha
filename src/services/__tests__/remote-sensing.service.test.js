@@ -74,7 +74,27 @@ describe('remote sensing service', () => {
             service.categorize(1, { thematicGroup: 'water', expectedUpdatedAt: new Date() }, admin),
         ).rejects.toMatchObject({ status: 409 });
         repository.find.mockResolvedValue(null);
-        await expect(service.remove(1, new Date(), admin)).rejects.toMatchObject({ status: 404 });
+        await expect(service.remove(1, new Date(), false, admin)).rejects.toMatchObject({
+            status: 404,
+        });
+        repository.remove.mockResolvedValue({
+            id: 1,
+            fileCleanupQueued: true,
+            fileObjectIds: [32],
+        });
+        await expect(service.remove(1, new Date(), true, admin)).resolves.toMatchObject({
+            fileCleanupQueued: true,
+            fileObjectIds: [32],
+        });
+        expect(repository.remove).toHaveBeenLastCalledWith(1, expect.any(Date), 2, true);
+        repository.remove.mockResolvedValue({
+            conflict: 'FILE_STILL_IN_USE',
+            references: ['layer'],
+        });
+        await expect(service.remove(1, new Date(), true, admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['FILE_STILL_IN_USE', 'layer'],
+        });
     });
     test('publishes a clean raster layer and invalidates Web Map cache', async () => {
         repository.preparePublish.mockResolvedValue({

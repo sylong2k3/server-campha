@@ -236,16 +236,17 @@ const getDownloadUrl = async (id, expireSeconds, actor) => {
 };
 
 const deleteObject = async (id, actor) => {
-    const record = await storageRepository.findAccessibleById(id, actor.id);
-    if (!record || record.lifecycle_status !== 'ready') {
+    const queued = await storageRepository.enqueueDelete(id, actor.id);
+    if (queued?.conflict === 'FILE_STILL_IN_USE') {
+        throw new Api409Error('File vẫn đang được dữ liệu khác sử dụng', [
+            'FILE_STILL_IN_USE',
+            ...queued.references,
+        ]);
+    }
+    if (!queued) {
         throw new Api404Error('Không tìm thấy file');
     }
-    const deleted = await storageRepository.markDeleted(id, actor.id);
-    if (!deleted) {
-        throw new Api409Error('File state conflict');
-    }
-    await minioService.removeObject({ objectKey: record.object_key, category: record.category });
-    return { id: deleted.id };
+    return queued;
 };
 
 module.exports = {

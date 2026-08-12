@@ -44,7 +44,10 @@ const listSchema = Joi.object({
     limit: Joi.number().integer().min(1).max(100).default(20),
 });
 const idParamsSchema = Joi.object({ id: id.required() });
-const deleteSchema = Joi.object({ expectedUpdatedAt: Joi.date().iso().required() });
+const deleteSchema = Joi.object({
+    expectedUpdatedAt: Joi.date().iso().required(),
+    deleteFiles: Joi.boolean().default(false),
+});
 const reviewSchema = Joi.object({
     status: Joi.string().valid('under_review', 'approved', 'rejected', 'resolved').required(),
     reason: Joi.string()

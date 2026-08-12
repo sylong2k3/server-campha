@@ -38,6 +38,7 @@ const deleteNews = async (req, res) =>
         await service.deleteNews(
             Number(req.params.id),
             req.query.expectedUpdatedAt,
+            req.query.deleteFiles,
             buildActor(req),
         ),
     );
@@ -102,6 +103,7 @@ const deleteDocument = async (req, res) =>
         await service.deleteDocument(
             Number(req.params.id),
             req.query.expectedUpdatedAt,
+            req.query.deleteFiles,
             buildActor(req),
         ),
     );
@@ -152,6 +154,7 @@ const deletePdfMap = async (req, res) =>
         await service.deletePdfMap(
             Number(req.params.id),
             req.query.expectedUpdatedAt,
+            req.query.deleteFiles,
             buildActor(req),
         ),
     );

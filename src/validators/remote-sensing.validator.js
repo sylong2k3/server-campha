@@ -65,7 +65,10 @@ const compareSchema = Joi.object({
     beforeId: id.required(),
     afterId: id.invalid(Joi.ref('beforeId')).required(),
 });
-const deleteQuerySchema = Joi.object({ expectedUpdatedAt: date.required() });
+const deleteQuerySchema = Joi.object({
+    expectedUpdatedAt: date.required(),
+    deleteFiles: Joi.boolean().default(false),
+});
 const downloadQuerySchema = Joi.object({
     expireSeconds: Joi.number().integer().min(60).max(900).default(300),
 });

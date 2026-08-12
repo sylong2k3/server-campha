@@ -3,13 +3,7 @@ const repository = require('../repositories/field-report.repository');
 const tokenRepository = require('../repositories/device-token.repository');
 const minioService = require('./minio.service');
 const systemLogger = require('../utils/systemLogger.util');
-const {
-    Api403Error,
-    Api404Error,
-    Api409Error,
-    Api422Error,
-    Api503Error,
-} = require('../core/error.response');
+const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
 const has = (actor, resource, action) => actor?.permissions?.[resource]?.[action] === true;
 const requirePermission = (actor, action) => {
     if (!has(actor, 'field_report', action)) {
@@ -121,34 +115,22 @@ const review = async (id, input, actor) => {
         return mapDatabaseError(error);
     }
 };
-const remove = async (id, expectedUpdatedAt, actor) => {
-    const photos = await repository.photoObjects(id);
-    const row = await repository.remove(id, expectedUpdatedAt, actor);
+const remove = async (id, expectedUpdatedAt, deleteFiles, actor) => {
+    const row = await repository.remove(id, expectedUpdatedAt, actor, deleteFiles);
+    if (row?.conflict === 'FILE_STILL_IN_USE') {
+        throw new Api409Error('Ảnh phản ánh vẫn đang được dữ liệu khác sử dụng', [
+            'FILE_STILL_IN_USE',
+            ...row.references,
+        ]);
+    }
     if (!row) {
         throw new Api404Error('Không tìm thấy phản ánh hoặc dữ liệu đã thay đổi');
-    }
-    for (const photo of photos) {
-        try {
-            await minioService.removeObject({
-                objectKey: photo.object_key,
-                category: 'field-photos',
-            });
-            await repository.markPhotoDeleted(photo.id, actor.id);
-        } catch (error) {
-            systemLogger.logError('field_report', 'field_report_photo_delete_failed', {
-                actorId: actor.id,
-                reportId: id,
-                fileId: photo.id,
-                code: error.code,
-            });
-            throw new Api503Error('Phản ánh đã ẩn nhưng ảnh chưa xóa xong; vui lòng thử lại', [
-                'FIELD_PHOTO_DELETE_PENDING',
-            ]);
-        }
     }
     systemLogger.logInfo('field_report', 'field_report_subject_deleted', {
         actorId: actor.id,
         reportId: id,
+        deleteFiles,
+        fileObjectIds: row.fileObjectIds,
     });
     return row;
 };

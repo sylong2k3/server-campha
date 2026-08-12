@@ -34,6 +34,14 @@ const changedOrError = async (value, exists, message) => {
     }
     throw new Api409Error('Dữ liệu đã thay đổi; vui lòng tải lại', ['OPTIMISTIC_LOCK_CONFLICT']);
 };
+const assertFileNotInUse = (row) => {
+    if (row?.conflict === 'FILE_STILL_IN_USE') {
+        throw new Api409Error('File vẫn đang được dữ liệu khác sử dụng', [
+            'FILE_STILL_IN_USE',
+            ...row.references,
+        ]);
+    }
+};
 
 const listPublicNews = (filter) => repository.listNews(filter, true);
 const getPublicNews = (id) =>
@@ -67,7 +75,7 @@ const updateNews = async (id, input, actor) => {
     audit('news_updated', actor, { newsId: id });
     return changed;
 };
-const deleteNews = async (id, expectedUpdatedAt, actor) => {
+const deleteNews = async (id, expectedUpdatedAt, _deleteFiles, actor) => {
     requirePermission(actor, 'news', 'delete');
     const row = await repository.deleteNews(id, expectedUpdatedAt);
     const changed = await changedOrError(
@@ -76,7 +84,7 @@ const deleteNews = async (id, expectedUpdatedAt, actor) => {
         'Không tìm thấy tin tức',
     );
     audit('news_deleted', actor, { newsId: id });
-    return changed;
+    return { ...changed, fileCleanupQueued: false, fileObjectIds: [] };
 };
 const listPublicComments = (newsId, filter) => repository.listComments(newsId, filter, true);
 const listAdminComments = (newsId, filter, actor) => {
@@ -142,15 +150,16 @@ const createDocument = async (input, actor) => {
         throw error;
     }
 };
-const deleteDocument = async (id, expectedUpdatedAt, actor) => {
+const deleteDocument = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     requirePermission(actor, 'documents', 'delete');
-    const row = await repository.deleteDocument(id, expectedUpdatedAt);
+    const row = await repository.deleteDocument(id, expectedUpdatedAt, actor.id, deleteFiles);
+    assertFileNotInUse(row);
     const changed = await changedOrError(
         row,
         () => repository.findDocument(id, 'admin'),
         'Không tìm thấy văn bản',
     );
-    audit('document_deleted', actor, { documentId: id });
+    audit('document_deleted', actor, { documentId: id, deleteFiles });
     return changed;
 };
 const documentDownload = async (id, expireSeconds, actor) => {
@@ -205,15 +214,16 @@ const updatePdfMap = async (id, input, actor) => {
     audit('pdf_map_updated', actor, { pdfMapId: id });
     return changed;
 };
-const deletePdfMap = async (id, expectedUpdatedAt, actor) => {
+const deletePdfMap = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     requirePermission(actor, 'pdf_maps', 'delete');
-    const row = await repository.deletePdfMap(id, expectedUpdatedAt);
+    const row = await repository.deletePdfMap(id, expectedUpdatedAt, actor.id, deleteFiles);
+    assertFileNotInUse(row);
     const changed = await changedOrError(
         row,
         () => repository.findPdfMap(id, 'admin'),
         'Không tìm thấy bản đồ PDF',
     );
-    audit('pdf_map_deleted', actor, { pdfMapId: id });
+    audit('pdf_map_deleted', actor, { pdfMapId: id, deleteFiles });
     return changed;
 };
 const pdfMapDownload = async (id, expireSeconds, actor) => {

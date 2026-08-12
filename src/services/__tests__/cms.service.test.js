@@ -64,7 +64,11 @@ describe('CMS service', () => {
         repository.deleteNews.mockResolvedValue({ id: 1 });
         await expect(service.createNews({}, admin)).resolves.toBe(row);
         await expect(service.updateNews(1, {}, admin)).resolves.toBe(row);
-        await expect(service.deleteNews(1, new Date(), admin)).resolves.toEqual({ id: 1 });
+        await expect(service.deleteNews(1, new Date(), true, admin)).resolves.toEqual({
+            id: 1,
+            fileCleanupQueued: false,
+            fileObjectIds: [],
+        });
         repository.updateNews.mockResolvedValue(null);
         repository.findNews.mockResolvedValue(row);
         await expect(service.updateNews(1, {}, admin)).rejects.toMatchObject({ status: 409 });
@@ -108,8 +112,13 @@ describe('CMS service', () => {
         await expect(service.createDocument({}, admin)).rejects.toMatchObject({ status: 422 });
         repository.createDocument.mockRejectedValue({ code: '23505' });
         await expect(service.createDocument({}, admin)).rejects.toMatchObject({ status: 409 });
-        repository.deleteDocument.mockResolvedValue({ id: 1 });
-        await service.deleteDocument(1, new Date(), admin);
+        repository.deleteDocument.mockResolvedValue({
+            id: 1,
+            fileCleanupQueued: true,
+            fileObjectIds: [9],
+        });
+        await service.deleteDocument(1, new Date(), true, admin);
+        expect(repository.deleteDocument).toHaveBeenCalledWith(1, expect.any(Date), 2, true);
         await expect(service.documentDownload(1, 300, citizen)).rejects.toMatchObject({
             status: 403,
         });
@@ -133,7 +142,16 @@ describe('CMS service', () => {
         repository.updatePdfMap.mockResolvedValue(row);
         repository.deletePdfMap.mockResolvedValue({ id: 1 });
         await service.updatePdfMap(1, {}, admin);
-        await service.deletePdfMap(1, new Date(), admin);
+        await service.deletePdfMap(1, new Date(), false, admin);
+        expect(repository.deletePdfMap).toHaveBeenCalledWith(1, expect.any(Date), 2, false);
+        repository.deletePdfMap.mockResolvedValue({
+            conflict: 'FILE_STILL_IN_USE',
+            references: ['layer'],
+        });
+        await expect(service.deletePdfMap(1, new Date(), true, admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['FILE_STILL_IN_USE', 'layer'],
+        });
         await expect(service.pdfMapDownload(1, 300, citizen)).resolves.toMatchObject({
             url: 'signed',
         });

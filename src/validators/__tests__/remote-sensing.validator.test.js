@@ -46,4 +46,17 @@ describe('remote sensing validators', () => {
         ).toBeDefined();
         expect(v.publishSchema.validate({ ...valid, srid: 0 }).error).toBeDefined();
     });
+    test('parses deleteFiles and defaults it to false', () => {
+        const withDelete = v.deleteQuerySchema.validate({
+            expectedUpdatedAt: '2026-08-12T10:00:00.000Z',
+            deleteFiles: 'true',
+        });
+        expect(withDelete.error).toBeUndefined();
+        expect(withDelete.value.deleteFiles).toBe(true);
+        expect(
+            v.deleteQuerySchema.validate({
+                expectedUpdatedAt: '2026-08-12T10:00:00.000Z',
+            }).value.deleteFiles,
+        ).toBe(false);
+    });
 });

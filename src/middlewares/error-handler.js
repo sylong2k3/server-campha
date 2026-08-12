@@ -87,6 +87,20 @@ const errorHandler = (err, req, res, next) => {
     }
 
     // PostgreSQL error mapping (SQLSTATE codes) → trả lỗi 4xx rõ ràng thay vì 500
+    if (err.code === 'FILE_NOT_READY_FOR_DELETE') {
+        return res.status(409).json({
+            success: false,
+            message: 'File không ở trạng thái có thể xóa',
+            errors: ['FILE_NOT_READY_FOR_DELETE'],
+        });
+    }
+    if (err.code === '23514' && err.constraint === 'file_cleanup_reference_guard') {
+        return res.status(409).json({
+            success: false,
+            message: 'File đang chờ xóa',
+            errors: ['FILE_DELETE_PENDING'],
+        });
+    }
     const PG_ERROR_MAP = {
         23505: { status: 409, key: 'resource_conflict', code: 'UNIQUE_VIOLATION' }, // unique_violation
         23503: { status: 400, key: 'invalid_reference', code: 'FK_VIOLATION' }, // foreign_key_violation

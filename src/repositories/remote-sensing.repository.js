@@ -1,6 +1,7 @@
 'use strict';
 
 const db = require('../configs/database');
+const fileCleanupRepository = require('./file-cleanup.repository');
 const { versionCondition } = require('../utils/optimistic-lock.util');
 const pageResult = (rows) => ({
     items: rows.map(({ total_count: _total, ...row }) => row),
@@ -92,16 +93,66 @@ const categorize = async (id, thematicGroup, expectedUpdatedAt, actorId) => {
     );
     return row || null;
 };
-const remove = async (id, expectedUpdatedAt) => {
-    const version = versionCondition(2, 's.updated_at');
-    const {
-        rows: [row],
-    } = await db.query(
-        `UPDATE raster.satellite_images s SET deleted_at=NOW()
-        WHERE s.id=$1 AND s.deleted_at IS NULL${version} RETURNING s.id`,
-        [id, expectedUpdatedAt],
-    );
-    return row || null;
+const remove = async (id, expectedUpdatedAt, actorId, deleteFiles = false) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const {
+            rows: [image],
+        } = await client.query(
+            `SELECT s.id,s.file_object_id,s.layer_id,s.updated_at
+             FROM raster.satellite_images s
+             WHERE s.id=$1 AND s.deleted_at IS NULL FOR UPDATE`,
+            [id],
+        );
+        if (!image) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+        const version = versionCondition(2, 's.updated_at');
+        const {
+            rows: [row],
+        } = await client.query(
+            `UPDATE raster.satellite_images s SET deleted_at=NOW(),updated_by=$3
+             WHERE s.id=$1 AND s.deleted_at IS NULL${version}
+             RETURNING s.id,s.file_object_id`,
+            [id, expectedUpdatedAt, actorId],
+        );
+        if (!row) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+        if (deleteFiles) {
+            const references = await fileCleanupRepository.lockedActiveReferences(
+                row.file_object_id,
+                client,
+            );
+            if (references.length) {
+                await client.query('ROLLBACK');
+                return { conflict: 'FILE_STILL_IN_USE', references };
+            }
+        }
+        let job = null;
+        if (deleteFiles) {
+            job = await fileCleanupRepository.enqueue(client, {
+                fileObjectId: row.file_object_id,
+                requestedBy: actorId,
+                sourceType: 'satellite_image',
+                sourceId: row.id,
+            });
+        }
+        await client.query('COMMIT');
+        return {
+            id: row.id,
+            fileObjectIds: deleteFiles ? [row.file_object_id] : [],
+            fileCleanupQueued: Boolean(job),
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
 };
 
 const preparePublish = async (id, input, actorId) => {

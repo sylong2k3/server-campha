@@ -7,8 +7,7 @@ const crypto = require('crypto');
 const db = require('../configs/database');
 const jobRepository = require('../repositories/layer-job.repository');
 const layerRepository = require('../repositories/layer.repository');
-const storageRepository = require('../repositories/storage.repository');
-const minioService = require('../services/minio.service');
+const fileCleanupWorker = require('./file-cleanup.worker');
 const geoserverClient = require('../utils/geoserver.client');
 const { GeoServerError } = geoserverClient;
 const {
@@ -107,25 +106,6 @@ const processCleanup = async (job) => {
         if (layer.storage_kind === 'postgis' && layer.table_name) {
             await db.query(`DROP TABLE IF EXISTS gis.${quoteIdentifier(layer.table_name)}`);
         }
-        if (layer.source_file_id) {
-            const {
-                rows: [file],
-            } = await db.query(
-                `SELECT id, object_key FROM core.file_objects
-                 WHERE id = $1 AND deleted_at IS NULL`,
-                [layer.source_file_id],
-            );
-            if (file) {
-                await minioService
-                    .removeObject({ objectKey: file.object_key, category: 'layers' })
-                    .catch((error) => {
-                        if (!['NoSuchKey', 'NoSuchObject', 'NotFound'].includes(error.code)) {
-                            throw error;
-                        }
-                    });
-                await storageRepository.markDeleted(file.id, layer.created_by);
-            }
-        }
         const completed = await jobRepository.completeCleanup(job.id, workerId, job.layer_id);
         if (!completed) {
             console.warn('[LayerWorker] cleanup lease lost before completion');
@@ -152,6 +132,9 @@ const loop = async () => {
             const cleanup = await jobRepository.claimCleanup(workerId, leaseSeconds);
             if (cleanup) {
                 await processCleanup(cleanup);
+                continue;
+            }
+            if (await fileCleanupWorker.claimAndProcess()) {
                 continue;
             }
             const job = await jobRepository.claimImport(workerId, leaseSeconds);

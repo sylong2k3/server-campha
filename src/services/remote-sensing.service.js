@@ -108,15 +108,20 @@ const categorize = async (id, input, actor) => {
     });
     return publicRow(changed);
 };
-const remove = async (id, expectedUpdatedAt, actor) => {
+const remove = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     requirePermission(actor, 'delete');
-    const changed = await changedOrError(
-        await repository.remove(id, expectedUpdatedAt),
-        id,
-        actor.lang,
-    );
+    const deleted = await repository.remove(id, expectedUpdatedAt, actor.id, deleteFiles);
+    if (deleted?.conflict === 'FILE_STILL_IN_USE') {
+        throw new Api409Error('Ảnh GeoTIFF vẫn đang được lớp bản đồ sử dụng', [
+            'FILE_STILL_IN_USE',
+            ...deleted.references,
+        ]);
+    }
+    if (!deleted) {
+        return changedOrError(null, id, actor.lang);
+    }
     audit('satellite_deleted', actor, { satelliteImageId: id });
-    return changed;
+    return deleted;
 };
 const listAdmin = (filter, actor) => {
     requirePermission(actor, 'read');
