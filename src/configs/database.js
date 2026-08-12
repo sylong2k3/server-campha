@@ -25,9 +25,9 @@ pool.on('error', (err) => {
 
 const SLOW_QUERY_THRESHOLD_MS = parseInt(process.env.DB_SLOW_QUERY_MS, 10) || 500;
 const CONNECTION_ERROR_CODES = new Set(['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED']);
-const MUTATING_SQL = /\b(INSERT|UPDATE|DELETE|MERGE|CALL|DO|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|COPY)\b/i;
-const isReadOnlyQuery = (text) =>
-    /^\s*(SELECT|WITH)\b/i.test(text) && !MUTATING_SQL.test(text);
+const MUTATING_SQL =
+    /\b(INSERT|UPDATE|DELETE|MERGE|CALL|DO|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|COPY)\b/i;
+const isReadOnlyQuery = (text) => /^\s*(SELECT|WITH)\b/i.test(text) && !MUTATING_SQL.test(text);
 const isConnectionError = (error) =>
     CONNECTION_ERROR_CODES.has(error.code) ||
     /connection terminated unexpectedly|connection ended unexpectedly/i.test(error.message || '');

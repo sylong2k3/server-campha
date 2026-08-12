@@ -200,5 +200,4 @@ describe('Sprint 1 write integration', () => {
             status: 401,
         });
     });
-
 });

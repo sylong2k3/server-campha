@@ -58,11 +58,7 @@ const corsAllowCredentials = true;
 if (corsAllowCredentials && allowedOrigins.includes('*')) {
     // Credentialed requests can't use "*" — set CORS_ORIGINS in .env for
     // your deployment. These are dev-only fallbacks.
-    allowedOrigins = [
-        'http://localhost:5173',
-        'http://localhost:3018',
-        'http://127.0.0.1:3018',
-    ];
+    allowedOrigins = ['http://localhost:5173', 'http://localhost:3018', 'http://127.0.0.1:3018'];
 }
 
 app.use(
