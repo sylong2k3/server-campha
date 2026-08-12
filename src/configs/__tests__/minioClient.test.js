@@ -58,4 +58,46 @@ describe('MinIO configuration', () => {
             quarantineBucket: 'campha-quarantine',
         });
     });
+
+    test('optional flood buckets are absent when their env vars are unset', () => {
+        const mod = load();
+        const config = mod.getConfig();
+        expect(config.buckets['flood-rasters']).toBeUndefined();
+        expect(config.buckets['flood-calibration']).toBeUndefined();
+        expect(config.buckets['forest-classification']).toBeUndefined();
+        expect(mod.hasBucketCategory('flood-rasters')).toBe(false);
+    });
+
+    test('optional flood buckets are picked up when their env vars are set', () => {
+        const mod = load({
+            MINIO_BUCKET_FLOOD_RASTERS: 'campha-flood-rasters',
+            MINIO_BUCKET_FLOOD_CALIBRATION: 'campha-flood-calibration',
+            MINIO_BUCKET_FOREST_CLASSIFICATION: 'campha-forest-classification',
+        });
+        const config = mod.getConfig();
+        expect(config.buckets['flood-rasters']).toBe('campha-flood-rasters');
+        expect(config.buckets['flood-calibration']).toBe('campha-flood-calibration');
+        expect(config.buckets['forest-classification']).toBe('campha-forest-classification');
+        expect(mod.hasBucketCategory('flood-rasters')).toBe(true);
+        expect(mod.hasBucketCategory('flood-calibration')).toBe(true);
+        expect(mod.hasBucketCategory('forest-classification')).toBe(true);
+    });
+
+    test('getBucketForCategory throws a clear "not configured" error for optional-but-unset', () => {
+        const mod = load();
+        expect(() => mod.getBucketForCategory('flood-rasters')).toThrow(
+            /Storage category "flood-rasters" is optional and not configured/,
+        );
+    });
+
+    test('getBucketForCategory keeps TypeError for typos on unknown categories', () => {
+        const mod = load();
+        expect(() => mod.getBucketForCategory('does-not-exist')).toThrow(TypeError);
+    });
+
+    test('optional bucket rejects invalid names (BUCKET_PATTERN violation)', () => {
+        expect(() =>
+            load({ MINIO_BUCKET_FLOOD_RASTERS: 'InvalidCaps' }).getConfig(),
+        ).toThrow('MINIO_BUCKET_FLOOD_RASTERS is invalid');
+    });
 });

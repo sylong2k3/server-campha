@@ -68,6 +68,19 @@ Xác thực được hỗ trợ: email/password nội bộ và Google OAuth.
 
 Migration foundation đã áp và checksum OK trên `campha_test`; local user lifecycle đạt. Production `campha` chỉ migrate sau backup. Suite write fail-fast nếu `DB_NAME` khác `campha_test`.
 
+## Delta RBAC Flood/Hydrology — 2026-08-12
+
+- [x] Migration `082_flood_runtime_rbac.sql` cấp quyền rõ ràng, không dựa vào bypass ngầm cho admin.
+- [x] `system_admin`, `so_tnmt`: `flood.read/run/calibrate/publish/configure`.
+- [x] `ubnd_tp`, `so_xd`: `flood.read/run`.
+- [x] `citizen`: `flood.read`; khách chỉ thấy endpoint công khai và product đã công bố.
+- [x] Calibration yêu cầu quyền riêng cả khi submit và rerun; calibration artifact không thể publish trực tiếp.
+- [x] Submit/rerun/cancel/publish/unpublish được ghi audit actor/IP/user-agent.
+- [x] Migration `083_forest_classification_domain.sql` cấp `forest_classification.read/manage/ground_truth`; admin/TNMT quản lý, các vai trò còn lại chỉ đọc.
+- [x] Route Forest, cron singleton, child worker, district raster back-link và ground-truth validation đã có regression test repository.
+- [ ] Áp migration 080–083 và chạy kiểm thử phân quyền bằng tài khoản UAT của cả 5 vai trò trên môi trường đích.
+- [ ] Mount boundary/ward Cẩm Phả chính thức, tạo bucket Forest và chạy golden Forest snapshot trước production sign-off.
+
 ### Product ownership
 
 Quyền ảnh vệ tinh đã chốt theo mục 2.1; DB hiện khớp. Còn thiếu data owner/deadline Phụ lục 2.

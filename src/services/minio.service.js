@@ -137,6 +137,18 @@ const getObjectMeta = async ({ objectKey, category }) => {
     };
 };
 
+const objectExists = async ({ objectKey, category }) => {
+    try {
+        await getClient().statObject(getBucketForCategory(category), objectKey);
+        return true;
+    } catch (error) {
+        if (['NoSuchKey', 'NotFound', 'NoSuchObject'].includes(error.code)) {
+            return false;
+        }
+        throw error;
+    }
+};
+
 const downloadToFile = async ({ objectKey, category, destPath }) => {
     await pipeline(await getObjectStream({ objectKey, category }), fs.createWriteStream(destPath));
     return destPath;
@@ -157,5 +169,6 @@ module.exports = {
     removeObject,
     getObjectStream,
     getObjectMeta,
+    objectExists,
     downloadToFile,
 };

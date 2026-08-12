@@ -11,6 +11,16 @@ const CATEGORY_BUCKET_ENV = Object.freeze({
     documents: 'MINIO_BUCKET_DOCUMENTS',
     'field-photos': 'MINIO_BUCKET_FIELD_PHOTOS',
 });
+// Additive-optional categories introduced for the Flood/Hydrology domain
+// (see @docs/GEE_FLOOD_INTEGRATION_ARCHITECTURE.md §7.2). These bucket env
+// vars can be unset at boot without failing STORAGE_ENABLED=true validation.
+// If the flood pipeline actually consumes an unconfigured category the
+// getBucketForCategory() call throws with a clear "not configured" message.
+const OPTIONAL_CATEGORY_BUCKET_ENV = Object.freeze({
+    'flood-rasters': 'MINIO_BUCKET_FLOOD_RASTERS',
+    'flood-calibration': 'MINIO_BUCKET_FLOOD_CALIBRATION',
+    'forest-classification': 'MINIO_BUCKET_FOREST_CLASSIFICATION',
+});
 const BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 
 const readSecretFile = (envName) => {
@@ -50,6 +60,16 @@ const getConfig = () => {
             return [category, name];
         }),
     );
+    // Optional flood-domain buckets: include when set, skip when unset. The
+    // flood pipeline enforces presence at consume time (getBucketForCategory).
+    for (const [category, envName] of Object.entries(OPTIONAL_CATEGORY_BUCKET_ENV)) {
+        const name = process.env[envName]?.trim();
+        if (!name) {continue;}
+        if (!BUCKET_PATTERN.test(name)) {
+            throw new Error(`${envName} is invalid`);
+        }
+        buckets[category] = name;
+    }
     const quarantineBucket = process.env.MINIO_BUCKET_QUARANTINE?.trim();
     if (!quarantineBucket || !BUCKET_PATTERN.test(quarantineBucket)) {
         throw new Error('MINIO_BUCKET_QUARANTINE is invalid');
@@ -155,9 +175,26 @@ const getBucketForCategory = (category) => {
     const config = getConfig();
     const bucket = config?.buckets[category];
     if (!bucket) {
+        // Distinguish "unknown category" from "known-but-optional and unset"
+        // so operators can act on the error without reading the source.
+        if (Object.prototype.hasOwnProperty.call(OPTIONAL_CATEGORY_BUCKET_ENV, category)) {
+            throw new Error(
+                `Storage category "${category}" is optional and not configured. ` +
+                    `Set ${OPTIONAL_CATEGORY_BUCKET_ENV[category]} to enable it.`,
+            );
+        }
         throw new TypeError(`Unsupported storage category: ${category}`);
     }
     return bucket;
+};
+
+const hasBucketCategory = (category) => {
+    try {
+        const config = getConfig();
+        return Boolean(config?.buckets[category]);
+    } catch {
+        return false;
+    }
 };
 
 const getQuarantineBucket = () => {
@@ -175,6 +212,8 @@ module.exports = {
     initMinio,
     healthCheck,
     getBucketForCategory,
+    hasBucketCategory,
     getQuarantineBucket,
     CATEGORY_BUCKET_ENV,
+    OPTIONAL_CATEGORY_BUCKET_ENV,
 };

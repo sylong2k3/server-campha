@@ -69,6 +69,75 @@ const findById = async (id, includeDeleted = false, client = db) => {
     return row || null;
 };
 
+const findByCode = async (code, client = db) => {
+    const { rows } = await client.query(
+        'SELECT * FROM gis.layers WHERE code = $1 AND deleted_at IS NULL',
+        [code],
+    );
+    return rows[0] || null;
+};
+
+const upsertLayerByCode = async (client, payload) => {
+    const code = String(payload.code || '').replace(/[^a-z0-9_]/g, '_');
+    const tableName = String(payload.table_name || code).replace(/[^a-z0-9_]/g, '_');
+    const { rows } = await client.query(
+        `INSERT INTO gis.layers (
+            code, name_vi, category, geometry_type, srid, storage_kind,
+            table_name, object_key, is_public, created_by, publish_status, metadata
+         ) VALUES ($1, $2, $3, 'RASTER', $4, 'geotiff_minio', $5, $6, $7, $8, 'published', $9::jsonb)
+         ON CONFLICT (code) DO UPDATE SET
+            name_vi = EXCLUDED.name_vi,
+            category = EXCLUDED.category,
+            geometry_type = 'RASTER',
+            srid = EXCLUDED.srid,
+            storage_kind = 'geotiff_minio',
+            table_name = EXCLUDED.table_name,
+            object_key = EXCLUDED.object_key,
+            is_public = EXCLUDED.is_public,
+            publish_status = 'published',
+            metadata = COALESCE(gis.layers.metadata, '{}'::jsonb) || EXCLUDED.metadata,
+            deleted_at = NULL,
+            version = gis.layers.version + 1
+         RETURNING *`,
+        [
+            code,
+            payload.name_vi || code,
+            payload.category || 'flood',
+            payload.epsg_code || 32648,
+            tableName,
+            payload.object_key || null,
+            Boolean(payload.is_public),
+            payload.userId || null,
+            JSON.stringify(payload.metadata || {}),
+        ],
+    );
+    return rows[0];
+};
+
+const updatePublishedMetadata = async (client, id, patch) => {
+    const { rows } = await client.query(
+        `UPDATE gis.layers
+            SET geoserver_layer = $2,
+                style_name = COALESCE($3, style_name),
+                publish_status = 'published',
+                metadata = COALESCE(metadata, '{}'::jsonb) || $4::jsonb,
+                version = version + 1
+          WHERE id = $1
+          RETURNING *`,
+        [
+            id,
+            patch.geoserverLayer,
+            patch.styleName || null,
+            JSON.stringify({
+                geoserverStore: patch.geoserverStore,
+                rasterIngestJobId: patch.rasterIngestJobId,
+                rasterGeeMetadata: patch.rasterGeeMetadata,
+            }),
+        ],
+    );
+    return rows[0] || null;
+};
+
 const updateMetadata = async (id, payload) => {
     const fields = {
         nameVi: 'name_vi',
@@ -221,6 +290,9 @@ const setPublishState = async (id, publishStatus, geoserverLayer = null) => {
 module.exports = {
     list,
     findById,
+    findByCode,
+    upsertLayerByCode,
+    updatePublishedMetadata,
     updateMetadata,
     updateStandardMetadata,
     activeRoleCodes,

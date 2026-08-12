@@ -81,6 +81,54 @@ const ENV_SCHEMA_KEYS = {
     FIREBASE_SERVICE_ACCOUNT_BASE64: Joi.string().allow(''),
     FIREBASE_SERVICE_ACCOUNT: Joi.string().trim().allow(''),
     GOOGLE_APPLICATION_CREDENTIALS: Joi.string().trim().allow(''),
+    // Earth Engine service account JSON path. Optional; falls back to
+    // server/ggeServiceKey.json for local dev. In production, mount a secret
+    // (e.g. /run/secrets/gee.json) and set GEE_KEY_PATH to point at it.
+    GEE_KEY_PATH: Joi.string().trim().allow(''),
+    // GEE queue tuning (see queues/gee-task.queue.js). Concurrency is hard-clamped
+    // to 1 in code and is intentionally not env-configurable.
+    GEE_QUEUE_MAX_PENDING: positiveInteger.max(50).default(6),
+    GEE_QUEUE_RECENT_RETENTION_MS: positiveInteger.min(60000).default(3600000),
+    GEE_MANUAL_COOLDOWN_MS: nonNegativeInteger.default(600000),
+    // GEE adapter timeouts (see services/gee-earth-engine.adapter.js).
+    GEE_EVALUATE_TIMEOUT_MS: positiveInteger.min(1000).default(300000),
+    GEE_POLL_INTERVAL_MS: positiveInteger.min(1000).default(30000),
+    GEE_POLL_MAX_ATTEMPTS: positiveInteger.default(40),
+    GEE_MAP_ID_TIMEOUT_MS: positiveInteger.min(1000).default(60000),
+    // Transient GCS harvest bucket used by Export.image.toCloudStorage.
+    // Credentials come from GOOGLE_APPLICATION_CREDENTIALS or GEE_KEY_PATH.
+    FLOOD_GCS_BUCKET: Joi.string().trim().allow(''),
+    FLOOD_GCS_SIGNED_URL_SECONDS: positiveInteger.min(60).max(86400).default(3600),
+    FLOOD_INGEST_WAIT_TIMEOUT_MS: positiveInteger.min(60000).default(1500000),
+    FLOOD_INGEST_POLL_INTERVAL_MS: positiveInteger.min(500).default(2000),
+    // Retained Forest Classification runtime. Scientific tuning variables stay
+    // backward-compatible; these keys cover deployment-critical boundaries,
+    // schedule, export and publication completeness.
+    FC_ENABLED: boolean.default('true'),
+    FC_CRON: Joi.string().trim().min(9).default('0 0 1 * *'),
+    FC_CRON_TZ: Joi.string().trim().min(1).default('Asia/Ho_Chi_Minh'),
+    FC_BOUNDARY_GEOJSON: Joi.string().trim().allow(''),
+    FC_DISTRICTS_GEOJSON: Joi.string().trim().allow(''),
+    FC_EXPECTED_DISTRICT_COUNT: positiveInteger.max(100).default(1),
+    FC_AOI_TOTAL_HA: Joi.number().positive(),
+    FC_CATCHUP_ENABLED: boolean.default('true'),
+    FC_CATCHUP_DELAY_MS: nonNegativeInteger.default(60000),
+    GEE_GCS_BUCKET: Joi.string().trim().allow(''),
+    // GEE child-process worker (see workers/geeAnalysisProcess.worker.js).
+    // Per-kind RSS limits: EVENT=2GB, HAND=1GB, RAIN=1GB, IMPACT=0.75GB,
+    // TREND=3GB, FOREST=3GB.
+    // GEE_CHILD_MAX_RSS_MB is the fallback when a kind-specific limit is not set.
+    GEE_CHILD_MAX_RSS_MB: positiveInteger.min(512).default(2048),
+    GEE_CHILD_MAX_RSS_MB_EVENT: positiveInteger.min(512).default(2048),
+    GEE_CHILD_MAX_RSS_MB_HAND: positiveInteger.min(512).default(1024),
+    GEE_CHILD_MAX_RSS_MB_RAIN: positiveInteger.min(512).default(1024),
+    GEE_CHILD_MAX_RSS_MB_IMPACT: positiveInteger.min(512).default(768),
+    GEE_CHILD_MAX_RSS_MB_TREND: positiveInteger.min(512).default(3072),
+    GEE_CHILD_MAX_RSS_MB_FOREST: positiveInteger.min(512).default(3072),
+    GEE_CHILD_MAX_OLD_SPACE_MB: positiveInteger.min(256).default(1536),
+    GEE_CHILD_TIMEOUT_MS: positiveInteger.min(300000).default(1800000),
+    GEE_CHILD_MEMORY_HEARTBEAT_MS: positiveInteger.min(1000).default(5000),
+    GEE_CHILD_MEMORY_WARN_PCT: positiveInteger.min(50).max(95).default(80),
     DEVICE_TOKEN_ENCRYPTION_KEY: Joi.string()
         .pattern(/^[a-f0-9]{64}$/i)
         .allow(''),
@@ -113,6 +161,12 @@ const ENV_SCHEMA_KEYS = {
     MINIO_BUCKET_DOCUMENTS: Joi.string().trim().allow(''),
     MINIO_BUCKET_FIELD_PHOTOS: Joi.string().trim().allow(''),
     MINIO_BUCKET_QUARANTINE: Joi.string().trim().allow(''),
+    // Optional flood-domain buckets (architecture doc §7.2). Left unset in
+    // envs that don't yet run the flood pipeline; the flood service throws
+    // a clear "not configured" error if it tries to consume them.
+    MINIO_BUCKET_FLOOD_RASTERS: Joi.string().trim().allow(''),
+    MINIO_BUCKET_FLOOD_CALIBRATION: Joi.string().trim().allow(''),
+    MINIO_BUCKET_FOREST_CLASSIFICATION: Joi.string().trim().allow(''),
     MINIO_REGION: Joi.string().trim().default('us-east-1'),
     MINIO_PRESIGNED_EXPIRE_SECONDS: positiveInteger.max(604800).default(900),
     MINIO_UPLOAD_PRESIGNED_EXPIRE_SECONDS: positiveInteger.max(604800).default(900),
@@ -140,6 +194,17 @@ const ENV_SCHEMA_KEYS = {
     GEOSERVER_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(15000),
     MAP_PROXY_MAX_RESPONSE_MB: positiveInteger.default(25),
     RASTER_INGEST_DEBUG: boolean.default('false'),
+    // Raster ingest pipeline (GEE download URL → MinIO → GeoServer).
+    RASTER_INGEST_ENABLED: boolean.default('false'),
+    RASTER_INGEST_TMP_DIR: Joi.string().trim().allow(''),
+    RASTER_INGEST_MAX_MB: positiveInteger.min(1).default(3072),
+    RASTER_INGEST_FETCH_TIMEOUT_MS: positiveInteger.min(1000).default(900000),
+    RASTER_INGEST_MAX_RETRIES: nonNegativeInteger.max(20).default(3),
+    RASTER_INGEST_RETRY_BASE_MS: positiveInteger.min(1000).default(15000),
+    RASTER_INGEST_RETRY_MAX_MS: positiveInteger.min(1000).default(120000),
+    RASTER_INGEST_CONCURRENCY: positiveInteger.max(4).default(1),
+    RASTER_INGEST_WORKER_POLL_CRON: Joi.string().trim().min(9).default('*/15 * * * * *'),
+    GDAL_CACHEMAX_MB: positiveInteger.min(64).default(512),
 
     MAPBOX_DIRECTIONS_TOKEN: Joi.string().trim().allow(''),
     MAPBOX_DIRECTIONS_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(10000),
@@ -406,6 +471,18 @@ const validateEnv = (source = process.env, { checkFiles = true } = {}) => {
         }
         if (value.GOOGLE_APPLICATION_CREDENTIALS) {
             checkReadableFile(value, 'GOOGLE_APPLICATION_CREDENTIALS', errors, checkFiles);
+        }
+        if (value.GEE_KEY_PATH) {
+            checkReadableFile(value, 'GEE_KEY_PATH', errors, checkFiles);
+        }
+        if (Number(value.RASTER_INGEST_CONCURRENCY) > 1) {
+            // Not an error — architecturally we hard-clamp to 1 in code — but
+            // warn so ops know their env override is being ignored.
+            console.warn(
+                `[env] RASTER_INGEST_CONCURRENCY=${value.RASTER_INGEST_CONCURRENCY} ignored ` +
+                    'in code (hard-clamped to 1). Raise only after benchmarking against ' +
+                    'GEE Restricted Mode quota — see architecture doc §24.',
+            );
         }
     }
 

@@ -288,6 +288,17 @@ const setLayerEnabled = async (geoserverLayerName, enabled) => {
     });
 };
 
+const verifyLayer = async (geoserverLayerName) => {
+    const response = await requestGeoserver(
+        `/rest/layers/${encodeLayerName(geoserverLayerName)}.json`,
+    );
+    const body = await response.json();
+    if (!body?.layer?.name) {
+        throw new GeoServerError('GeoServer layer verification returned an invalid payload', 502, '');
+    }
+    return body.layer;
+};
+
 const truncateGwcLayer = async (
     geoserverLayerName,
     format = 'image/png',
@@ -540,6 +551,7 @@ module.exports = {
     publishTimelapseLayer,
     unpublishLayer,
     setLayerEnabled,
+    verifyLayer,
     truncateGwcLayer,
     harvestGeoTiff,
     // Health
