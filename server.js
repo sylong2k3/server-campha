@@ -15,6 +15,10 @@ const { initWebSocketServer, closeWebSocketServer } = require('./src/realtime/we
 const systemLogger = require('./src/utils/systemLogger.util');
 const layerWorkerManager = require('./src/workers/layer-worker.manager');
 const fieldReportListener = require('./src/realtime/field-report-listener');
+const geeQueue = require('./src/queues/gee-task.queue');
+const rasterIngestWorker = require('./src/workers/rasterIngest.worker');
+const forestClassificationJob = require('./src/jobs/forest-classification.job');
+const { recoverInterruptedRuns } = require('./src/workers/geeInterruptedRunRecovery.worker');
 require('dotenv').config();
 
 const PORT = process.env.PORT || 8881;
@@ -110,6 +114,13 @@ async function gracefulShutdown(signal) {
     closeWebSocketServer();
     await fieldReportListener.stop();
     await layerWorkerManager.stop();
+    rasterIngestWorker.stopWorker();
+    forestClassificationJob.stop();
+    geeQueue.stop();
+    await Promise.race([
+        geeQueue.onIdle(),
+        new Promise((resolve) => setTimeout(resolve, 5000)),
+    ]);
 
     if (server) {
         server.close(async () => {
@@ -160,6 +171,9 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
     if (IS_SINGLETON_WORKER) {
         tokenCleanupJob.start();
         layerWorkerManager.start();
+        geeQueue.start();
+        rasterIngestWorker.startWorker();
+        forestClassificationJob.start();
     }
 
     process.on('unhandledRejection', (error) => {
@@ -199,6 +213,9 @@ const initializeAndStartServer = async () => {
         getServiceConnectionStatuses(),
     ]);
 
+    if (IS_SINGLETON_WORKER && statuses.dbStatus.startsWith('✓')) {
+        await recoverInterruptedRuns();
+    }
     return startServer({ ...statuses, earthEngineStatus: earthEngineResult });
 };
 

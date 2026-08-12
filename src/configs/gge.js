@@ -1,5 +1,27 @@
+const fs = require('fs');
+const path = require('path');
 const ee = require('@google/earthengine');
-const privateKey = require('../../ggeServiceKey.json');
+
+// Backward-compat fallback: server/ggeServiceKey.json is already gitignored.
+// In production, set GEE_KEY_PATH to a secret-mount path (e.g. /run/secrets/gee.json).
+const DEFAULT_KEY_PATH = path.resolve(__dirname, '../../ggeServiceKey.json');
+
+let cachedPrivateKey = null;
+
+function loadPrivateKey() {
+    if (cachedPrivateKey) {
+        return cachedPrivateKey;
+    }
+    const envPath = process.env.GEE_KEY_PATH?.trim();
+    const resolvedPath = envPath
+        ? path.isAbsolute(envPath)
+            ? envPath
+            : path.resolve(process.cwd(), envPath)
+        : DEFAULT_KEY_PATH;
+    const raw = fs.readFileSync(resolvedPath, 'utf8');
+    cachedPrivateKey = JSON.parse(raw);
+    return cachedPrivateKey;
+}
 
 const DEFAULT_MAX_ATTEMPTS = 3;
 const DEFAULT_RETRY_DELAY_MS = 1000;
@@ -48,6 +70,18 @@ function isTransientError(error) {
 
 function authenticate() {
     return new Promise((resolve, reject) => {
+        let privateKey;
+        try {
+            privateKey = loadPrivateKey();
+        } catch (error) {
+            reject(
+                normalizeError(
+                    error,
+                    'Earth Engine service key could not be loaded (set GEE_KEY_PATH)',
+                ),
+            );
+            return;
+        }
         ee.data.authenticateViaPrivateKey(privateKey, resolve, (error) =>
             reject(normalizeError(error, 'Earth Engine authentication failed')),
         );

@@ -28,6 +28,7 @@
         "security:audit": "npm audit --omit=dev --audit-level=high"
     },
     "dependencies": {
+        "@google-cloud/storage": "^7.22.0",
         "@google/earthengine": "^0.1.419",
         "bcrypt": "^6.0.0",
         "compression": "^1.8.1",
