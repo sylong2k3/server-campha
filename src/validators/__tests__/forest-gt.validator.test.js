@@ -28,17 +28,24 @@ describe('forest ground-truth validation', () => {
     test('rejects a bulk polygon feature without a valid forest class', () => {
         const { error } = schemas.featureCollection.validate({
             type: 'FeatureCollection',
-            features: [{
-                type: 'Feature',
-                properties: { class_id: 99 },
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[
-                        [107.2, 21.0], [107.3, 21.0], [107.3, 21.1],
-                        [107.2, 21.1], [107.2, 21.0],
-                    ]],
+            features: [
+                {
+                    type: 'Feature',
+                    properties: { class_id: 99 },
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [
+                            [
+                                [107.2, 21.0],
+                                [107.3, 21.0],
+                                [107.3, 21.1],
+                                [107.2, 21.1],
+                                [107.2, 21.0],
+                            ],
+                        ],
+                    },
                 },
-            }],
+            ],
         });
         expect(error).toBeDefined();
     });

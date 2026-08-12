@@ -18,9 +18,15 @@
  * @returns {object} ee.Image (depth in metres, only where mask == 1)
  */
 function depthImage(ee, { handImage, levelM, scenarioMask } = {}) {
-    if (!ee) {throw new Error('hand.depth.depthImage requires the ee module');}
-    if (!handImage) {throw new Error('hand.depth.depthImage requires a handImage');}
-    if (!scenarioMask) {throw new Error('hand.depth.depthImage requires a scenarioMask');}
+    if (!ee) {
+        throw new Error('hand.depth.depthImage requires the ee module');
+    }
+    if (!handImage) {
+        throw new Error('hand.depth.depthImage requires a handImage');
+    }
+    if (!scenarioMask) {
+        throw new Error('hand.depth.depthImage requires a scenarioMask');
+    }
     if (!Number.isFinite(levelM) || levelM <= 0) {
         throw new Error('hand.depth.depthImage requires a positive numeric levelM');
     }

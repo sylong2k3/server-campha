@@ -32,7 +32,9 @@ const TIFF_MAGIC_LENGTH = 4;
  * @returns {boolean}
  */
 const isTiffBuffer = (buf) => {
-    if (!Buffer.isBuffer(buf) || buf.length < TIFF_MAGIC_LENGTH) {return false;}
+    if (!Buffer.isBuffer(buf) || buf.length < TIFF_MAGIC_LENGTH) {
+        return false;
+    }
     const head = buf.subarray(0, TIFF_MAGIC_LENGTH);
     return TIFF_MAGICS.some((magic) => head.equals(magic));
 };
@@ -53,12 +55,16 @@ async function isTiffFile(filePath) {
         handle = await fs.promises.open(filePath, 'r');
         const buf = Buffer.alloc(TIFF_MAGIC_LENGTH);
         const { bytesRead } = await handle.read(buf, 0, TIFF_MAGIC_LENGTH, 0);
-        if (bytesRead < TIFF_MAGIC_LENGTH) {return false;}
+        if (bytesRead < TIFF_MAGIC_LENGTH) {
+            return false;
+        }
         return isTiffBuffer(buf);
     } catch {
         return false;
     } finally {
-        if (handle) {await handle.close().catch(() => {});}
+        if (handle) {
+            await handle.close().catch(() => {});
+        }
     }
 }
 

@@ -1,15 +1,9 @@
 'use strict';
 
-function buildLandChangeProducts(ee, {
-    oldContext,
-    newContext,
-    miningMask,
-    frequencyPercent,
-    terrain,
-    hand,
-    config,
-    aoi,
-}) {
+function buildLandChangeProducts(
+    ee,
+    { oldContext, newContext, miningMask, frequencyPercent, terrain, hand, config, aoi },
+) {
     const wasWater = oldContext.water.max(oldContext.floodedVeg).eq(1);
     const pondToBuilt = wasWater
         .and(newContext.built.eq(1))

@@ -29,7 +29,9 @@ function shallowFloodVote(
     ee,
     { postVH, vhDecrease, vhDecreaseDb, shallowExtraDb, shallowPostVHDb, postVHDbDarkFloor } = {},
 ) {
-    if (!ee) {throw new Error('event.shallow-flood.shallowFloodVote requires the ee module');}
+    if (!ee) {
+        throw new Error('event.shallow-flood.shallowFloodVote requires the ee module');
+    }
     if (!postVH || !vhDecrease) {
         throw new Error('event.shallow-flood.shallowFloodVote requires postVH + vhDecrease');
     }

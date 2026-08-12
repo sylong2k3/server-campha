@@ -37,11 +37,12 @@ const { downloadToFile } = require('../utils/http-stream-download.util');
 const { isTiffFile } = require('../utils/geotiff.util');
 const retryPolicy = require('./raster-ingest.retry');
 
-const DEBUG =
-    process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const DEBUG = process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
 
 const dbg = (tag, msg) => {
-    if (DEBUG) {console.debug(`[RASTER-INGEST:${tag}] ${new Date().toISOString()} — ${msg}`);}
+    if (DEBUG) {
+        console.debug(`[RASTER-INGEST:${tag}] ${new Date().toISOString()} — ${msg}`);
+    }
 };
 const fmtMB = (bytes) => `${(bytes / 1048576).toFixed(2)}MB`;
 
@@ -73,13 +74,17 @@ const buildObjectKey = (job, tag) => {
     const now = new Date();
     const yyyy = now.getUTCFullYear();
     const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
-    const safeCode = String(job.layer_code || 'job').replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+    const safeCode = String(job.layer_code || 'job')
+        .replace(/[^a-z0-9_-]/gi, '_')
+        .toLowerCase();
     return `flood/${yyyy}/${mm}/${safeCode}/${tag}.tif`;
 };
 
 const cleanup = async (files) => {
     for (const p of files) {
-        if (!p) {continue;}
+        if (!p) {
+            continue;
+        }
         await fs.promises.unlink(p).catch(() => {});
     }
 };
@@ -105,9 +110,7 @@ async function defaultValidateCrs(tifPath) {
         });
         gdalinfo.once('close', (exitCode) => {
             if (exitCode !== 0) {
-                const wrap = new Error(
-                    `gdalinfo exit=${exitCode} stderr=${stderr.slice(0, 200)}`,
-                );
+                const wrap = new Error(`gdalinfo exit=${exitCode} stderr=${stderr.slice(0, 200)}`);
                 wrap.code = PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE;
                 reject(wrap);
                 return;
@@ -130,14 +133,15 @@ async function defaultValidateCrs(tifPath) {
                     resolutionM: Number.isFinite(Math.abs(geoTransform[1]))
                         ? Math.abs(geoTransform[1])
                         : null,
-                    bbox: corners.lowerLeft && corners.upperRight
-                        ? {
-                              minX: corners.lowerLeft[0],
-                              minY: corners.lowerLeft[1],
-                              maxX: corners.upperRight[0],
-                              maxY: corners.upperRight[1],
-                          }
-                        : null,
+                    bbox:
+                        corners.lowerLeft && corners.upperRight
+                            ? {
+                                  minX: corners.lowerLeft[0],
+                                  minY: corners.lowerLeft[1],
+                                  maxX: corners.upperRight[0],
+                                  maxY: corners.upperRight[1],
+                              }
+                            : null,
                     bandCount: Array.isArray(parsed?.bands) ? parsed.bands.length : null,
                     dataType: parsed?.bands?.[0]?.type || null,
                     nodata: parsed?.bands?.[0]?.noDataValue ?? null,
@@ -150,10 +154,14 @@ async function defaultValidateCrs(tifPath) {
 }
 
 function extractEpsgFromWkt(wkt) {
-    if (!wkt || typeof wkt !== 'string') {return null;}
+    if (!wkt || typeof wkt !== 'string') {
+        return null;
+    }
     // Match the innermost ID["EPSG",<code>] block (last authority in the WKT tree).
     const matches = [...wkt.matchAll(/ID\["EPSG",(\d+)\]/g)];
-    if (matches.length === 0) {return null;}
+    if (matches.length === 0) {
+        return null;
+    }
     return `EPSG:${matches[matches.length - 1][1]}`;
 }
 
@@ -209,7 +217,9 @@ async function runJob(job, deps = {}) {
     const validateCrs = deps.validateCrs || defaultValidateCrs;
     const computeSha256 = deps.sha256File || sha256File;
 
-    if (!repo) {throw new Error('raster-ingest pipeline needs a repository');}
+    if (!repo) {
+        throw new Error('raster-ingest pipeline needs a repository');
+    }
 
     const jobStart = Date.now();
     await fs.promises.mkdir(cfg.TMP_DIR, { recursive: true });
@@ -231,7 +241,10 @@ async function runJob(job, deps = {}) {
             timeoutMs: cfg.FETCH_TIMEOUT_MS,
             maxBytes: cfg.MAX_BYTES,
         });
-        dbg('DOWNLOAD', `bytes=${fmtMB(dl.bytes)} sha=${dl.sha256.slice(0, 12)}… (${Date.now() - t1}ms)`);
+        dbg(
+            'DOWNLOAD',
+            `bytes=${fmtMB(dl.bytes)} sha=${dl.sha256.slice(0, 12)}… (${Date.now() - t1}ms)`,
+        );
         await repo.updateStatus(job.id, { status: 'validating', progress: 30 });
 
         // ── Stage 2: Format validate (§22-G) ─────────────────────────
@@ -285,7 +298,9 @@ async function runJob(job, deps = {}) {
         await repo.updateStatus(job.id, { status: 'uploading', progress: 55 });
 
         // ── Stage 4: Upload to MinIO (streaming) ─────────────────────
-        if (!minio) {throw new Error('minio.service unavailable for upload');}
+        if (!minio) {
+            throw new Error('minio.service unavailable for upload');
+        }
         const t4 = Date.now();
         const params = job.request_params || {};
         const category = params.bucketCategory || 'flood-rasters';
@@ -293,10 +308,7 @@ async function runJob(job, deps = {}) {
         // We already have the sha256 from the download for a passthrough
         // COG; skip a second full-file hash unless the caller passed a
         // conversion mode that changed the bytes.
-        const sha =
-            cog.mode === 'passthrough'
-                ? dl.sha256
-                : await computeSha256(cogPath);
+        const sha = cog.mode === 'passthrough' ? dl.sha256 : await computeSha256(cogPath);
         await minio.uploadStream({
             stream: fs.createReadStream(cogPath),
             objectKey,
@@ -308,7 +320,9 @@ async function runJob(job, deps = {}) {
         await repo.updateStatus(job.id, { status: 'publishing', progress: 80 });
 
         // ── Stage 5: Publish to GeoServer (product runs only) ────────
-        if (!publisher) {throw new Error('raster-ingest.publish module unavailable');}
+        if (!publisher) {
+            throw new Error('raster-ingest.publish module unavailable');
+        }
         const t5 = Date.now();
         const storeName = job.layer_code;
         const shouldPublish = params.publish !== false;
@@ -328,7 +342,9 @@ async function runJob(job, deps = {}) {
         let layerRowId = null;
         if (shouldPublish) {
             if (typeof publisher.upsertRasterLayer !== 'function') {
-                throw new Error('raster publisher does not implement canonical layer registry upsert');
+                throw new Error(
+                    'raster publisher does not implement canonical layer registry upsert',
+                );
             }
             const layerRow = await publisher.upsertRasterLayer({
                 job,
@@ -370,8 +386,9 @@ async function runJob(job, deps = {}) {
                     dataType: crsInfo?.dataType,
                     published: shouldPublish,
                 });
-                const failClosedBacklink = ['flood_artifact', 'forest_district']
-                    .includes(params.linkedResource.type);
+                const failClosedBacklink = ['flood_artifact', 'forest_district'].includes(
+                    params.linkedResource.type,
+                );
                 if (failClosedBacklink && linked?.rowCount !== 1) {
                     const error = new Error(
                         `${params.linkedResource.type} ${params.linkedResource.id} was not back-linked`,
@@ -380,8 +397,9 @@ async function runJob(job, deps = {}) {
                     throw error;
                 }
             } catch (err) {
-                if (['flood_artifact', 'forest_district']
-                    .includes(params.linkedResource.type)) {throw err;}
+                if (['flood_artifact', 'forest_district'].includes(params.linkedResource.type)) {
+                    throw err;
+                }
                 console.warn(`[RASTER-INGEST] backlink FAILED job=${job.id}: ${err.message}`);
             }
         }
@@ -395,9 +413,8 @@ async function runJob(job, deps = {}) {
     } catch (err) {
         try {
             await retryPolicy.fail(job, err, { repo });
-            const failedJob = typeof repo.findById === 'function'
-                ? await repo.findById(job.id)
-                : null;
+            const failedJob =
+                typeof repo.findById === 'function' ? await repo.findById(job.id) : null;
             const linked = job.request_params?.linkedResource;
             if (
                 ['flood_artifact', 'forest_district'].includes(linked?.type) &&

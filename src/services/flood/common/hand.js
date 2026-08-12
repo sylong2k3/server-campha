@@ -23,7 +23,9 @@ const UPA_LOG_EPSILON = 0.001; // Flood_D:734
  * Load the MERIT/Hydro image (raster with `hnd`, `upa`, `dir` bands).
  */
 function loadMeritHydro(ee) {
-    if (!ee) {throw new Error('hand.loadMeritHydro requires the ee module');}
+    if (!ee) {
+        throw new Error('hand.loadMeritHydro requires the ee module');
+    }
     return ee.Image(ASSETS.MERIT_HYDRO);
 }
 
@@ -33,7 +35,9 @@ function loadMeritHydro(ee) {
  * uncovered fraction; the flood pipeline logs it as a warning.
  */
 function handImage(ee, meritImage = null) {
-    if (!ee) {throw new Error('hand.handImage requires the ee module');}
+    if (!ee) {
+        throw new Error('hand.handImage requires the ee module');
+    }
     const merit = meritImage || loadMeritHydro(ee);
     return merit.select('hnd').rename('HAND');
 }
@@ -42,7 +46,9 @@ function handImage(ee, meritImage = null) {
  * Upstream pixel area (km²).
  */
 function upaImage(ee, meritImage = null) {
-    if (!ee) {throw new Error('hand.upaImage requires the ee module');}
+    if (!ee) {
+        throw new Error('hand.upaImage requires the ee module');
+    }
     const merit = meritImage || loadMeritHydro(ee);
     return merit.select('upa').rename('UPA');
 }
@@ -60,10 +66,17 @@ function upaImage(ee, meritImage = null) {
  *                                 second Image() call).
  */
 function twiImage(ee, slopeDeg, meritImage = null) {
-    if (!ee) {throw new Error('hand.twiImage requires the ee module');}
-    if (!slopeDeg) {throw new Error('hand.twiImage requires the slope image');}
+    if (!ee) {
+        throw new Error('hand.twiImage requires the ee module');
+    }
+    if (!slopeDeg) {
+        throw new Error('hand.twiImage requires the slope image');
+    }
     const upa = upaImage(ee, meritImage);
-    const tanSlope = slopeDeg.multiply(Math.PI / 180).tan().max(TAN_SLOPE_FLOOR);
+    const tanSlope = slopeDeg
+        .multiply(Math.PI / 180)
+        .tan()
+        .max(TAN_SLOPE_FLOOR);
     return upa.add(UPA_LOG_EPSILON).log().divide(tanSlope).rename('TWI');
 }
 

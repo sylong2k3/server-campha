@@ -13,14 +13,22 @@ const makeChainable = () => {
     const chain = () => {
         const p = new Proxy(function () {}, {
             get(_t, key) {
-                if (key === 'then') {return undefined;}
-                if (key === Symbol.toPrimitive) {return () => '[eeProxy]';}
-                if (key === 'toString') {return () => '[eeProxy]';}
+                if (key === 'then') {
+                    return undefined;
+                }
+                if (key === Symbol.toPrimitive) {
+                    return () => '[eeProxy]';
+                }
+                if (key === 'toString') {
+                    return () => '[eeProxy]';
+                }
                 return chain();
             },
             apply(_t, _thisArg, args) {
                 for (const arg of args) {
-                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {arg(chain());}
+                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {
+                        arg(chain());
+                    }
                 }
                 return chain();
             },
@@ -31,7 +39,15 @@ const makeChainable = () => {
     return chain();
 };
 const chain = () => makeChainable();
-const makeEe = () => new Proxy({}, { get() { return makeChainable(); } });
+const makeEe = () =>
+    new Proxy(
+        {},
+        {
+            get() {
+                return makeChainable();
+            },
+        },
+    );
 
 describe('population.js', () => {
     test('POPULATION_SOURCE identifies GHSL_POP_2020 P2023A JRC (§55 provenance)', () => {
@@ -50,9 +66,7 @@ describe('population.js', () => {
         expect(() => population.affectedPopulationImage(makeEe(), {})).toThrow(/floodMask/);
     });
     test('affectedPopulationImage returns a chainable image', () => {
-        expect(
-            population.affectedPopulationImage(makeEe(), { floodMask: chain() }),
-        ).toBeDefined();
+        expect(population.affectedPopulationImage(makeEe(), { floodMask: chain() })).toBeDefined();
     });
 });
 
@@ -84,7 +98,9 @@ describe('built-up.js', () => {
     });
     test('affectedBuiltMask requires floodMask + builtMask', () => {
         expect(() => builtUp.affectedBuiltMask(makeEe(), {})).toThrow(/floodMask/);
-        expect(() => builtUp.affectedBuiltMask(makeEe(), { floodMask: chain() })).toThrow(/builtMask/);
+        expect(() => builtUp.affectedBuiltMask(makeEe(), { floodMask: chain() })).toThrow(
+            /builtMask/,
+        );
     });
 });
 
@@ -120,7 +136,9 @@ describe('result.js', () => {
             'affected_cropland',
             'affected_built',
         ]);
-        for (const a of result.M4_QA_ARTIFACTS) {expect(a.role).toBe('QA');}
+        for (const a of result.M4_QA_ARTIFACTS) {
+            expect(a.role).toBe('QA');
+        }
     });
     test('selectM4Artifacts flips QA→CALIBRATION in calibration mode', () => {
         for (const a of result.selectM4Artifacts({ runMode: 'calibration' })) {
@@ -203,13 +221,16 @@ const makeStubs = () => ({
 });
 
 const geeAdapter = (value = 100) => ({
-    evaluate: jest.fn().mockResolvedValue({
-        affected_population: 42000,
-    }).mockResolvedValueOnce(value)
-      .mockResolvedValueOnce({ affected_population: 42000 })
-      .mockResolvedValueOnce(value)
-      .mockResolvedValueOnce(value)
-      .mockResolvedValueOnce({ groups: [] }),
+    evaluate: jest
+        .fn()
+        .mockResolvedValue({
+            affected_population: 42000,
+        })
+        .mockResolvedValueOnce(value)
+        .mockResolvedValueOnce({ affected_population: 42000 })
+        .mockResolvedValueOnce(value)
+        .mockResolvedValueOnce(value)
+        .mockResolvedValueOnce({ groups: [] }),
 });
 
 describe('runImpactAnalysis — orchestrator', () => {

@@ -6,8 +6,11 @@ const load = (env = {}) => {
     const original = {};
     for (const [key, value] of Object.entries(env)) {
         original[key] = process.env[key];
-        if (value === undefined) {delete process.env[key];}
-        else {process.env[key] = String(value);}
+        if (value === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = String(value);
+        }
     }
     try {
         // Jest's own module registry needs an explicit reset; delete
@@ -16,8 +19,11 @@ const load = (env = {}) => {
         return require('../raster-ingest');
     } finally {
         for (const key of Object.keys(env)) {
-            if (original[key] === undefined) {delete process.env[key];}
-            else {process.env[key] = original[key];}
+            if (original[key] === undefined) {
+                delete process.env[key];
+            } else {
+                process.env[key] = original[key];
+            }
         }
     }
 };
@@ -84,8 +90,11 @@ describe('configs/raster-ingest', () => {
             process.env.RASTER_INGEST_ENABLED = 'false';
             expect(cfg.isEnabled()).toBe(false);
         } finally {
-            if (previous === undefined) {delete process.env.RASTER_INGEST_ENABLED;}
-            else {process.env.RASTER_INGEST_ENABLED = previous;}
+            if (previous === undefined) {
+                delete process.env.RASTER_INGEST_ENABLED;
+            } else {
+                process.env.RASTER_INGEST_ENABLED = previous;
+            }
         }
     });
 

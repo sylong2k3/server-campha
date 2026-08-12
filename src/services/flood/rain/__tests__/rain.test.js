@@ -12,14 +12,22 @@ const makeChainable = () => {
     const chain = () => {
         const p = new Proxy(function () {}, {
             get(_t, key) {
-                if (key === 'then') {return undefined;}
-                if (key === Symbol.toPrimitive) {return () => '[eeProxy]';}
-                if (key === 'toString') {return () => '[eeProxy]';}
+                if (key === 'then') {
+                    return undefined;
+                }
+                if (key === Symbol.toPrimitive) {
+                    return () => '[eeProxy]';
+                }
+                if (key === 'toString') {
+                    return () => '[eeProxy]';
+                }
                 return chain();
             },
             apply(_t, _thisArg, args) {
                 for (const arg of args) {
-                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {arg(chain());}
+                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {
+                        arg(chain());
+                    }
                 }
                 return chain();
             },
@@ -30,7 +38,15 @@ const makeChainable = () => {
     return chain();
 };
 const chain = () => makeChainable();
-const makeEe = () => new Proxy({}, { get() { return makeChainable(); } });
+const makeEe = () =>
+    new Proxy(
+        {},
+        {
+            get() {
+                return makeChainable();
+            },
+        },
+    );
 
 describe('rainfall-source.js', () => {
     test('IMERG_MM_PER_SCENE_FACTOR = 0.5 (Flood_D:1138)', () => {
@@ -39,16 +55,24 @@ describe('rainfall-source.js', () => {
     test('accumulateIMERG requires ee + dates + aoi', () => {
         expect(() => rainfall.accumulateIMERG(null, {})).toThrow(/ee module/);
         expect(() => rainfall.accumulateIMERG(makeEe(), {})).toThrow(/startDate/);
-        expect(() =>
-            rainfall.accumulateIMERG(makeEe(), { startDate: 'x', endDate: 'y' }),
-        ).toThrow(/aoi/);
+        expect(() => rainfall.accumulateIMERG(makeEe(), { startDate: 'x', endDate: 'y' })).toThrow(
+            /aoi/,
+        );
     });
     test('buildRainfallStack returns 3h/6h/24h/72h/max/7d/30d bands from an IMERG source', () => {
         const stack = rainfall.buildRainfallStack(makeEe(), {
             eventTime: '2024-09-15T00:00:00Z',
             aoi: chain(),
         });
-        for (const key of ['rain3h', 'rain6h', 'rain24h', 'rain72h', 'maxIntensity', 'rain7d', 'rain30d']) {
+        for (const key of [
+            'rain3h',
+            'rain6h',
+            'rain24h',
+            'rain72h',
+            'maxIntensity',
+            'rain7d',
+            'rain30d',
+        ]) {
             expect(stack[key]).toBeDefined();
         }
     });
@@ -191,12 +215,22 @@ const makeStubs = () => ({
     },
     rainfall: {
         buildRainfallStack: jest.fn(() => ({
-            rain3h: chain(), rain6h: chain(), rain24h: chain(), rain72h: chain(),
-            maxIntensity: chain(), rain7d: chain(), rain30d: chain(),
+            rain3h: chain(),
+            rain6h: chain(),
+            rain24h: chain(),
+            rain72h: chain(),
+            maxIntensity: chain(),
+            rain7d: chain(),
+            rain30d: chain(),
         })),
         buildManualRainfallStack: jest.fn(() => ({
-            rain3h: chain(), rain6h: null, rain24h: chain(), rain72h: null,
-            rain7d: null, rain30d: null, maxIntensity: null,
+            rain3h: chain(),
+            rain6h: null,
+            rain24h: chain(),
+            rain72h: null,
+            rain7d: null,
+            rain30d: null,
+            maxIntensity: null,
         })),
     },
     riskModel: {
@@ -274,8 +308,16 @@ describe('defaultDeps', () => {
     test('exposes every M3 helper', () => {
         const d = defaultDeps();
         for (const key of [
-            'geometry', 'terrain', 'hand', 'waterMasks', 'dynamicWorld',
-            'reducers', 'rainfall', 'riskModel', 'threshold', 'result',
+            'geometry',
+            'terrain',
+            'hand',
+            'waterMasks',
+            'dynamicWorld',
+            'reducers',
+            'rainfall',
+            'riskModel',
+            'threshold',
+            'result',
         ]) {
             expect(d[key]).toBeDefined();
         }

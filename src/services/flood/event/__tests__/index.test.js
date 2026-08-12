@@ -13,12 +13,16 @@ const makeChainable = () => {
     const chain = () => {
         const p = new Proxy(function () {}, {
             get(_t, key) {
-                if (key === 'then' || key === Symbol.toPrimitive) {return undefined;}
+                if (key === 'then' || key === Symbol.toPrimitive) {
+                    return undefined;
+                }
                 return chain();
             },
             apply(_t, _thisArg, args) {
                 for (const arg of args) {
-                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {arg(chain());}
+                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {
+                        arg(chain());
+                    }
                 }
                 return chain();
             },
@@ -147,7 +151,13 @@ const makeStubs = (overrides = {}) => {
         },
         result: {
             selectM1Artifacts: jest.fn(() => [
-                { code: 'main_flood_non_tidal', role: 'PRODUCT', label: {}, description: '', style: '' },
+                {
+                    code: 'main_flood_non_tidal',
+                    role: 'PRODUCT',
+                    label: {},
+                    description: '',
+                    style: '',
+                },
             ]),
             buildM1ResultMetadata: jest.fn((md) => ({
                 orbitKey: md.orbitKey || null,

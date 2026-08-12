@@ -24,8 +24,12 @@
  * @returns {{ floodNonTidal: object, tidalFloodCandidate: object }}
  */
 function splitByTidal(ee, { floodMask, tidalUncertainty } = {}) {
-    if (!ee) {throw new Error('event.tidal-split.splitByTidal requires the ee module');}
-    if (!floodMask) {throw new Error('event.tidal-split.splitByTidal requires a floodMask');}
+    if (!ee) {
+        throw new Error('event.tidal-split.splitByTidal requires the ee module');
+    }
+    if (!floodMask) {
+        throw new Error('event.tidal-split.splitByTidal requires a floodMask');
+    }
     if (!tidalUncertainty) {
         throw new Error('event.tidal-split.splitByTidal requires tidalUncertainty');
     }

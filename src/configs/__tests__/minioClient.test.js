@@ -96,8 +96,8 @@ describe('MinIO configuration', () => {
     });
 
     test('optional bucket rejects invalid names (BUCKET_PATTERN violation)', () => {
-        expect(() =>
-            load({ MINIO_BUCKET_FLOOD_RASTERS: 'InvalidCaps' }).getConfig(),
-        ).toThrow('MINIO_BUCKET_FLOOD_RASTERS is invalid');
+        expect(() => load({ MINIO_BUCKET_FLOOD_RASTERS: 'InvalidCaps' }).getConfig()).toThrow(
+            'MINIO_BUCKET_FLOOD_RASTERS is invalid',
+        );
     });
 });

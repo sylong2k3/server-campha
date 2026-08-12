@@ -11,14 +11,20 @@ const QUEUE_PATH = require.resolve('../gee-task.queue');
 const loadQueue = (env = {}) => {
     const original = { ...process.env };
     for (const [key, value] of Object.entries(env)) {
-        if (value === undefined) {delete process.env[key];}
-        else {process.env[key] = String(value);}
+        if (value === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = String(value);
+        }
     }
     delete require.cache[QUEUE_PATH];
     const mod = require('../gee-task.queue');
     for (const key of Object.keys(env)) {
-        if (original[key] === undefined) {delete process.env[key];}
-        else {process.env[key] = original[key];}
+        if (original[key] === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = original[key];
+        }
     }
     return mod;
 };
@@ -44,7 +50,9 @@ describe('gee-task.queue', () => {
     });
 
     afterEach(() => {
-        for (const spy of Object.values(logSpies)) {spy.mockRestore();}
+        for (const spy of Object.values(logSpies)) {
+            spy.mockRestore();
+        }
     });
 
     test('CONCURRENCY is hard-clamped to 1', () => {
@@ -87,14 +95,7 @@ describe('gee-task.queue', () => {
         const p2 = queue.enqueue({ label: 'B', run: make('B') });
         const p3 = queue.enqueue({ label: 'C', run: make('C') });
         await Promise.all([p1, p2, p3]);
-        expect(order).toEqual([
-            'start:A',
-            'end:A',
-            'start:B',
-            'end:B',
-            'start:C',
-            'end:C',
-        ]);
+        expect(order).toEqual(['start:A', 'end:A', 'start:B', 'end:B', 'start:C', 'end:C']);
     });
 
     test('higher-priority tasks run before lower-priority ones queued earlier', async () => {
@@ -135,9 +136,9 @@ describe('gee-task.queue', () => {
         queue.enqueue({ label: 'q1', run: async () => {} });
         queue.enqueue({ label: 'q2', run: async () => {} });
         queue.enqueue({ label: 'q3', run: async () => {} });
-        expect(() =>
-            queue.enqueue({ label: 'overflow', run: async () => {} }),
-        ).toThrow(Api503Error);
+        expect(() => queue.enqueue({ label: 'overflow', run: async () => {} })).toThrow(
+            Api503Error,
+        );
         gate.resolve();
         await queue.onIdle();
     });
@@ -166,9 +167,7 @@ describe('gee-task.queue', () => {
 
     test('rejects new enqueues with Api503Error when stopped', () => {
         queue.stop();
-        expect(() => queue.enqueue({ label: 'x', run: async () => {} })).toThrow(
-            Api503Error,
-        );
+        expect(() => queue.enqueue({ label: 'x', run: async () => {} })).toThrow(Api503Error);
         queue.start();
     });
 

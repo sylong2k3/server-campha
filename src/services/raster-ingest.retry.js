@@ -22,8 +22,7 @@
 const cfg = require('../configs/raster-ingest');
 const { Api400Error } = require('../core/error.response');
 
-const DEBUG =
-    process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const DEBUG = process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
 
 /**
  * Classify an error into retry buckets.
@@ -68,7 +67,9 @@ function nextGenericRetryDelay(retryCount) {
  * Kept as its own predicate so tests can assert individual failure modes.
  */
 function isTerminalErrorCode(err) {
-    if (err instanceof Api400Error) {return true;}
+    if (err instanceof Api400Error) {
+        return true;
+    }
     return err?.code === 'FILE_TOO_LARGE' || err?.code === 'NO_TIF_IN_ZIP';
 }
 
@@ -134,7 +135,9 @@ async function fail(job, err, opts = {}) {
     console.error(
         `[RASTER-INGEST] job=${job.id} DLQ (${reason}) layer=${job.layer_code} — ${errMsg}`,
     );
-    if (DEBUG && err?.stack) {console.debug(err.stack);}
+    if (DEBUG && err?.stack) {
+        console.debug(err.stack);
+    }
 }
 
 function safeRequireRepo() {

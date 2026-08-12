@@ -23,8 +23,12 @@
  * @returns {object} ee.Image (binary — 1 = scenario-inundated)
  */
 function scenarioMask(ee, { handImage, levelM, slopeDeg = null, maximumSlope = 12 } = {}) {
-    if (!ee) {throw new Error('hand.scenario.scenarioMask requires the ee module');}
-    if (!handImage) {throw new Error('hand.scenario.scenarioMask requires a handImage');}
+    if (!ee) {
+        throw new Error('hand.scenario.scenarioMask requires the ee module');
+    }
+    if (!handImage) {
+        throw new Error('hand.scenario.scenarioMask requires a handImage');
+    }
     if (!Number.isFinite(levelM) || levelM <= 0) {
         throw new Error('hand.scenario.scenarioMask requires a positive numeric levelM');
     }
@@ -32,7 +36,9 @@ function scenarioMask(ee, { handImage, levelM, slopeDeg = null, maximumSlope = 1
         throw new Error('hand.scenario.scenarioMask requires a non-negative maximumSlope');
     }
     let mask = handImage.lte(levelM);
-    if (slopeDeg) {mask = mask.and(slopeDeg.lte(maximumSlope));}
+    if (slopeDeg) {
+        mask = mask.and(slopeDeg.lte(maximumSlope));
+    }
     return mask.rename('hand_scenario');
 }
 

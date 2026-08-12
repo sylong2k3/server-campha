@@ -16,7 +16,9 @@ const nonNegativeInteger = (value) => {
  * Lỗi gốc vẫn được giữ trong DB và log để quản trị viên chẩn đoán.
  */
 const toPublicProcessingError = (value) => {
-    if (value === null || value === undefined || value === '') {return null;}
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
     const message = String(value);
 
     if (/out of memory|heap|memory limit|rss|oom/i.test(message)) {
@@ -29,8 +31,9 @@ const toPublicProcessingError = (value) => {
         return 'Nguồn dữ liệu đang bận. Hệ thống sẽ tự thử lại sau.';
     }
     if (
-        /permission|credential|unauthori[sz]ed|forbidden|service account|authentication/i
-            .test(message)
+        /permission|credential|unauthori[sz]ed|forbidden|service account|authentication/i.test(
+            message,
+        )
     ) {
         return 'Nguồn dữ liệu hiện chưa sẵn sàng. Vui lòng liên hệ quản trị viên.';
     }
@@ -47,7 +50,9 @@ const toPublicProcessingError = (value) => {
  * ghi đã lưu trước đây cũng được hiển thị đúng mà không cần xóa lịch sử.
  */
 const toPublicProcessingText = (value) => {
-    if (value === null || value === undefined || value === '') {return value;}
+    if (value === null || value === undefined || value === '') {
+        return value;
+    }
 
     return String(value)
         .replace(
@@ -99,11 +104,14 @@ const normalizeDistrictExport = (summary) => {
     const failed = nonNegativeInteger(summary.failed);
     const skipped = nonNegativeInteger(summary.skipped);
     const settled = Math.min(total, completed + failed + skipped);
-    const pending = summary.pending === null || summary.pending === undefined
-        ? Math.max(0, total - settled)
-        : Math.min(total, nonNegativeInteger(summary.pending));
+    const pending =
+        summary.pending === null || summary.pending === undefined
+            ? Math.max(0, total - settled)
+            : Math.min(total, nonNegativeInteger(summary.pending));
     let status = 'not_started';
-    if (total > 0 && pending > 0) {status = settled > 0 ? 'running' : 'queued';}
+    if (total > 0 && pending > 0) {
+        status = settled > 0 ? 'running' : 'queued';
+    }
     if (total > 0 && pending === 0) {
         status = failed > 0 ? 'completed_with_errors' : 'completed';
     }
@@ -125,21 +133,16 @@ const normalizeDistrictExport = (summary) => {
  * `taskKey` được truyền ở response POST refresh để xác định chính xác lượt vừa
  * nhận. GET latest không có key thì chọn task đầu tiên thuộc pipeline tương ứng.
  */
-const buildGeeProcessingState = ({
-    pipeline,
-    taskKey = null,
-    snapshot = null,
-} = {}) => {
+const buildGeeProcessingState = ({ pipeline, taskKey = null, snapshot = null } = {}) => {
     const queue = geeQueue.getState();
     const prefix = `analysis:${pipeline}:`;
-    const isTarget = (entry) => Boolean(entry)
-        && (taskKey ? entry.key === taskKey : String(entry.key || '').startsWith(prefix));
+    const isTarget = (entry) =>
+        Boolean(entry) &&
+        (taskKey ? entry.key === taskKey : String(entry.key || '').startsWith(prefix));
     const activeIsTarget = isTarget(queue.active);
     const pendingIndex = queue.pending.findIndex(isTarget);
     const targetPending = pendingIndex >= 0 ? queue.pending[pendingIndex] : null;
-    const jobsAhead = targetPending
-        ? pendingIndex + (queue.active ? 1 : 0)
-        : 0;
+    const jobsAhead = targetPending ? pendingIndex + (queue.active ? 1 : 0) : 0;
     const activePipeline = pipelineFromKey(queue.active?.key);
     const snapshotStatus = String(snapshot?.status || '').toLowerCase() || null;
     const districtExport = normalizeDistrictExport(
@@ -147,13 +150,16 @@ const buildGeeProcessingState = ({
     );
 
     let state = snapshotStatus || 'idle';
-    if (targetPending) {state = 'queued';}
-    else if (
-        ['completed', 'published'].includes(snapshotStatus)
-        && ['queued', 'running'].includes(districtExport.status)
+    if (targetPending) {
+        state = 'queued';
+    } else if (
+        ['completed', 'published'].includes(snapshotStatus) &&
+        ['queued', 'running'].includes(districtExport.status)
     ) {
         state = 'exporting';
-    } else if (activeIsTarget) {state = 'computing';}
+    } else if (activeIsTarget) {
+        state = 'computing';
+    }
 
     return {
         pipeline,
@@ -167,9 +173,10 @@ const buildGeeProcessingState = ({
             position: targetPending ? jobsAhead + 1 : activeIsTarget ? 0 : null,
             jobsAhead,
             waitingCount: queue.pending.length,
-            enqueuedAt: targetPending?.enqueuedAt
-                || (activeIsTarget ? queue.active?.enqueuedAt : null)
-                || null,
+            enqueuedAt:
+                targetPending?.enqueuedAt ||
+                (activeIsTarget ? queue.active?.enqueuedAt : null) ||
+                null,
             startedAt: activeIsTarget ? queue.active?.startedAt || null : null,
             globalBusy: Boolean(queue.active),
             activePipeline,
@@ -181,11 +188,13 @@ const buildGeeProcessingState = ({
         retry: {
             count: nonNegativeInteger(snapshot?.retry_count ?? snapshot?.retryCount),
             nextRetryAt: snapshot?.next_retry_at || snapshot?.nextRetryAt || null,
-            lastError: toPublicProcessingError(snapshot?.last_retry_error
-                || snapshot?.lastRetryError
-                || snapshot?.error_message
-                || snapshot?.errorMessage
-                || null),
+            lastError: toPublicProcessingError(
+                snapshot?.last_retry_error ||
+                    snapshot?.lastRetryError ||
+                    snapshot?.error_message ||
+                    snapshot?.errorMessage ||
+                    null,
+            ),
         },
     };
 };

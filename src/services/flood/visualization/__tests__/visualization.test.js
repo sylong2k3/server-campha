@@ -7,14 +7,27 @@ const { createDiagnosticStore } = require('../../diagnostics/store');
 describe('layer-definitions.js', () => {
     test('every M1..M5 artifact code is defined', () => {
         for (const code of [
-            'main_flood_non_tidal', 'open_water', 'shallow_flood', 'tidal_candidate',
-            'mining_candidate', 'urban_double_bounce',
-            'hand_scenario', 'hand_depth',
-            'rain_risk_score', 'rain_risk_class',
-            'affected_population', 'affected_cropland', 'affected_built',
-            'trend_frequency', 'trend_frequent_flood', 'trend_new_flood',
-            'pond_to_built', 'drainage_sensitive', 'encroachment_alert',
-            'trend_tidal_candidate', 'trend_mining_candidate',
+            'main_flood_non_tidal',
+            'open_water',
+            'shallow_flood',
+            'tidal_candidate',
+            'mining_candidate',
+            'urban_double_bounce',
+            'hand_scenario',
+            'hand_depth',
+            'rain_risk_score',
+            'rain_risk_class',
+            'affected_population',
+            'affected_cropland',
+            'affected_built',
+            'trend_frequency',
+            'trend_frequent_flood',
+            'trend_new_flood',
+            'pond_to_built',
+            'drainage_sensitive',
+            'encroachment_alert',
+            'trend_tidal_candidate',
+            'trend_mining_candidate',
         ]) {
             expect(layerDefs.ARTIFACT_LAYER_DEFINITIONS[code]).toBeDefined();
         }
@@ -41,7 +54,12 @@ describe('layer-definitions.js', () => {
     });
 
     test('QA labels are marked "(QA)" (§43 visual distinction)', () => {
-        for (const code of ['shallow_flood', 'tidal_candidate', 'mining_candidate', 'urban_double_bounce']) {
+        for (const code of [
+            'shallow_flood',
+            'tidal_candidate',
+            'mining_candidate',
+            'urban_double_bounce',
+        ]) {
             const def = layerDefs.ARTIFACT_LAYER_DEFINITIONS[code];
             expect(def.label.vi).toMatch(/QA/);
             expect(def.label.en).toMatch(/QA/);

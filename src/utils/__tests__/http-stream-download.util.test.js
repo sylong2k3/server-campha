@@ -5,7 +5,11 @@ const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const path = require('path');
-const { downloadToFile, DownloadError, safeUrlWithoutQuery } = require('../http-stream-download.util');
+const {
+    downloadToFile,
+    DownloadError,
+    safeUrlWithoutQuery,
+} = require('../http-stream-download.util');
 
 /**
  * Spin up a real localhost HTTP server per-test. Simpler than mocking global

@@ -117,10 +117,7 @@ async function gracefulShutdown(signal) {
     rasterIngestWorker.stopWorker();
     forestClassificationJob.stop();
     geeQueue.stop();
-    await Promise.race([
-        geeQueue.onIdle(),
-        new Promise((resolve) => setTimeout(resolve, 5000)),
-    ]);
+    await Promise.race([geeQueue.onIdle(), new Promise((resolve) => setTimeout(resolve, 5000))]);
 
     if (server) {
         server.close(async () => {

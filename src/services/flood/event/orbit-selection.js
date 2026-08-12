@@ -50,12 +50,18 @@ function pickBestOrbitFromCounts(preCounts, postCounts) {
     const postKeys = new Set(Object.keys(postCounts || {}));
     const candidates = [];
     for (const key of preKeys) {
-        if (!postKeys.has(key)) {continue;}
+        if (!postKeys.has(key)) {
+            continue;
+        }
         const preCount = Number(preCounts[key]) || 0;
         const postCount = Number(postCounts[key]) || 0;
-        if (preCount === 0 || postCount === 0) {continue;}
+        if (preCount === 0 || postCount === 0) {
+            continue;
+        }
         const parsed = parseOrbitKey(key);
-        if (!parsed) {continue;}
+        if (!parsed) {
+            continue;
+        }
         candidates.push({
             orbitKey: key,
             ...parsed,
@@ -65,9 +71,13 @@ function pickBestOrbitFromCounts(preCounts, postCounts) {
             totalCount: preCount + postCount,
         });
     }
-    if (candidates.length === 0) {return null;}
+    if (candidates.length === 0) {
+        return null;
+    }
     candidates.sort((a, b) => {
-        if (a.balance !== b.balance) {return b.balance - a.balance;}
+        if (a.balance !== b.balance) {
+            return b.balance - a.balance;
+        }
         return b.totalCount - a.totalCount;
     });
     const best = candidates[0];
@@ -82,13 +92,19 @@ function pickBestOrbitFromCounts(preCounts, postCounts) {
  * Returns null on any malformed input so the caller can drop the candidate.
  */
 function parseOrbitKey(key) {
-    if (typeof key !== 'string' || !key.includes('_')) {return null;}
+    if (typeof key !== 'string' || !key.includes('_')) {
+        return null;
+    }
     const idx = key.lastIndexOf('_');
     const pass = key.slice(0, idx);
     const relRaw = key.slice(idx + 1);
     const relativeOrbit = Number.parseInt(relRaw, 10);
-    if (!Number.isFinite(relativeOrbit)) {return null;}
-    if (pass !== 'ASCENDING' && pass !== 'DESCENDING') {return null;}
+    if (!Number.isFinite(relativeOrbit)) {
+        return null;
+    }
+    if (pass !== 'ASCENDING' && pass !== 'DESCENDING') {
+        return null;
+    }
     return { orbitPass: pass, relativeOrbit };
 }
 
@@ -104,12 +120,18 @@ function parseOrbitKey(key) {
  * @param {{ evaluate: Function }} args.geeAdapter — must expose `evaluate(eeObj) → Promise`
  */
 async function chooseBestS1Orbit(ee, { preCollection, postCollection, geeAdapter } = {}) {
-    if (!ee) {throw new Error('event.orbit-selection.chooseBestS1Orbit requires the ee module');}
+    if (!ee) {
+        throw new Error('event.orbit-selection.chooseBestS1Orbit requires the ee module');
+    }
     if (!preCollection || !postCollection) {
-        throw new Error('event.orbit-selection.chooseBestS1Orbit requires preCollection + postCollection');
+        throw new Error(
+            'event.orbit-selection.chooseBestS1Orbit requires preCollection + postCollection',
+        );
     }
     if (!geeAdapter || typeof geeAdapter.evaluate !== 'function') {
-        throw new Error('event.orbit-selection.chooseBestS1Orbit requires a geeAdapter.evaluate function');
+        throw new Error(
+            'event.orbit-selection.chooseBestS1Orbit requires a geeAdapter.evaluate function',
+        );
     }
 
     const preHist = _countPerOrbit(ee, preCollection);
@@ -128,7 +150,9 @@ async function chooseBestS1Orbit(ee, { preCollection, postCollection, geeAdapter
  * `printOrbitCandidates` (Flood_D:1757).
  */
 async function listOrbitCandidates(ee, { collection, geeAdapter } = {}) {
-    if (!collection) {throw new Error('event.orbit-selection.listOrbitCandidates requires a collection');}
+    if (!collection) {
+        throw new Error('event.orbit-selection.listOrbitCandidates requires a collection');
+    }
     if (!geeAdapter?.evaluate) {
         throw new Error('event.orbit-selection.listOrbitCandidates requires geeAdapter.evaluate');
     }

@@ -1,11 +1,6 @@
 'use strict';
 
-const {
-    tick,
-    startWorker,
-    stopWorker,
-    __resetForTests,
-} = require('../rasterIngest.worker');
+const { tick, startWorker, stopWorker, __resetForTests } = require('../rasterIngest.worker');
 
 const silence = () => {
     const spies = {
@@ -15,7 +10,9 @@ const silence = () => {
         debug: jest.spyOn(console, 'debug').mockImplementation(() => {}),
     };
     return () => {
-        for (const spy of Object.values(spies)) {spy.mockRestore();}
+        for (const spy of Object.values(spies)) {
+            spy.mockRestore();
+        }
     };
 };
 
@@ -95,8 +92,11 @@ describe('rasterIngest.worker', () => {
         try {
             expect(startWorker()).toEqual({ started: false, reason: 'DISABLED' });
         } finally {
-            if (previous === undefined) {delete process.env.RASTER_INGEST_ENABLED;}
-            else {process.env.RASTER_INGEST_ENABLED = previous;}
+            if (previous === undefined) {
+                delete process.env.RASTER_INGEST_ENABLED;
+            } else {
+                process.env.RASTER_INGEST_ENABLED = previous;
+            }
         }
     });
 
@@ -108,8 +108,11 @@ describe('rasterIngest.worker', () => {
             expect(startWorker()).toEqual({ started: false, reason: 'ALREADY_STARTED' });
         } finally {
             stopWorker();
-            if (previous === undefined) {delete process.env.RASTER_INGEST_ENABLED;}
-            else {process.env.RASTER_INGEST_ENABLED = previous;}
+            if (previous === undefined) {
+                delete process.env.RASTER_INGEST_ENABLED;
+            } else {
+                process.env.RASTER_INGEST_ENABLED = previous;
+            }
         }
     });
 });

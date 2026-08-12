@@ -42,19 +42,22 @@
  */
 function urbanDoubleBounceVote(
     ee,
-    {
+    { vvIncrease, vvZ, vhDecrease, builtDensity, slopeDeg, handImage, thresholds } = {},
+) {
+    if (!ee) {
+        throw new Error('event.urban-double-bounce.urbanDoubleBounceVote requires the ee module');
+    }
+    for (const [name, val] of Object.entries({
         vvIncrease,
         vvZ,
         vhDecrease,
         builtDensity,
         slopeDeg,
         handImage,
-        thresholds,
-    } = {},
-) {
-    if (!ee) {throw new Error('event.urban-double-bounce.urbanDoubleBounceVote requires the ee module');}
-    for (const [name, val] of Object.entries({ vvIncrease, vvZ, vhDecrease, builtDensity, slopeDeg, handImage })) {
-        if (!val) {throw new Error(`event.urban-double-bounce.urbanDoubleBounceVote requires ${name}`);}
+    })) {
+        if (!val) {
+            throw new Error(`event.urban-double-bounce.urbanDoubleBounceVote requires ${name}`);
+        }
     }
     const t = thresholds || {};
     for (const key of [
@@ -66,19 +69,23 @@ function urbanDoubleBounceVote(
         'urbanMaximumHAND',
     ]) {
         if (!Number.isFinite(t[key])) {
-            throw new Error(`event.urban-double-bounce.urbanDoubleBounceVote requires numeric thresholds.${key}`);
+            throw new Error(
+                `event.urban-double-bounce.urbanDoubleBounceVote requires numeric thresholds.${key}`,
+            );
         }
     }
-    return vvIncrease
-        .gte(t.urbanVVIncreaseDb)
-        .and(vvZ.gte(t.urbanVVZ))
-        // VH decrease tolerance: allow up to N dB darkening (true urban DB
-        // shouldn't show major VH change; large VH drops → this is water).
-        .and(vhDecrease.lte(t.urbanVHDecreaseToleranceDb))
-        .and(builtDensity.gte(t.urbanBuiltDensity))
-        .and(slopeDeg.lte(t.urbanMaximumSlope))
-        .and(handImage.lte(t.urbanMaximumHAND))
-        .rename('urban_double_bounce_vote');
+    return (
+        vvIncrease
+            .gte(t.urbanVVIncreaseDb)
+            .and(vvZ.gte(t.urbanVVZ))
+            // VH decrease tolerance: allow up to N dB darkening (true urban DB
+            // shouldn't show major VH change; large VH drops → this is water).
+            .and(vhDecrease.lte(t.urbanVHDecreaseToleranceDb))
+            .and(builtDensity.gte(t.urbanBuiltDensity))
+            .and(slopeDeg.lte(t.urbanMaximumSlope))
+            .and(handImage.lte(t.urbanMaximumHAND))
+            .rename('urban_double_bounce_vote')
+    );
 }
 
 module.exports = { urbanDoubleBounceVote };

@@ -73,9 +73,7 @@ const M1_ARTIFACTS = Object.freeze([
     },
 ]);
 
-const CODE_TO_ARTIFACT = Object.freeze(
-    Object.fromEntries(M1_ARTIFACTS.map((a) => [a.code, a])),
-);
+const CODE_TO_ARTIFACT = Object.freeze(Object.fromEntries(M1_ARTIFACTS.map((a) => [a.code, a])));
 
 /**
  * Return the subset of M1 artifacts that should be materialised for the
@@ -87,10 +85,18 @@ const CODE_TO_ARTIFACT = Object.freeze(
  * @param {'product'|'calibration'} args.runMode
  * @returns {Array<object>} — subset of M1_ARTIFACTS in publication order
  */
-function selectM1Artifacts({ enableShallowFlood = true, enableUrbanDoubleBounce = false, runMode = 'product' } = {}) {
+function selectM1Artifacts({
+    enableShallowFlood = true,
+    enableUrbanDoubleBounce = false,
+    runMode = 'product',
+} = {}) {
     return M1_ARTIFACTS.filter((a) => {
-        if (a.code === 'shallow_flood' && !enableShallowFlood) {return false;}
-        if (a.code === 'urban_double_bounce' && !enableUrbanDoubleBounce) {return false;}
+        if (a.code === 'shallow_flood' && !enableShallowFlood) {
+            return false;
+        }
+        if (a.code === 'urban_double_bounce' && !enableUrbanDoubleBounce) {
+            return false;
+        }
         // QA artifacts still ship in product mode but aren't auto-published;
         // orchestrator + publisher enforce that separately.
         return true;

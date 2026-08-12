@@ -38,11 +38,15 @@ const BUILT_DENSITY_RADIUS_M = 30;
  * Returns an ee.Image with a single `label` band (byte).
  */
 function composite(ee, { startDate, endDate, aoi } = {}) {
-    if (!ee) {throw new Error('dynamic-world.composite requires the ee module');}
+    if (!ee) {
+        throw new Error('dynamic-world.composite requires the ee module');
+    }
     if (!startDate || !endDate) {
         throw new Error('dynamic-world.composite requires startDate + endDate');
     }
-    if (!aoi) {throw new Error('dynamic-world.composite requires an aoi geometry');}
+    if (!aoi) {
+        throw new Error('dynamic-world.composite requires an aoi geometry');
+    }
     return ee
         .ImageCollection(ASSETS.DYNAMIC_WORLD)
         .filterBounds(aoi)
@@ -55,7 +59,9 @@ function composite(ee, { startDate, endDate, aoi } = {}) {
  * Boolean per-class mask helper.
  */
 function classMask(labelImage, classId, name) {
-    if (!labelImage) {throw new Error('dynamic-world.classMask requires labelImage');}
+    if (!labelImage) {
+        throw new Error('dynamic-world.classMask requires labelImage');
+    }
     return labelImage.eq(classId).rename(name || `dw_class_${classId}`);
 }
 
@@ -111,7 +117,9 @@ function createRunCache() {
     return {
         get(ee, args) {
             const key = `${args.startDate}|${args.endDate}`;
-            if (!cache.has(key)) {cache.set(key, buildContext(ee, args));}
+            if (!cache.has(key)) {
+                cache.set(key, buildContext(ee, args));
+            }
             return cache.get(key);
         },
         clear() {

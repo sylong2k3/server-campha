@@ -27,10 +27,7 @@ const ACTIVE_STATES = Object.freeze([
 // ── Lookups ──────────────────────────────────────────────────────────────────
 
 const findById = async (id, client = db) => {
-    const { rows } = await client.query(
-        'SELECT * FROM gis.raster_ingest_jobs WHERE id = $1',
-        [id],
-    );
+    const { rows } = await client.query('SELECT * FROM gis.raster_ingest_jobs WHERE id = $1', [id]);
     return rows[0] || null;
 };
 
@@ -127,7 +124,9 @@ const incrementRetry = async (id, { nextRetryAtMs, errorLog } = {}, client = db)
     const setClauses = ['retry_count = retry_count + 1', "status = 'pending'"];
     if (Number.isFinite(nextRetryAtMs) && nextRetryAtMs > 0) {
         params.push(nextRetryAtMs);
-        setClauses.push(`next_attempt_at = NOW() + ($${params.length} || ' milliseconds')::interval`);
+        setClauses.push(
+            `next_attempt_at = NOW() + ($${params.length} || ' milliseconds')::interval`,
+        );
     } else {
         setClauses.push('next_attempt_at = NOW()');
     }

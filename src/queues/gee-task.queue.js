@@ -48,7 +48,9 @@ const idleWaiters = [];
 const pruneRecentCompletions = () => {
     const cutoff = Date.now() - RECENT_COMPLETION_RETENTION_MS;
     for (const [key, value] of recentCompletions) {
-        if (value.finishedAt < cutoff) {recentCompletions.delete(key);}
+        if (value.finishedAt < cutoff) {
+            recentCompletions.delete(key);
+        }
     }
 };
 
@@ -87,7 +89,9 @@ const preflight = ({ key = null, cooldownMs = 0 } = {}) => {
 };
 
 const resolveIdleWaiters = () => {
-    if (active || pending.length > 0) {return;}
+    if (active || pending.length > 0) {
+        return;
+    }
     while (idleWaiters.length > 0) {
         idleWaiters.shift()();
     }
@@ -95,7 +99,9 @@ const resolveIdleWaiters = () => {
 
 const sortPending = () => {
     pending.sort((a, b) => {
-        if (a.priority !== b.priority) {return b.priority - a.priority;}
+        if (a.priority !== b.priority) {
+            return b.priority - a.priority;
+        }
         return a.sequence - b.sequence;
     });
 };
@@ -105,7 +111,9 @@ const scheduleDrain = () => {
 };
 
 async function drain() {
-    if (active || pending.length === 0) {return;}
+    if (active || pending.length === 0) {
+        return;
+    }
 
     const entry = pending.shift();
     active = entry;
@@ -175,7 +183,9 @@ function enqueue({ key = null, label, priority = 0, cooldownMs = 0, run } = {}) 
 
     pending.push(entry);
     sortPending();
-    if (normalizedKey) {keyedPromises.set(normalizedKey, promise);}
+    if (normalizedKey) {
+        keyedPromises.set(normalizedKey, promise);
+    }
     console.info(
         `[GEE-QUEUE] QUEUED key=${normalizedKey || '-'} label="${entry.label}" ` +
             `priority=${entry.priority} waiting=${pending.length}`,
@@ -192,9 +202,7 @@ function start() {
 
 function stop() {
     accepting = false;
-    console.info(
-        `[GEE-QUEUE] STOPPING active=${active?.key || 'none'} waiting=${pending.length}`,
-    );
+    console.info(`[GEE-QUEUE] STOPPING active=${active?.key || 'none'} waiting=${pending.length}`);
 }
 
 function getState() {
@@ -222,7 +230,9 @@ function getState() {
 }
 
 function onIdle() {
-    if (!active && pending.length === 0) {return Promise.resolve();}
+    if (!active && pending.length === 0) {
+        return Promise.resolve();
+    }
     return new Promise((resolve) => {
         idleWaiters.push(resolve);
     });

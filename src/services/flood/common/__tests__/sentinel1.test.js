@@ -9,17 +9,38 @@ const { ASSETS } = require('../datasets');
  */
 const makeEe = () => {
     const calls = [];
-    const record = (name) => (...args) => {
-        calls.push({ name, args });
-        return makeChain(name);
-    };
+    const record =
+        (name) =>
+        (...args) => {
+            calls.push({ name, args });
+            return makeChain(name);
+        };
     const makeChain = (parent) => {
         const chain = {};
         const methods = [
-            'select', 'filter', 'map', 'filterBounds', 'filterDate',
-            'updateMask', 'and', 'or', 'gte', 'lte', 'eq', 'not',
-            'divide', 'pow', 'copyProperties', 'addBands', 'rename',
-            'focal_median', 'set', 'cat', 'format', 'get', 'advance',
+            'select',
+            'filter',
+            'map',
+            'filterBounds',
+            'filterDate',
+            'updateMask',
+            'and',
+            'or',
+            'gte',
+            'lte',
+            'eq',
+            'not',
+            'divide',
+            'pow',
+            'copyProperties',
+            'addBands',
+            'rename',
+            'focal_median',
+            'set',
+            'cat',
+            'format',
+            'get',
+            'advance',
         ];
         for (const m of methods) {
             chain[m] = record(`${parent}.${m}`);
@@ -79,7 +100,9 @@ describe('sentinel1.js pure helpers', () => {
                 lte: () => ({}),
                 and: () => ({}),
             }),
-            updateMask: jest.fn(function () { return this; }),
+            updateMask: jest.fn(function () {
+                return this;
+            }),
         };
         s1.maskS1Edges(ee, image);
         expect(image.updateMask).toHaveBeenCalledTimes(3);
@@ -88,10 +111,10 @@ describe('sentinel1.js pure helpers', () => {
     test('addOrbitKey builds the "PASS_RELORBIT" property via ee.String/Number', () => {
         const ee = makeEe();
         const image = {
-            get: jest.fn((prop) =>
-                prop === 'orbitProperties_pass' ? 'ASCENDING' : 76,
-            ),
-            set: jest.fn(function () { return this; }),
+            get: jest.fn((prop) => (prop === 'orbitProperties_pass' ? 'ASCENDING' : 76)),
+            set: jest.fn(function () {
+                return this;
+            }),
         };
         s1.addOrbitKey(ee, image);
         // Called set('orbit_key', ...)
@@ -140,16 +163,18 @@ describe('sentinel1.js getS1Collection', () => {
         const ee = makeEe();
         s1.getS1Collection(ee, { start, end, aoi, pass: 'ASCENDING' });
         const eqCalls = ee.calls.filter((c) => c.name === 'Filter.eq');
-        expect(eqCalls.some((c) => c.args[0] === 'orbitProperties_pass' && c.args[1] === 'ASCENDING'))
-            .toBe(true);
+        expect(
+            eqCalls.some((c) => c.args[0] === 'orbitProperties_pass' && c.args[1] === 'ASCENDING'),
+        ).toBe(true);
     });
 
     test('numeric relativeOrbit adds a Filter.eq(relativeOrbitNumber_start, N)', () => {
         const ee = makeEe();
         s1.getS1Collection(ee, { start, end, aoi, relativeOrbit: 76 });
         const eqCalls = ee.calls.filter((c) => c.name === 'Filter.eq');
-        expect(eqCalls.some((c) => c.args[0] === 'relativeOrbitNumber_start' && c.args[1] === 76))
-            .toBe(true);
+        expect(
+            eqCalls.some((c) => c.args[0] === 'relativeOrbitNumber_start' && c.args[1] === 76),
+        ).toBe(true);
     });
 
     test('non-finite relativeOrbit is ignored', () => {

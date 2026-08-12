@@ -1,13 +1,15 @@
 'use strict';
 
-const svc     = require('../services/forest-gt.service');
+const svc = require('../services/forest-gt.service');
 const schemas = require('../validators/forest-gt.validator');
 const { OK, OK_LIST, CREATED } = require('../core/success.response');
 const { t } = require('../utils/i18n.util');
 
 const validate = (schema, source, lang) => {
     const { value, error } = schema.validate(source, {
-        abortEarly: false, stripUnknown: true, convert: true,
+        abortEarly: false,
+        stripUnknown: true,
+        convert: true,
     });
     if (error) {
         const err = new Error(t('invalid_data', lang));
@@ -23,7 +25,9 @@ const validate = (schema, source, lang) => {
 const createZone = async (req, res) => {
     const body = validate(schemas.zoneCreate, req.body || {}, req.lang);
     const zone = await svc.createZone(body, req.user);
-    console.log(`[FOREST-GT-CTL] zone CREATED id=${zone.id} class=${zone.class_id} user=${req.user?.id}`);
+    console.log(
+        `[FOREST-GT-CTL] zone CREATED id=${zone.id} class=${zone.class_id} user=${req.user?.id}`,
+    );
     CREATED(res, 'Đã thêm vùng mẫu.', zone);
 };
 
@@ -75,6 +79,12 @@ const deletePoint = async (req, res) => {
 };
 
 module.exports = {
-    createZone, bulkZone, listZones, deleteZone,
-    createPoint, bulkPoint, listPoints, deletePoint,
+    createZone,
+    bulkZone,
+    listZones,
+    deleteZone,
+    createPoint,
+    bulkPoint,
+    listPoints,
+    deletePoint,
 };

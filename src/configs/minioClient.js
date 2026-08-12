@@ -64,7 +64,9 @@ const getConfig = () => {
     // flood pipeline enforces presence at consume time (getBucketForCategory).
     for (const [category, envName] of Object.entries(OPTIONAL_CATEGORY_BUCKET_ENV)) {
         const name = process.env[envName]?.trim();
-        if (!name) {continue;}
+        if (!name) {
+            continue;
+        }
         if (!BUCKET_PATTERN.test(name)) {
             throw new Error(`${envName} is invalid`);
         }

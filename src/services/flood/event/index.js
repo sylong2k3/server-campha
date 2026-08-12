@@ -79,13 +79,12 @@ function defaultDeps() {
  * Flood_D:172 that avoids Otsu's unimodal-histogram bias documented in the
  * reference log).
  */
-async function _resolveThreshold(ee, geeAdapter, deps, {
-    thresholdMode,
-    postCollection,
-    baselineVH,
-    aoi,
-    params,
-}) {
+async function _resolveThreshold(
+    ee,
+    geeAdapter,
+    deps,
+    { thresholdMode, postCollection, baselineVH, aoi, params },
+) {
     if (thresholdMode === 'fixed') {
         return { threshold: params.vhFallbackDb, mode: 'fixed', usedFallback: false };
     }
@@ -154,18 +153,26 @@ async function runSentinel1Flood({
     authoritativeGeoJson = null,
     deps = defaultDeps(),
 } = {}) {
-    if (!ee) {throw new Error('event.index.runSentinel1Flood requires the ee module');}
+    if (!ee) {
+        throw new Error('event.index.runSentinel1Flood requires the ee module');
+    }
     if (!geeAdapter?.evaluate) {
         throw new Error('event.index.runSentinel1Flood requires geeAdapter.evaluate');
     }
-    if (!runConfig) {throw new Error('event.index.runSentinel1Flood requires runConfig');}
+    if (!runConfig) {
+        throw new Error('event.index.runSentinel1Flood requires runConfig');
+    }
     assertValidMode(runMode);
 
     const config = { ...defaultsAndConfig.S1_DEFAULTS, ...runConfig, mode: runMode };
     const thresholds = defaultsAndConfig.S1_THRESHOLDS;
 
     // ── Stage 1: AOI ─────────────────────────────────────────────────
-    const { fc, geometry: aoi, source: aoiSource } = deps.geometry.loadAoi(ee, {
+    const {
+        fc,
+        geometry: aoi,
+        source: aoiSource,
+    } = deps.geometry.loadAoi(ee, {
         authoritativeGeoJson,
     });
     void fc;
@@ -337,10 +344,10 @@ async function runSentinel1Flood({
     });
     const smoothed = deps.morphology.openClose(ee, { mask: trimmed });
     const finalizeBranch = (branchMask) => {
-        if (!branchMask) {return null;}
-        const eligible = branchMask
-            .and(eligibilityMask)
-            .and(miningStack.mask.not());
+        if (!branchMask) {
+            return null;
+        }
+        const eligible = branchMask.and(eligibilityMask).and(miningStack.mask.not());
         const branchTrimmed = deps.morphology.removeSmallFloodObjects(ee, {
             floodMask: eligible,
             minAreaM2: config.minimumAreaM2,
@@ -371,10 +378,18 @@ async function runSentinel1Flood({
         tidal_candidate: tidalFloodCandidate,
         mining_candidate: miningStack.mask,
     };
-    if (config.enableShallowFlood) {artifacts.shallow_flood = shallowFlood;}
-    if (config.enableUrbanDoubleBounce) {artifacts.urban_double_bounce = urbanFlood;}
+    if (config.enableShallowFlood) {
+        artifacts.shallow_flood = shallowFlood;
+    }
+    if (config.enableUrbanDoubleBounce) {
+        artifacts.urban_double_bounce = urbanFlood;
+    }
     // Drop nulls.
-    for (const k of Object.keys(artifacts)) {if (!artifacts[k]) {delete artifacts[k];}}
+    for (const k of Object.keys(artifacts)) {
+        if (!artifacts[k]) {
+            delete artifacts[k];
+        }
+    }
 
     // Optional area metrics — evaluate a small, cheap set (main only) for the
     // metadata JSON. Full statistics belong in M4.
@@ -412,7 +427,9 @@ async function runSentinel1Flood({
         artifacts,
         catalog,
         metadata,
-        diagnostics: shouldEnableDiagnostics({ mode: runMode }) ? { dwCacheSize: dwCache.size() } : null,
+        diagnostics: shouldEnableDiagnostics({ mode: runMode })
+            ? { dwCacheSize: dwCache.size() }
+            : null,
     };
 }
 

@@ -4,14 +4,7 @@
 
 const { ASSETS } = require('../common/datasets');
 
-function assessSurfaceWater(ee, {
-    aoi,
-    period,
-    orbit,
-    sentinel1,
-    slope,
-    config,
-}) {
+function assessSurfaceWater(ee, { aoi, period, orbit, sentinel1, slope, config }) {
     const start = ee.Date(period.start).advance(-config.s2ExtraDays, 'day');
     const end = ee.Date(period.end).advance(config.s2ExtraDays + 1, 'day');
     const cloudScores = ee.ImageCollection(ASSETS.CLOUD_SCORE_PLUS);
@@ -38,10 +31,14 @@ function assessSurfaceWater(ee, {
     const sarDb = s1.median();
     let classified;
     if (config.waterCriterion === 'VV_AND_VH') {
-        classified = sarDb.select('VV').lt(config.waterVVDbFallback)
+        classified = sarDb
+            .select('VV')
+            .lt(config.waterVVDbFallback)
             .and(sarDb.select('VH').lt(config.waterVHDbFallback));
     } else if (config.waterCriterion === 'VV_OR_VH') {
-        classified = sarDb.select('VV').lt(config.waterVVDbFallback)
+        classified = sarDb
+            .select('VV')
+            .lt(config.waterVVDbFallback)
             .or(sarDb.select('VH').lt(config.waterVHDbFallback));
     } else {
         classified = sarDb.select('VH').lt(config.waterVHDbFallback);

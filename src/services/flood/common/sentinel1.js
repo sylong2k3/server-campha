@@ -50,12 +50,20 @@ const S1_COLLECTION_DEFAULTS = Object.freeze({
  * chains keep working.
  */
 function toNatural(ee, image) {
-    if (!ee) {throw new Error('sentinel1.toNatural requires the ee module');}
-    if (!image) {throw new Error('sentinel1.toNatural requires an image');}
+    if (!ee) {
+        throw new Error('sentinel1.toNatural requires the ee module');
+    }
+    if (!image) {
+        throw new Error('sentinel1.toNatural requires an image');
+    }
     return ee
         .Image(10)
         .pow(image.divide(10))
-        .copyProperties(image, ['system:time_start', 'orbitProperties_pass', 'relativeOrbitNumber_start']);
+        .copyProperties(image, [
+            'system:time_start',
+            'orbitProperties_pass',
+            'relativeOrbitNumber_start',
+        ]);
 }
 
 /**
@@ -64,23 +72,22 @@ function toNatural(ee, image) {
  * §15 evidence — extreme values are ambient artefacts, not real backscatter.
  */
 function maskS1Edges(ee, image) {
-    if (!ee) {throw new Error('sentinel1.maskS1Edges requires the ee module');}
-    if (!image) {throw new Error('sentinel1.maskS1Edges requires an image');}
+    if (!ee) {
+        throw new Error('sentinel1.maskS1Edges requires the ee module');
+    }
+    if (!image) {
+        throw new Error('sentinel1.maskS1Edges requires an image');
+    }
 
     const angle = image.select('angle');
-    const angleMask = angle
-        .gte(INCIDENCE_ANGLE_MIN_DEG)
-        .and(angle.lte(INCIDENCE_ANGLE_MAX_DEG));
+    const angleMask = angle.gte(INCIDENCE_ANGLE_MIN_DEG).and(angle.lte(INCIDENCE_ANGLE_MAX_DEG));
 
     const vv = image.select('VV');
     const vh = image.select('VH');
     const vvMask = vv.gte(VV_MIN_DB).and(vv.lte(VV_MAX_DB));
     const vhMask = vh.gte(VH_MIN_DB).and(vh.lte(VH_MAX_DB));
 
-    return image
-        .updateMask(angleMask)
-        .updateMask(vvMask)
-        .updateMask(vhMask);
+    return image.updateMask(angleMask).updateMask(vvMask).updateMask(vhMask);
 }
 
 /**
@@ -89,8 +96,12 @@ function maskS1Edges(ee, image) {
  * classifier still wants the raw angle for QA.
  */
 function filterSpeckle(ee, image, { radiusMeters = SPECKLE_RADIUS_M } = {}) {
-    if (!ee) {throw new Error('sentinel1.filterSpeckle requires the ee module');}
-    if (!image) {throw new Error('sentinel1.filterSpeckle requires an image');}
+    if (!ee) {
+        throw new Error('sentinel1.filterSpeckle requires the ee module');
+    }
+    if (!image) {
+        throw new Error('sentinel1.filterSpeckle requires an image');
+    }
     // Flood_D keeps VV/VH/angle only; other bands are not consumed downstream.
     const vvSmoothed = image
         .select('VV')
@@ -115,8 +126,12 @@ function filterSpeckle(ee, image, { radiusMeters = SPECKLE_RADIUS_M } = {}) {
  * can group + dedupe candidates in a single reduce (Flood_D:1662–1680).
  */
 function addOrbitKey(ee, image) {
-    if (!ee) {throw new Error('sentinel1.addOrbitKey requires the ee module');}
-    if (!image) {throw new Error('sentinel1.addOrbitKey requires an image');}
+    if (!ee) {
+        throw new Error('sentinel1.addOrbitKey requires the ee module');
+    }
+    if (!image) {
+        throw new Error('sentinel1.addOrbitKey requires an image');
+    }
     const pass = image.get('orbitProperties_pass');
     const relOrbit = image.get('relativeOrbitNumber_start');
     return image.set('orbit_key', ee.String(pass).cat('_').cat(ee.Number(relOrbit).format('%d')));
@@ -136,9 +151,15 @@ function addOrbitKey(ee, image) {
  * @returns {object} ee.ImageCollection
  */
 function getS1Collection(ee, { start, end, aoi, pass = 'AUTO', relativeOrbit } = {}) {
-    if (!ee) {throw new Error('sentinel1.getS1Collection requires the ee module');}
-    if (!start || !end) {throw new Error('sentinel1.getS1Collection requires start + end');}
-    if (!aoi) {throw new Error('sentinel1.getS1Collection requires an aoi geometry');}
+    if (!ee) {
+        throw new Error('sentinel1.getS1Collection requires the ee module');
+    }
+    if (!start || !end) {
+        throw new Error('sentinel1.getS1Collection requires start + end');
+    }
+    if (!aoi) {
+        throw new Error('sentinel1.getS1Collection requires an aoi geometry');
+    }
 
     // The API accepts inclusive calendar windows; Earth Engine's filterDate
     // treats the end as exclusive.

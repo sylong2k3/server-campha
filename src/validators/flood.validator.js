@@ -4,8 +4,17 @@ const Joi = require('joi');
 
 const moduleName = Joi.string().valid('event', 'hand', 'rain', 'impact', 'trend');
 const status = Joi.string().valid(
-    'QUEUED', 'COMPUTING', 'EXPORTING', 'HARVESTING', 'VALIDATING',
-    'ARCHIVING', 'PUBLISHING', 'SUCCEEDED', 'FAILED', 'CANCELLED', 'DLQ',
+    'QUEUED',
+    'COMPUTING',
+    'EXPORTING',
+    'HARVESTING',
+    'VALIDATING',
+    'ARCHIVING',
+    'PUBLISHING',
+    'SUCCEEDED',
+    'FAILED',
+    'CANCELLED',
+    'DLQ',
 );
 
 const listSchema = Joi.object({

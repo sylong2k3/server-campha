@@ -148,7 +148,9 @@ describe('flood-artifact.repository', () => {
     describe('publish-status transitions', () => {
         test('setPublishing stamps workspace/store/layer/style (COALESCE)', async () => {
             reset();
-            db.__rootQuery.mockResolvedValueOnce({ rows: [makeRow({ publish_status: 'publishing' })] });
+            db.__rootQuery.mockResolvedValueOnce({
+                rows: [makeRow({ publish_status: 'publishing' })],
+            });
             await repo.setPublishing(1, {
                 workspace: 'campha',
                 coverageStore: 'cp_flood_event_1',
@@ -157,7 +159,13 @@ describe('flood-artifact.repository', () => {
             });
             const [sql, params] = db.__rootQuery.mock.calls[0];
             expect(sql).toMatch(/publish_status\s*=\s*'publishing'/);
-            expect(params).toEqual([1, 'campha', 'cp_flood_event_1', 'cp_flood_event_1', 'flood_main']);
+            expect(params).toEqual([
+                1,
+                'campha',
+                'cp_flood_event_1',
+                'cp_flood_event_1',
+                'flood_main',
+            ]);
         });
 
         test('setPublished stamps published_at=NOW and flips status', async () => {

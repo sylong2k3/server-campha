@@ -18,10 +18,14 @@ const { buildAllLegends } = require('./visualization/legends');
 const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
 
 function canonical(value) {
-    if (Array.isArray(value)) {return value.map(canonical);}
+    if (Array.isArray(value)) {
+        return value.map(canonical);
+    }
     if (value && typeof value === 'object') {
         return Object.fromEntries(
-            Object.keys(value).sort().map((key) => [key, canonical(value[key])]),
+            Object.keys(value)
+                .sort()
+                .map((key) => [key, canonical(value[key])]),
         );
     }
     return value;
@@ -149,7 +153,9 @@ async function cancel(id, actor) {
 
 async function getRun(id) {
     const run = await runRepo.findById(id);
-    if (!run) {throw new Api404Error('Flood run not found', ['FLOOD_RUN_NOT_FOUND']);}
+    if (!run) {
+        throw new Api404Error('Flood run not found', ['FLOOD_RUN_NOT_FOUND']);
+    }
     return run;
 }
 
@@ -227,11 +233,14 @@ async function listPublicRuns(query = {}) {
 
 async function publishArtifact(id, actor) {
     const artifact = await artifactRepo.findById(id);
-    if (!artifact) {throw new Api404Error('Flood artifact not found', ['FLOOD_ARTIFACT_NOT_FOUND']);}
+    if (!artifact) {
+        throw new Api404Error('Flood artifact not found', ['FLOOD_ARTIFACT_NOT_FOUND']);
+    }
     if (!canManuallyPublish(artifact)) {
-        throw new Api409Error('Calibration artifacts cannot be published directly; create a product rerun', [
-            'CALIBRATION_PUBLICATION_FORBIDDEN',
-        ]);
+        throw new Api409Error(
+            'Calibration artifacts cannot be published directly; create a product rerun',
+            ['CALIBRATION_PUBLICATION_FORBIDDEN'],
+        );
     }
     if (!artifact.minio_object_key || !artifact.minio_bucket) {
         throw new Api409Error('Artifact has no durable MinIO archive', ['FLOOD_ARCHIVE_NOT_READY']);
@@ -247,7 +256,9 @@ async function publishArtifact(id, actor) {
     const enqueued = await rasterIngest.enqueue({
         sourceUrl: signed.url,
         sourceKind: 'gee_download_url',
-        layerCode: previousJob?.layer_code || `fl_${artifact.module}_${artifact.artifact_code}_${artifact.id}`,
+        layerCode:
+            previousJob?.layer_code ||
+            `fl_${artifact.module}_${artifact.artifact_code}_${artifact.id}`,
         nameVi: artifact.metadata?.label?.vi || artifact.artifact_code,
         nameEn: artifact.metadata?.label?.en || artifact.artifact_code,
         isPublic: true,
@@ -274,12 +285,16 @@ async function publishArtifact(id, actor) {
 
 async function unpublishArtifact(id, actor) {
     const artifact = await artifactRepo.findById(id);
-    if (!artifact) {throw new Api404Error('Flood artifact not found', ['FLOOD_ARTIFACT_NOT_FOUND']);}
+    if (!artifact) {
+        throw new Api404Error('Flood artifact not found', ['FLOOD_ARTIFACT_NOT_FOUND']);
+    }
     if (artifact.workspace && artifact.layer_name) {
         await geoserver.unpublishLayer(`${artifact.workspace}:${artifact.layer_name}`);
     }
     const job = artifact.ingest_job_id ? await ingestRepo.findById(artifact.ingest_job_id) : null;
-    if (job?.layer_id) {await layerRepo.setPublishState(job.layer_id, 'unpublished');}
+    if (job?.layer_id) {
+        await layerRepo.setPublishState(job.layer_id, 'unpublished');
+    }
     const updated = await artifactRepo.setUnpublished(id);
     await runRepo.insertAudit({
         analysisRunId: artifact.analysis_run_id,
@@ -293,22 +308,33 @@ async function unpublishArtifact(id, actor) {
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
     const modules = ['event', 'hand', 'rain', 'impact', 'trend'];
-    const latest = await Promise.all(modules.map((module) => runRepo.findLatestByModule(module, {
-        mode,
-        onlySucceeded,
-    })));
+    const latest = await Promise.all(
+        modules.map((module) =>
+            runRepo.findLatestByModule(module, {
+                mode,
+                onlySucceeded,
+            }),
+        ),
+    );
     const layers = await listPublished({ limit: 100 });
     return {
-        modules: Object.fromEntries(modules.map((module, index) => {
-            const run = latest[index];
-            return [module, run ? {
-                id: run.id,
-                status: run.status,
-                finishedAt: run.finished_at,
-                metadata: run.result_metadata,
-                warnings: run.warnings,
-            } : null];
-        })),
+        modules: Object.fromEntries(
+            modules.map((module, index) => {
+                const run = latest[index];
+                return [
+                    module,
+                    run
+                        ? {
+                              id: run.id,
+                              status: run.status,
+                              finishedAt: run.finished_at,
+                              metadata: run.result_metadata,
+                              warnings: run.warnings,
+                          }
+                        : null,
+                ];
+            }),
+        ),
         layers: layers.items,
     };
 }

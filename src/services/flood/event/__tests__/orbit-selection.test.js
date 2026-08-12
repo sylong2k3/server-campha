@@ -10,10 +10,12 @@ const {
 // Bare-minimum ee stub — orbit-selection only uses aggregate_array + reduce.
 const makeEe = () => {
     const calls = [];
-    const record = (name) => (...args) => {
-        calls.push({ name, args });
-        return { aggregate_array: () => ({ reduce: () => ({}) }) };
-    };
+    const record =
+        (name) =>
+        (...args) => {
+            calls.push({ name, args });
+            return { aggregate_array: () => ({ reduce: () => ({}) }) };
+        };
     return {
         Reducer: { frequencyHistogram: record('Reducer.frequencyHistogram') },
         calls,
@@ -56,21 +58,11 @@ describe('parseOrbitKey', () => {
 
 describe('pickBestOrbitFromCounts', () => {
     test('returns null when the two histograms share no keys', () => {
-        expect(
-            pickBestOrbitFromCounts(
-                { ASCENDING_76: 3 },
-                { DESCENDING_54: 2 },
-            ),
-        ).toBeNull();
+        expect(pickBestOrbitFromCounts({ ASCENDING_76: 3 }, { DESCENDING_54: 2 })).toBeNull();
     });
 
     test('returns null when the only shared key has zero on one side', () => {
-        expect(
-            pickBestOrbitFromCounts(
-                { ASCENDING_76: 0 },
-                { ASCENDING_76: 2 },
-            ),
-        ).toBeNull();
+        expect(pickBestOrbitFromCounts({ ASCENDING_76: 0 }, { ASCENDING_76: 2 })).toBeNull();
     });
 
     test('prefers higher balance (min(pre,post))', () => {
@@ -108,8 +100,8 @@ describe('pickBestOrbitFromCounts', () => {
 
     test('skips malformed orbit_key entries defensively', () => {
         const res = pickBestOrbitFromCounts(
-            { 'BAD_KEY': 5, ASCENDING_76: 3 },
-            { 'BAD_KEY': 5, ASCENDING_76: 3 },
+            { BAD_KEY: 5, ASCENDING_76: 3 },
+            { BAD_KEY: 5, ASCENDING_76: 3 },
         );
         // BAD_KEY parses to non-integer suffix (KEY) → skipped; ASCENDING_76 wins by default
         expect(res.orbitKey).toBe('ASCENDING_76');
@@ -188,7 +180,9 @@ describe('listOrbitCandidates', () => {
         const ee = makeEe();
         await expect(listOrbitCandidates(ee, {})).rejects.toThrow(/collection/);
         await expect(
-            listOrbitCandidates(ee, { collection: { aggregate_array: () => ({ reduce: () => ({}) }) } }),
+            listOrbitCandidates(ee, {
+                collection: { aggregate_array: () => ({ reduce: () => ({}) }) },
+            }),
         ).rejects.toThrow(/geeAdapter/);
     });
 });

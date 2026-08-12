@@ -36,8 +36,12 @@ const assertValidMode = (mode) => {
  * @returns {boolean}
  */
 const canAutoPublish = (run) => {
-    if (!run || run.mode !== 'product') {return false;}
-    if (run.status && run.status !== 'SUCCEEDED') {return false;}
+    if (!run || run.mode !== 'product') {
+        return false;
+    }
+    if (run.status && run.status !== 'SUCCEEDED') {
+        return false;
+    }
     return true;
 };
 
@@ -46,7 +50,9 @@ const canAutoPublish = (run) => {
  * artifacts that an admin may still publish manually.
  */
 const canManuallyPublish = (artifact) => {
-    if (!artifact) {return false;}
+    if (!artifact) {
+        return false;
+    }
     // architecture doc §69: calibration artifacts require a distinct approval
     // path; here we only expose whether *any* publication is theoretically
     // allowed for this artifact_role.

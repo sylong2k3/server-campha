@@ -21,10 +21,11 @@ const path = require('path');
 const cfg = require('../configs/raster-ingest');
 const geoserverClient = require('../utils/geoserver.client');
 
-const DEBUG =
-    process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const DEBUG = process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
 const dbg = (tag, msg) => {
-    if (DEBUG) {console.debug(`[RASTER-INGEST:${tag}] ${new Date().toISOString()} — ${msg}`);}
+    if (DEBUG) {
+        console.debug(`[RASTER-INGEST:${tag}] ${new Date().toISOString()} — ${msg}`);
+    }
 };
 
 // Repository interface expected by upsertRasterLayer(). Callers inject an
@@ -70,9 +71,10 @@ async function publishToGeoServer({ storeName, cogPath, params }, deps = {}) {
         );
     }
 
-    const publishCategory = params?.bucketCategory === 'forest-classification'
-        ? 'forest-classification'
-        : 'flood-rasters';
+    const publishCategory =
+        params?.bucketCategory === 'forest-classification'
+            ? 'forest-classification'
+            : 'flood-rasters';
     const publishDir = path.join(gsDataDir, publishCategory);
     const publishPath = path.join(publishDir, `${storeName}.tif`);
     await fsp.mkdir(publishDir, { recursive: true });
@@ -224,23 +226,26 @@ async function upsertRasterLayer(
  * types are skipped; in particular this migration does not restore Fire Risk.
  */
 async function backLinkResource(linked, ctx, deps = {}) {
-    if (!linked?.type || !linked?.id) {return { skipped: true };}
+    if (!linked?.type || !linked?.id) {
+        return { skipped: true };
+    }
     const db = deps.db || require('../configs/database');
 
     if (!['flood_artifact', 'forest_district'].includes(linked.type)) {
-        console.warn(
-            `[RASTER-INGEST] backLink unsupported type=${linked.type}`,
-        );
+        console.warn(`[RASTER-INGEST] backLink unsupported type=${linked.type}`);
         return { skipped: true };
     }
 
     if (linked.type === 'forest_district') {
         const snapshotId = Number(linked.id);
         const districtCode = String(linked.districtCode || '').trim();
-        if (!Number.isFinite(snapshotId) || !districtCode) {return { skipped: true };}
-        const archivedKey = ctx.minioCategory && ctx.minioKey
-            ? `${ctx.minioCategory}/${ctx.minioKey}`
-            : ctx.minioKey || null;
+        if (!Number.isFinite(snapshotId) || !districtCode) {
+            return { skipped: true };
+        }
+        const archivedKey =
+            ctx.minioCategory && ctx.minioKey
+                ? `${ctx.minioCategory}/${ctx.minioKey}`
+                : ctx.minioKey || null;
         const result = await db.query(
             `UPDATE forest.forest_district_exports
                 SET status = CASE WHEN $7 THEN 'published' ELSE 'completed' END,
@@ -291,7 +296,9 @@ async function backLinkResource(linked, ctx, deps = {}) {
         return { rowCount: result?.rowCount || 0 };
     }
     const artifactId = Number(linked.id);
-    if (!Number.isFinite(artifactId)) {return { skipped: true };}
+    if (!Number.isFinite(artifactId)) {
+        return { skipped: true };
+    }
 
     const [workspace, layerNameWithoutWorkspace] =
         String(ctx.geoserverLayer || '').split(':', 2).length === 2
@@ -354,8 +361,8 @@ async function backLinkResource(linked, ctx, deps = {}) {
 
 async function markBackLinkFailed(linked, error, deps = {}) {
     if (
-        !['flood_artifact', 'forest_district'].includes(linked?.type)
-        || !Number.isFinite(Number(linked.id))
+        !['flood_artifact', 'forest_district'].includes(linked?.type) ||
+        !Number.isFinite(Number(linked.id))
     ) {
         return { skipped: true };
     }
@@ -365,7 +372,9 @@ async function markBackLinkFailed(linked, error, deps = {}) {
         .slice(0, 500);
     if (linked.type === 'forest_district') {
         const districtCode = String(linked.districtCode || '').trim();
-        if (!districtCode) {return { skipped: true };}
+        if (!districtCode) {
+            return { skipped: true };
+        }
         return db.query(
             `UPDATE forest.forest_district_exports
                 SET status = 'failed', error_message = $3, updated_at = NOW()

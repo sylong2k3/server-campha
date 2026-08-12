@@ -22,17 +22,20 @@ const { Api400Error, Api503Error } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
 const { hashToken } = require('../utils/cryptoHelper.util');
 
-const DEBUG =
-    process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const DEBUG = process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
 const dbg = (msg) => {
-    if (DEBUG) {console.debug(`[RASTER-INGEST:ENQUEUE] ${msg}`);}
+    if (DEBUG) {
+        console.debug(`[RASTER-INGEST:ENQUEUE] ${msg}`);
+    }
 };
 
 /**
  * Log-safe URL — never emits the query string (which may carry GEE tokens).
  */
 function safeUrl(url) {
-    if (!url) {return '';}
+    if (!url) {
+        return '';
+    }
     try {
         const u = new URL(url);
         return `${u.protocol}//${u.host}${u.pathname.slice(0, 40)}…`;
@@ -55,9 +58,7 @@ function validateInput({ sourceUrl, layerCode, lang }) {
         throw new Api400Error(t('raster_ingest_invalid_url', lang), ['INVALID_SOURCE_URL']);
     }
     if (!layerCode || !VALID_LAYER_CODE.test(layerCode)) {
-        throw new Api400Error(t('raster_ingest_invalid_layer_code', lang), [
-            'INVALID_LAYER_CODE',
-        ]);
+        throw new Api400Error(t('raster_ingest_invalid_layer_code', lang), ['INVALID_LAYER_CODE']);
     }
 }
 
@@ -116,16 +117,14 @@ async function enqueue(args, opts = {}) {
     validateInput({ sourceUrl, layerCode, lang });
 
     if (!rasterRepo) {
-        throw new Api503Error(
-            'raster_ingest_jobs repository not yet installed on this server',
-            ['MAP_STORAGE_NOT_READY'],
-        );
+        throw new Api503Error('raster_ingest_jobs repository not yet installed on this server', [
+            'MAP_STORAGE_NOT_READY',
+        ]);
     }
     if (!db?.pool?.connect) {
-        throw new Api503Error(
-            'Database pool is not available for raster-ingest.enqueue',
-            ['DB_UNAVAILABLE'],
-        );
+        throw new Api503Error('Database pool is not available for raster-ingest.enqueue', [
+            'DB_UNAVAILABLE',
+        ]);
     }
 
     const sourceHash = hashToken(sourceUrl);
@@ -190,9 +189,7 @@ async function enqueue(args, opts = {}) {
         if (err?.code === '23505') {
             const raced = await rasterRepo.findActiveBySourceHash(sourceHash);
             if (raced) {
-                console.info(
-                    `[RASTER-INGEST] DEDUPE race → job=${raced.id} layer=${layerCode}`,
-                );
+                console.info(`[RASTER-INGEST] DEDUPE race → job=${raced.id} layer=${layerCode}`);
                 return { job: raced, deduplicated: true };
             }
         }

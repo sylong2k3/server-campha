@@ -32,8 +32,7 @@ const PER_KIND_RSS_MB = Object.freeze({
     rain: Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_RAIN, 10) || 1024,
     impact: Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_IMPACT, 10) || 768,
     trend: Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_TREND, 10) || 3072,
-    'forest-classification':
-        Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_FOREST, 10) || 3072,
+    'forest-classification': Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_FOREST, 10) || 3072,
 });
 
 const CHILD_TIMEOUT_MS = Math.max(
@@ -73,7 +72,9 @@ const run = ({ kind, payload } = {}) =>
         const rssLimitMb = resolveRssLimit(kind);
         const oldSpaceMb = resolveOldSpaceMb(rssLimitMb);
         const execArgv = process.execArgv
-            .filter((arg) => !arg.startsWith('--inspect') && !arg.startsWith('--max-old-space-size'))
+            .filter(
+                (arg) => !arg.startsWith('--inspect') && !arg.startsWith('--max-old-space-size'),
+            )
             .concat(`--max-old-space-size=${oldSpaceMb}`);
 
         const child = fork(CHILD_PATH, [], {
@@ -99,11 +100,15 @@ const run = ({ kind, payload } = {}) =>
 
         const clearWatchdogs = () => {
             clearTimeout(timeoutTimer);
-            if (forceKillTimer) {clearTimeout(forceKillTimer);}
+            if (forceKillTimer) {
+                clearTimeout(forceKillTimer);
+            }
         };
 
         const terminate = (error) => {
-            if (watchdogError) {return;}
+            if (watchdogError) {
+                return;
+            }
             watchdogError = error;
             console.error(
                 `[GEE-CHILD] terminating kind=${kind} pid=${child.pid || '-'}: ${error.message}`,
@@ -134,10 +139,7 @@ const run = ({ kind, payload } = {}) =>
                 const heapUsedBytes = Number(message.heapUsed) || 0;
                 peakRssBytes = Math.max(peakRssBytes, rssBytes);
                 peakHeapUsedBytes = Math.max(peakHeapUsedBytes, heapUsedBytes);
-                if (
-                    !memoryWarningLogged &&
-                    rssMb >= rssLimitMb * (CHILD_MEMORY_WARN_PCT / 100)
-                ) {
+                if (!memoryWarningLogged && rssMb >= rssLimitMb * (CHILD_MEMORY_WARN_PCT / 100)) {
                     memoryWarningLogged = true;
                     console.warn(
                         `[GEE-CHILD] memory warning kind=${kind} pid=${child.pid || '-'} ` +
@@ -178,16 +180,29 @@ const run = ({ kind, payload } = {}) =>
                     `peakHeap=${(peakHeapUsedBytes / (1024 * 1024)).toFixed(0)}MB ` +
                     `elapsed=${Date.now() - startedAt}ms`,
             );
-            if (settled) {return;}
+            if (settled) {
+                return;
+            }
             settled = true;
-            if (watchdogError) {return reject(watchdogError);}
-            if (spawnError) {return reject(spawnError);}
-            if (response?.type === 'result' && code === 0) {return resolve(response.result);}
+            if (watchdogError) {
+                return reject(watchdogError);
+            }
+            if (spawnError) {
+                return reject(spawnError);
+            }
+            if (response?.type === 'result' && code === 0) {
+                return resolve(response.result);
+            }
             const detail =
-                response?.error || `GEE child exited code=${code ?? 'null'} signal=${signal || 'none'}`;
+                response?.error ||
+                `GEE child exited code=${code ?? 'null'} signal=${signal || 'none'}`;
             const error = new Error(detail);
-            if (response?.stack) {error.stack = response.stack;}
-            if (response?.code) {error.code = response.code;}
+            if (response?.stack) {
+                error.stack = response.stack;
+            }
+            if (response?.code) {
+                error.code = response.code;
+            }
             reject(error);
         });
 
@@ -197,7 +212,9 @@ const run = ({ kind, payload } = {}) =>
                 `timeout=${Math.round(CHILD_TIMEOUT_MS / 60000)}m`,
         );
         child.send({ kind, payload }, (error) => {
-            if (!error) {return;}
+            if (!error) {
+                return;
+            }
             error.code = error.code || 'GEE_CHILD_IPC_SEND_FAILED';
             terminate(error);
         });

@@ -53,9 +53,7 @@ const M4_QA_ARTIFACTS = Object.freeze([
     },
 ]);
 
-const CODE_TO_ARTIFACT = Object.freeze(
-    Object.fromEntries(M4_QA_ARTIFACTS.map((a) => [a.code, a])),
-);
+const CODE_TO_ARTIFACT = Object.freeze(Object.fromEntries(M4_QA_ARTIFACTS.map((a) => [a.code, a])));
 
 function selectM4Artifacts({ runMode = 'product' } = {}) {
     return M4_QA_ARTIFACTS.map((a) => ({
@@ -94,7 +92,9 @@ function buildM4ResultMetadata({
         sourceType: sourceType || null,
         sourceRunId: Number.isFinite(sourceRunId) ? sourceRunId : null,
         floodAreaHa: Number.isFinite(floodAreaHa) ? floodAreaHa : null,
-        affectedPopulation: Number.isFinite(affectedPopulation) ? Math.round(affectedPopulation) : null,
+        affectedPopulation: Number.isFinite(affectedPopulation)
+            ? Math.round(affectedPopulation)
+            : null,
         affectedCroplandHa: Number.isFinite(affectedCroplandHa) ? affectedCroplandHa : null,
         affectedBuiltHa: Number.isFinite(affectedBuiltHa) ? affectedBuiltHa : null,
         landcoverBreakdown: Array.isArray(landcoverBreakdown) ? landcoverBreakdown : [],

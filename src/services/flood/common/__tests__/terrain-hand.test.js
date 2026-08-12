@@ -11,15 +11,27 @@ const { ASSETS } = require('../datasets');
  */
 const makeEe = () => {
     const calls = [];
-    const record = (name) => (...args) => {
-        calls.push({ name, args });
-        return makeChain(name);
-    };
+    const record =
+        (name) =>
+        (...args) => {
+            calls.push({ name, args });
+            return makeChain(name);
+        };
     const makeChain = (parent) => {
         const chain = {};
         for (const m of [
-            'select', 'mosaic', 'rename', 'add', 'log', 'divide',
-            'multiply', 'tan', 'max', 'sin', 'cos', 'first',
+            'select',
+            'mosaic',
+            'rename',
+            'add',
+            'log',
+            'divide',
+            'multiply',
+            'tan',
+            'max',
+            'sin',
+            'cos',
+            'first',
         ]) {
             chain[m] = record(`${parent}.${m}`);
         }
@@ -110,7 +122,9 @@ describe('hand.js', () => {
         hand.handImage(ee);
         // ee.Image(MERIT).select('hnd').rename('HAND')
         expect(ee.calls.some((c) => c.name === 'Image.select' && c.args[0] === 'hnd')).toBe(true);
-        expect(ee.calls.some((c) => c.name === 'Image.select.rename' && c.args[0] === 'HAND')).toBe(true);
+        expect(ee.calls.some((c) => c.name === 'Image.select.rename' && c.args[0] === 'HAND')).toBe(
+            true,
+        );
     });
 
     test('upaImage selects and renames the "upa" band', () => {
@@ -128,9 +142,15 @@ describe('hand.js', () => {
     test('twiImage applies tan(slope in radians).max(0.001) guard', () => {
         const ee = makeEe();
         const slopeDeg = {
-            multiply: jest.fn(function () { return this; }),
-            tan: jest.fn(function () { return this; }),
-            max: jest.fn(function () { return this; }),
+            multiply: jest.fn(function () {
+                return this;
+            }),
+            tan: jest.fn(function () {
+                return this;
+            }),
+            max: jest.fn(function () {
+                return this;
+            }),
         };
         hand.twiImage(ee, slopeDeg);
         expect(slopeDeg.multiply).toHaveBeenCalledWith(Math.PI / 180);
@@ -141,9 +161,15 @@ describe('hand.js', () => {
     test('buildHandStack returns hand + upa + twi + flowDirection', () => {
         const ee = makeEe();
         const slopeDeg = {
-            multiply: jest.fn(function () { return this; }),
-            tan: jest.fn(function () { return this; }),
-            max: jest.fn(function () { return this; }),
+            multiply: jest.fn(function () {
+                return this;
+            }),
+            tan: jest.fn(function () {
+                return this;
+            }),
+            max: jest.fn(function () {
+                return this;
+            }),
         };
         const stack = hand.buildHandStack(ee, slopeDeg);
         expect(stack.hand).toBeDefined();

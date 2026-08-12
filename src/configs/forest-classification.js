@@ -30,69 +30,69 @@ require('dotenv').config({ quiet: true });
 //   dry    = cửa sổ khô đỉnh (Mar–Apr, cao su ĐÃ ra lá lại)
 //   defol  = cửa sổ trơ cành cao su (Jan–Feb)
 //   recent = 3 tháng gần nhất
-const WIN_BASE_MONTHS   = parseInt(process.env.FC_WIN_BASE_MONTHS,   10) || 12;
+const WIN_BASE_MONTHS = parseInt(process.env.FC_WIN_BASE_MONTHS, 10) || 12;
 const WIN_RECENT_MONTHS = parseInt(process.env.FC_WIN_RECENT_MONTHS, 10) || 3;
-const WIN_GREEN_START   = parseInt(process.env.FC_WIN_GREEN_START,   10) || 9;
-const WIN_GREEN_END     = parseInt(process.env.FC_WIN_GREEN_END,     10) || 11;
-const WIN_DRY_START     = parseInt(process.env.FC_WIN_DRY_START,     10) || 3;
-const WIN_DRY_END       = parseInt(process.env.FC_WIN_DRY_END,       10) || 4;
-const WIN_DEFOL_START   = parseInt(process.env.FC_WIN_DEFOL_START,   10) || 1;
-const WIN_DEFOL_END     = parseInt(process.env.FC_WIN_DEFOL_END,     10) || 2;
+const WIN_GREEN_START = parseInt(process.env.FC_WIN_GREEN_START, 10) || 9;
+const WIN_GREEN_END = parseInt(process.env.FC_WIN_GREEN_END, 10) || 11;
+const WIN_DRY_START = parseInt(process.env.FC_WIN_DRY_START, 10) || 3;
+const WIN_DRY_END = parseInt(process.env.FC_WIN_DRY_END, 10) || 4;
+const WIN_DEFOL_START = parseInt(process.env.FC_WIN_DEFOL_START, 10) || 1;
+const WIN_DEFOL_END = parseInt(process.env.FC_WIN_DEFOL_END, 10) || 2;
 
 // ── Legacy month bounds (giữ để backwards-compat với satellite util) ─────────
 const BASE_START_MONTH = parseInt(process.env.FC_BASE_START_MONTH, 10) || 1;
-const BASE_END_MONTH   = parseInt(process.env.FC_BASE_END_MONTH,   10) || 12;
-const DRY_START_MONTH  = parseInt(process.env.FC_DRY_START_MONTH,  10) || WIN_DRY_START;
-const DRY_END_MONTH    = parseInt(process.env.FC_DRY_END_MONTH,    10) || WIN_DRY_END;
-const WET_START_MONTH  = parseInt(process.env.FC_WET_START_MONTH,  10) || WIN_GREEN_START;
-const WET_END_MONTH    = parseInt(process.env.FC_WET_END_MONTH,    10) || WIN_GREEN_END;
+const BASE_END_MONTH = parseInt(process.env.FC_BASE_END_MONTH, 10) || 12;
+const DRY_START_MONTH = parseInt(process.env.FC_DRY_START_MONTH, 10) || WIN_DRY_START;
+const DRY_END_MONTH = parseInt(process.env.FC_DRY_END_MONTH, 10) || WIN_DRY_END;
+const WET_START_MONTH = parseInt(process.env.FC_WET_START_MONTH, 10) || WIN_GREEN_START;
+const WET_END_MONTH = parseInt(process.env.FC_WET_END_MONTH, 10) || WIN_GREEN_END;
 
 // ── Scales (v4.1 mặc định 200 m cho sample + display) ────────────────────────
 // v4.1 SCALE_SAMPLE = 200 m để đồ thị GEE ổn định. SCALE_RARE=100m dùng cho
 // lớp có diện tích < 20.000 ha để đảm bảo đủ mẫu.
-const SAMPLE_SCALE_M      = parseInt(process.env.FC_SAMPLE_SCALE_M,      10) || 100;
+const SAMPLE_SCALE_M = parseInt(process.env.FC_SAMPLE_SCALE_M, 10) || 100;
 const SAMPLE_SCALE_RARE_M = parseInt(process.env.FC_SAMPLE_SCALE_RARE_M, 10) || 60;
-const CLASSIFY_SCALE_M    = parseInt(process.env.FC_CLASSIFY_SCALE_M,    10) || 30;
-const AREA_STATS_SCALE_M  = parseInt(process.env.FC_AREA_STATS_SCALE_M,  10) || 100;
-const DISPLAY_SCALE_M     = parseInt(process.env.FC_DISPLAY_SCALE_M,     10) || 200;
-const PIN_DISPLAY_SCALE   = process.env.FC_PIN_DISPLAY !== 'false';
+const CLASSIFY_SCALE_M = parseInt(process.env.FC_CLASSIFY_SCALE_M, 10) || 30;
+const AREA_STATS_SCALE_M = parseInt(process.env.FC_AREA_STATS_SCALE_M, 10) || 100;
+const DISPLAY_SCALE_M = parseInt(process.env.FC_DISPLAY_SCALE_M, 10) || 200;
+const PIN_DISPLAY_SCALE = process.env.FC_PIN_DISPLAY !== 'false';
 
 // ── Random Forest (v4.1: 100 trees, min-leaf 3) ──────────────────────────────
-const RF_TREES               = parseInt(process.env.FC_RF_TREES,        10) || 100;
-const RF_VARIABLES_PER_SPLIT = parseInt(process.env.FC_RF_VARS_SPLIT,   10) || 6;
-const RF_MIN_LEAF_POPULATION = parseInt(process.env.FC_RF_MIN_LEAF,     10) || 3;
-const RF_BAG_FRACTION        = parseFloat(process.env.FC_RF_BAG_FRACTION)   || 0.70;
+const RF_TREES = parseInt(process.env.FC_RF_TREES, 10) || 100;
+const RF_VARIABLES_PER_SPLIT = parseInt(process.env.FC_RF_VARS_SPLIT, 10) || 6;
+const RF_MIN_LEAF_POPULATION = parseInt(process.env.FC_RF_MIN_LEAF, 10) || 3;
+const RF_BAG_FRACTION = parseFloat(process.env.FC_RF_BAG_FRACTION) || 0.7;
 
 // ── Sampling budget + quotas (v4.1: sqrt(area) + min/max clamp) ──────────────
-const SAMPLE_BUDGET       = parseInt(process.env.FC_SAMPLE_BUDGET,       10) || 1800;
-const SAMPLE_MIN          = parseInt(process.env.FC_SAMPLE_MIN,          10) || 60;
-const SAMPLE_MAX          = parseInt(process.env.FC_SAMPLE_MAX,          10) || 450;
+const SAMPLE_BUDGET = parseInt(process.env.FC_SAMPLE_BUDGET, 10) || 1800;
+const SAMPLE_MIN = parseInt(process.env.FC_SAMPLE_MIN, 10) || 60;
+const SAMPLE_MAX = parseInt(process.env.FC_SAMPLE_MAX, 10) || 450;
 const MIN_TRAIN_PER_CLASS = parseInt(process.env.FC_MIN_TRAIN_PER_CLASS, 10) || 40;
 // Số lớp tối thiểu có đủ mẫu để RF được train. Dưới ngưỡng này chỉ xuất
 // nhãn ngưỡng (không train RF) để tránh model degenerate.
-const GATE_NO_TRAIN       = parseInt(process.env.FC_GATE_NO_TRAIN,       10) || 8;
+const GATE_NO_TRAIN = parseInt(process.env.FC_GATE_NO_TRAIN, 10) || 8;
 
 // v3 compat — không dùng trong pipeline v4.1 nhưng vẫn giữ để không đổi API
 // công cộng của config module.
-const SAMPLES_PER_CLASS   = parseInt(process.env.FC_SAMPLES_PER_CLASS,   10) || 100;
+const SAMPLES_PER_CLASS = parseInt(process.env.FC_SAMPLES_PER_CLASS, 10) || 100;
 
 // ── Ground-truth spatial split (v4.1: KHÔNG random điểm) ─────────────────────
 // v4.1 chia GT theo KHỐI KHÔNG GIAN — random điểm khiến train/test cùng lô,
 // cùng cây, cách nhau vài chục mét → accuracy "ảo".
-const GT_BLOCK_M          = parseInt(process.env.FC_GT_BLOCK_M,      10) || 5000;
-const GT_TRAIN_FRAC       = parseFloat(process.env.FC_GT_TRAIN_FRAC)      || 0.7;
-const GT_BUFFER_M         = parseInt(process.env.FC_GT_BUFFER_M,     10) || 150;
+const GT_BLOCK_M = parseInt(process.env.FC_GT_BLOCK_M, 10) || 5000;
+const GT_TRAIN_FRAC = parseFloat(process.env.FC_GT_TRAIN_FRAC) || 0.7;
+const GT_BUFFER_M = parseInt(process.env.FC_GT_BUFFER_M, 10) || 150;
 
 // ── GEE runtime tuning (v4.1: TILE_SCALE 4, cloud pre-filter) ────────────────
-const TILE_SCALE          = parseInt(process.env.FC_TILE_SCALE,      10) || 8;
-const MAX_LS_CLOUD        = parseInt(process.env.FC_MAX_LS_CLOUD,    10) || 70;
-const MAX_S2_CLOUD        = parseInt(process.env.FC_MAX_S2_CLOUD,    10) || 50;
+const TILE_SCALE = parseInt(process.env.FC_TILE_SCALE, 10) || 8;
+const MAX_LS_CLOUD = parseInt(process.env.FC_MAX_LS_CLOUD, 10) || 70;
+const MAX_S2_CLOUD = parseInt(process.env.FC_MAX_S2_CLOUD, 10) || 50;
 // Texture chỉ nên bật cho vùng nhỏ (< 100 km²) vì reduceNeighborhood đắt.
-const USE_TEXTURE         = process.env.FC_USE_TEXTURE === 'true';
-const USE_DW_BUILT        = process.env.FC_USE_DW_BUILT !== 'false';
-const DW_BUILT_MIN        = parseFloat(process.env.FC_DW_BUILT_MIN) || 0.12;
-const OTHER_LAND_ASSET    = process.env.FC_OTHER_LAND_ASSET || '';
-const MIN_SCORE           = parseFloat(process.env.FC_MIN_SCORE) || 0.70;
+const USE_TEXTURE = process.env.FC_USE_TEXTURE === 'true';
+const USE_DW_BUILT = process.env.FC_USE_DW_BUILT !== 'false';
+const DW_BUILT_MIN = parseFloat(process.env.FC_DW_BUILT_MIN) || 0.12;
+const OTHER_LAND_ASSET = process.env.FC_OTHER_LAND_ASSET || '';
+const MIN_SCORE = parseFloat(process.env.FC_MIN_SCORE) || 0.7;
 
 // ── 13-class schema: 0 no-data, 1-11 land cover, 12 unknown ──────────────────
 const CLASS_NAMES = [
@@ -112,14 +112,26 @@ const CLASS_NAMES = [
 ];
 
 const CLASS_PALETTE = [
-    '#D9D9D9', '#FFBEE8', '#FFEBB0', '#F0E442', '#FEFF73',
-    '#AAFF03', '#D0FF73', '#E7E600', '#4DE600', '#FFAA01',
-    '#73B2FF', '#55FF00', '#8C8C8C',
+    '#D9D9D9',
+    '#FFBEE8',
+    '#FFEBB0',
+    '#F0E442',
+    '#FEFF73',
+    '#AAFF03',
+    '#D0FF73',
+    '#E7E600',
+    '#4DE600',
+    '#FFAA01',
+    '#73B2FF',
+    '#55FF00',
+    '#8C8C8C',
 ];
 
 // AREA_PRIOR (ha) từ QĐ 99/QĐ-UBND 28/02/2025 — dùng để phân bổ quota mẫu
 // theo sqrt(diện tích). Index tương ứng với ID lớp 0-10.
-const AREA_PRIOR = [0, 58775, 115311, 181136, 15881, 448517, 13337, 516, 74101, 23839, 9035, 26971, 8000];
+const AREA_PRIOR = [
+    0, 58775, 115311, 181136, 15881, 448517, 13337, 516, 74101, 23839, 9035, 26971, 8000,
+];
 
 // Lớp 6 (rừng lá rộng rụng lá) chỉ có 515,55 ha ≈ 13 pixel ở 200 m — tùy chọn.
 // Đủ 10 lớp bắt buộc thì mới xuất diện tích chính thức.
@@ -148,7 +160,7 @@ const TREE_DOMINATED_CLASS_IDS = [2, 4, 5, 6, 7, 8, 9];
 // TM/ETM+ → OLI hệ số cho 6 band [blue, green, red, nir, swir1, swir2].
 // Không có bước này thì chuỗi 1991→nay gãy tại 2013 (chuyển L7→L8).
 const ROY_SLOPE = [0.8474, 0.8483, 0.9047, 0.8462, 0.8937, 0.9071];
-const ROY_ITCP  = [0.0003, 0.0088, 0.0061, 0.0412, 0.0254, 0.0172];
+const ROY_ITCP = [0.0003, 0.0088, 0.0061, 0.0412, 0.0254, 0.0172];
 
 // FALLBACK reflectance (áp cuối chuỗi — tránh NaN lan sang mọi chỉ số).
 const FALLBACK_REFLECTANCE = [0.045, 0.065, 0.055, 0.28, 0.16, 0.085];
@@ -160,9 +172,9 @@ const CRON = process.env.FC_CRON || '0 0 1 * *';
 const ALERT_FOREST_CHANGE_PCT = parseFloat(process.env.FC_ALERT_CHANGE_PCT) || 2.0;
 
 // ── GCS export ───────────────────────────────────────────────────────────────
-const GCS_BUCKET    = process.env.GEE_GCS_BUCKET || '';
-const GCS_KEY_FILE  = process.env.GOOGLE_APPLICATION_CREDENTIALS || '';
-const MINIO_BUCKET  = process.env.FC_MINIO_BUCKET || 'forest-classification';
+const GCS_BUCKET = process.env.GEE_GCS_BUCKET || '';
+const GCS_KEY_FILE = process.env.GOOGLE_APPLICATION_CREDENTIALS || '';
+const MINIO_BUCKET = process.env.FC_MINIO_BUCKET || 'forest-classification';
 const EXPORT_SCALE_M = parseInt(process.env.FC_EXPORT_SCALE_M, 10) || 150;
 // DOWNLOAD_SCALE_M — mặc định 150m (fallback từ 100m sau khi huyện lớn như
 // Đăk Glei/Sa Thầy hit HTTP 400 "User memory limit exceeded" của GEE khi
@@ -196,10 +208,11 @@ const OOB_TIMEOUT_MS = parseInt(process.env.FC_OOB_TIMEOUT_MS, 10) || 10 * 60 * 
 // v4.1 base pipeline đã nhẹ hơn v3 rất nhiều (200 m sample, 100 trees, 1 master
 // collection). Lite mode chỉ dùng để bỏ external priors (WorldCover epoch,
 // JRC water) và giảm sample budget khoảng 30 %.
-const LITE_SAMPLE_BUDGET     = parseInt(process.env.FC_LITE_SAMPLE_BUDGET,     10) || Math.round(SAMPLE_BUDGET * 0.7);
+const LITE_SAMPLE_BUDGET =
+    parseInt(process.env.FC_LITE_SAMPLE_BUDGET, 10) || Math.round(SAMPLE_BUDGET * 0.7);
 const LITE_SAMPLES_PER_CLASS = parseInt(process.env.FC_LITE_SAMPLES_PER_CLASS, 10) || 30;
-const LITE_SAMPLE_SCALE_M    = parseInt(process.env.FC_LITE_SAMPLE_SCALE_M,    10) || SAMPLE_SCALE_M;
-const LITE_RF_TREES          = parseInt(process.env.FC_LITE_RF_TREES,          10) || 80;
+const LITE_SAMPLE_SCALE_M = parseInt(process.env.FC_LITE_SAMPLE_SCALE_M, 10) || SAMPLE_SCALE_M;
+const LITE_RF_TREES = parseInt(process.env.FC_LITE_RF_TREES, 10) || 80;
 const LITE_USE_DATASET_LABELS = process.env.FC_LITE_USE_DATASET_LABELS === 'true';
 
 const isGcsConfigured = () => Boolean(GCS_BUCKET);
@@ -243,7 +256,7 @@ module.exports = {
     SAMPLE_MAX,
     MIN_TRAIN_PER_CLASS,
     GATE_NO_TRAIN,
-    SAMPLES_PER_CLASS,      // v3 compat
+    SAMPLES_PER_CLASS, // v3 compat
 
     // GT spatial split
     GT_BLOCK_M,

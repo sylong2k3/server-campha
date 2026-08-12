@@ -33,7 +33,9 @@ const SCALE_FLOOR_VH = 1.0;
  * @returns {object} ee.Image (baseline VV + VH)
  */
 function createS1Baseline(ee, preCollection) {
-    if (!ee) {throw new Error('event.baseline.createS1Baseline requires the ee module');}
+    if (!ee) {
+        throw new Error('event.baseline.createS1Baseline requires the ee module');
+    }
     if (!preCollection) {
         throw new Error('event.baseline.createS1Baseline requires a preCollection');
     }
@@ -50,11 +52,15 @@ function createS1Baseline(ee, preCollection) {
  * @returns {object} ee.Image (VV_scale + VH_scale)
  */
 function createS1BaselineScale(ee, preCollection, baseline) {
-    if (!ee) {throw new Error('event.baseline.createS1BaselineScale requires the ee module');}
+    if (!ee) {
+        throw new Error('event.baseline.createS1BaselineScale requires the ee module');
+    }
     if (!preCollection || !baseline) {
         throw new Error('event.baseline.createS1BaselineScale requires preCollection + baseline');
     }
-    const deviations = preCollection.map((img) => img.select(['VV', 'VH']).subtract(baseline).abs());
+    const deviations = preCollection.map((img) =>
+        img.select(['VV', 'VH']).subtract(baseline).abs(),
+    );
     const mad = deviations.median();
     const vvScale = mad.select('VV').multiply(MAD_TO_SIGMA).max(SCALE_FLOOR_VV).rename('VV_scale');
     const vhScale = mad.select('VH').multiply(MAD_TO_SIGMA).max(SCALE_FLOOR_VH).rename('VH_scale');

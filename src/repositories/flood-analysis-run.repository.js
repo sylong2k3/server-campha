@@ -30,18 +30,13 @@ const TERMINAL_STATUSES = Object.freeze(['SUCCEEDED', 'FAILED', 'CANCELLED', 'DL
 // ── Reads ────────────────────────────────────────────────────────────────────
 
 const findById = async (id, client = db) => {
-    const { rows } = await client.query(
-        'SELECT * FROM gis.flood_analysis_runs WHERE id = $1',
-        [id],
-    );
+    const { rows } = await client.query('SELECT * FROM gis.flood_analysis_runs WHERE id = $1', [
+        id,
+    ]);
     return rows[0] || null;
 };
 
-const findLatestByModule = async (
-    module,
-    { onlySucceeded = true, mode } = {},
-    client = db,
-) => {
+const findLatestByModule = async (module, { onlySucceeded = true, mode } = {}, client = db) => {
     const params = [module];
     const where = ['module = $1'];
     if (onlySucceeded) {
@@ -72,16 +67,7 @@ const findActiveByAnalysisKey = async (analysisKey, client = db) => {
     return rows[0] || null;
 };
 
-const list = async ({
-    module,
-    mode,
-    status,
-    from,
-    to,
-    startedBy,
-    limit = 20,
-    offset = 0,
-} = {}) => {
+const list = async ({ module, mode, status, from, to, startedBy, limit = 20, offset = 0 } = {}) => {
     const where = [];
     const params = [];
     if (module) {
@@ -222,7 +208,9 @@ const updateStatus = async (
         params.push(errorMessageSafe);
         patches.push(`error_message_safe = $${params.length}`);
     }
-    if (patches.length === 0) {return null;}
+    if (patches.length === 0) {
+        return null;
+    }
     const { rows } = await client.query(
         `UPDATE gis.flood_analysis_runs
             SET ${patches.join(', ')}
@@ -271,9 +259,7 @@ const finishRun = async (
  * distinct error_code so audit can tell "actual failure" from "server restart".
  * The caller may re-submit a new attempt via the admin rerun flow.
  */
-const failInterruptedActiveRuns = async ({
-    errorCode = 'INTERRUPTED_ON_RESTART',
-} = {}) => {
+const failInterruptedActiveRuns = async ({ errorCode = 'INTERRUPTED_ON_RESTART' } = {}) => {
     const { rows } = await db.query(
         `UPDATE gis.flood_analysis_runs
             SET status = 'FAILED',

@@ -23,7 +23,9 @@ const CLASS_ID = Object.freeze({ low: 1, medium: 2, high: 3 });
  * Binary threshold mask — > threshold = 1, else 0.
  */
 function thresholdMask(ee, riskScoreImage, threshold) {
-    if (!ee) {throw new Error('rain.threshold.thresholdMask requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.threshold.thresholdMask requires the ee module');
+    }
     if (!riskScoreImage) {
         throw new Error('rain.threshold.thresholdMask requires a riskScoreImage');
     }
@@ -38,7 +40,9 @@ function thresholdMask(ee, riskScoreImage, threshold) {
  * as the low/medium/high cutoffs so the "high" tier matches the binary mask.
  */
 function classifyRiskBand(ee, riskScoreImage, threshold) {
-    if (!ee) {throw new Error('rain.threshold.classifyRiskBand requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.threshold.classifyRiskBand requires the ee module');
+    }
     if (!riskScoreImage) {
         throw new Error('rain.threshold.classifyRiskBand requires a riskScoreImage');
     }

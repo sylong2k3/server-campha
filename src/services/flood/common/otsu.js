@@ -41,8 +41,12 @@ const IQR_TO_SIGMA = 1 / 1.349;
  * @returns {object} ee.Number (dB) — clamped by caller
  */
 function otsu(ee, histogramArray, fallback) {
-    if (!ee) {throw new Error('otsu.otsu requires the ee module');}
-    if (!histogramArray) {throw new Error('otsu.otsu requires a histogram');}
+    if (!ee) {
+        throw new Error('otsu.otsu requires the ee module');
+    }
+    if (!histogramArray) {
+        throw new Error('otsu.otsu requires a histogram');
+    }
     // Guard: an empty / masked histogram returns null via computed image ops.
     const safeArray = ee.Algorithms.If(histogramArray, histogramArray, ee.Array([0, 0, 0]));
     const arr = ee.Array(safeArray);
@@ -64,8 +68,16 @@ function otsu(ee, histogramArray, fallback) {
         const bMeans = means.slice(0, iNum);
         const aTotal = aCounts.reduce(ee.Reducer.sum(), [0]).get([0]);
         const bTotal = bCounts.reduce(ee.Reducer.sum(), [0]).get([0]);
-        const aMean = aMeans.multiply(aCounts).reduce(ee.Reducer.sum(), [0]).get([0]).divide(aTotal);
-        const bMean = bMeans.multiply(bCounts).reduce(ee.Reducer.sum(), [0]).get([0]).divide(bTotal);
+        const aMean = aMeans
+            .multiply(aCounts)
+            .reduce(ee.Reducer.sum(), [0])
+            .get([0])
+            .divide(aTotal);
+        const bMean = bMeans
+            .multiply(bCounts)
+            .reduce(ee.Reducer.sum(), [0])
+            .get([0])
+            .divide(bTotal);
         // BSS = w_a × w_b × (μ_a - μ_b)²
         return aTotal
             .divide(total)
@@ -109,7 +121,9 @@ function otsuThresholdOnBand(
         buckets = 256,
     } = {},
 ) {
-    if (!ee) {throw new Error('otsu.otsuThresholdOnBand requires the ee module');}
+    if (!ee) {
+        throw new Error('otsu.otsuThresholdOnBand requires the ee module');
+    }
     if (!image || !band || !geometry) {
         throw new Error('otsu.otsuThresholdOnBand requires image + band + geometry');
     }
@@ -127,10 +141,7 @@ function otsuThresholdOnBand(
         bestEffort: true,
     });
     const hist = ee.Dictionary(stats.get(band));
-    const arr = ee.Array([
-        hist.get('bucketMeans'),
-        hist.get('histogram'),
-    ]);
+    const arr = ee.Array([hist.get('bucketMeans'), hist.get('histogram')]);
     const raw = otsu(ee, arr, fallback);
     // Clamp to acceptance band; when raw was already the fallback, this is a no-op.
     const clamped = raw.max(minDb).min(maxDb);
@@ -156,12 +167,16 @@ function computeMedianSigmaThreshold(
         crs = ANALYSIS_CRS,
     } = {},
 ) {
-    if (!ee) {throw new Error('otsu.computeMedianSigmaThreshold requires the ee module');}
+    if (!ee) {
+        throw new Error('otsu.computeMedianSigmaThreshold requires the ee module');
+    }
     if (!image || !band || !geometry) {
         throw new Error('otsu.computeMedianSigmaThreshold requires image + band + geometry');
     }
     if (![k, minDb, maxDb, fallback].every(Number.isFinite)) {
-        throw new Error('otsu.computeMedianSigmaThreshold requires numeric k + minDb + maxDb + fallback');
+        throw new Error(
+            'otsu.computeMedianSigmaThreshold requires numeric k + minDb + maxDb + fallback',
+        );
     }
     const percentileStats = image.select(band).reduceRegion({
         reducer: ee.Reducer.percentile([25, 50, 75]),

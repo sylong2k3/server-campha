@@ -41,7 +41,9 @@ const CAM_PHA_GAUL_FILTER = Object.freeze({
  * @returns {{ fc: object, geometry: object, source: 'REFERENCE_GAUL'|'AUTHORITATIVE' }}
  */
 function loadAoi(ee, opts = {}) {
-    if (!ee) {throw new Error('geometry.loadAoi requires the ee module');}
+    if (!ee) {
+        throw new Error('geometry.loadAoi requires the ee module');
+    }
 
     if (opts.authoritativeGeoJson) {
         const geo =

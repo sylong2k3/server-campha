@@ -54,11 +54,15 @@ async function runHandScenario({
     authoritativeGeoJson = null,
     deps = defaultDeps(),
 } = {}) {
-    if (!ee) {throw new Error('hand.index.runHandScenario requires the ee module');}
+    if (!ee) {
+        throw new Error('hand.index.runHandScenario requires the ee module');
+    }
     if (!geeAdapter?.evaluate) {
         throw new Error('hand.index.runHandScenario requires geeAdapter.evaluate');
     }
-    if (!runConfig) {throw new Error('hand.index.runHandScenario requires runConfig');}
+    if (!runConfig) {
+        throw new Error('hand.index.runHandScenario requires runConfig');
+    }
     assertValidMode(runMode);
 
     const config = { ...defaultsAndConfig.HAND_DEFAULTS, ...runConfig, mode: runMode };
@@ -113,7 +117,9 @@ async function runHandScenario({
                 percentileList: [50, 99],
             });
             const evaluated = (await geeAdapter.evaluate(percentileDict)) || {};
-            meanDepthM = Number.isFinite(evaluated.hand_depth_p50) ? evaluated.hand_depth_p50 : null;
+            meanDepthM = Number.isFinite(evaluated.hand_depth_p50)
+                ? evaluated.hand_depth_p50
+                : null;
             maxDepthM = Number.isFinite(evaluated.hand_depth_p99) ? evaluated.hand_depth_p99 : null;
         } catch {
             /* non-fatal */

@@ -55,11 +55,15 @@ async function runRainRisk({
     authoritativeGeoJson = null,
     deps = defaultDeps(),
 } = {}) {
-    if (!ee) {throw new Error('rain.index.runRainRisk requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.index.runRainRisk requires the ee module');
+    }
     if (!geeAdapter?.evaluate) {
         throw new Error('rain.index.runRainRisk requires geeAdapter.evaluate');
     }
-    if (!runConfig) {throw new Error('rain.index.runRainRisk requires runConfig');}
+    if (!runConfig) {
+        throw new Error('rain.index.runRainRisk requires runConfig');
+    }
     assertValidMode(runMode);
 
     const config = { ...defaultsAndConfig.RAIN_RISK_DEFAULTS, ...runConfig, mode: runMode };
@@ -122,7 +126,9 @@ async function runRainRisk({
     // Sample rainfall totals — mean over AOI. When MANUAL source, the "image"
     // is a constant so this returns the same scalar.
     const _meanScalar = async (img) => {
-        if (!img) {return null;}
+        if (!img) {
+            return null;
+        }
         try {
             const pct = deps.reducers.percentiles(ee, {
                 image: img,
@@ -169,7 +175,9 @@ async function runRainRisk({
 
 function _monthsBefore(isoDate, months) {
     const d = new Date(isoDate);
-    if (Number.isNaN(d.valueOf())) {return isoDate;}
+    if (Number.isNaN(d.valueOf())) {
+        return isoDate;
+    }
     d.setUTCMonth(d.getUTCMonth() - months);
     return d.toISOString().slice(0, 10);
 }

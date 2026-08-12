@@ -8,7 +8,7 @@
  * All functions accept/return EE objects unless noted with "→ JS value".
  */
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 const { ee } = require('../configs/gge');
 
@@ -21,8 +21,8 @@ const DEFAULT_TIMEOUT_MS = parseInt(process.env.GEE_TIMEOUT_MS, 10) || 5 * 60 * 
 // The Forest scientific pipeline remains frozen; only its operational AOI
 // helpers and data sources are scoped explicitly to Cẩm Phả.
 const CAMPHA_BOUNDARY_PATH = path.resolve(
-    process.env.FC_BOUNDARY_GEOJSON
-        || path.resolve(__dirname, '../../data/CamPha_Boundary.geojson'),
+    process.env.FC_BOUNDARY_GEOJSON ||
+        path.resolve(__dirname, '../../data/CamPha_Boundary.geojson'),
 );
 
 // ── GEE async helpers ─────────────────────────────────────────────────────────
@@ -40,8 +40,11 @@ function eeEval(eeObject, timeoutMs = DEFAULT_TIMEOUT_MS) {
         );
         eeObject.evaluate((result, err) => {
             clearTimeout(timer);
-            if (err) {reject(new Error(String(err)));}
-            else {resolve(result);}
+            if (err) {
+                reject(new Error(String(err)));
+            } else {
+                resolve(result);
+            }
         });
     });
 }
@@ -58,8 +61,11 @@ function eeGetInfo(eeObject, timeoutMs = DEFAULT_TIMEOUT_MS) {
         );
         eeObject.getInfo((result, err) => {
             clearTimeout(timer);
-            if (err) {reject(new Error(String(err)));}
-            else {resolve(result);}
+            if (err) {
+                reject(new Error(String(err)));
+            } else {
+                resolve(result);
+            }
         });
     });
 }
@@ -76,28 +82,27 @@ function eeGetInfo(eeObject, timeoutMs = DEFAULT_TIMEOUT_MS) {
  */
 function getEeMapId(eeImage, vizParams = {}) {
     // If viz params provided, bake them into an RGB image via ee.Image.visualize().
-    const visImage = vizParams && Object.keys(vizParams).length > 0
-        ? eeImage.visualize(vizParams)
-        : eeImage;
+    const visImage =
+        vizParams && Object.keys(vizParams).length > 0 ? eeImage.visualize(vizParams) : eeImage;
 
     return new Promise((resolve, reject) => {
         const timer = setTimeout(
             () => reject(new Error('GEE getMapId timeout')),
             DEFAULT_TIMEOUT_MS,
         );
-        ee.data.getMapId(
-            { image: visImage },
-            (mapInfo, err) => {
-                clearTimeout(timer);
-                if (err) { reject(new Error(String(err))); return; }
-                const mapid = mapInfo.mapid || mapInfo.name || '';
-                const token = mapInfo.token || '';
-                const tileUrl = token
-                    ? `https://earthengine.googleapis.com/map/${mapid}/{z}/{x}/{y}?token=${token}`
-                    : `https://earthengine.googleapis.com/v1alpha/${mapid}/tiles/{z}/{x}/{y}`;
-                resolve({ mapId: mapid, token, tileUrl });
-            },
-        );
+        ee.data.getMapId({ image: visImage }, (mapInfo, err) => {
+            clearTimeout(timer);
+            if (err) {
+                reject(new Error(String(err)));
+                return;
+            }
+            const mapid = mapInfo.mapid || mapInfo.name || '';
+            const token = mapInfo.token || '';
+            const tileUrl = token
+                ? `https://earthengine.googleapis.com/map/${mapid}/{z}/{x}/{y}?token=${token}`
+                : `https://earthengine.googleapis.com/v1alpha/${mapid}/tiles/{z}/{x}/{y}`;
+            resolve({ mapId: mapid, token, tileUrl });
+        });
     });
 }
 
@@ -108,8 +113,7 @@ function getCamPhaRegion() {
 }
 
 const CAMPHA_ADMIN_UNITS_PATH = path.resolve(
-    process.env.FC_DISTRICTS_GEOJSON
-        || path.resolve(__dirname, '../../data/CamPha_Wards.geojson'),
+    process.env.FC_DISTRICTS_GEOJSON || path.resolve(__dirname, '../../data/CamPha_Wards.geojson'),
 );
 
 let _cachedDistrictsFC = null;
@@ -138,18 +142,23 @@ let _cachedDistrictsSource = null;
  *   - source     → nhãn debug (LOCAL_WGS84 hoặc LOCAL_EPSG:XXXX)
  */
 function getCamPhaAdministrativeUnits() {
-    if (_cachedDistrictsFC) {return _cachedDistrictsFC;}
+    if (_cachedDistrictsFC) {
+        return _cachedDistrictsFC;
+    }
 
     const loadResult = _tryLoadDistrictsFile(CAMPHA_ADMIN_UNITS_PATH);
     if (loadResult) {
-        _cachedDistrictsFC     = loadResult.fc;
+        _cachedDistrictsFC = loadResult.fc;
         _cachedDistrictsSource = loadResult.source;
         console.log(`[GEE-SAT] Districts ✓ ${loadResult.count} features (${loadResult.source})`);
         return _cachedDistrictsFC;
     }
 
-    console.warn('[GEE-SAT] Administrative units ⚠ fallback FAO/GAUL/2015/level2 (Cẩm Phả city boundary). Configure FC_DISTRICTS_GEOJSON for the authoritative ward set.');
-    _cachedDistrictsFC = ee.FeatureCollection('FAO/GAUL/2015/level2')
+    console.warn(
+        '[GEE-SAT] Administrative units ⚠ fallback FAO/GAUL/2015/level2 (Cẩm Phả city boundary). Configure FC_DISTRICTS_GEOJSON for the authoritative ward set.',
+    );
+    _cachedDistrictsFC = ee
+        .FeatureCollection('FAO/GAUL/2015/level2')
         .filter(ee.Filter.eq('ADM0_NAME', 'Viet Nam'))
         .filter(ee.Filter.eq('ADM1_NAME', 'Quang Ninh'))
         .filter(ee.Filter.eq('ADM2_NAME', 'Cam Pha'));
@@ -167,25 +176,29 @@ function _tryLoadDistrictsFile(filePath) {
         return null;
     }
     let raw;
-    try { raw = fs.readFileSync(filePath, 'utf8'); }
-    catch (err) {
+    try {
+        raw = fs.readFileSync(filePath, 'utf8');
+    } catch (err) {
         console.warn(`[GEE-SAT] Districts đọc file lỗi: ${err.message}`);
         return null;
     }
     let doc;
-    try { doc = JSON.parse(raw); }
-    catch (err) {
+    try {
+        doc = JSON.parse(raw);
+    } catch (err) {
         console.warn(`[GEE-SAT] Districts JSON parse lỗi: ${err.message}`);
         return null;
     }
     if (doc?.type !== 'FeatureCollection' || !Array.isArray(doc.features)) {
-        console.warn(`[GEE-SAT] Districts file không phải GeoJSON FeatureCollection (type=${doc?.type})`);
+        console.warn(
+            `[GEE-SAT] Districts file không phải GeoJSON FeatureCollection (type=${doc?.type})`,
+        );
         return null;
     }
 
     const featCount = doc.features.length;
     const crsName = doc.crs?.properties?.name;
-    const epsg    = _parseEpsgCode(crsName);
+    const epsg = _parseEpsgCode(crsName);
     const projLbl = epsg ? `EPSG:${epsg}` : null;
     const nonWgs84 = epsg && epsg !== '4326';
 
@@ -205,49 +218,62 @@ function _tryLoadDistrictsFile(filePath) {
         const p = f.properties || {};
         // Chấp nhận schema huyện/phường và GAUL/GADM phổ biến để data owner
         // không phải đổi thuộc tính của boundary chính thức.
-        const rawName = p.ten_phuong || p.ten_xa || p.ten_huyen || p.ten
-            || p.name || p.NAME_VN || p.ADM2_NAME || null;
-        const rawCode = p.ma_phuong ?? p.ma_xa ?? p.ma_huyen ?? p.code
-            ?? p.ADM2_CODE ?? null;
+        const rawName =
+            p.ten_phuong ||
+            p.ten_xa ||
+            p.ten_huyen ||
+            p.ten ||
+            p.name ||
+            p.NAME_VN ||
+            p.ADM2_NAME ||
+            null;
+        const rawCode = p.ma_phuong ?? p.ma_xa ?? p.ma_huyen ?? p.code ?? p.ADM2_CODE ?? null;
         if (!rawName || rawCode === null || rawCode === undefined || rawCode === '') {
-            console.warn(`[GEE-SAT] Administrative unit skip feature #${addedIdx + 1}: thiếu code/name (properties=${JSON.stringify(p)})`);
+            console.warn(
+                `[GEE-SAT] Administrative unit skip feature #${addedIdx + 1}: thiếu code/name (properties=${JSON.stringify(p)})`,
+            );
             skippedDup += 1;
             continue;
         }
         const name = String(rawName);
         const code = String(rawCode);
-        if (seenCodes.has(code)) { skippedDup += 1; continue; }
+        if (seenCodes.has(code)) {
+            skippedDup += 1;
+            continue;
+        }
         seenCodes.add(code);
 
         const clean = { type: g.type, coordinates: _stripZ(g.coordinates) };
-        const eeGeom = nonWgs84
-            ? ee.Geometry(clean, projLbl, false)
-            : ee.Geometry(clean);
+        const eeGeom = nonWgs84 ? ee.Geometry(clean, projLbl, false) : ee.Geometry(clean);
         // Output vẫn giữ tên property GADM (ADM2_CODE/ADM2_NAME/...) để
         // Forest Classification không phải
         // đổi consumer code — chỉ INPUT (đọc file) là đổi sang key tiếng Việt.
-        eeFeats.push(ee.Feature(eeGeom, {
-            ADM2_CODE: code,
-            ADM2_NAME: name,
-            NAME_EN:   null,
-            NAME_VN:   name,
-            TYPE_2:    p.loai || p.type || p.TYPE_2 || null,
-            source:    projLbl ? `LOCAL_${projLbl}` : 'LOCAL_WGS84',
-        }));
+        eeFeats.push(
+            ee.Feature(eeGeom, {
+                ADM2_CODE: code,
+                ADM2_NAME: name,
+                NAME_EN: null,
+                NAME_VN: name,
+                TYPE_2: p.loai || p.type || p.TYPE_2 || null,
+                source: projLbl ? `LOCAL_${projLbl}` : 'LOCAL_WGS84',
+            }),
+        );
         addedIdx += 1;
     }
     // Chỉ log 1 dòng tổng kết khi có warning (skippedDup/noGeom > 0) hoặc lỗi
     // (0 features). Trường hợp bình thường không log — log tổng ở caller đã đủ.
     if (skippedDup > 0 || skippedNoGeom > 0) {
-        console.log(`[GEE-SAT] Districts: ${featCount} raw → ${eeFeats.length} unique (skipped noGeom=${skippedNoGeom}, dup=${skippedDup})`);
+        console.log(
+            `[GEE-SAT] Districts: ${featCount} raw → ${eeFeats.length} unique (skipped noGeom=${skippedNoGeom}, dup=${skippedDup})`,
+        );
     }
     if (eeFeats.length === 0) {
         console.warn('[GEE-SAT] Districts ✗ không tạo được ee.Feature nào từ file.');
         return null;
     }
     return {
-        fc:     ee.FeatureCollection(eeFeats),
-        count:  eeFeats.length,
+        fc: ee.FeatureCollection(eeFeats),
+        count: eeFeats.length,
         source: projLbl ? `LOCAL_RANHGIOIHUYEN_${projLbl}` : 'LOCAL_RANHGIOIHUYEN_WGS84',
     };
 }
@@ -276,9 +302,13 @@ function getCamPhaAdministrativeUnitsSource() {
 // caller invalidate FC.
 let _cachedDistrictsGeoJson = null;
 function getCamPhaAdministrativeUnitsGeoJson() {
-    if (_cachedDistrictsGeoJson) {return _cachedDistrictsGeoJson;}
+    if (_cachedDistrictsGeoJson) {
+        return _cachedDistrictsGeoJson;
+    }
     if (!fs.existsSync(CAMPHA_ADMIN_UNITS_PATH)) {
-        console.warn(`[GEE-SAT] Administrative-unit GeoJSON file KHÔNG tồn tại: ${CAMPHA_ADMIN_UNITS_PATH}`);
+        console.warn(
+            `[GEE-SAT] Administrative-unit GeoJSON file KHÔNG tồn tại: ${CAMPHA_ADMIN_UNITS_PATH}`,
+        );
         _cachedDistrictsGeoJson = [];
         return _cachedDistrictsGeoJson;
     }
@@ -295,33 +325,45 @@ function getCamPhaAdministrativeUnitsGeoJson() {
         return _cachedDistrictsGeoJson;
     }
     const crsName = doc.crs?.properties?.name;
-    const epsg    = _parseEpsgCode(crsName);
-    const seen    = new Set();
-    const out     = [];
+    const epsg = _parseEpsgCode(crsName);
+    const seen = new Set();
+    const out = [];
     let idx = 0;
     for (const f of doc.features) {
         const g = f?.geometry;
-        if (!g || !Array.isArray(g.coordinates) || g.coordinates.length === 0) {continue;}
+        if (!g || !Array.isArray(g.coordinates) || g.coordinates.length === 0) {
+            continue;
+        }
         const p = f.properties || {};
-        const rawName = p.ten_phuong || p.ten_xa || p.ten_huyen || p.ten
-            || p.name || p.NAME_VN || p.ADM2_NAME || null;
-        const rawCode = p.ma_phuong ?? p.ma_xa ?? p.ma_huyen ?? p.code
-            ?? p.ADM2_CODE ?? null;
+        const rawName =
+            p.ten_phuong ||
+            p.ten_xa ||
+            p.ten_huyen ||
+            p.ten ||
+            p.name ||
+            p.NAME_VN ||
+            p.ADM2_NAME ||
+            null;
+        const rawCode = p.ma_phuong ?? p.ma_xa ?? p.ma_huyen ?? p.code ?? p.ADM2_CODE ?? null;
         if (!rawName || rawCode === null || rawCode === undefined || rawCode === '') {
-            console.warn(`[GEE-SAT] Administrative-unit GeoJSON skip feature #${idx + 1}: thiếu code/name`);
+            console.warn(
+                `[GEE-SAT] Administrative-unit GeoJSON skip feature #${idx + 1}: thiếu code/name`,
+            );
             continue;
         }
         const name = String(rawName);
         const code = String(rawCode);
-        if (seen.has(code)) {continue;}
+        if (seen.has(code)) {
+            continue;
+        }
         seen.add(code);
         out.push({
             ADM2_CODE: code,
             ADM2_NAME: name,
-            NAME_EN:   null,
-            TYPE_2:    p.loai || p.type || p.TYPE_2 || null,
-            geometry:  { type: g.type, coordinates: _stripZ(g.coordinates) },
-            epsg:      epsg ? Number(epsg) : 4326,
+            NAME_EN: null,
+            TYPE_2: p.loai || p.type || p.TYPE_2 || null,
+            geometry: { type: g.type, coordinates: _stripZ(g.coordinates) },
+            epsg: epsg ? Number(epsg) : 4326,
         });
         idx += 1;
     }
@@ -335,7 +377,9 @@ function getCamPhaAdministrativeUnitsGeoJson() {
 // Recursively strip Z/M components so ee.Geometry accepts the coords —
 // the source file stores [x, y, 0] triplets which GEE rejects.
 function _stripZ(coords) {
-    if (typeof coords[0] === 'number') {return coords.slice(0, 2);}
+    if (typeof coords[0] === 'number') {
+        return coords.slice(0, 2);
+    }
     return coords.map(_stripZ);
 }
 
@@ -359,48 +403,64 @@ let _cachedBoundarySource = null;
  * Lazily evaluated + cached singleton.
  */
 function getCamPhaBoundaryGeometry() {
-    if (_cachedBoundaryGeom) {return _cachedBoundaryGeom;}
+    if (_cachedBoundaryGeom) {
+        return _cachedBoundaryGeom;
+    }
 
     // Try local file first — preferred.
     if (fs.existsSync(CAMPHA_BOUNDARY_PATH)) {
         try {
             const raw = fs.readFileSync(CAMPHA_BOUNDARY_PATH, 'utf8');
             const doc = JSON.parse(raw);
-            const feature = doc.type === 'FeatureCollection'
-                ? doc.features?.[0]
-                : (doc.type === 'Feature' ? doc : null);
-            const geom = feature?.geometry
-                || (doc.type === 'Polygon' || doc.type === 'MultiPolygon' ? doc : null);
-            if (!geom) {throw new Error('Không thấy polygon geometry hợp lệ');}
+            const feature =
+                doc.type === 'FeatureCollection'
+                    ? doc.features?.[0]
+                    : doc.type === 'Feature'
+                      ? doc
+                      : null;
+            const geom =
+                feature?.geometry ||
+                (doc.type === 'Polygon' || doc.type === 'MultiPolygon' ? doc : null);
+            if (!geom) {
+                throw new Error('Không thấy polygon geometry hợp lệ');
+            }
 
-            const crsName   = doc.crs?.properties?.name;
-            const epsg      = _parseEpsgCode(crsName);
+            const crsName = doc.crs?.properties?.name;
+            const epsg = _parseEpsgCode(crsName);
             const projLabel = epsg ? `EPSG:${epsg}` : 'EPSG:4326';
             const cleanGeom = {
                 type: geom.type,
                 coordinates: _stripZ(geom.coordinates),
             };
-            _cachedBoundaryGeom = epsg && epsg !== '4326'
-                ? ee.Geometry(cleanGeom, projLabel, false)
-                : ee.Geometry(cleanGeom);
+            _cachedBoundaryGeom =
+                epsg && epsg !== '4326'
+                    ? ee.Geometry(cleanGeom, projLabel, false)
+                    : ee.Geometry(cleanGeom);
             _cachedBoundarySource = `LOCAL_${projLabel}`;
-            console.log(`[GEE-SAT] ✓ Cẩm Phả polygon: ${_cachedBoundarySource} (${CAMPHA_BOUNDARY_PATH})`);
+            console.log(
+                `[GEE-SAT] ✓ Cẩm Phả polygon: ${_cachedBoundarySource} (${CAMPHA_BOUNDARY_PATH})`,
+            );
             return _cachedBoundaryGeom;
         } catch (err) {
-            console.warn(`[GEE-SAT] Lỗi đọc Cẩm Phả polygon ${CAMPHA_BOUNDARY_PATH}: ${err.message}`);
+            console.warn(
+                `[GEE-SAT] Lỗi đọc Cẩm Phả polygon ${CAMPHA_BOUNDARY_PATH}: ${err.message}`,
+            );
         }
     } else {
         console.warn(`[GEE-SAT] Cẩm Phả polygon file KHÔNG tồn tại: ${CAMPHA_BOUNDARY_PATH}`);
     }
 
     // Fallback: FAO/GAUL/2015/level1 (dissolved to province).
-    console.warn('[GEE-SAT] ⚠ Fallback boundary: FAO/GAUL/2015/level2 (Cẩm Phả). ' +
-        'Configure FC_BOUNDARY_GEOJSON with the authoritative city boundary for production.');
-    const faoFC = ee.FeatureCollection('FAO/GAUL/2015/level2')
+    console.warn(
+        '[GEE-SAT] ⚠ Fallback boundary: FAO/GAUL/2015/level2 (Cẩm Phả). ' +
+            'Configure FC_BOUNDARY_GEOJSON with the authoritative city boundary for production.',
+    );
+    const faoFC = ee
+        .FeatureCollection('FAO/GAUL/2015/level2')
         .filter(ee.Filter.eq('ADM0_NAME', 'Viet Nam'))
         .filter(ee.Filter.eq('ADM1_NAME', 'Quang Ninh'))
         .filter(ee.Filter.eq('ADM2_NAME', 'Cam Pha'));
-    _cachedBoundaryGeom  = faoFC.geometry();
+    _cachedBoundaryGeom = faoFC.geometry();
     _cachedBoundarySource = 'FAO_GAUL_2015_LEVEL2_CAMPHA';
     return _cachedBoundaryGeom;
 }
@@ -425,14 +485,19 @@ function logGeeGeometrySources() {
     let allOk = true;
     for (const [label, filePath] of files) {
         const exists = fs.existsSync(filePath);
-        const mark   = exists ? '✓' : '✗';
+        const mark = exists ? '✓' : '✗';
         let sizeKb = '';
         if (exists) {
-            try { sizeKb = ` (${(fs.statSync(filePath).size / 1024).toFixed(1)} KB)`; }
-            catch { /* ignore */ }
+            try {
+                sizeKb = ` (${(fs.statSync(filePath).size / 1024).toFixed(1)} KB)`;
+            } catch {
+                /* ignore */
+            }
         }
         console.log(`[GEE-SAT]  ${mark} ${label}: ${filePath}${sizeKb}`);
-        if (!exists) {allOk = false;}
+        if (!exists) {
+            allOk = false;
+        }
     }
     if (!allOk) {
         console.log('[GEE-SAT] ⚠ File thiếu — sẽ dùng FAO/GAUL làm fallback.');
@@ -463,30 +528,42 @@ function toEeGeometry(geometry) {
  * Removes fill, dilated cloud, cloud, cloud shadow, snow.
  */
 function maskLandsatC2(image) {
-    const qa   = image.select('QA_PIXEL');
-    const mask = qa.bitwiseAnd(1 << 0).eq(0)   // fill
-        .and(qa.bitwiseAnd(1 << 1).eq(0))       // dilated cloud
-        .and(qa.bitwiseAnd(1 << 3).eq(0))       // cloud
-        .and(qa.bitwiseAnd(1 << 4).eq(0))       // cloud shadow
-        .and(qa.bitwiseAnd(1 << 5).eq(0));      // snow
+    const qa = image.select('QA_PIXEL');
+    const mask = qa
+        .bitwiseAnd(1 << 0)
+        .eq(0) // fill
+        .and(qa.bitwiseAnd(1 << 1).eq(0)) // dilated cloud
+        .and(qa.bitwiseAnd(1 << 3).eq(0)) // cloud
+        .and(qa.bitwiseAnd(1 << 4).eq(0)) // cloud shadow
+        .and(qa.bitwiseAnd(1 << 5).eq(0)); // snow
     return image.updateMask(mask);
 }
 
 /** Prepare Landsat 5/7 C2 L2 optical bands → blue/green/red/nir/swir1/swir2 */
 function prepL57(image) {
     return image
-        .select(['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7'],
-                ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'])
-        .multiply(0.0000275).add(-0.2).clamp(0, 1).toFloat()
+        .select(
+            ['SR_B1', 'SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B7'],
+            ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
+        )
+        .multiply(0.0000275)
+        .add(-0.2)
+        .clamp(0, 1)
+        .toFloat()
         .copyProperties(image, ['system:time_start']);
 }
 
 /** Prepare Landsat 8/9 C2 L2 optical bands → blue/green/red/nir/swir1/swir2 */
 function prepL89(image) {
     return image
-        .select(['SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B6', 'SR_B7'],
-                ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'])
-        .multiply(0.0000275).add(-0.2).clamp(0, 1).toFloat()
+        .select(
+            ['SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B6', 'SR_B7'],
+            ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
+        )
+        .multiply(0.0000275)
+        .add(-0.2)
+        .clamp(0, 1)
+        .toFloat()
         .copyProperties(image, ['system:time_start']);
 }
 
@@ -495,13 +572,16 @@ function prepL89(image) {
  * Renames bands → blue/green/red/nir/swir1/swir2 (same schema as Landsat prep).
  */
 function maskS2(image) {
-    const scl  = image.select('SCL');
-    const mask = scl.neq(3).and(scl.neq(8)).and(scl.neq(9))
-        .and(scl.neq(10)).and(scl.neq(11));
+    const scl = image.select('SCL');
+    const mask = scl.neq(3).and(scl.neq(8)).and(scl.neq(9)).and(scl.neq(10)).and(scl.neq(11));
     return image
-        .select(['B2', 'B3', 'B4', 'B8', 'B11', 'B12'],
-                ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'])
-        .multiply(0.0001).clamp(0, 1).toFloat()
+        .select(
+            ['B2', 'B3', 'B4', 'B8', 'B11', 'B12'],
+            ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
+        )
+        .multiply(0.0001)
+        .clamp(0, 1)
+        .toFloat()
         .updateMask(mask)
         .copyProperties(image, ['system:time_start']);
 }
@@ -515,26 +595,39 @@ function maskS2(image) {
  */
 function makeComposite(year, startMonth, endMonth, region) {
     const startDate = ee.Date.fromYMD(year, startMonth, 1);
-    const endDate   = ee.Date.fromYMD(year, endMonth, 1).advance(1, 'month');
-    const bounds    = region || getCamPhaBoundaryGeometry();
+    const endDate = ee.Date.fromYMD(year, endMonth, 1).advance(1, 'month');
+    const bounds = region || getCamPhaBoundaryGeometry();
 
-    const l5 = ee.ImageCollection('LANDSAT/LT05/C02/T1_L2')
-        .filterBounds(bounds).filterDate(startDate, endDate)
-        .map(maskLandsatC2).map(prepL57);
-    const l7 = ee.ImageCollection('LANDSAT/LE07/C02/T1_L2')
-        .filterBounds(bounds).filterDate(startDate, endDate)
-        .map(maskLandsatC2).map(prepL57);
-    const l8 = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2')
-        .filterBounds(bounds).filterDate(startDate, endDate)
-        .map(maskLandsatC2).map(prepL89);
-    const l9 = ee.ImageCollection('LANDSAT/LC09/C02/T1_L2')
-        .filterBounds(bounds).filterDate(startDate, endDate)
-        .map(maskLandsatC2).map(prepL89);
+    const l5 = ee
+        .ImageCollection('LANDSAT/LT05/C02/T1_L2')
+        .filterBounds(bounds)
+        .filterDate(startDate, endDate)
+        .map(maskLandsatC2)
+        .map(prepL57);
+    const l7 = ee
+        .ImageCollection('LANDSAT/LE07/C02/T1_L2')
+        .filterBounds(bounds)
+        .filterDate(startDate, endDate)
+        .map(maskLandsatC2)
+        .map(prepL57);
+    const l8 = ee
+        .ImageCollection('LANDSAT/LC08/C02/T1_L2')
+        .filterBounds(bounds)
+        .filterDate(startDate, endDate)
+        .map(maskLandsatC2)
+        .map(prepL89);
+    const l9 = ee
+        .ImageCollection('LANDSAT/LC09/C02/T1_L2')
+        .filterBounds(bounds)
+        .filterDate(startDate, endDate)
+        .map(maskLandsatC2)
+        .map(prepL89);
 
     let collection = l5.merge(l7).merge(l8).merge(l9);
 
     if (year >= 2017) {
-        const s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+        const s2 = ee
+            .ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
             .filterBounds(bounds)
             .filterDate(startDate, endDate)
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 60))
@@ -542,23 +635,19 @@ function makeComposite(year, startMonth, endMonth, region) {
         collection = collection.merge(s2);
     }
 
-    const bands  = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'];
+    const bands = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'];
     const mapped = collection.map((img) =>
-        img.select(bands).clamp(0, 1).toFloat()
-            .copyProperties(img, ['system:time_start']));
+        img.select(bands).clamp(0, 1).toFloat().copyProperties(img, ['system:time_start']),
+    );
 
     // Fallback: masked constant image with correct band schema.
     // Prevents "Band pattern 'blue' was applied to an Image with no bands" when
     // the merged collection is empty (e.g. seasonal window in the future).
-    const fallback = ee.Image.constant([0.12, 0.10, 0.08, 0.40, 0.20, 0.12])
+    const fallback = ee.Image.constant([0.12, 0.1, 0.08, 0.4, 0.2, 0.12])
         .rename(bands)
         .updateMask(ee.Image.constant(0));
 
-    const composite = ee.Image(ee.Algorithms.If(
-        mapped.size().gt(0),
-        mapped.median(),
-        fallback,
-    ));
+    const composite = ee.Image(ee.Algorithms.If(mapped.size().gt(0), mapped.median(), fallback));
 
     return composite.select(bands).clip(bounds).toFloat();
 }
@@ -572,21 +661,27 @@ function makeComposite(year, startMonth, endMonth, region) {
  */
 function addIndices(image, prefix) {
     const p = prefix ? prefix + '_' : '';
-    const ndvi  = image.normalizedDifference(['nir',   'red'])  .rename(p + 'NDVI');
-    const ndwi  = image.normalizedDifference(['green', 'nir'])  .rename(p + 'NDWI');
+    const ndvi = image.normalizedDifference(['nir', 'red']).rename(p + 'NDVI');
+    const ndwi = image.normalizedDifference(['green', 'nir']).rename(p + 'NDWI');
     const mndwi = image.normalizedDifference(['green', 'swir1']).rename(p + 'MNDWI');
-    const ndmi  = image.normalizedDifference(['nir',   'swir1']).rename(p + 'NDMI');
-    const ndbi  = image.normalizedDifference(['swir1', 'nir'])  .rename(p + 'NDBI');
-    const nbr   = image.normalizedDifference(['nir',   'swir2']).rename(p + 'NBR');
-    const bsi   = image.expression(
-        '((SWIR + RED) - (NIR + BLUE)) / ((SWIR + RED) + (NIR + BLUE))',
-        { SWIR: image.select('swir1'), RED: image.select('red'),
-          NIR: image.select('nir'),   BLUE: image.select('blue') },
-    ).rename(p + 'BSI');
-    const evi   = image.expression(
-        '2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))',
-        { NIR: image.select('nir'), RED: image.select('red'), BLUE: image.select('blue') },
-    ).rename(p + 'EVI');
+    const ndmi = image.normalizedDifference(['nir', 'swir1']).rename(p + 'NDMI');
+    const ndbi = image.normalizedDifference(['swir1', 'nir']).rename(p + 'NDBI');
+    const nbr = image.normalizedDifference(['nir', 'swir2']).rename(p + 'NBR');
+    const bsi = image
+        .expression('((SWIR + RED) - (NIR + BLUE)) / ((SWIR + RED) + (NIR + BLUE))', {
+            SWIR: image.select('swir1'),
+            RED: image.select('red'),
+            NIR: image.select('nir'),
+            BLUE: image.select('blue'),
+        })
+        .rename(p + 'BSI');
+    const evi = image
+        .expression('2.5 * ((NIR - RED) / (NIR + 6 * RED - 7.5 * BLUE + 1))', {
+            NIR: image.select('nir'),
+            RED: image.select('red'),
+            BLUE: image.select('blue'),
+        })
+        .rename(p + 'EVI');
     return ee.Image.cat([ndvi, ndwi, mndwi, ndmi, ndbi, nbr, bsi, evi]);
 }
 
@@ -601,11 +696,7 @@ function medianOrFallback(collection, bands, fallbackValues) {
         .rename(bands)
         .updateMask(ee.Image.constant(0));
     return ee.Image(
-        ee.Algorithms.If(
-            collection.size().gt(0),
-            collection.select(bands).median(),
-            fallback,
-        ),
+        ee.Algorithms.If(collection.size().gt(0), collection.select(bands).median(), fallback),
     );
 }
 
@@ -613,10 +704,10 @@ function medianOrFallback(collection, bands, fallbackValues) {
 
 /** Return elevation/slope/aspect from SRTM for the given region. */
 function getDemBands(region) {
-    const dem       = ee.Image('USGS/SRTMGL1_003').clip(region || getCamPhaBoundaryGeometry());
+    const dem = ee.Image('USGS/SRTMGL1_003').clip(region || getCamPhaBoundaryGeometry());
     const elevation = dem.rename('elevation');
-    const slope     = ee.Terrain.slope(dem).rename('slope');
-    const aspect    = ee.Terrain.aspect(dem).rename('aspect');
+    const slope = ee.Terrain.slope(dem).rename('slope');
+    const aspect = ee.Terrain.aspect(dem).rename('aspect');
     return { elevation, slope, aspect };
 }
 
@@ -647,38 +738,47 @@ async function getEeDownloadUrl(eeImage, region, vizParams = {}, opts = {}) {
         timeoutMs = 20_000,
     } = opts;
     try {
-        const visImage = Object.keys(vizParams).length > 0
-            ? eeImage.visualize(vizParams)
-            : eeImage;
+        const visImage = Object.keys(vizParams).length > 0 ? eeImage.visualize(vizParams) : eeImage;
         // `name` param của GEE sẽ nằm trong Content-Disposition header của URL trả về,
         // browser dùng khi user Save As. Format: <name>_<YYYYMMDD>.
-        const safeName    = String(name).replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+        const safeName = String(name)
+            .replace(/[^a-z0-9_-]/gi, '_')
+            .toLowerCase();
         const compactDate = String(date).replace(/-/g, '');
-        const fileBase    = `${safeName}_${compactDate}`;
+        const fileBase = `${safeName}_${compactDate}`;
         const url = await new Promise((resolve) => {
             const timer = setTimeout(() => {
-                console.warn(`[GEE-DOWNLOAD] Timed out after ${timeoutMs}ms (name=${fileBase}, scale=${scale}m).`);
+                console.warn(
+                    `[GEE-DOWNLOAD] Timed out after ${timeoutMs}ms (name=${fileBase}, scale=${scale}m).`,
+                );
                 resolve(null);
             }, timeoutMs);
-            visImage.getDownloadURL({
-                name: fileBase,
-                scale,
-                region,
-                fileFormat:  'GeoTIFF',
-                // KHÔNG chia band ra 3 file — trả 1 file GeoTIFF 3-band RGB
-                // duy nhất trong zip. Unzip xong là 1 ảnh màu đủ, không phải
-                // 3 file per-band (red/green/blue) rời rạc.
-                filePerBand: false,
-                maxPixels,
-            }, (u, err) => {
-                clearTimeout(timer);
-                if (err) {
-                    console.warn(`[GEE-DOWNLOAD] Failed (name=${fileBase}, scale=${scale}m): ${err.message || err}`);
-                }
-                resolve(err ? null : u);
-            });
+            visImage.getDownloadURL(
+                {
+                    name: fileBase,
+                    scale,
+                    region,
+                    fileFormat: 'GeoTIFF',
+                    // KHÔNG chia band ra 3 file — trả 1 file GeoTIFF 3-band RGB
+                    // duy nhất trong zip. Unzip xong là 1 ảnh màu đủ, không phải
+                    // 3 file per-band (red/green/blue) rời rạc.
+                    filePerBand: false,
+                    maxPixels,
+                },
+                (u, err) => {
+                    clearTimeout(timer);
+                    if (err) {
+                        console.warn(
+                            `[GEE-DOWNLOAD] Failed (name=${fileBase}, scale=${scale}m): ${err.message || err}`,
+                        );
+                    }
+                    resolve(err ? null : u);
+                },
+            );
         });
-        if (!url) {return null;}
+        if (!url) {
+            return null;
+        }
         return { url, filename: `${fileBase}.zip` };
     } catch (e) {
         console.warn(`[GEE-DOWNLOAD] Failed before URL generation: ${e.message || e}`);

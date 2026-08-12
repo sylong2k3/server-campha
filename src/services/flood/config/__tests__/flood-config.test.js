@@ -154,7 +154,10 @@ describe('schema.js validateRunConfig', () => {
 
         test('rejects unknown keys (blocks smuggling of unvalidated EE inputs)', () => {
             expect(() =>
-                validateRunConfig('event', { ...validEvent, extraSecretGeometry: 'FeatureCollection' }),
+                validateRunConfig('event', {
+                    ...validEvent,
+                    extraSecretGeometry: 'FeatureCollection',
+                }),
             ).toThrow(/extraSecretGeometry/);
         });
     });
@@ -172,7 +175,9 @@ describe('schema.js validateRunConfig', () => {
 
     describe('rain (M3)', () => {
         test('IMERG source requires eventTime', () => {
-            expect(() => validateRunConfig('rain', { source: 'IMERG' })).toThrow(/eventTime is required/);
+            expect(() => validateRunConfig('rain', { source: 'IMERG' })).toThrow(
+                /eventTime is required/,
+            );
         });
         test('MANUAL source requires a rainfall object', () => {
             expect(() => validateRunConfig('rain', { source: 'MANUAL' })).toThrow(/rainfall/);

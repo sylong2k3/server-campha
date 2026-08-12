@@ -6,17 +6,39 @@ const { ASSETS } = require('../datasets');
 
 const makeEe = () => {
     const calls = [];
-    const record = (name) => (...args) => {
-        calls.push({ name, args });
-        return chain(name);
-    };
+    const record =
+        (name) =>
+        (...args) => {
+            calls.push({ name, args });
+            return chain(name);
+        };
     const chain = (parent) => {
         const obj = {};
         for (const m of [
-            'select', 'gte', 'lte', 'gt', 'and', 'or', 'not', 'eq',
-            'multiply', 'add', 'divide', 'log', 'tan', 'max', 'sin', 'cos',
-            'rename', 'first', 'mosaic', 'mode', 'filterBounds', 'filterDate',
-            'focal_mean', 'focal_median',
+            'select',
+            'gte',
+            'lte',
+            'gt',
+            'and',
+            'or',
+            'not',
+            'eq',
+            'multiply',
+            'add',
+            'divide',
+            'log',
+            'tan',
+            'max',
+            'sin',
+            'cos',
+            'rename',
+            'first',
+            'mosaic',
+            'mode',
+            'filterBounds',
+            'filterDate',
+            'focal_mean',
+            'focal_median',
         ]) {
             obj[m] = record(`${parent}.${m}`);
         }

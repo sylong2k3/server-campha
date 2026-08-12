@@ -11,8 +11,11 @@ const withRasterIngestEnabled = async (fn) => {
     try {
         return await fn({ enqueue });
     } finally {
-        if (previous === undefined) {delete process.env.RASTER_INGEST_ENABLED;}
-        else {process.env.RASTER_INGEST_ENABLED = previous;}
+        if (previous === undefined) {
+            delete process.env.RASTER_INGEST_ENABLED;
+        } else {
+            process.env.RASTER_INGEST_ENABLED = previous;
+        }
     }
 };
 
@@ -24,7 +27,9 @@ const silence = () => {
         debug: jest.spyOn(console, 'debug').mockImplementation(() => {}),
     };
     return () => {
-        for (const spy of Object.values(spies)) {spy.mockRestore();}
+        for (const spy of Object.values(spies)) {
+            spy.mockRestore();
+        }
     };
 };
 
@@ -184,9 +189,11 @@ describe('enqueue()', () => {
                 .mockResolvedValueOnce({ id: 99, status: 'downloading' }); // post-rollback
             const repo = makeRepo({
                 findActiveBySourceHash: findMock,
-                insertJob: jest.fn().mockRejectedValue(
-                    Object.assign(new Error('unique_violation'), { code: '23505' }),
-                ),
+                insertJob: jest
+                    .fn()
+                    .mockRejectedValue(
+                        Object.assign(new Error('unique_violation'), { code: '23505' }),
+                    ),
             });
             const db = makeDb();
             const result = await fresh(

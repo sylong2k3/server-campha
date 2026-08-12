@@ -7,9 +7,7 @@ const otsu = require('../common/otsu');
 const { TREND_ANALYSIS_SCALE_M, ANALYSIS_CRS } = require('../common/projection');
 
 function toNaturalCollection(ee, collection) {
-    return collection
-        .select(['VV', 'VH'])
-        .map((image) => sentinel1.toNatural(ee, image));
+    return collection.select(['VV', 'VH']).map((image) => sentinel1.toNatural(ee, image));
 }
 
 function buildReference(ee, collection) {
@@ -19,13 +17,7 @@ function buildReference(ee, collection) {
     return { natural, image, db, count: collection.size() };
 }
 
-function resolveRatioThresholds(ee, {
-    mode,
-    ratioVV,
-    ratioVH,
-    aoi,
-    config,
-}) {
+function resolveRatioThresholds(ee, { mode, ratioVV, ratioVH, aoi, config }) {
     if (mode === 'fixed') {
         return {
             vv: config.floodRatioThresholdVV,
@@ -33,9 +25,8 @@ function resolveRatioThresholds(ee, {
             usedFallback: 0,
         };
     }
-    const helper = mode === 'median_sigma'
-        ? otsu.computeMedianSigmaThreshold
-        : otsu.otsuThresholdOnBand;
+    const helper =
+        mode === 'median_sigma' ? otsu.computeMedianSigmaThreshold : otsu.otsuThresholdOnBand;
     const common = {
         geometry: aoi,
         maxDb: config.maximumRatio,
@@ -69,18 +60,21 @@ function emptyFlood(ee) {
     return ee.Image.constant(0).rename('flood').toByte().selfMask();
 }
 
-function buildPeriodFlood(ee, {
-    period,
-    aoi,
-    orbit,
-    reference,
-    terrain,
-    hand,
-    water,
-    mining,
-    config,
-    dynamicWorldContext = null,
-}) {
+function buildPeriodFlood(
+    ee,
+    {
+        period,
+        aoi,
+        orbit,
+        reference,
+        terrain,
+        hand,
+        water,
+        mining,
+        config,
+        dynamicWorldContext = null,
+    },
+) {
     const fetchStart = ee.Date(period.start).advance(-config.periodPadDays, 'day');
     const fetchEnd = ee.Date(period.end).advance(config.periodPadDays, 'day');
     const currentDbCollection = sentinel1.getS1Collection(ee, {
@@ -92,9 +86,7 @@ function buildPeriodFlood(ee, {
     });
     const currentCount = currentDbCollection.size();
     const valid = ee.Number(reference.count.gt(0).and(currentCount.gt(0)));
-    const current = toNaturalCollection(ee, currentDbCollection)
-        .median()
-        .rename(['VV', 'VH']);
+    const current = toNaturalCollection(ee, currentDbCollection).median().rename(['VV', 'VH']);
     const currentDb = current.max(1e-6).log10().multiply(10).rename(['VV_db', 'VH_db']);
     const ratioVV = reference.image.select('VV').divide(current.select('VV')).rename('ratio_vv');
     const ratioVH = reference.image.select('VH').divide(current.select('VH')).rename('ratio_vh');
@@ -129,13 +121,10 @@ function buildPeriodFlood(ee, {
         .updateMask(hand.hand.lte(config.handThreshold).unmask(0))
         .updateMask(water.permanent.not().unmask(1));
     const connected = refined.selfMask().connectedPixelCount(100, true);
-    refined = refined
-        .updateMask(connected.gte(8))
-        .rename('flood')
-        .toByte()
-        .clip(aoi);
+    refined = refined.updateMask(connected.gte(8)).rename('flood').toByte().clip(aoi);
 
-    return ee.Image(ee.Algorithms.If(valid.eq(1), refined, emptyFlood(ee)))
+    return ee
+        .Image(ee.Algorithms.If(valid.eq(1), refined, emptyFlood(ee)))
         .rename('flood')
         .set('system:time_start', ee.Date(period.start).millis())
         .set('period_start', period.start)

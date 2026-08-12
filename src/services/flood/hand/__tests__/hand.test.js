@@ -11,17 +11,25 @@ const makeChainable = () => {
     const chain = () => {
         const p = new Proxy(function () {}, {
             get(_t, key) {
-                if (key === 'then') {return undefined;}
+                if (key === 'then') {
+                    return undefined;
+                }
                 // Jest's pretty-format calls String() / RegExp.test() on args
                 // when printing failure diffs — return a sentinel so those
                 // conversions don't throw "Cannot convert object to primitive".
-                if (key === Symbol.toPrimitive) {return () => '[eeProxy]';}
-                if (key === 'toString') {return () => '[eeProxy]';}
+                if (key === Symbol.toPrimitive) {
+                    return () => '[eeProxy]';
+                }
+                if (key === 'toString') {
+                    return () => '[eeProxy]';
+                }
                 return chain();
             },
             apply(_t, _thisArg, args) {
                 for (const arg of args) {
-                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {arg(chain());}
+                    if (typeof arg === 'function' && !proxyMarks.has(arg)) {
+                        arg(chain());
+                    }
                 }
                 return chain();
             },
@@ -32,9 +40,15 @@ const makeChainable = () => {
     return chain();
 };
 
-const makeEe = () => new Proxy({}, {
-    get() { return makeChainable(); },
-});
+const makeEe = () =>
+    new Proxy(
+        {},
+        {
+            get() {
+                return makeChainable();
+            },
+        },
+    );
 
 describe('scenario.scenarioMask', () => {
     test('rejects missing ee / handImage', () => {
@@ -42,17 +56,15 @@ describe('scenario.scenarioMask', () => {
         expect(() => scenarioMask(makeEe(), {})).toThrow(/handImage/);
     });
     test('rejects non-positive levelM', () => {
-        expect(() =>
-            scenarioMask(makeEe(), { handImage: makeChainable(), levelM: 0 }),
-        ).toThrow(/levelM/);
-        expect(() =>
-            scenarioMask(makeEe(), { handImage: makeChainable(), levelM: -3 }),
-        ).toThrow(/levelM/);
+        expect(() => scenarioMask(makeEe(), { handImage: makeChainable(), levelM: 0 })).toThrow(
+            /levelM/,
+        );
+        expect(() => scenarioMask(makeEe(), { handImage: makeChainable(), levelM: -3 })).toThrow(
+            /levelM/,
+        );
     });
     test('runs to completion when slopeDeg is omitted', () => {
-        expect(
-            scenarioMask(makeEe(), { handImage: makeChainable(), levelM: 5 }),
-        ).toBeDefined();
+        expect(scenarioMask(makeEe(), { handImage: makeChainable(), levelM: 5 })).toBeDefined();
     });
     test('runs to completion when slopeDeg is supplied', () => {
         expect(
@@ -88,10 +100,7 @@ describe('depth.depthImage', () => {
 
 describe('result.js', () => {
     test('M2_ARTIFACTS = [hand_scenario, hand_depth] as PRODUCT roles', () => {
-        expect(result.M2_ARTIFACTS.map((a) => a.code)).toEqual([
-            'hand_scenario',
-            'hand_depth',
-        ]);
+        expect(result.M2_ARTIFACTS.map((a) => a.code)).toEqual(['hand_scenario', 'hand_depth']);
         for (const a of result.M2_ARTIFACTS) {
             expect(a.role).toBe('PRODUCT');
         }
@@ -166,7 +175,9 @@ const makeStubs = (overrides = {}) => ({
     scenario: { scenarioMask: jest.fn(() => chain()) },
     depth: { depthImage: jest.fn(() => chain()) },
     result: {
-        selectM2Artifacts: jest.fn(() => [{ code: 'hand_scenario', role: 'PRODUCT', label: {}, description: '', style: '' }]),
+        selectM2Artifacts: jest.fn(() => [
+            { code: 'hand_scenario', role: 'PRODUCT', label: {}, description: '', style: '' },
+        ]),
         buildM2ResultMetadata: jest.fn((md) => ({
             levelM: md.levelM ?? null,
             maximumSlope: md.maximumSlope ?? null,

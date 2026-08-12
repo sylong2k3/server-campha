@@ -20,7 +20,9 @@ const silence = () => {
         debug: jest.spyOn(console, 'debug').mockImplementation(() => {}),
     };
     return () => {
-        for (const spy of Object.values(spies)) {spy.mockRestore();}
+        for (const spy of Object.values(spies)) {
+            spy.mockRestore();
+        }
     };
 };
 
@@ -62,9 +64,7 @@ const makeDownload = (payload) =>
 describe('helpers', () => {
     test('extractEpsgFromWkt picks the innermost EPSG authority', () => {
         expect(
-            extractEpsgFromWkt(
-                'PROJCS["a", GEOGCS[..., ID["EPSG",4326]], ID["EPSG",32648]]',
-            ),
+            extractEpsgFromWkt('PROJCS["a", GEOGCS[..., ID["EPSG",4326]], ID["EPSG",32648]]'),
         ).toBe('EPSG:32648');
     });
 
@@ -85,9 +85,7 @@ describe('helpers', () => {
             await fs.promises.writeFile(p, Buffer.from('hello'));
             const digest = await sha256File(p);
             // Known SHA-256 for "hello".
-            expect(digest).toBe(
-                '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824',
-            );
+            expect(digest).toBe('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
         } finally {
             await fs.promises.rm(tmp, { recursive: true, force: true });
         }
@@ -247,22 +245,24 @@ describe('runJob (failure branches)', () => {
             err.code = PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE;
             return Promise.reject(err);
         });
-        await expect(runJob(
-            {
-                id: 6,
-                layer_code: 'no_gdal',
-                source_url: 'https://x/y',
-                retry_count: 0,
-                request_params: {},
-            },
-            {
-                repo,
-                minio: makeMinio(),
-                publisher: makePublisher(),
-                download,
-                validateCrs,
-            },
-        )).rejects.toMatchObject({ code: PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE });
+        await expect(
+            runJob(
+                {
+                    id: 6,
+                    layer_code: 'no_gdal',
+                    source_url: 'https://x/y',
+                    retry_count: 0,
+                    request_params: {},
+                },
+                {
+                    repo,
+                    minio: makeMinio(),
+                    publisher: makePublisher(),
+                    download,
+                    validateCrs,
+                },
+            ),
+        ).rejects.toMatchObject({ code: PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE });
     });
 
     test('runs the retry policy on any failure and re-throws', async () => {

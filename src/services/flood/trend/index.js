@@ -45,12 +45,14 @@ function mergePeriodCollections(ee, deps, { periods, aoi, pass }) {
         pass,
     });
     for (const period of periods.slice(1)) {
-        merged = merged.merge(deps.sentinel1.getS1Collection(ee, {
-            start: period.start,
-            end: period.end,
-            aoi,
-            pass,
-        }));
+        merged = merged.merge(
+            deps.sentinel1.getS1Collection(ee, {
+                start: period.start,
+                end: period.end,
+                aoi,
+                pass,
+            }),
+        );
     }
     return merged;
 }
@@ -63,9 +65,15 @@ async function runTrendAnalysis({
     authoritativeGeoJson = null,
     deps = defaultDeps(),
 } = {}) {
-    if (!ee) {throw new Error('trend.index.runTrendAnalysis requires the ee module');}
-    if (!geeAdapter?.evaluate) {throw new Error('trend.index.runTrendAnalysis requires geeAdapter.evaluate');}
-    if (!runConfig) {throw new Error('trend.index.runTrendAnalysis requires runConfig');}
+    if (!ee) {
+        throw new Error('trend.index.runTrendAnalysis requires the ee module');
+    }
+    if (!geeAdapter?.evaluate) {
+        throw new Error('trend.index.runTrendAnalysis requires geeAdapter.evaluate');
+    }
+    if (!runConfig) {
+        throw new Error('trend.index.runTrendAnalysis requires runConfig');
+    }
     assertValidMode(runMode);
     const config = { ...TREND_DEFAULTS, ...runConfig, mode: runMode };
     if (!Array.isArray(config.periods) || config.periods.length < 2) {
@@ -135,22 +143,24 @@ async function runTrendAnalysis({
         aoi,
     });
 
-    const periodImages = config.periods.map((period) => deps.periodAnalysis.buildPeriodFlood(ee, {
-        period,
-        aoi,
-        orbit,
-        reference,
-        terrain: terrainStack,
-        hand: handStack,
-        water: waterStack,
-        mining: miningStack,
-        config,
-        dynamicWorldContext: dwCache.get(ee, {
-            startDate: `${period.start.slice(0, 4)}-01-01`,
-            endDate: `${Number(period.start.slice(0, 4)) + 1}-01-01`,
+    const periodImages = config.periods.map((period) =>
+        deps.periodAnalysis.buildPeriodFlood(ee, {
+            period,
             aoi,
+            orbit,
+            reference,
+            terrain: terrainStack,
+            hand: handStack,
+            water: waterStack,
+            mining: miningStack,
+            config,
+            dynamicWorldContext: dwCache.get(ee, {
+                startDate: `${period.start.slice(0, 4)}-01-01`,
+                endDate: `${Number(period.start.slice(0, 4)) + 1}-01-01`,
+                aoi,
+            }),
         }),
-    }));
+    );
     const floodCollection = ee.ImageCollection(periodImages);
     const frequencyProducts = deps.frequency.buildFrequencyProducts(ee, {
         floodCollection,

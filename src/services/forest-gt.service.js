@@ -4,20 +4,22 @@
  * Ground truth service cho forest classification. Thin layer trên repo.
  */
 
-const repo     = require('../repositories/forest-gt.repository');
+const repo = require('../repositories/forest-gt.repository');
 const { Api400Error, Api404Error } = require('../core/error.response');
 
-const DEBUG = process.env.FC_DEBUG === 'true'
-    || process.env.NODE_ENV === 'development';
-const dbg = (msg) => { if (DEBUG) {console.debug(`[FOREST-GT] ${msg}`);} };
+const DEBUG = process.env.FC_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const dbg = (msg) => {
+    if (DEBUG) {
+        console.debug(`[FOREST-GT] ${msg}`);
+    }
+};
 
 // ── ZONES ────────────────────────────────────────────────────────────────────
 
 async function createZone(body, user) {
     const geom = body.geom;
-    const multiGeom = geom.type === 'Polygon'
-        ? { type: 'MultiPolygon', coordinates: [geom.coordinates] }
-        : geom;
+    const multiGeom =
+        geom.type === 'Polygon' ? { type: 'MultiPolygon', coordinates: [geom.coordinates] } : geom;
     dbg(`createZone class=${body.classId} type=${multiGeom.type} user=${user?.id}`);
     return repo.insertZone({
         ...body,
@@ -27,7 +29,9 @@ async function createZone(body, user) {
 }
 
 async function bulkZoneFromFeatureCollection(fc, user) {
-    if (!fc?.features?.length) {throw new Api400Error('FeatureCollection rỗng.', ['EMPTY_FC']);}
+    if (!fc?.features?.length) {
+        throw new Api400Error('FeatureCollection rỗng.', ['EMPTY_FC']);
+    }
     const now = new Date();
     fc.features.forEach((f) => {
         f.properties = f.properties || {};
@@ -43,11 +47,15 @@ async function bulkZoneFromFeatureCollection(fc, user) {
     return repo.insertZoneBulk(fc.features, user?.id);
 }
 
-async function listZones(query) { return repo.listZones(query); }
+async function listZones(query) {
+    return repo.listZones(query);
+}
 
 async function deleteZone(id) {
     const ok = await repo.softDeleteZone(Number(id));
-    if (!ok) {throw new Api404Error('Zone không tồn tại.', ['NOT_FOUND']);}
+    if (!ok) {
+        throw new Api404Error('Zone không tồn tại.', ['NOT_FOUND']);
+    }
     return { deleted: true, id: Number(id) };
 }
 
@@ -63,11 +71,15 @@ async function bulkPoint(body, user) {
     return repo.insertPointBulk(body.points, user?.id);
 }
 
-async function listPoints(query) { return repo.listPoints(query); }
+async function listPoints(query) {
+    return repo.listPoints(query);
+}
 
 async function deletePoint(id) {
     const ok = await repo.softDeletePoint(Number(id));
-    if (!ok) {throw new Api404Error('Point không tồn tại.', ['NOT_FOUND']);}
+    if (!ok) {
+        throw new Api404Error('Point không tồn tại.', ['NOT_FOUND']);
+    }
     return { deleted: true, id: Number(id) };
 }
 
@@ -77,15 +89,24 @@ async function deletePoint(id) {
  * Cửa sổ mặc định 180 ngày vì phân loại rừng
  * cần đủ mẫu cho RF training 11 class. Env override: FC_GT_WINDOW_DAYS.
  */
-async function getGtForAnalysis(analysisEndDate, windowDays = Number(process.env.FC_GT_WINDOW_DAYS) || 180) {
-    const to   = new Date(analysisEndDate);
+async function getGtForAnalysis(
+    analysisEndDate,
+    windowDays = Number(process.env.FC_GT_WINDOW_DAYS) || 180,
+) {
+    const to = new Date(analysisEndDate);
     const from = new Date(to.getTime() - windowDays * 24 * 3600 * 1000);
     dbg(`getGtForAnalysis window=${windowDays}d [${from.toISOString()}, ${to.toISOString()})`);
     return repo.getGtForWindow({ from, to });
 }
 
 module.exports = {
-    createZone, bulkZoneFromFeatureCollection, listZones, deleteZone,
-    createPoint, bulkPoint, listPoints, deletePoint,
+    createZone,
+    bulkZoneFromFeatureCollection,
+    listZones,
+    deleteZone,
+    createPoint,
+    bulkPoint,
+    listPoints,
+    deletePoint,
     getGtForAnalysis,
 };

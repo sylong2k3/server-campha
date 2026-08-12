@@ -33,9 +33,13 @@ const { urbanDoubleBounceVote } = require('./urban-double-bounce');
  * @returns {object} ee.Image (integer count 0..3)
  */
 function darkFloodSupportScore(ee, { preVV, postVV, postVH, thresholds }) {
-    if (!ee) {throw new Error('event.classifier.darkFloodSupportScore requires the ee module');}
+    if (!ee) {
+        throw new Error('event.classifier.darkFloodSupportScore requires the ee module');
+    }
     if (!preVV || !postVV || !postVH || !thresholds) {
-        throw new Error('event.classifier.darkFloodSupportScore requires preVV/postVV/postVH/thresholds');
+        throw new Error(
+            'event.classifier.darkFloodSupportScore requires preVV/postVV/postVH/thresholds',
+        );
     }
     const vvDecrease = preVV.subtract(postVV);
     const vote1 = vvDecrease.gte(thresholds.vvDecreaseDb);
@@ -80,7 +84,9 @@ function classifySinglePostImage(
         minimumDarkSupportVotes,
     } = {},
 ) {
-    if (!ee) {throw new Error('event.classifier.classifySinglePostImage requires the ee module');}
+    if (!ee) {
+        throw new Error('event.classifier.classifySinglePostImage requires the ee module');
+    }
     for (const [name, val] of Object.entries({
         preBaselineVV,
         preBaselineVH,
@@ -90,7 +96,9 @@ function classifySinglePostImage(
         vvScale,
         thresholds,
     })) {
-        if (!val) {throw new Error(`event.classifier.classifySinglePostImage requires ${name}`);}
+        if (!val) {
+            throw new Error(`event.classifier.classifySinglePostImage requires ${name}`);
+        }
     }
     if (!Number.isFinite(minimumDarkSupportVotes)) {
         throw new Error(
@@ -108,7 +116,12 @@ function classifySinglePostImage(
     // ── Dark-flood branch ────────────────────────────────────────────
     // VH decrease clears the decision threshold (adaptive/fixed dB).
     const vhDecreaseGate = vhDecrease.gte(decisionThreshold);
-    const darkSupport = darkFloodSupportScore(ee, { preVV: preBaselineVV, postVV, postVH, thresholds });
+    const darkSupport = darkFloodSupportScore(ee, {
+        preVV: preBaselineVV,
+        postVV,
+        postVH,
+        thresholds,
+    });
     const darkFloodVote = vhDecreaseGate
         .and(darkSupport.gte(minimumDarkSupportVotes))
         .rename('dark_flood_vote');
@@ -142,8 +155,12 @@ function classifySinglePostImage(
 
     // ── Combine ─────────────────────────────────────────────────────
     let combined = darkFloodVote;
-    if (shallowVote) {combined = combined.or(shallowVote);}
-    if (urbanVote) {combined = combined.or(urbanVote);}
+    if (shallowVote) {
+        combined = combined.or(shallowVote);
+    }
+    if (urbanVote) {
+        combined = combined.or(urbanVote);
+    }
 
     let bands = combined
         .rename('flood_vote')
@@ -152,8 +169,12 @@ function classifySinglePostImage(
         .addBands(vhZ.rename('vh_z'))
         .addBands(vvZ.rename('vv_z'));
     // ee.Image is immutable: preserve the returned image after addBands.
-    if (shallowVote) {bands = bands.addBands(shallowVote);}
-    if (urbanVote) {bands = bands.addBands(urbanVote);}
+    if (shallowVote) {
+        bands = bands.addBands(shallowVote);
+    }
+    if (urbanVote) {
+        bands = bands.addBands(urbanVote);
+    }
     return bands;
 }
 
@@ -170,9 +191,17 @@ function classifySinglePostImage(
  */
 function reduceVotesToMask(
     ee,
-    { voteCollection, band = 'flood_vote', minimumVotes, minimumObservations, minimumVoteFraction } = {},
+    {
+        voteCollection,
+        band = 'flood_vote',
+        minimumVotes,
+        minimumObservations,
+        minimumVoteFraction,
+    } = {},
 ) {
-    if (!ee) {throw new Error('event.classifier.reduceVotesToMask requires the ee module');}
+    if (!ee) {
+        throw new Error('event.classifier.reduceVotesToMask requires the ee module');
+    }
     if (!voteCollection) {
         throw new Error('event.classifier.reduceVotesToMask requires voteCollection');
     }
@@ -202,8 +231,15 @@ function reduceVotesToMask(
  * In event mode a single post-event image is enough — voteFraction is dropped
  * to 0 so a single positive vote passes.
  */
-function applyEventModeOverride({ eventMode, minimumVotes, minimumObservations, minimumVoteFraction }) {
-    if (!eventMode) {return { minimumVotes, minimumObservations, minimumVoteFraction };}
+function applyEventModeOverride({
+    eventMode,
+    minimumVotes,
+    minimumObservations,
+    minimumVoteFraction,
+}) {
+    if (!eventMode) {
+        return { minimumVotes, minimumObservations, minimumVoteFraction };
+    }
     return { minimumVotes: 1, minimumObservations: 1, minimumVoteFraction: 0 };
 }
 

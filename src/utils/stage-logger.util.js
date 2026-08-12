@@ -27,9 +27,11 @@
 const ENABLED = process.env.PIPELINE_STAGE_LOG !== 'off';
 
 function stageCode(idx) {
-    if (idx < 26) {return String.fromCharCode(65 + idx);}
+    if (idx < 26) {
+        return String.fromCharCode(65 + idx);
+    }
     // AA, AB, AC … khi vượt quá 26 stage.
-    const first  = String.fromCharCode(65 + Math.floor(idx / 26) - 1);
+    const first = String.fromCharCode(65 + Math.floor(idx / 26) - 1);
     const second = String.fromCharCode(65 + (idx % 26));
     return first + second;
 }
@@ -40,8 +42,12 @@ function fmtRel(t0) {
 }
 
 function fmtDur(ms) {
-    if (ms < 1000)   {return `${ms} ms`;}
-    if (ms < 60_000) {return `${(ms / 1000).toFixed(2)}s`;}
+    if (ms < 1000) {
+        return `${ms} ms`;
+    }
+    if (ms < 60_000) {
+        return `${(ms / 1000).toFixed(2)}s`;
+    }
     return `${(ms / 60_000).toFixed(2)}m`;
 }
 
@@ -59,11 +65,12 @@ function fmtDur(ms) {
  * }}
  */
 function makeStageLogger(pipelineName, opts = {}) {
-    const tag  = opts.correlationId !== null && opts.correlationId !== undefined
-        ? `${pipelineName}#${opts.correlationId}`
-        : pipelineName;
-    const t0   = Date.now();
-    let idx    = 0;
+    const tag =
+        opts.correlationId !== null && opts.correlationId !== undefined
+            ? `${pipelineName}#${opts.correlationId}`
+            : pipelineName;
+    const t0 = Date.now();
+    let idx = 0;
 
     if (!ENABLED) {
         const noop = () => {};
@@ -78,27 +85,23 @@ function makeStageLogger(pipelineName, opts = {}) {
     const stages = [];
 
     function begin(description, o = {}) {
-        const code   = stageCode(idx++);
+        const code = stageCode(idx++);
         const stageT = Date.now();
-        const note   = o.note ? ` — ${o.note}` : '';
-        console.log(
-            `[${tag}][${code}][${fmtRel(t0)}]   ▶ ${description}${note}`,
-        );
+        const note = o.note ? ` — ${o.note}` : '';
+        console.log(`[${tag}][${code}][${fmtRel(t0)}]   ▶ ${description}${note}`);
         const record = { code, description, start: stageT, ok: null };
         stages.push(record);
         return {
             done(extra) {
                 const dur = Date.now() - stageT;
-                record.ok  = true;
+                record.ok = true;
                 record.dur = dur;
                 const suffix = extra ? ` — ${extra}` : '';
-                console.log(
-                    `[${tag}][${code}][${fmtRel(t0)}]   ✓ done (${fmtDur(dur)})${suffix}`,
-                );
+                console.log(`[${tag}][${code}][${fmtRel(t0)}]   ✓ done (${fmtDur(dur)})${suffix}`);
             },
             fail(err) {
                 const dur = Date.now() - stageT;
-                record.ok  = false;
+                record.ok = false;
                 record.dur = dur;
                 const msg = err?.message || String(err);
                 console.error(
@@ -123,16 +126,14 @@ function makeStageLogger(pipelineName, opts = {}) {
     function mark(description, note) {
         const code = stageCode(idx++);
         const suffix = note ? ` — ${note}` : '';
-        console.log(
-            `[${tag}][${code}][${fmtRel(t0)}]   • ${description}${suffix}`,
-        );
+        console.log(`[${tag}][${code}][${fmtRel(t0)}]   • ${description}${suffix}`);
         stages.push({ code, description, start: Date.now(), ok: true, dur: 0, note });
     }
 
     function summary() {
         const total = Date.now() - t0;
-        const ok    = stages.filter((s) => s.ok !== false).length;
-        const fail  = stages.filter((s) => s.ok === false).length;
+        const ok = stages.filter((s) => s.ok !== false).length;
+        const fail = stages.filter((s) => s.ok === false).length;
         console.log(
             `[${tag}][SUM][${fmtRel(t0)}]   Σ ${stages.length} stage(s), ${ok} ok, ${fail} failed, tổng ${fmtDur(total)}`,
         );

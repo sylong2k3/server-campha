@@ -20,14 +20,13 @@ const M2_ARTIFACTS = Object.freeze([
         code: 'hand_depth',
         role: 'PRODUCT',
         label: { vi: 'Độ sâu ngập kịch bản HAND (m)', en: 'HAND scenario depth (m)' },
-        description: 'Estimated inundation depth = level − HAND (metres). Zero outside the scenario mask.',
+        description:
+            'Estimated inundation depth = level − HAND (metres). Zero outside the scenario mask.',
         style: 'hand_depth',
     },
 ]);
 
-const CODE_TO_ARTIFACT = Object.freeze(
-    Object.fromEntries(M2_ARTIFACTS.map((a) => [a.code, a])),
-);
+const CODE_TO_ARTIFACT = Object.freeze(Object.fromEntries(M2_ARTIFACTS.map((a) => [a.code, a])));
 
 function selectM2Artifacts({ runMode = 'product' } = {}) {
     return M2_ARTIFACTS.map((a) => ({

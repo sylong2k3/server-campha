@@ -15,7 +15,9 @@ const makeEe = () => {
     const makeProxy = (path) => {
         const p = new Proxy(function () {}, {
             get(_target, key) {
-                if (key === 'then' || key === Symbol.toPrimitive) {return undefined;}
+                if (key === 'then' || key === Symbol.toPrimitive) {
+                    return undefined;
+                }
                 return makeProxy(`${path}.${String(key)}`);
             },
             apply(_target, _thisArg, args) {
@@ -37,7 +39,9 @@ const makeEe = () => {
         { calls },
         {
             get(target, key) {
-                if (key === 'calls') {return target.calls;}
+                if (key === 'calls') {
+                    return target.calls;
+                }
                 return makeProxy(String(key));
             },
         },

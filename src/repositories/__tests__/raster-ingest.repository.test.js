@@ -173,8 +173,12 @@ describe('raster-ingest.repository', () => {
         test('rolls back and re-throws on failure', async () => {
             resetMocks();
             db.__client.query.mockImplementation((sql) => {
-                if (sql === 'BEGIN') {return Promise.resolve();}
-                if (sql === 'ROLLBACK') {return Promise.resolve();}
+                if (sql === 'BEGIN') {
+                    return Promise.resolve();
+                }
+                if (sql === 'ROLLBACK') {
+                    return Promise.resolve();
+                }
                 if (/^UPDATE gis\.raster_ingest_jobs/.test(sql)) {
                     return Promise.reject(new Error('DB down'));
                 }
@@ -210,7 +214,9 @@ describe('raster-ingest.repository', () => {
         test('SELECTs FOR UPDATE SKIP LOCKED then UPDATEs to downloading', async () => {
             resetMocks();
             db.__client.query.mockImplementation((sql) => {
-                if (sql === 'BEGIN' || sql === 'COMMIT') {return Promise.resolve();}
+                if (sql === 'BEGIN' || sql === 'COMMIT') {
+                    return Promise.resolve();
+                }
                 if (/SELECT[\s\S]*FOR UPDATE SKIP LOCKED/.test(sql)) {
                     return Promise.resolve({ rows: [makeRow({ id: 5 }), makeRow({ id: 6 })] });
                 }
@@ -227,7 +233,9 @@ describe('raster-ingest.repository', () => {
         test('returns [] and commits when nothing is claimable', async () => {
             resetMocks();
             db.__client.query.mockImplementation((sql) => {
-                if (sql === 'BEGIN' || sql === 'COMMIT') {return Promise.resolve();}
+                if (sql === 'BEGIN' || sql === 'COMMIT') {
+                    return Promise.resolve();
+                }
                 return Promise.resolve({ rows: [] });
             });
             const claimed = await repo.claimPending({ batchSize: 1, maxRetries: 3 });
@@ -240,7 +248,9 @@ describe('raster-ingest.repository', () => {
         test('moves exhausted jobs to dlq and rewinds the rest to pending', async () => {
             resetMocks();
             db.__client.query.mockImplementation((sql) => {
-                if (sql === 'BEGIN' || sql === 'COMMIT') {return Promise.resolve();}
+                if (sql === 'BEGIN' || sql === 'COMMIT') {
+                    return Promise.resolve();
+                }
                 if (/status = 'dlq'/.test(sql)) {
                     return Promise.resolve({ rows: [{ id: 10 }, { id: 11 }] });
                 }

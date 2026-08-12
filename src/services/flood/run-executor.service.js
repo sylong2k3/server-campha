@@ -23,10 +23,7 @@ async function waitForIngestJob(jobId) {
         60_000,
         Number(process.env.FLOOD_INGEST_WAIT_TIMEOUT_MS) || 25 * 60 * 1000,
     );
-    const pollMs = Math.max(
-        500,
-        Number(process.env.FLOOD_INGEST_POLL_INTERVAL_MS) || 2_000,
-    );
+    const pollMs = Math.max(500, Number(process.env.FLOOD_INGEST_POLL_INTERVAL_MS) || 2_000);
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
         const job = await ingestRepo.findById(jobId);
@@ -35,7 +32,9 @@ async function waitForIngestJob(jobId) {
             error.code = 'RASTER_INGEST_JOB_NOT_FOUND';
             throw error;
         }
-        if (job.status === 'completed') {return job;}
+        if (job.status === 'completed') {
+            return job;
+        }
         if (INGEST_TERMINAL_FAILURES.has(job.status)) {
             const error = new Error(`Raster ingest job ${jobId} ended in ${job.status}`);
             error.code = `RASTER_INGEST_${job.status.toUpperCase()}`;
@@ -82,15 +81,25 @@ async function executeStage(run, stage, status, fn) {
         await emit(run, stage, 'stage_end', null, Date.now() - started);
         return value;
     } catch (error) {
-        await emit(run, stage, 'stage_error', { code: error.code || error.name }, Date.now() - started);
+        await emit(
+            run,
+            stage,
+            'stage_error',
+            { code: error.code || error.name },
+            Date.now() - started,
+        );
         throw error;
     }
 }
 
 async function runScientificModule(run) {
-    if (run.module === 'impact') {return runImpactWithReconstructedSource(run);}
+    if (run.module === 'impact') {
+        return runImpactWithReconstructedSource(run);
+    }
     const descriptor = MODULE_RUNNERS[run.module];
-    if (!descriptor) {throw new Error(`Unsupported flood module: ${run.module}`);}
+    if (!descriptor) {
+        throw new Error(`Unsupported flood module: ${run.module}`);
+    }
     const service = require(descriptor.module);
     return service[descriptor.fn]({
         ee,
@@ -114,7 +123,9 @@ async function runImpactWithReconstructedSource(run) {
         sourceRun.mode !== run.mode ||
         sourceRun.status !== 'SUCCEEDED'
     ) {
-        const error = new Error(`No successful ${sourceType} source run is available for impact analysis`);
+        const error = new Error(
+            `No successful ${sourceType} source run is available for impact analysis`,
+        );
         error.code = 'IMPACT_SOURCE_RUN_NOT_FOUND';
         throw error;
     }
@@ -127,8 +138,12 @@ async function runImpactWithReconstructedSource(run) {
         runMode: 'product',
     });
     let sourceFloodMask;
-    if (sourceType === 'M1') {sourceFloodMask = source.artifacts.main_flood_non_tidal;}
-    if (sourceType === 'M2') {sourceFloodMask = source.artifacts.hand_scenario;}
+    if (sourceType === 'M1') {
+        sourceFloodMask = source.artifacts.main_flood_non_tidal;
+    }
+    if (sourceType === 'M2') {
+        sourceFloodMask = source.artifacts.hand_scenario;
+    }
     if (sourceType === 'M3') {
         sourceFloodMask = source.artifacts.rain_risk_score
             .gte(sourceRun.params_snapshot.threshold || 0.6)
@@ -149,7 +164,9 @@ function layerCode(run, artifactCode) {
     const raw = `fl_${run.module}_${artifactCode}_r${run.id}`
         .toLowerCase()
         .replace(/[^a-z0-9_]/g, '_');
-    if (raw.length <= 58) {return raw;}
+    if (raw.length <= 58) {
+        return raw;
+    }
     const suffix = crypto.createHash('sha1').update(raw).digest('hex').slice(0, 8);
     return `${raw.slice(0, 49)}_${suffix}`;
 }
@@ -168,7 +185,9 @@ async function exportAndHarvest(run, science, aoi) {
     const artifactRows = [];
     for (const [code, image] of Object.entries(science.artifacts || {})) {
         const definition = catalogByCode.get(code);
-        if (!definition || !image) {continue;}
+        if (!definition || !image) {
+            continue;
+        }
         const artifact = await artifactRepo.createForRun({
             analysisRunId: run.id,
             module: run.module,
@@ -184,8 +203,8 @@ async function exportAndHarvest(run, science, aoi) {
         artifactRows.push({ artifact, definition, image });
     }
 
-    const exportable = artifactRows.filter(({ definition }) =>
-        run.mode === 'calibration' || definition.role === 'PRODUCT',
+    const exportable = artifactRows.filter(
+        ({ definition }) => run.mode === 'calibration' || definition.role === 'PRODUCT',
     );
     const taskIds = {};
     const warnings = [...(science.metadata?.warnings || [])];
@@ -209,8 +228,11 @@ async function exportAndHarvest(run, science, aoi) {
         );
         taskIds[definition.code] = task.taskName;
         await runRepo.updateStatus(run.id, { geeTaskIds: taskIds });
-        const terminal = await executeStage(run, `wait_export:${definition.code}`, 'HARVESTING', () =>
-            geeAdapter.pollExportTask(task.taskName),
+        const terminal = await executeStage(
+            run,
+            `wait_export:${definition.code}`,
+            'HARVESTING',
+            () => geeAdapter.pollExportTask(task.taskName),
         );
         if (terminal.state !== 'COMPLETED') {
             const error = new Error(`GEE export ${definition.code} ended in ${terminal.state}`);
@@ -232,9 +254,8 @@ async function exportAndHarvest(run, science, aoi) {
                 user: { id: run.started_by },
                 requestParams: {
                     publish,
-                    bucketCategory: run.mode === 'calibration'
-                        ? 'flood-calibration'
-                        : 'flood-rasters',
+                    bucketCategory:
+                        run.mode === 'calibration' ? 'flood-calibration' : 'flood-rasters',
                     styleName: definition.style || null,
                     epsg_code: 32648,
                     scale_m: run.module === 'trend' ? 10 : 30,
@@ -259,7 +280,9 @@ async function exportAndHarvest(run, science, aoi) {
             await gcs.deleteObject(objectName);
         } catch (error) {
             warnings.push(`GCS_CLEANUP_FAILED:${definition.code}`);
-            await emit(run, `cleanup:${definition.code}`, 'stage_warn', { code: error.code || error.name });
+            await emit(run, `cleanup:${definition.code}`, 'stage_warn', {
+                code: error.code || error.name,
+            });
         }
     }
     return { artifactCount: artifactRows.length, exportedCount: exportable.length, warnings };
@@ -267,12 +290,18 @@ async function exportAndHarvest(run, science, aoi) {
 
 async function executePersistedRun({ runId } = {}) {
     const run = await runRepo.findById(runId);
-    if (!run) {throw new Error(`Flood run ${runId} not found`);}
-    if (run.status === 'CANCELLED') {return { runId, status: 'CANCELLED', artifactCount: 0 };}
+    if (!run) {
+        throw new Error(`Flood run ${runId} not found`);
+    }
+    if (run.status === 'CANCELLED') {
+        return { runId, status: 'CANCELLED', artifactCount: 0 };
+    }
     await geeAdapter.ensureInitialized();
     await runRepo.startRun(run.id);
     try {
-        const science = await executeStage(run, 'compute', 'COMPUTING', () => runScientificModule(run));
+        const science = await executeStage(run, 'compute', 'COMPUTING', () =>
+            runScientificModule(run),
+        );
         const { geometry: aoi } = geometry.loadAoi(ee);
         const harvested = await exportAndHarvest(run, science, aoi);
         await runRepo.finishRun(run.id, {

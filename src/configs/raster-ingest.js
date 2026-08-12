@@ -34,8 +34,7 @@ const ENABLED = String(process.env.RASTER_INGEST_ENABLED || 'false').toLowerCase
 const isEnabledAtCallTime = () =>
     String(process.env.RASTER_INGEST_ENABLED || 'false').toLowerCase() === 'true';
 
-const TMP_DIR =
-    process.env.RASTER_INGEST_TMP_DIR || path.join(os.tmpdir(), 'campha_raster_ingest');
+const TMP_DIR = process.env.RASTER_INGEST_TMP_DIR || path.join(os.tmpdir(), 'campha_raster_ingest');
 
 const MAX_BYTES = Number(process.env.RASTER_INGEST_MAX_MB || 3072) * MB;
 

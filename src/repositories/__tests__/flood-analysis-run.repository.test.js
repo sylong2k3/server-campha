@@ -236,7 +236,14 @@ describe('flood-analysis-run.repository', () => {
                 detail: { orbitKey: 'ASC_54' },
             });
             const [, params] = db.__rootQuery.mock.calls[0];
-            expect(params).toEqual([1, 'COMPUTING', 'stage_start', 0, 1, JSON.stringify({ orbitKey: 'ASC_54' })]);
+            expect(params).toEqual([
+                1,
+                'COMPUTING',
+                'stage_start',
+                0,
+                1,
+                JSON.stringify({ orbitKey: 'ASC_54' }),
+            ]);
         });
 
         test('listStageEvents clamps limit to [1, 500]', async () => {
@@ -262,9 +269,7 @@ describe('flood-analysis-run.repository', () => {
             reset();
             db.__rootQuery.mockResolvedValue({ rows: [{ id: 1 }] });
             for (const action of repo.AUDIT_ACTIONS) {
-                await expect(
-                    repo.insertAudit({ actorUserId: 3, action }),
-                ).resolves.toBeTruthy();
+                await expect(repo.insertAudit({ actorUserId: 3, action })).resolves.toBeTruthy();
             }
         });
     });

@@ -48,9 +48,15 @@ function areaHaSafe(
         tileScale = DIAGNOSTIC_TILE_SCALE,
     } = {},
 ) {
-    if (!ee) {throw new Error('reducers.areaHaSafe requires the ee module');}
-    if (!maskImage) {throw new Error('reducers.areaHaSafe requires a maskImage');}
-    if (!geometry) {throw new Error('reducers.areaHaSafe requires a geometry');}
+    if (!ee) {
+        throw new Error('reducers.areaHaSafe requires the ee module');
+    }
+    if (!maskImage) {
+        throw new Error('reducers.areaHaSafe requires a maskImage');
+    }
+    if (!geometry) {
+        throw new Error('reducers.areaHaSafe requires a geometry');
+    }
 
     const pixelArea = ee.Image.pixelArea().updateMask(maskImage);
     const stats = pixelArea.reduceRegion({
@@ -83,9 +89,15 @@ function percentiles(
         maxPixels = REDUCE_MAX_PIXELS,
     } = {},
 ) {
-    if (!ee) {throw new Error('reducers.percentiles requires the ee module');}
-    if (!image) {throw new Error('reducers.percentiles requires an image');}
-    if (!geometry) {throw new Error('reducers.percentiles requires a geometry');}
+    if (!ee) {
+        throw new Error('reducers.percentiles requires the ee module');
+    }
+    if (!image) {
+        throw new Error('reducers.percentiles requires an image');
+    }
+    if (!geometry) {
+        throw new Error('reducers.percentiles requires a geometry');
+    }
 
     return image.reduceRegion({
         reducer: ee.Reducer.percentile(percentileList),
@@ -114,14 +126,20 @@ function areaHaByClass(
         maxPixels = REDUCE_MAX_PIXELS,
     } = {},
 ) {
-    if (!ee) {throw new Error('reducers.areaHaByClass requires the ee module');}
-    if (!classifiedImage) {throw new Error('reducers.areaHaByClass requires a classifiedImage');}
-    if (!maskImage) {throw new Error('reducers.areaHaByClass requires a maskImage');}
-    if (!geometry) {throw new Error('reducers.areaHaByClass requires a geometry');}
+    if (!ee) {
+        throw new Error('reducers.areaHaByClass requires the ee module');
+    }
+    if (!classifiedImage) {
+        throw new Error('reducers.areaHaByClass requires a classifiedImage');
+    }
+    if (!maskImage) {
+        throw new Error('reducers.areaHaByClass requires a maskImage');
+    }
+    if (!geometry) {
+        throw new Error('reducers.areaHaByClass requires a geometry');
+    }
 
-    const area = ee.Image.pixelArea()
-        .updateMask(maskImage)
-        .divide(PIXEL_AREA_M2_PER_HA);
+    const area = ee.Image.pixelArea().updateMask(maskImage).divide(PIXEL_AREA_M2_PER_HA);
     return area.addBands(classifiedImage.rename('class')).reduceRegion({
         reducer: ee.Reducer.sum().group({ groupField: 1, groupName: 'class' }),
         geometry,

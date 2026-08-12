@@ -45,18 +45,27 @@ const zoneCreate = Joi.object({
 
 const featureCollection = Joi.object({
     type: Joi.string().valid('FeatureCollection').required(),
-    features: Joi.array().min(1).max(500).items(Joi.object({
-        type: Joi.string().valid('Feature').required(),
-        geometry: geometry.required(),
-        properties: Joi.object().custom((value, helpers) => {
-            const candidate = value.classId ?? value.class_id ?? value.class;
-            const parsed = Number(candidate);
-            if (!Number.isInteger(parsed) || parsed < 0 || parsed > 12) {
-                return helpers.error('any.invalid');
-            }
-            return value;
-        }, 'forest class guardrail').required().unknown(true),
-    }).unknown(false)).required(),
+    features: Joi.array()
+        .min(1)
+        .max(500)
+        .items(
+            Joi.object({
+                type: Joi.string().valid('Feature').required(),
+                geometry: geometry.required(),
+                properties: Joi.object()
+                    .custom((value, helpers) => {
+                        const candidate = value.classId ?? value.class_id ?? value.class;
+                        const parsed = Number(candidate);
+                        if (!Number.isInteger(parsed) || parsed < 0 || parsed > 12) {
+                            return helpers.error('any.invalid');
+                        }
+                        return value;
+                    }, 'forest class guardrail')
+                    .required()
+                    .unknown(true),
+            }).unknown(false),
+        )
+        .required(),
 }).unknown(false);
 
 const pointCreate = Joi.object({
@@ -65,7 +74,10 @@ const pointCreate = Joi.object({
     lng: Joi.number().min(106).max(109).required(),
     lat: Joi.number().min(20).max(22.5).required(),
     source: text(100).default('field_report'),
-    photoUrl: Joi.string().uri({ scheme: ['http', 'https'] }).max(2048).allow('', null),
+    photoUrl: Joi.string()
+        .uri({ scheme: ['http', 'https'] })
+        .max(2048)
+        .allow('', null),
     reporterName: text(255),
     notes: text(2000),
 }).unknown(false);

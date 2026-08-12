@@ -22,8 +22,7 @@ const os = require('os');
 const cfg = require('../configs/raster-ingest');
 
 const WORKER_ID = `raster-ingest-${os.hostname()}-${process.pid}`;
-const DEBUG =
-    process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const DEBUG = process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
 
 // Module-level state — startWorker() may be called at most once per process.
 let cronJob = null;
@@ -49,7 +48,9 @@ function safeRequireIngestService() {
 
 async function tick(opts = {}) {
     if (isRunning) {
-        if (DEBUG) {console.debug(`[${WORKER_ID}] tick SKIPPED — previous still running`);}
+        if (DEBUG) {
+            console.debug(`[${WORKER_ID}] tick SKIPPED — previous still running`);
+        }
         return { skipped: true };
     }
     isRunning = true;
@@ -60,7 +61,9 @@ async function tick(opts = {}) {
         const rasterRepo = 'repo' in opts ? opts.repo : safeRequireRepo();
         const service = 'ingestSvc' in opts ? opts.ingestSvc : safeRequireIngestService();
         if (!rasterRepo?.claimPending || !service?.runJob) {
-            if (DEBUG) {console.debug(`[${WORKER_ID}] tick skipped: repo or service not ready`);}
+            if (DEBUG) {
+                console.debug(`[${WORKER_ID}] tick skipped: repo or service not ready`);
+            }
             return { skipped: true };
         }
 
@@ -73,9 +76,7 @@ async function tick(opts = {}) {
             // Heartbeat every 60 idle ticks (~15 min at 15s poll) so ops can
             // see the worker is alive without log spam when the queue is empty.
             if (DEBUG && ticksIdle % 60 === 0) {
-                console.debug(
-                    `[${WORKER_ID}] IDLE — ${ticksIdle}/${ticksTotal} ticks empty`,
-                );
+                console.debug(`[${WORKER_ID}] IDLE — ${ticksIdle}/${ticksTotal} ticks empty`);
             }
             return { claimed: 0 };
         }
@@ -99,9 +100,7 @@ async function tick(opts = {}) {
             }),
         );
         const ok = results.filter((r) => r.value?.ok).length;
-        console.info(
-            `[${WORKER_ID}] TICK done ${ok}/${jobs.length} ok in ${Date.now() - t0}ms`,
-        );
+        console.info(`[${WORKER_ID}] TICK done ${ok}/${jobs.length} ok in ${Date.now() - t0}ms`);
         return { claimed: jobs.length, ok };
     } catch (err) {
         console.error(`[${WORKER_ID}] TICK ERROR: ${err?.code || err?.name}: ${err?.message}`);
@@ -140,9 +139,7 @@ const stopWorker = () => {
     if (cronJob) {
         cronJob.stop();
         cronJob = null;
-        console.info(
-            `[${WORKER_ID}] STOPPED — total ticks=${ticksTotal} idle=${ticksIdle}`,
-        );
+        console.info(`[${WORKER_ID}] STOPPED — total ticks=${ticksTotal} idle=${ticksIdle}`);
     }
 };
 

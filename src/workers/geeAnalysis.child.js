@@ -27,7 +27,12 @@ const runExecutor = require('../services/flood/run-executor.service');
 const geeQueue = require('../queues/gee-task.queue');
 const districtRasterWorker = require('./districtRasterExport.worker');
 const SUPPORTED_KINDS = Object.freeze([
-    'event', 'hand', 'rain', 'impact', 'trend', 'forest-classification',
+    'event',
+    'hand',
+    'rain',
+    'impact',
+    'trend',
+    'forest-classification',
 ]);
 
 let received = false;
@@ -36,7 +41,9 @@ const MEMORY_HEARTBEAT_MS = Math.max(
     Number.parseInt(process.env.GEE_CHILD_MEMORY_HEARTBEAT_MS, 10) || 5000,
 );
 const memoryHeartbeat = setInterval(() => {
-    if (typeof process.send !== 'function' || !process.connected) {return;}
+    if (typeof process.send !== 'function' || !process.connected) {
+        return;
+    }
     const memory = process.memoryUsage();
     process.send(
         {
@@ -62,7 +69,9 @@ const sendAndExit = (message, code) => {
 };
 
 process.once('message', async ({ kind, payload } = {}) => {
-    if (received) {return;}
+    if (received) {
+        return;
+    }
     received = true;
 
     try {

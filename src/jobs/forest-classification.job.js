@@ -25,8 +25,8 @@
  */
 
 const cron = require('node-cron');
-const cfg  = require('../configs/forest-classification');
-const svc  = require('../services/forest-classification.service');
+const cfg = require('../configs/forest-classification');
+const svc = require('../services/forest-classification.service');
 const repo = require('../repositories/forest-classification.repository');
 
 const ANALYSIS_CRON = cfg.CRON;
@@ -37,9 +37,12 @@ const WATCHDOG_INTERVAL_MS = 5 * 60_000;
 const ACTIVE_STALE_MS = 2 * 60 * 60_000;
 const RETRY_DELAYS_MS = [15 * 60_000, 60 * 60_000, 6 * 60 * 60_000];
 
-const DEBUG = process.env.FC_DEBUG === 'true'
-    || process.env.NODE_ENV === 'development';
-const dbg = (msg) => { if (DEBUG) {console.debug(`[FOREST-JOB] ${msg}`);} };
+const DEBUG = process.env.FC_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const dbg = (msg) => {
+    if (DEBUG) {
+        console.debug(`[FOREST-JOB] ${msg}`);
+    }
+};
 
 let analysisTask = null;
 let catchupTimer = null;
@@ -50,7 +53,9 @@ let watchdogInterval = null;
 let analysisRunning = false;
 
 const isActiveSnapshotStale = (snapshot, now = Date.now()) => {
-    if (!snapshot || !['pending', 'computing', 'exporting'].includes(snapshot.status)) {return false;}
+    if (!snapshot || !['pending', 'computing', 'exporting'].includes(snapshot.status)) {
+        return false;
+    }
     const touchedAt = new Date(snapshot.updated_at || snapshot.created_at).getTime();
     return Number.isFinite(touchedAt) && now - touchedAt >= ACTIVE_STALE_MS;
 };
@@ -86,7 +91,7 @@ const runScheduledAnalysis = async ({ recoverStale = false } = {}) => {
     // ĐÃ completed/published/exporting cho kỳ (year, month) — không cần dòng
     // mới nhất. Trước 040 chỉ có 1 dòng/kỳ nên getByYearMonth đủ; sau 040 có
     // nhiều attempt, dòng mới nhất có thể là failed đè lên completed cũ.
-    if (!force && await repo.hasCompletedAttempt(year, month)) {
+    if (!force && (await repo.hasCompletedAttempt(year, month))) {
         dbg(`skip — period=${year}/${month} đã có completed attempt (migration 040 guard)`);
         return;
     }
@@ -96,14 +101,21 @@ const runScheduledAnalysis = async ({ recoverStale = false } = {}) => {
     // theo id đủ để phát hiện snapshot pending/computing bị treo.
     const existing = await repo.getByYearMonth(year, month);
     const staleActive = recoverStale && isActiveSnapshotStale(existing);
-    if (!force && existing && ['pending', 'computing', 'exporting'].includes(existing.status) && !staleActive) {
-        console.warn(`[FOREST] scheduled classification skipped: period=${year}/${month} is ${existing.status}`);
+    if (
+        !force &&
+        existing &&
+        ['pending', 'computing', 'exporting'].includes(existing.status) &&
+        !staleActive
+    ) {
+        console.warn(
+            `[FOREST] scheduled classification skipped: period=${year}/${month} is ${existing.status}`,
+        );
         return;
     }
     if (staleActive) {
         console.warn(
             `[FOREST] stale ${existing.status} snapshot detected: period=${year}/${month} ` +
-            `snapshotId=${existing.id} updatedAt=${existing.updated_at || existing.created_at} — retrying`,
+                `snapshotId=${existing.id} updatedAt=${existing.updated_at || existing.created_at} — retrying`,
         );
         await repo.failStaleActiveRuns(ACTIVE_STALE_MS);
     }
@@ -115,7 +127,9 @@ const runScheduledAnalysis = async ({ recoverStale = false } = {}) => {
         try {
             const failedCount = await repo.countFailedAttempts(year, month);
             if (failedCount >= RETRY_DELAYS_MS.length) {
-                dbg(`skip — retry limit reached period=${year}/${month} (${failedCount}/${RETRY_DELAYS_MS.length})`);
+                dbg(
+                    `skip — retry limit reached period=${year}/${month} (${failedCount}/${RETRY_DELAYS_MS.length})`,
+                );
                 return;
             }
         } catch (guardErr) {
@@ -127,8 +141,8 @@ const runScheduledAnalysis = async ({ recoverStale = false } = {}) => {
 
     console.log(
         `[FOREST] scheduled classification START period=${year}/${month} ` +
-        `timezone=${CRON_TZ}${force ? ' (forced)' : ''} ` +
-        `bucket=${cfg.MINIO_BUCKET || '(default)'}`,
+            `timezone=${CRON_TZ}${force ? ' (forced)' : ''} ` +
+            `bucket=${cfg.MINIO_BUCKET || '(default)'}`,
     );
     try {
         const snap = await svc.runAnalysis(year, month);
@@ -140,13 +154,15 @@ const runScheduledAnalysis = async ({ recoverStale = false } = {}) => {
         }
         console.log(
             `[FOREST] scheduled classification DONE period=${year}/${month} ` +
-            `snapshotId=${snap.id || '-'} status=${snap.status} ` +
-            `forestHa=${Math.round(forestHa).toLocaleString('vi')} ` +
-            `hasDlUrl=${Boolean(snap.gee_download_url)} elapsed=${Date.now() - t0}ms`,
+                `snapshotId=${snap.id || '-'} status=${snap.status} ` +
+                `forestHa=${Math.round(forestHa).toLocaleString('vi')} ` +
+                `hasDlUrl=${Boolean(snap.gee_download_url)} elapsed=${Date.now() - t0}ms`,
         );
         dbg(`byClass=${JSON.stringify(summary.byClass || {})}`);
     } catch (err) {
-        console.error(`[FOREST] scheduled classification FAILED period=${year}/${month} elapsed=${Date.now() - t0}ms — ${err.code || err.name || 'ERR'}: ${err.message}`);
+        console.error(
+            `[FOREST] scheduled classification FAILED period=${year}/${month} elapsed=${Date.now() - t0}ms — ${err.code || err.name || 'ERR'}: ${err.message}`,
+        );
         try {
             // Đếm tổng attempt failed cho kỳ (bao gồm attempt vừa fail này).
             // Trước 040 dùng retry_count từ dòng UPSERT — chính xác. Sau 040 mỗi
@@ -163,17 +179,21 @@ const runScheduledAnalysis = async ({ recoverStale = false } = {}) => {
                     if (scheduled) {
                         console.warn(
                             `[FOREST] retry ${failedCount}/${RETRY_DELAYS_MS.length} scheduled at ` +
-                            `${new Date(scheduled.next_retry_at).toISOString()} for period=${year}/${month}`,
+                                `${new Date(scheduled.next_retry_at).toISOString()} for period=${year}/${month}`,
                         );
                     }
                 }
             } else {
-                console.error(`[FOREST] retry limit reached for period=${year}/${month} (${failedCount}/${RETRY_DELAYS_MS.length}) — dừng retry`);
+                console.error(
+                    `[FOREST] retry limit reached for period=${year}/${month} (${failedCount}/${RETRY_DELAYS_MS.length}) — dừng retry`,
+                );
             }
         } catch (retryErr) {
             console.error(`[FOREST] failed to persist retry state: ${retryErr.message}`);
         }
-        if (DEBUG && err.stack) {console.debug(err.stack);}
+        if (DEBUG && err.stack) {
+            console.debug(err.stack);
+        }
     } finally {
         analysisRunning = false;
     }
@@ -200,27 +220,40 @@ const runRecoveryCheck = async () => {
 
     // Retry-limit guard: nếu failedCount >= max, không trigger nữa để tránh spam.
     let failedCount = 0;
-    try { failedCount = await repo.countFailedAttempts(year, month); }
-    catch (err) { console.warn(`[FOREST] watchdog countFailedAttempts fail: ${err.message}`); }
+    try {
+        failedCount = await repo.countFailedAttempts(year, month);
+    } catch (err) {
+        console.warn(`[FOREST] watchdog countFailedAttempts fail: ${err.message}`);
+    }
     if (failedCount >= RETRY_DELAYS_MS.length) {
-        dbg(`recovery watchdog skip — retry limit reached period=${year}/${month} (${failedCount}/${RETRY_DELAYS_MS.length})`);
+        dbg(
+            `recovery watchdog skip — retry limit reached period=${year}/${month} (${failedCount}/${RETRY_DELAYS_MS.length})`,
+        );
         return;
     }
 
     const existing = await repo.getByYearMonth(year, month);
-    const retryDue = existing?.status === 'failed'
-        && existing.next_retry_at
-        && new Date(existing.next_retry_at).getTime() <= Date.now();
+    const retryDue =
+        existing?.status === 'failed' &&
+        existing.next_retry_at &&
+        new Date(existing.next_retry_at).getTime() <= Date.now();
     if (existing && !isActiveSnapshotStale(existing) && !retryDue) {
-        dbg(`recovery watchdog skip — period=${year}/${month} exists status=${existing.status} snapshotId=${existing.id}`);
+        dbg(
+            `recovery watchdog skip — period=${year}/${month} exists status=${existing.status} snapshotId=${existing.id}`,
+        );
         return;
     }
 
     console.warn(
         `[FOREST] recovery watchdog TRIGGER — period=${year}/${month} ` +
-        `${retryDue ? `retry ${failedCount + 1}/${RETRY_DELAYS_MS.length} is due`
-            : existing ? `has stale ${existing.status} snapshotId=${existing.id}` : 'is missing'}; ` +
-        'monthly cron may have been missed or interrupted',
+            `${
+                retryDue
+                    ? `retry ${failedCount + 1}/${RETRY_DELAYS_MS.length} is due`
+                    : existing
+                      ? `has stale ${existing.status} snapshotId=${existing.id}`
+                      : 'is missing'
+            }; ` +
+            'monthly cron may have been missed or interrupted',
     );
     await runScheduledAnalysis({ recoverStale: true });
 };
@@ -228,7 +261,9 @@ const runRecoveryCheck = async () => {
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
 
 const start = () => {
-    if (analysisTask) {return;}
+    if (analysisTask) {
+        return;
+    }
 
     if (process.env.FC_ENABLED === 'false') {
         console.info('[FOREST] monthly cron disabled (set FC_ENABLED=true to enable)');
@@ -262,17 +297,28 @@ const start = () => {
 
     console.log(
         `[FOREST] STARTED analysis="${ANALYSIS_CRON}" timezone=${CRON_TZ} ` +
-        `catchup=${CATCHUP_ENABLED ? `on/${CATCHUP_DELAY_MS}ms` : 'off'} ` +
-        `bucket=${cfg.MINIO_BUCKET || '(default)'} alertPct=${cfg.ALERT_CHANGE_PCT ?? '(default)'} ` +
-        `debug=${DEBUG}`,
+            `catchup=${CATCHUP_ENABLED ? `on/${CATCHUP_DELAY_MS}ms` : 'off'} ` +
+            `bucket=${cfg.MINIO_BUCKET || '(default)'} alertPct=${cfg.ALERT_CHANGE_PCT ?? '(default)'} ` +
+            `debug=${DEBUG}`,
     );
-    console.log(`  ✓ Forest classification job scheduled (${ANALYSIS_CRON} @ ${CRON_TZ}, previous calendar month)`);
+    console.log(
+        `  ✓ Forest classification job scheduled (${ANALYSIS_CRON} @ ${CRON_TZ}, previous calendar month)`,
+    );
 };
 
 const stop = () => {
-    if (analysisTask) { analysisTask.stop(); analysisTask = null; }
-    if (catchupTimer) { clearTimeout(catchupTimer); catchupTimer = null; }
-    if (watchdogInterval) { clearInterval(watchdogInterval); watchdogInterval = null; }
+    if (analysisTask) {
+        analysisTask.stop();
+        analysisTask = null;
+    }
+    if (catchupTimer) {
+        clearTimeout(catchupTimer);
+        catchupTimer = null;
+    }
+    if (watchdogInterval) {
+        clearInterval(watchdogInterval);
+        watchdogInterval = null;
+    }
     console.log('[FOREST] STOPPED');
 };
 

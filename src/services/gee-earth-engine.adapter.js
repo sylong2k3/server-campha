@@ -22,10 +22,7 @@ const POLL_INTERVAL_MS = Math.max(
     1000,
     Number.parseInt(process.env.GEE_POLL_INTERVAL_MS, 10) || 30 * 1000,
 );
-const POLL_MAX_ATTEMPTS = Math.max(
-    1,
-    Number.parseInt(process.env.GEE_POLL_MAX_ATTEMPTS, 10) || 40,
-);
+const POLL_MAX_ATTEMPTS = Math.max(1, Number.parseInt(process.env.GEE_POLL_MAX_ATTEMPTS, 10) || 40);
 const MAP_ID_TIMEOUT_MS = Math.max(
     1000,
     Number.parseInt(process.env.GEE_MAP_ID_TIMEOUT_MS, 10) || 60 * 1000,
@@ -34,14 +31,16 @@ const MAP_ID_TIMEOUT_MS = Math.max(
 // ── Error normalisation ───────────────────────────────────────────────────────
 
 const wrapError = (error, fallback) => {
-    if (error instanceof EarthEngineError) {return error;}
+    if (error instanceof EarthEngineError) {
+        return error;
+    }
     const message =
         (error && (error.message || error.error?.message)) ||
         (typeof error === 'string' ? error : fallback);
-    const wrapped = new EarthEngineError(message || fallback, [
-        error?.code || 'GEE_ERROR',
-    ]);
-    if (error?.stack) {wrapped.stack = error.stack;}
+    const wrapped = new EarthEngineError(message || fallback, [error?.code || 'GEE_ERROR']);
+    if (error?.stack) {
+        wrapped.stack = error.stack;
+    }
     return wrapped;
 };
 
@@ -53,7 +52,9 @@ const wrapError = (error, fallback) => {
  * once per process (see configs/gge.js).
  */
 async function ensureInitialized(options = {}) {
-    if (isInitialized()) {return;}
+    if (isInitialized()) {
+        return;
+    }
     try {
         await initializeEarthEngine(options);
     } catch (error) {
@@ -66,7 +67,9 @@ async function ensureInitialized(options = {}) {
 const withTimeout = (fn, timeoutMs, label) =>
     new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
-            reject(new EarthEngineError(`${label} timed out after ${timeoutMs}ms`, ['GEE_TIMEOUT']));
+            reject(
+                new EarthEngineError(`${label} timed out after ${timeoutMs}ms`, ['GEE_TIMEOUT']),
+            );
         }, timeoutMs);
         try {
             fn(
@@ -132,7 +135,9 @@ async function getMapId(image, visParams = {}) {
     return withTimeout(
         (resolve, reject) =>
             ee.data.getMapId({ image: finalImage }, (mapInfo, err) => {
-                if (err) {return reject(err);}
+                if (err) {
+                    return reject(err);
+                }
                 const mapId = mapInfo.mapid || mapInfo.name || '';
                 const token = mapInfo.token || '';
                 const tileUrl = token
@@ -159,7 +164,9 @@ async function getDownloadUrl(image, params = {}) {
                 err ? reject(err) : resolve(result || url),
             );
             // Some SDK builds return the URL synchronously and ignore the callback.
-            if (typeof url === 'string' && url.length > 0) {resolve(url);}
+            if (typeof url === 'string' && url.length > 0) {
+                resolve(url);
+            }
         },
         EVALUATE_TIMEOUT_MS,
         'ee.Image.getDownloadURL',
@@ -195,9 +202,15 @@ async function submitExportToCloudStorage({
     maxPixels = 1e10,
     formatOptions = { cloudOptimized: true },
 } = {}) {
-    if (!image) {throw new EarthEngineError('image is required', ['GEE_BAD_ARG']);}
-    if (!bucket) {throw new EarthEngineError('bucket is required', ['GEE_BAD_ARG']);}
-    if (!description) {throw new EarthEngineError('description is required', ['GEE_BAD_ARG']);}
+    if (!image) {
+        throw new EarthEngineError('image is required', ['GEE_BAD_ARG']);
+    }
+    if (!bucket) {
+        throw new EarthEngineError('bucket is required', ['GEE_BAD_ARG']);
+    }
+    if (!description) {
+        throw new EarthEngineError('description is required', ['GEE_BAD_ARG']);
+    }
     await ensureInitialized();
 
     const task = ee.batch.Export.image.toCloudStorage({
@@ -215,7 +228,11 @@ async function submitExportToCloudStorage({
     return withTimeout(
         (resolve, reject) =>
             task.start(
-                () => resolve({ taskId: task.id, taskName: `projects/earthengine-legacy/operations/${task.id}` }),
+                () =>
+                    resolve({
+                        taskId: task.id,
+                        taskName: `projects/earthengine-legacy/operations/${task.id}`,
+                    }),
                 (err) => reject(err),
             ),
         MAP_ID_TIMEOUT_MS,
@@ -235,7 +252,9 @@ async function pollExportTask(
     taskName,
     { intervalMs = POLL_INTERVAL_MS, maxAttempts = POLL_MAX_ATTEMPTS } = {},
 ) {
-    if (!taskName) {throw new EarthEngineError('taskName is required', ['GEE_BAD_ARG']);}
+    if (!taskName) {
+        throw new EarthEngineError('taskName is required', ['GEE_BAD_ARG']);
+    }
     await ensureInitialized();
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -243,7 +262,9 @@ async function pollExportTask(
         const ops = await listOperations([taskName]);
         const op = ops?.[0];
         const state = op?.metadata?.state;
-        if (state === 'CANCELLED') {return { state: 'CANCELLED', metadata: op.metadata };}
+        if (state === 'CANCELLED') {
+            return { state: 'CANCELLED', metadata: op.metadata };
+        }
         if (state === 'FAILED' || op?.error) {
             return {
                 state: 'FAILED',
@@ -251,7 +272,9 @@ async function pollExportTask(
                 error: op?.error?.message || 'GEE task failed',
             };
         }
-        if (op?.done) {return { state: 'COMPLETED', metadata: op.metadata };}
+        if (op?.done) {
+            return { state: 'COMPLETED', metadata: op.metadata };
+        }
     }
     return { state: 'TIMEOUT' };
 }
@@ -269,7 +292,9 @@ async function listOperations(taskNames) {
  * Cancel a running/queued export task. No-op if the task is already terminal.
  */
 async function cancelOperation(taskName) {
-    if (!taskName) {throw new EarthEngineError('taskName is required', ['GEE_BAD_ARG']);}
+    if (!taskName) {
+        throw new EarthEngineError('taskName is required', ['GEE_BAD_ARG']);
+    }
     await ensureInitialized();
     try {
         ee.data.cancelOperation(taskName);

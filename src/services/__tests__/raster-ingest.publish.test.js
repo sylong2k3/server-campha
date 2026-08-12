@@ -17,7 +17,9 @@ const silence = () => {
         debug: jest.spyOn(console, 'debug').mockImplementation(() => {}),
     };
     return () => {
-        for (const spy of Object.values(spies)) {spy.mockRestore();}
+        for (const spy of Object.values(spies)) {
+            spy.mockRestore();
+        }
     };
 };
 
@@ -27,9 +29,7 @@ const makeFsp = () => ({
 });
 
 const makeGeoserver = () => ({
-    publishFsGeoTiffLayer: jest
-        .fn()
-        .mockResolvedValue('campha:cp_flood_event_1'),
+    publishFsGeoTiffLayer: jest.fn().mockResolvedValue('campha:cp_flood_event_1'),
     truncateGwcLayer: jest.fn().mockResolvedValue(undefined),
     verifyLayer: jest.fn().mockResolvedValue({ name: 'cp_flood_event_1' }),
 });
@@ -43,8 +43,11 @@ describe('publishToGeoServer', () => {
     });
     afterEach(() => {
         unsilence();
-        if (prevGsDir === undefined) {delete process.env.GEOSERVER_DATA_DIR;}
-        else {process.env.GEOSERVER_DATA_DIR = prevGsDir;}
+        if (prevGsDir === undefined) {
+            delete process.env.GEOSERVER_DATA_DIR;
+        } else {
+            process.env.GEOSERVER_DATA_DIR = prevGsDir;
+        }
     });
 
     test('copies COG into GEOSERVER_DATA_DIR/flood-rasters and publishes', async () => {
@@ -52,12 +55,15 @@ describe('publishToGeoServer', () => {
         const geoserver = makeGeoserver();
         const result = await publishToGeoServer(
             { storeName: 'cp_flood_event_1', cogPath: '/tmp/x.tif', params: { nameVi: 'Ngập' } },
-            { geoserver, fsPromises: fsp, layerRepo: { findByCode: jest.fn().mockResolvedValue(null) } },
+            {
+                geoserver,
+                fsPromises: fsp,
+                layerRepo: { findByCode: jest.fn().mockResolvedValue(null) },
+            },
         );
-        expect(fsp.mkdir).toHaveBeenCalledWith(
-            expect.stringMatching(/flood-rasters$/),
-            { recursive: true },
-        );
+        expect(fsp.mkdir).toHaveBeenCalledWith(expect.stringMatching(/flood-rasters$/), {
+            recursive: true,
+        });
         expect(fsp.copyFile).toHaveBeenCalledWith(
             '/tmp/x.tif',
             expect.stringMatching(/cp_flood_event_1\.tif$/),
@@ -105,9 +111,7 @@ describe('publishToGeoServer', () => {
         const geoserver = makeGeoserver();
         geoserver.truncateGwcLayer.mockRejectedValue(new Error('GWC down'));
         const layerRepo = {
-            findByCode: jest
-                .fn()
-                .mockResolvedValue({ id: 1, geoserver_layer: 'campha:x' }),
+            findByCode: jest.fn().mockResolvedValue({ id: 1, geoserver_layer: 'campha:x' }),
         };
         await expect(
             publishToGeoServer(
@@ -141,7 +145,12 @@ describe('upsertRasterLayer', () => {
         };
         const result = await upsertRasterLayer(
             {
-                job: { id: 1, layer_code: 'cp_flood_event_1', source_url: 'http://x', created_by: 3 },
+                job: {
+                    id: 1,
+                    layer_code: 'cp_flood_event_1',
+                    source_url: 'http://x',
+                    created_by: 3,
+                },
                 params: {},
                 storeName: 'cp_flood_event_1',
                 geoserverLayer: 'campha:cp_flood_event_1',
@@ -171,17 +180,19 @@ describe('upsertRasterLayer', () => {
         const layerRepo = {
             upsertLayerByCode: jest.fn().mockResolvedValue({ id: 42 }),
         };
-        await expect(upsertRasterLayer(
-            {
-                job: { id: 2, layer_code: 'y', source_url: 'http://y' },
-                params: {},
-                storeName: 'y',
-                geoserverLayer: 'campha:y',
-                objectKey: 'flood/2026/08/y/job_2.tif',
-                sha: 'b'.repeat(64),
-            },
-            { db, layerRepo },
-        )).rejects.toThrow(/updatePublishedMetadata/);
+        await expect(
+            upsertRasterLayer(
+                {
+                    job: { id: 2, layer_code: 'y', source_url: 'http://y' },
+                    params: {},
+                    storeName: 'y',
+                    geoserverLayer: 'campha:y',
+                    objectKey: 'flood/2026/08/y/job_2.tif',
+                    sha: 'b'.repeat(64),
+                },
+                { db, layerRepo },
+            ),
+        ).rejects.toThrow(/updatePublishedMetadata/);
     });
 
     test('rolls back on failure and re-throws', async () => {

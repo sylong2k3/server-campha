@@ -19,11 +19,12 @@ const crypto = require('crypto');
 const { pipeline } = require('stream/promises');
 const { Readable, Transform } = require('stream');
 
-const DEBUG =
-    process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const DEBUG = process.env.RASTER_INGEST_DEBUG === 'true' || process.env.NODE_ENV === 'development';
 
 const dbg = (msg) => {
-    if (DEBUG) {console.debug(`[HTTP-STREAM] ${msg}`);}
+    if (DEBUG) {
+        console.debug(`[HTTP-STREAM] ${msg}`);
+    }
 };
 
 const safeHost = (url) => {
@@ -99,7 +100,9 @@ async function downloadToFile(url, destPath, { timeoutMs, maxBytes, headers = {}
         }
 
         const declared = Number(res.headers.get('content-length') || 0);
-        if (declared > 0) {dbg(`content-length declared=${declared} bytes`);}
+        if (declared > 0) {
+            dbg(`content-length declared=${declared} bytes`);
+        }
         if (declared > 0 && declared > maxBytes) {
             throw new DownloadError(
                 `File too large: ${declared} bytes > limit ${maxBytes}`,

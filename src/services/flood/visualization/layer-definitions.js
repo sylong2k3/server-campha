@@ -193,9 +193,7 @@ const ARTIFACT_LAYER_DEFINITIONS = Object.freeze({
 function getLayerDefinition(artifactCode) {
     const def = ARTIFACT_LAYER_DEFINITIONS[artifactCode];
     if (!def) {
-        throw new Error(
-            `visualization.getLayerDefinition: no definition for '${artifactCode}'`,
-        );
+        throw new Error(`visualization.getLayerDefinition: no definition for '${artifactCode}'`);
     }
     return def;
 }

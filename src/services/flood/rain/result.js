@@ -36,9 +36,7 @@ const M3_ARTIFACTS = Object.freeze([
     },
 ]);
 
-const CODE_TO_ARTIFACT = Object.freeze(
-    Object.fromEntries(M3_ARTIFACTS.map((a) => [a.code, a])),
-);
+const CODE_TO_ARTIFACT = Object.freeze(Object.fromEntries(M3_ARTIFACTS.map((a) => [a.code, a])));
 
 function selectM3Artifacts({ runMode = 'product' } = {}) {
     return M3_ARTIFACTS.map((a) => ({

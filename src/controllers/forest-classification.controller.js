@@ -1,7 +1,7 @@
 'use strict';
 
-const svc  = require('../services/forest-classification.service');
-const cfg  = require('../configs/forest-classification');
+const svc = require('../services/forest-classification.service');
+const cfg = require('../configs/forest-classification');
 const repo = require('../repositories/forest-classification.repository');
 const ingestSvc = require('../services/raster-ingest.service');
 const minioSvc = require('../services/minio.service');
@@ -17,15 +17,20 @@ const geeQueue = require('../queues/gee-task.queue');
 
 // Debug — FC_DEBUG=true (hoặc NODE_ENV=development) → in `[FOREST-CTL:DBG] ...`
 // cho các endpoint. Info/warn/error luôn ghi.
-const DEBUG = process.env.FC_DEBUG === 'true'
-    || process.env.NODE_ENV === 'development';
-const dbg = (tag, msg) => { if (DEBUG) {console.debug(`[FOREST-CTL:DBG:${tag}] ${msg}`);} };
+const DEBUG = process.env.FC_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const dbg = (tag, msg) => {
+    if (DEBUG) {
+        console.debug(`[FOREST-CTL:DBG:${tag}] ${msg}`);
+    }
+};
 
 // Derive filename ổn định cho download GeoTIFF forest classification —
 // `forest_class_campha_YYYYMM.tif`. GEE trả TIFF trần (image/tiff), extension
 // `.tif` giúp Windows Explorer nhận đúng loại file.
 const forestFilename = (year, month) => {
-    if (!year || !month) {return null;}
+    if (!year || !month) {
+        return null;
+    }
     const tag = `${year}${String(month).padStart(2, '0')}`;
     return `forest_class_campha_${tag}.tif`;
 };
@@ -34,10 +39,13 @@ const forestFilename = (year, month) => {
 // Ưu tiên WCS hơn geeDownloadUrl (persistent, không expire,
 // không giảm resolution như GEE getDownloadURL).
 const buildGeoserverDownloadUrl = (layerFqn) => {
-    if (!layerFqn) {return null;}
-    const base = (process.env.GEOSERVER_PUBLIC_URL || '')
-        .trim().replace(/\/+$/, '');
-    if (!base) {return null;}
+    if (!layerFqn) {
+        return null;
+    }
+    const base = (process.env.GEOSERVER_PUBLIC_URL || '').trim().replace(/\/+$/, '');
+    if (!base) {
+        return null;
+    }
     const [ws, name] = String(layerFqn).includes(':')
         ? String(layerFqn).split(':')
         : [process.env.GEOSERVER_WORKSPACE || 'campha', String(layerFqn)];
@@ -46,51 +54,58 @@ const buildGeoserverDownloadUrl = (layerFqn) => {
         .replace(/\/(?:wms|wcs)$/i, '');
     const coverageId = `${ws}__${name}`;
     const qs = new URLSearchParams({
-        service:    'WCS',
-        version:    '2.0.1',
-        request:    'GetCoverage',
+        service: 'WCS',
+        version: '2.0.1',
+        request: 'GetCoverage',
         coverageId,
-        format:     'image/tiff',
+        format: 'image/tiff',
     });
     return `${root}/${ws}/wcs?${qs.toString()}`;
 };
 
 const ACTIVE_INGEST_STATUSES = new Set([
-    'pending', 'downloading', 'validating', 'uploading', 'publishing',
+    'pending',
+    'downloading',
+    'validating',
+    'uploading',
+    'publishing',
 ]);
 
 const nonEmpty = (value) => String(value || '').trim() || null;
 const positiveInteger = (value, fallback, max = Number.MAX_SAFE_INTEGER) => {
     const parsed = Number.parseInt(value, 10);
-    return Number.isInteger(parsed) && parsed > 0
-        ? Math.min(parsed, max)
-        : fallback;
+    return Number.isInteger(parsed) && parsed > 0 ? Math.min(parsed, max) : fallback;
 };
 
-const canViewDistrictInternals = (user) => Boolean(
-    user && (
-        user.role === 'system_admin'
-        || hasPermission(user.role_permissions, 'forest_classification', 'manage')
-        || hasPermission(user.role_permissions, 'map_layers', 'ingest_raster')
-    )
-);
+const canViewDistrictInternals = (user) =>
+    Boolean(
+        user &&
+        (user.role === 'system_admin' ||
+            hasPermission(user.role_permissions, 'forest_classification', 'manage') ||
+            hasPermission(user.role_permissions, 'map_layers', 'ingest_raster')),
+    );
 
 const hasMatchingDistrictIngestJob = (row) => {
     const linked = row?.ingest_request_params?.linkedResource;
-    return linked?.type === 'forest_district'
-        && Number(linked.id) === Number(row?.snapshot_id)
-        && String(linked.districtCode || '').trim()
-            === String(row?.district_code || '').trim();
+    return (
+        linked?.type === 'forest_district' &&
+        Number(linked.id) === Number(row?.snapshot_id) &&
+        String(linked.districtCode || '').trim() === String(row?.district_code || '').trim()
+    );
 };
 
 const districtMinioKey = (row) => {
     const direct = nonEmpty(row?.minio_key);
-    if (direct) {return direct;}
+    if (direct) {
+        return direct;
+    }
     if (row?.ingest_job_status !== 'completed' || !hasMatchingDistrictIngestJob(row)) {
         return null;
     }
     const key = nonEmpty(row?.ingest_minio_key);
-    if (!key) {return null;}
+    if (!key) {
+        return null;
+    }
     const bucket = nonEmpty(row?.ingest_minio_bucket);
     return bucket ? `${bucket}/${key}` : key;
 };
@@ -108,28 +123,33 @@ const districtMinioLocation = (row) => {
     return objectKey && bucket ? { bucket, objectKey } : null;
 };
 
-const districtGeoserverLayer = (row) => nonEmpty(row?.geoserver_layer)
-    || (row?.ingest_job_status === 'completed' && hasMatchingDistrictIngestJob(row)
+const districtGeoserverLayer = (row) =>
+    nonEmpty(row?.geoserver_layer) ||
+    (row?.ingest_job_status === 'completed' && hasMatchingDistrictIngestJob(row)
         ? nonEmpty(row?.ingest_geoserver_layer)
         : null);
 
 const getUsableDistrictSourceUrl = (row) => {
     const value = nonEmpty(row?.gee_download_url);
-    if (!value || !/^https?:\/\/\S+$/i.test(value)) {return null;}
+    if (!value || !/^https?:\/\/\S+$/i.test(value)) {
+        return null;
+    }
     try {
         const parsed = new URL(value);
-        if (!parsed.hostname) {return null;}
+        if (!parsed.hostname) {
+            return null;
+        }
     } catch {
         return null;
     }
 
-    const generatedAt = row?.gee_generated_at
-        || row?.completed_at
-        || row?.updated_at;
+    const generatedAt = row?.gee_generated_at || row?.completed_at || row?.updated_at;
     if (generatedAt) {
         const generatedMs = new Date(generatedAt).getTime();
-        if (Number.isFinite(generatedMs)
-            && Date.now() - generatedMs >= cfg.GEE_TEMPORARY_URL_MAX_AGE_MS) {
+        if (
+            Number.isFinite(generatedMs) &&
+            Date.now() - generatedMs >= cfg.GEE_TEMPORARY_URL_MAX_AGE_MS
+        ) {
             return null;
         }
     }
@@ -139,16 +159,13 @@ const getUsableDistrictSourceUrl = (row) => {
 const hasStableDistrictRaster = (row) =>
     Boolean(districtGeoserverLayer(row) && districtMinioKey(row));
 
-const countDistinctDistrictCodes = (rows) => new Set(
-    rows
-        .map((row) => String(row?.district_code || '').trim())
-        .filter(Boolean),
-).size;
+const countDistinctDistrictCodes = (rows) =>
+    new Set(rows.map((row) => String(row?.district_code || '').trim()).filter(Boolean)).size;
 
 const hasCompleteStableDistrictSet = (rows, readyCount) =>
-    rows.length === cfg.EXPECTED_DISTRICT_COUNT
-    && countDistinctDistrictCodes(rows) === cfg.EXPECTED_DISTRICT_COUNT
-    && readyCount === cfg.EXPECTED_DISTRICT_COUNT;
+    rows.length === cfg.EXPECTED_DISTRICT_COUNT &&
+    countDistinctDistrictCodes(rows) === cfg.EXPECTED_DISTRICT_COUNT &&
+    readyCount === cfg.EXPECTED_DISTRICT_COUNT;
 
 const resolveDistrictPublishSource = async (row) => {
     const stored = districtMinioLocation(row);
@@ -174,15 +191,8 @@ const resolveDistrictPublishSource = async (row) => {
 // ── GET /forest-classification/latest ────────────────────────────────────────
 const getLatest = async (req, res) => {
     dbg('LATEST', `caller user=${req.user?.id || 'anon'} lang=${req.lang}`);
-    const {
-        snapshot,
-        processingSnapshot,
-        districtAreas,
-        comparison,
-        stale,
-        computing,
-    }
-        = await svc.getLatest();
+    const { snapshot, processingSnapshot, districtAreas, comparison, stale, computing } =
+        await svc.getLatest();
     OK(res, t('get_detail_success', req.lang), {
         snapshot: formatSnapshot(snapshot),
         districtAreas,
@@ -202,12 +212,19 @@ const getLatest = async (req, res) => {
 //   ?hasGeoserverLayer=false → chỉ snapshot chưa publish
 //   không truyền           → tất cả (backward-compat).
 const getHistory = async (req, res) => {
-    const page  = positiveInteger(req.query.page, 1);
+    const page = positiveInteger(req.query.page, 1);
     const limit = positiveInteger(req.query.limit, 24, 100);
     let hasGeoserverLayer;
-    if (req.query.hasGeoserverLayer === 'true')  {hasGeoserverLayer = true;}
-    if (req.query.hasGeoserverLayer === 'false') {hasGeoserverLayer = false;}
-    dbg('HISTORY', `page=${page} limit=${limit} hasGeoserverLayer=${hasGeoserverLayer ?? 'all'} user=${req.user?.id || 'anon'}`);
+    if (req.query.hasGeoserverLayer === 'true') {
+        hasGeoserverLayer = true;
+    }
+    if (req.query.hasGeoserverLayer === 'false') {
+        hasGeoserverLayer = false;
+    }
+    dbg(
+        'HISTORY',
+        `page=${page} limit=${limit} hasGeoserverLayer=${hasGeoserverLayer ?? 'all'} user=${req.user?.id || 'anon'}`,
+    );
     const { items, total } = await svc.getHistory({ page, limit, hasGeoserverLayer });
     const responseItems = items.map((item) => ({
         ...item,
@@ -215,7 +232,9 @@ const getHistory = async (req, res) => {
         last_retry_error: toPublicProcessingError(item.last_retry_error),
     }));
     OK_LIST(res, t('get_list_success', req.lang), responseItems, {
-        page, limit, total,
+        page,
+        limit,
+        total,
         ...(hasGeoserverLayer !== undefined ? { hasGeoserverLayer } : {}),
     });
 };
@@ -226,7 +245,7 @@ const getHistory = async (req, res) => {
 // add WMS overlay các tháng cũ vào bản đồ. Khác `/history`: `/history` admin-
 // only, trả full field + tất cả trạng thái.
 const getPublishedHistory = async (req, res) => {
-    const page  = positiveInteger(req.query.page, 1);
+    const page = positiveInteger(req.query.page, 1);
     const limit = positiveInteger(req.query.limit, 24, 100);
     dbg('PUBLISHED_HISTORY', `page=${page} limit=${limit} user=${req.user?.id || 'anon'}`);
     const { items, total } = await svc.getHistory({
@@ -236,38 +255,46 @@ const getPublishedHistory = async (req, res) => {
         requireCompleteDistrictSet: true,
     });
     const safeItems = items.map((it) => ({
-        id:                    it.id,
-        year:                  it.year,
-        month:                 it.month,
-        geoserver_layer:       it.geoserver_layer,
-        published_at:          it.published_at,
-        district_total:        it.district_total || 0,
-        district_code_count:   it.district_code_count || 0,
+        id: it.id,
+        year: it.year,
+        month: it.month,
+        geoserver_layer: it.geoserver_layer,
+        published_at: it.published_at,
+        district_total: it.district_total || 0,
+        district_code_count: it.district_code_count || 0,
         district_source_count: it.district_source_count || 0,
         district_geoserver_count: it.district_geoserver_count || 0,
-        district_ready_count:  it.district_ready_count || 0,
-        geoserver_layers:      it.geoserver_layers || [],
-        totalDistricts:        it.district_total || 0,
-        districtCodeCount:     it.district_code_count || 0,
-        sourceCount:           it.district_source_count || 0,
-        districtLayerCount:    it.district_geoserver_count || 0,
-        readyCount:            it.district_ready_count || 0,
-        geoserverLayers:       it.geoserver_layers || [],
+        district_ready_count: it.district_ready_count || 0,
+        geoserver_layers: it.geoserver_layers || [],
+        totalDistricts: it.district_total || 0,
+        districtCodeCount: it.district_code_count || 0,
+        sourceCount: it.district_source_count || 0,
+        districtLayerCount: it.district_geoserver_count || 0,
+        readyCount: it.district_ready_count || 0,
+        geoserverLayers: it.geoserver_layers || [],
     }));
     OK_LIST(res, t('get_list_success', req.lang), safeItems, { page, limit, total });
 };
 
 // ── POST /forest-classification/refresh ──────────────────────────────────────
 const refresh = async (req, res) => {
-    const year  = req.body?.year  ? parseInt(req.body.year,  10) : null;
+    const year = req.body?.year ? parseInt(req.body.year, 10) : null;
     const month = req.body?.month ? parseInt(req.body.month, 10) : null;
     const now = new Date();
     const selectedYear = year || now.getUTCFullYear();
-    const selectedMonth = month || (now.getUTCMonth() + 1);
-    const isFuture = selectedYear > now.getUTCFullYear()
-        || (selectedYear === now.getUTCFullYear() && selectedMonth > now.getUTCMonth() + 1);
-    if (!Number.isInteger(selectedYear) || selectedYear < 1984 || selectedYear > now.getUTCFullYear()
-        || !Number.isInteger(selectedMonth) || selectedMonth < 1 || selectedMonth > 12 || isFuture) {
+    const selectedMonth = month || now.getUTCMonth() + 1;
+    const isFuture =
+        selectedYear > now.getUTCFullYear() ||
+        (selectedYear === now.getUTCFullYear() && selectedMonth > now.getUTCMonth() + 1);
+    if (
+        !Number.isInteger(selectedYear) ||
+        selectedYear < 1984 ||
+        selectedYear > now.getUTCFullYear() ||
+        !Number.isInteger(selectedMonth) ||
+        selectedMonth < 1 ||
+        selectedMonth > 12 ||
+        isFuture
+    ) {
         throw new Api400Error(
             'Kỳ phân tích không hợp lệ. Chọn tháng từ 01/1984 đến tháng hiện tại.',
             ['INVALID_ANALYSIS_PERIOD'],
@@ -275,12 +302,16 @@ const refresh = async (req, res) => {
     }
     // Optional v3 ground-truth overrides — fall back to env defaults in svc.refresh.
     const groundTruthAssetId = req.body?.groundTruthAssetId
-        ? String(req.body.groundTruthAssetId).trim() : undefined;
-    const gtBufferM = req.body?.gtBufferM !== null && req.body?.gtBufferM !== undefined
-        ? Number(req.body.gtBufferM) : undefined;
-    const minFieldTest = req.body?.minFieldTest !== null
-        && req.body?.minFieldTest !== undefined
-        ? Number(req.body.minFieldTest) : undefined;
+        ? String(req.body.groundTruthAssetId).trim()
+        : undefined;
+    const gtBufferM =
+        req.body?.gtBufferM !== null && req.body?.gtBufferM !== undefined
+            ? Number(req.body.gtBufferM)
+            : undefined;
+    const minFieldTest =
+        req.body?.minFieldTest !== null && req.body?.minFieldTest !== undefined
+            ? Number(req.body.minFieldTest)
+            : undefined;
 
     const periodKey = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
     const taskKey = `analysis:forest-classification:${periodKey}`;
@@ -324,7 +355,7 @@ const refresh = async (req, res) => {
 // ── POST /forest-classification/query ────────────────────────────────────────
 // User on-demand: returns cached result immediately or triggers background analysis.
 const queryPeriod = async (req, res) => {
-    const year  = parseInt(req.body?.year,  10);
+    const year = parseInt(req.body?.year, 10);
     const month = parseInt(req.body?.month, 10);
 
     if (!year || !month || month < 1 || month > 12) {
@@ -332,34 +363,38 @@ const queryPeriod = async (req, res) => {
     }
 
     const userId = req.user?.id || null;
-    const { snapshot, districtAreas, comparison, cached, computing } =
-        await svc.queryForPeriod(year, month, userId);
-
-    OK(res,
-        cached ? t('get_detail_success', req.lang) : 'Đang xử lý, vui lòng truy vấn lại sau.',
-        {
-            snapshot: snapshot ? formatSnapshot(snapshot) : null,
-            districtAreas,
-            comparison,
-            cached,
-            computing,
-            processing: buildGeeProcessingState({
-                pipeline: 'forest-classification',
-                taskKey: `analysis:forest-classification:${year}-${String(month).padStart(2, '0')}`,
-                snapshot,
-            }),
-        },
+    const { snapshot, districtAreas, comparison, cached, computing } = await svc.queryForPeriod(
+        year,
+        month,
+        userId,
     );
+
+    OK(res, cached ? t('get_detail_success', req.lang) : 'Đang xử lý, vui lòng truy vấn lại sau.', {
+        snapshot: snapshot ? formatSnapshot(snapshot) : null,
+        districtAreas,
+        comparison,
+        cached,
+        computing,
+        processing: buildGeeProcessingState({
+            pipeline: 'forest-classification',
+            taskKey: `analysis:forest-classification:${year}-${String(month).padStart(2, '0')}`,
+            snapshot,
+        }),
+    });
 };
 
 // ── GET /forest-classification/snapshot/:id ───────────────────────────────────
 // Poll a specific run by ID — used after POST /query returns computing=true.
 const getSnapshot = async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!id || id <= 0) {return res.status(400).json({ message: 'Mã kết quả không hợp lệ.' });}
+    if (!id || id <= 0) {
+        return res.status(400).json({ message: 'Mã kết quả không hợp lệ.' });
+    }
 
     const result = await svc.getSnapshotById(id);
-    if (!result) {return res.status(404).json({ message: 'Không tìm thấy kết quả.' });}
+    if (!result) {
+        return res.status(404).json({ message: 'Không tìm thấy kết quả.' });
+    }
 
     // BUG-FIX (2026-07-19): trước đây `!['completed','published'].includes(status)`
     // trả TRUE cho cả `failed` → UI hiện "Đang phân tích..." mãi cho snapshot đã
@@ -367,11 +402,11 @@ const getSnapshot = async (req, res) => {
     // computing=false, UI dừng poll và hiển thị lỗi rõ ràng.
     const activeStates = ['computing', 'exporting', 'pending'];
     OK(res, t('get_detail_success', req.lang), {
-        snapshot:      formatSnapshot(result.snapshot),
+        snapshot: formatSnapshot(result.snapshot),
         districtAreas: result.districtAreas,
-        comparison:    result.comparison,
-        computing:     activeStates.includes(result.snapshot.status),
-        processing:    buildGeeProcessingState({
+        comparison: result.comparison,
+        computing: activeStates.includes(result.snapshot.status),
+        processing: buildGeeProcessingState({
             pipeline: 'forest-classification',
             snapshot: result.snapshot,
         }),
@@ -381,32 +416,36 @@ const getSnapshot = async (req, res) => {
 // ── Shared formatters ─────────────────────────────────────────────────────────
 
 function formatSnapshot(s) {
-    if (!s) {return null;}
+    if (!s) {
+        return null;
+    }
     const numericOrNull = (value) => {
-        if (value === null || value === undefined || value === '') {return null;}
+        if (value === null || value === undefined || value === '') {
+            return null;
+        }
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : null;
     };
     return {
-        id:                 s.id,
-        year:               s.year,
-        month:              s.month,
-        status:             s.status,
-        provinceSummary:    s.province_summary,
+        id: s.id,
+        year: s.year,
+        month: s.month,
+        status: s.status,
+        provinceSummary: s.province_summary,
         districtExportSummary: s.district_export_summary || null,
-        oobAccuracy:        numericOrNull(s.oob_accuracy),
-        testKappa:          numericOrNull(s.test_kappa),
-        geoserverLayer:     s.geoserver_layer || null,
-        geeTileUrl:         s.gee_tile_url || null,
+        oobAccuracy: numericOrNull(s.oob_accuracy),
+        testKappa: numericOrNull(s.test_kappa),
+        geoserverLayer: s.geoserver_layer || null,
+        geeTileUrl: s.gee_tile_url || null,
         geeTileGeneratedAt: s.gee_tile_generated_at || null,
-        geeDownloadUrl:       s.gee_download_url || null,
+        geeDownloadUrl: s.gee_download_url || null,
         geoserverDownloadUrl: buildGeoserverDownloadUrl(s.geoserver_layer),
-        downloadFilename:     forestFilename(s.year, s.month),
-        computedAt:         s.computed_at,
-        errorMessage:       toPublicProcessingError(s.error_message),
-        retryCount:         Number(s.retry_count) || 0,
-        nextRetryAt:        s.next_retry_at || null,
-        lastRetryError:     toPublicProcessingError(s.last_retry_error),
+        downloadFilename: forestFilename(s.year, s.month),
+        computedAt: s.computed_at,
+        errorMessage: toPublicProcessingError(s.error_message),
+        retryCount: Number(s.retry_count) || 0,
+        nextRetryAt: s.next_retry_at || null,
+        lastRetryError: toPublicProcessingError(s.last_retry_error),
     };
 }
 
@@ -420,37 +459,60 @@ const getDistrictExports = async (req, res) => {
         throw new Api400Error('Mã kết quả không hợp lệ.', ['INVALID_ID']);
     }
     let snap = await repo.getById(id);
-    if (!snap) {throw new Api404Error('Không tìm thấy kết quả.', ['RESULT_NOT_FOUND']);}
+    if (!snap) {
+        throw new Api404Error('Không tìm thấy kết quả.', ['RESULT_NOT_FOUND']);
+    }
 
     await repo.reconcileDistrictExportArtifacts(id);
     const promoted = await repo.markPublishedIfDistrictsReady(id);
-    if (promoted) {snap = promoted;}
+    if (promoted) {
+        snap = promoted;
+    }
     const rows = await repo.listDistrictExports(id);
     const includeInternals = canViewDistrictInternals(req.user);
 
     // Aggregate byClass + totalHa + forestHa (dùng FOREST_CLASS_IDS).
-    let completed = 0, failed = 0, skipped = 0, pending = 0;
-    let sourceCount = 0, publishedCount = 0, readyCount = 0, queuedCount = 0;
+    let completed = 0,
+        failed = 0,
+        skipped = 0,
+        pending = 0;
+    let sourceCount = 0,
+        publishedCount = 0,
+        readyCount = 0,
+        queuedCount = 0;
     let failedPublishCount = 0;
-    let totalHa = 0, forestHa = 0;
+    let totalHa = 0,
+        forestHa = 0;
     const byClass = {};
     for (const r of rows) {
-        if (r.status === 'completed') {completed += 1;}
-        else if (r.status === 'failed')  {failed  += 1;}
-        else if (r.status === 'skipped') {skipped += 1;}
-        else {pending += 1;}
+        if (r.status === 'completed') {
+            completed += 1;
+        } else if (r.status === 'failed') {
+            failed += 1;
+        } else if (r.status === 'skipped') {
+            skipped += 1;
+        } else {
+            pending += 1;
+        }
         const stable = hasStableDistrictRaster(r);
-        const active = !stable
-            && hasMatchingDistrictIngestJob(r)
-            && ACTIVE_INGEST_STATUSES.has(r.ingest_job_status);
-        if (districtMinioKey(r) || getUsableDistrictSourceUrl(r)) {sourceCount += 1;}
-        if (districtGeoserverLayer(r)) {publishedCount += 1;}
-        if (stable) {readyCount += 1;}
-        else if (active) {queuedCount += 1;}
-        else if (r.status === 'failed' || r.ingest_job_status === 'failed') {
+        const active =
+            !stable &&
+            hasMatchingDistrictIngestJob(r) &&
+            ACTIVE_INGEST_STATUSES.has(r.ingest_job_status);
+        if (districtMinioKey(r) || getUsableDistrictSourceUrl(r)) {
+            sourceCount += 1;
+        }
+        if (districtGeoserverLayer(r)) {
+            publishedCount += 1;
+        }
+        if (stable) {
+            readyCount += 1;
+        } else if (active) {
+            queuedCount += 1;
+        } else if (r.status === 'failed' || r.ingest_job_status === 'failed') {
             failedPublishCount += 1;
         }
-        totalHa  += Number(r.total_area_ha)  || 0;
+        totalHa += Number(r.total_area_ha) || 0;
         forestHa += Number(r.forest_area_ha) || 0;
         for (const [cid, ha] of Object.entries(r.area_by_class || {})) {
             byClass[cid] = (byClass[cid] || 0) + (Number(ha) || 0);
@@ -461,52 +523,59 @@ const getDistrictExports = async (req, res) => {
 
     const districts = rows.map((r) => {
         const safe = {
-            id:              r.id,
-            districtCode:    r.district_code,
-            districtName:    r.district_name,
-            status:          r.status,
-            scaleM:          r.scale_m,
-            areaByClass:     r.area_by_class || null,
-            totalAreaHa: r.total_area_ha !== null && r.total_area_ha !== undefined
-                ? Number(r.total_area_ha) : null,
-            forestAreaHa: r.forest_area_ha !== null && r.forest_area_ha !== undefined
-                ? Number(r.forest_area_ha) : null,
-            geoserverLayer:  districtGeoserverLayer(r),
+            id: r.id,
+            districtCode: r.district_code,
+            districtName: r.district_name,
+            status: r.status,
+            scaleM: r.scale_m,
+            areaByClass: r.area_by_class || null,
+            totalAreaHa:
+                r.total_area_ha !== null && r.total_area_ha !== undefined
+                    ? Number(r.total_area_ha)
+                    : null,
+            forestAreaHa:
+                r.forest_area_ha !== null && r.forest_area_ha !== undefined
+                    ? Number(r.forest_area_ha)
+                    : null,
+            geoserverLayer: districtGeoserverLayer(r),
         };
-        if (!includeInternals) {return safe;}
+        if (!includeInternals) {
+            return safe;
+        }
         return {
             ...safe,
-            geeTileUrl:          r.gee_tile_url || null,
-            geeDownloadUrl:      getUsableDistrictSourceUrl(r),
+            geeTileUrl: r.gee_tile_url || null,
+            geeDownloadUrl: getUsableDistrictSourceUrl(r),
             geeDownloadFilename: r.gee_download_filename || null,
-            geeGeneratedAt:      r.gee_generated_at,
-            minioKey:            districtMinioKey(r),
-            geoserverStore:      r.geoserver_store || r.ingest_geoserver_store || null,
-            rasterIngestJobId:   r.raster_ingest_job_id || null,
-            rasterIngestStatus:  r.ingest_job_status || null,
-            errorMessage:        toPublicProcessingError(
-                r.error_message || r.ingest_job_error,
-            ),
-            durationMs:          r.duration_ms || null,
-            startedAt:           r.started_at,
-            completedAt:         r.completed_at,
+            geeGeneratedAt: r.gee_generated_at,
+            minioKey: districtMinioKey(r),
+            geoserverStore: r.geoserver_store || r.ingest_geoserver_store || null,
+            rasterIngestJobId: r.raster_ingest_job_id || null,
+            rasterIngestStatus: r.ingest_job_status || null,
+            errorMessage: toPublicProcessingError(r.error_message || r.ingest_job_error),
+            durationMs: r.duration_ms || null,
+            startedAt: r.started_at,
+            completedAt: r.completed_at,
         };
     });
 
     OK(res, t('get_detail_success', req.lang), {
         snapshotId: id,
-        year:       snap.year,
-        month:      snap.month,
-        attempt:    snap.attempt,
-        scaleM:     snap.download_scale_m ?? districts[0]?.scaleM ?? null,
-        total:      rows.length,
+        year: snap.year,
+        month: snap.month,
+        attempt: snap.attempt,
+        scaleM: snap.download_scale_m ?? districts[0]?.scaleM ?? null,
+        total: rows.length,
         discoveredTotal: districtCodeCount,
         expectedTotal: cfg.EXPECTED_DISTRICT_COUNT,
         districtCodeCount,
         coverageScope: 'districtMosaic',
         coverageCount: districtCodeCount,
         fullyPublished,
-        completed, failed, skipped, pending,
+        completed,
+        failed,
+        skipped,
+        pending,
         sourceCount,
         publishedCount,
         readyCount,
@@ -514,15 +583,12 @@ const getDistrictExports = async (req, res) => {
         failedPublishCount,
         missingCount: Math.max(
             0,
-            cfg.EXPECTED_DISTRICT_COUNT
-                - readyCount
-                - queuedCount
-                - failedPublishCount,
+            cfg.EXPECTED_DISTRICT_COUNT - readyCount - queuedCount - failedPublishCount,
         ),
-        aggregate:  {
-            totalHa:  Math.round(totalHa  * 100) / 100,
+        aggregate: {
+            totalHa: Math.round(totalHa * 100) / 100,
             forestHa: Math.round(forestHa * 100) / 100,
-            byClass:  Object.fromEntries(
+            byClass: Object.fromEntries(
                 Object.entries(byClass).map(([k, v]) => [k, Math.round(v * 100) / 100]),
             ),
         },
@@ -545,10 +611,7 @@ const publishRaster = async (req, res) => {
         throw new Api404Error('Không tìm thấy kết quả.', ['RESULT_NOT_FOUND']);
     }
     if (!['completed', 'published'].includes(snap.status)) {
-        throw new Api400Error(
-            'Kết quả chưa hoàn tất nên chưa thể công bố.',
-            ['RESULT_NOT_READY'],
-        );
+        throw new Api400Error('Kết quả chưa hoàn tất nên chưa thể công bố.', ['RESULT_NOT_READY']);
     }
 
     await repo.reconcileDistrictExportArtifacts(id);
@@ -560,8 +623,8 @@ const publishRaster = async (req, res) => {
 
     for (const row of rows) {
         const stable = hasStableDistrictRaster(row);
-        const active = hasMatchingDistrictIngestJob(row)
-            && ACTIVE_INGEST_STATUSES.has(row.ingest_job_status);
+        const active =
+            hasMatchingDistrictIngestJob(row) && ACTIVE_INGEST_STATUSES.has(row.ingest_job_status);
         const districtCode = String(row.district_code || '').trim();
         const layerCode = `forest_class_${districtCode || 'unknown'}_${tag}_s${snap.id}`;
 
@@ -569,8 +632,12 @@ const publishRaster = async (req, res) => {
             enqueueErrors.set(row.id, 'Thiếu mã huyện hợp lệ.');
             continue;
         }
-        if (stable) {availableSourceIds.add(row.id);}
-        if (!force && stable) {continue;}
+        if (stable) {
+            availableSourceIds.add(row.id);
+        }
+        if (!force && stable) {
+            continue;
+        }
         if (!force && active && row.raster_ingest_job_id) {
             availableSourceIds.add(row.id);
             jobs.push({
@@ -593,7 +660,9 @@ const publishRaster = async (req, res) => {
             enqueueErrors.set(row.id, err.message);
             continue;
         }
-        if (!source) {continue;}
+        if (!source) {
+            continue;
+        }
         availableSourceIds.add(row.id);
 
         try {
@@ -652,21 +721,21 @@ const publishRaster = async (req, res) => {
     const publishedCount = rows.filter((row) => districtGeoserverLayer(row)).length;
     const sourceCount = availableSourceIds.size;
     const queuedDistricts = new Set(
-        jobs
-            .filter((job) => ACTIVE_INGEST_STATUSES.has(job.status))
-            .map((job) => job.districtCode),
+        jobs.filter((job) => ACTIVE_INGEST_STATUSES.has(job.status)).map((job) => job.districtCode),
     );
-    const queuedCount = rows.filter((row) =>
-        !hasStableDistrictRaster(row)
-        && queuedDistricts.has(String(row.district_code || '').trim())).length;
-    const failedCount = rows.filter((row) =>
-        !hasStableDistrictRaster(row)
-        && !queuedDistricts.has(String(row.district_code || '').trim())
-        && (
-            row.status === 'failed'
-            || row.ingest_job_status === 'failed'
-            || enqueueErrors.has(row.id)
-        )).length;
+    const queuedCount = rows.filter(
+        (row) =>
+            !hasStableDistrictRaster(row) &&
+            queuedDistricts.has(String(row.district_code || '').trim()),
+    ).length;
+    const failedCount = rows.filter(
+        (row) =>
+            !hasStableDistrictRaster(row) &&
+            !queuedDistricts.has(String(row.district_code || '').trim()) &&
+            (row.status === 'failed' ||
+                row.ingest_job_status === 'failed' ||
+                enqueueErrors.has(row.id)),
+    ).length;
     const missingCount = Math.max(
         0,
         cfg.EXPECTED_DISTRICT_COUNT - readyCount - queuedCount - failedCount,
@@ -698,8 +767,7 @@ const publishRaster = async (req, res) => {
         failed: failedCount,
         failedCount,
         alreadyPublished,
-        snapshotStatus: publishedSnapshot?.status
-            || (fullyPublished ? 'published' : snap.status),
+        snapshotStatus: publishedSnapshot?.status || (fullyPublished ? 'published' : snap.status),
         jobs,
         errors: [...enqueueErrors.entries()].map(([districtExportId, message]) => ({
             districtExportId,
@@ -728,4 +796,13 @@ const publishRaster = async (req, res) => {
     );
 };
 
-module.exports = { getLatest, getHistory, getPublishedHistory, refresh, queryPeriod, getSnapshot, publishRaster, getDistrictExports };
+module.exports = {
+    getLatest,
+    getHistory,
+    getPublishedHistory,
+    refresh,
+    queryPeriod,
+    getSnapshot,
+    publishRaster,
+    getDistrictExports,
+};

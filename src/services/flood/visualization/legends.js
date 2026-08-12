@@ -10,10 +10,7 @@
  *       products (see the "QA" note on shallow/tidal/mining/urban entries).
  */
 
-const {
-    ARTIFACT_LAYER_DEFINITIONS,
-    listArtifactCodes,
-} = require('./layer-definitions');
+const { ARTIFACT_LAYER_DEFINITIONS, listArtifactCodes } = require('./layer-definitions');
 
 /**
  * Build a legend for a single artifact.

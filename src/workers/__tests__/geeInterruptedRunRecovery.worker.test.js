@@ -14,7 +14,9 @@ describe('geeInterruptedRunRecovery.worker', () => {
     });
 
     afterEach(() => {
-        for (const spy of Object.values(logSpies)) {spy.mockRestore();}
+        for (const spy of Object.values(logSpies)) {
+            spy.mockRestore();
+        }
     });
 
     test('returns zero counts and logs an info when the flood repo is not installed', async () => {
@@ -66,9 +68,7 @@ describe('geeInterruptedRunRecovery.worker', () => {
 
     test('logs an error but does not throw when the flood repo throws', async () => {
         const floodRepo = {
-            failInterruptedActiveRuns: jest
-                .fn()
-                .mockRejectedValue(new Error('DB unreachable')),
+            failInterruptedActiveRuns: jest.fn().mockRejectedValue(new Error('DB unreachable')),
         };
         const result = await recoverInterruptedRuns({
             repoLoader: () => ({ floodRepo, ingestRepo: null, floodRepoLoadError: null }),

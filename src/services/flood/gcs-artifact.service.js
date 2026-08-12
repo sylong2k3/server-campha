@@ -7,8 +7,7 @@ let storageClient = null;
 function config() {
     const bucket = process.env.FLOOD_GCS_BUCKET?.trim();
     const keyFilename =
-        process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() ||
-        process.env.GEE_KEY_PATH?.trim();
+        process.env.GOOGLE_APPLICATION_CREDENTIALS?.trim() || process.env.GEE_KEY_PATH?.trim();
     if (!bucket) {
         const error = new Error('FLOOD_GCS_BUCKET is required for durable flood exports');
         error.code = 'FLOOD_GCS_NOT_CONFIGURED';
@@ -50,7 +49,9 @@ async function waitForObject(objectName, { attempts = 12, intervalMs = 5000 } = 
     const file = client().bucket(bucket).file(objectName);
     for (let attempt = 0; attempt < attempts; attempt += 1) {
         const [exists] = await file.exists();
-        if (exists) {return { bucket, objectName };}
+        if (exists) {
+            return { bucket, objectName };
+        }
         await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
     const error = new Error(`GCS export object did not appear: gs://${bucket}/${objectName}`);

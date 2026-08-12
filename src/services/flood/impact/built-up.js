@@ -28,9 +28,15 @@ const BUILT_UP_SOURCE_TEMPLATE = Object.freeze({
  * Built-up mask (from DW) intersected with the flood mask.
  */
 function affectedBuiltMask(ee, { floodMask, builtMask } = {}) {
-    if (!ee) {throw new Error('impact.built-up.affectedBuiltMask requires the ee module');}
-    if (!floodMask) {throw new Error('impact.built-up.affectedBuiltMask requires a floodMask');}
-    if (!builtMask) {throw new Error('impact.built-up.affectedBuiltMask requires a builtMask');}
+    if (!ee) {
+        throw new Error('impact.built-up.affectedBuiltMask requires the ee module');
+    }
+    if (!floodMask) {
+        throw new Error('impact.built-up.affectedBuiltMask requires a floodMask');
+    }
+    if (!builtMask) {
+        throw new Error('impact.built-up.affectedBuiltMask requires a builtMask');
+    }
     return builtMask.and(floodMask).rename('affected_built');
 }
 

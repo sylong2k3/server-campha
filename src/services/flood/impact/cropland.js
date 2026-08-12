@@ -26,10 +26,13 @@ const CROPLAND_SOURCE = Object.freeze({
  * Binary cropland mask restricted to the flood extent.
  */
 function affectedCroplandMask(ee, { floodMask, worldCoverImage = null } = {}) {
-    if (!ee) {throw new Error('impact.cropland.affectedCroplandMask requires the ee module');}
-    if (!floodMask) {throw new Error('impact.cropland.affectedCroplandMask requires a floodMask');}
-    const wc =
-        (worldCoverImage || ee.ImageCollection(ASSETS.WORLDCOVER).first()).select('Map');
+    if (!ee) {
+        throw new Error('impact.cropland.affectedCroplandMask requires the ee module');
+    }
+    if (!floodMask) {
+        throw new Error('impact.cropland.affectedCroplandMask requires a floodMask');
+    }
+    const wc = (worldCoverImage || ee.ImageCollection(ASSETS.WORLDCOVER).first()).select('Map');
     // Guard: WC_CLASS.BARE_SPARSE = 60; ensure we're pulling the crop class.
     void WC_CLASS; // referenced only for source cross-check
     return wc.eq(WC_CROPLAND_CLASS).and(floodMask).rename('affected_cropland');

@@ -29,7 +29,9 @@ const POPULATION_SOURCE = Object.freeze({
  * Load the GHSL population image (people-per-pixel).
  */
 function loadPopulationImage(ee) {
-    if (!ee) {throw new Error('impact.population.loadPopulationImage requires the ee module');}
+    if (!ee) {
+        throw new Error('impact.population.loadPopulationImage requires the ee module');
+    }
     return ee.Image(ASSETS.GHSL_POP_2020);
 }
 
@@ -39,8 +41,12 @@ function loadPopulationImage(ee) {
  * only compute the fraction image.
  */
 function floodFractionAtPopScale(ee, { floodMask, populationImage = null } = {}) {
-    if (!ee) {throw new Error('impact.population.floodFractionAtPopScale requires the ee module');}
-    if (!floodMask) {throw new Error('impact.population.floodFractionAtPopScale requires a floodMask');}
+    if (!ee) {
+        throw new Error('impact.population.floodFractionAtPopScale requires the ee module');
+    }
+    if (!floodMask) {
+        throw new Error('impact.population.floodFractionAtPopScale requires a floodMask');
+    }
     const pop = populationImage || loadPopulationImage(ee);
     return floodMask
         .unmask(0)
@@ -54,8 +60,12 @@ function floodFractionAtPopScale(ee, { floodMask, populationImage = null } = {})
  * to get an integer count.
  */
 function affectedPopulationImage(ee, { floodMask, populationImage = null } = {}) {
-    if (!ee) {throw new Error('impact.population.affectedPopulationImage requires the ee module');}
-    if (!floodMask) {throw new Error('impact.population.affectedPopulationImage requires a floodMask');}
+    if (!ee) {
+        throw new Error('impact.population.affectedPopulationImage requires the ee module');
+    }
+    if (!floodMask) {
+        throw new Error('impact.population.affectedPopulationImage requires a floodMask');
+    }
     const pop = populationImage || loadPopulationImage(ee);
     const fraction = floodFractionAtPopScale(ee, { floodMask, populationImage: pop });
     return fraction.multiply(pop).rename('affected_population');

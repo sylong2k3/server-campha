@@ -4,8 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const migrationsDir = path.join(__dirname, '..', 'migrations');
-const load = (name) =>
-    fs.readFileSync(path.join(migrationsDir, name), 'utf8');
+const load = (name) => fs.readFileSync(path.join(migrationsDir, name), 'utf8');
 
 describe('flood migrations (GEE-S05 §7.1)', () => {
     describe('080_flood_domain.sql', () => {
@@ -18,7 +17,9 @@ describe('flood migrations (GEE-S05 §7.1)', () => {
                 'gis.flood_run_stage_events',
                 'gis.flood_run_audit',
             ]) {
-                expect(sql).toMatch(new RegExp(`CREATE TABLE IF NOT EXISTS ${table.replace('.', '\\.')}\\s`));
+                expect(sql).toMatch(
+                    new RegExp(`CREATE TABLE IF NOT EXISTS ${table.replace('.', '\\.')}\\s`),
+                );
             }
         });
 
@@ -41,9 +42,7 @@ describe('flood migrations (GEE-S05 §7.1)', () => {
         });
 
         test('flood_analysis_runs enforces module + mode enums', () => {
-            expect(sql).toContain(
-                "module IN ('event', 'hand', 'rain', 'impact', 'trend')",
-            );
+            expect(sql).toContain("module IN ('event', 'hand', 'rain', 'impact', 'trend')");
             expect(sql).toContain("mode IN ('product', 'calibration')");
         });
 
@@ -52,15 +51,11 @@ describe('flood migrations (GEE-S05 §7.1)', () => {
         });
 
         test('flood_analysis_runs records aoi_source per architecture §82', () => {
-            expect(sql).toContain(
-                "aoi_source IN ('REFERENCE_GAUL', 'AUTHORITATIVE')",
-            );
+            expect(sql).toContain("aoi_source IN ('REFERENCE_GAUL', 'AUTHORITATIVE')");
         });
 
         test('flood_artifacts enforces artifact_role enum + sha256 pattern', () => {
-            expect(sql).toContain(
-                "artifact_role IN ('PRODUCT', 'QA', 'CALIBRATION')",
-            );
+            expect(sql).toContain("artifact_role IN ('PRODUCT', 'QA', 'CALIBRATION')");
             expect(sql).toContain("checksum_sha256 ~ '^[0-9a-f]{64}$'");
         });
 

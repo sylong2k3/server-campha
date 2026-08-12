@@ -32,9 +32,13 @@ function _requireDates(fnName, startDate, endDate) {
  * Total accumulated IMERG precipitation (mm) over the window.
  */
 function accumulateIMERG(ee, { startDate, endDate, aoi } = {}) {
-    if (!ee) {throw new Error('rain.rainfall-source.accumulateIMERG requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.rainfall-source.accumulateIMERG requires the ee module');
+    }
     _requireDates('accumulateIMERG', startDate, endDate);
-    if (!aoi) {throw new Error('rain.rainfall-source.accumulateIMERG requires aoi');}
+    if (!aoi) {
+        throw new Error('rain.rainfall-source.accumulateIMERG requires aoi');
+    }
     return ee
         .ImageCollection(ASSETS.IMERG_V07)
         .filterBounds(aoi)
@@ -50,9 +54,13 @@ function accumulateIMERG(ee, { startDate, endDate, aoi } = {}) {
  * summing over the window would smooth away.
  */
 function maximumIMERGIntensity(ee, { startDate, endDate, aoi } = {}) {
-    if (!ee) {throw new Error('rain.rainfall-source.maximumIMERGIntensity requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.rainfall-source.maximumIMERGIntensity requires the ee module');
+    }
     _requireDates('maximumIMERGIntensity', startDate, endDate);
-    if (!aoi) {throw new Error('rain.rainfall-source.maximumIMERGIntensity requires aoi');}
+    if (!aoi) {
+        throw new Error('rain.rainfall-source.maximumIMERGIntensity requires aoi');
+    }
     return ee
         .ImageCollection(ASSETS.IMERG_V07)
         .filterBounds(aoi)
@@ -67,9 +75,13 @@ function maximumIMERGIntensity(ee, { startDate, endDate, aoi } = {}) {
  * masked "no data" semantics — do NOT `.unmask(0)`.
  */
 function accumulateCHIRPS(ee, { startDate, endDate, aoi } = {}) {
-    if (!ee) {throw new Error('rain.rainfall-source.accumulateCHIRPS requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.rainfall-source.accumulateCHIRPS requires the ee module');
+    }
     _requireDates('accumulateCHIRPS', startDate, endDate);
-    if (!aoi) {throw new Error('rain.rainfall-source.accumulateCHIRPS requires aoi');}
+    if (!aoi) {
+        throw new Error('rain.rainfall-source.accumulateCHIRPS requires aoi');
+    }
     return ee
         .ImageCollection(ASSETS.CHIRPS_DAILY_RNL)
         .filterBounds(aoi)
@@ -91,9 +103,15 @@ function accumulateCHIRPS(ee, { startDate, endDate, aoi } = {}) {
  * @param {object} args.aoi
  */
 function buildRainfallStack(ee, { eventTime, aoi } = {}) {
-    if (!ee) {throw new Error('rain.rainfall-source.buildRainfallStack requires the ee module');}
-    if (!eventTime) {throw new Error('rain.rainfall-source.buildRainfallStack requires eventTime');}
-    if (!aoi) {throw new Error('rain.rainfall-source.buildRainfallStack requires aoi');}
+    if (!ee) {
+        throw new Error('rain.rainfall-source.buildRainfallStack requires the ee module');
+    }
+    if (!eventTime) {
+        throw new Error('rain.rainfall-source.buildRainfallStack requires eventTime');
+    }
+    if (!aoi) {
+        throw new Error('rain.rainfall-source.buildRainfallStack requires aoi');
+    }
     // Normalise `eventTime` to a JS Date. Callers may pass an ISO string.
     const anchor = eventTime instanceof Date ? eventTime : new Date(eventTime);
     if (Number.isNaN(anchor.valueOf())) {
@@ -146,7 +164,9 @@ function buildRainfallStack(ee, { eventTime, aoi } = {}) {
  * numbers in ee.Image so the downstream risk-model treats them uniformly.
  */
 function buildManualRainfallStack(ee, rainfall = {}) {
-    if (!ee) {throw new Error('rain.rainfall-source.buildManualRainfallStack requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.rainfall-source.buildManualRainfallStack requires the ee module');
+    }
     const asImg = (v) => (Number.isFinite(v) ? ee.Image(v) : null);
     return {
         rain3h: asImg(rainfall.amount3h),

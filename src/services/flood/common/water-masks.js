@@ -41,12 +41,12 @@ const loadWorldCover = (ee) => ee.ImageCollection(ASSETS.WORLDCOVER).first();
  * Returns a binary ee.Image (1 = permanent water, 0 elsewhere).
  */
 function permanentWater(ee, { gsw = null } = {}) {
-    if (!ee) {throw new Error('water-masks.permanentWater requires the ee module');}
+    if (!ee) {
+        throw new Error('water-masks.permanentWater requires the ee module');
+    }
     const image = gsw || loadGsw(ee);
     const highOcc = image.select('occurrence').gte(PERMANENT_WATER_OCCURRENCE);
-    const highSeasonality = image
-        .select('seasonality')
-        .gte(PERMANENT_WATER_SEASONALITY_MONTHS);
+    const highSeasonality = image.select('seasonality').gte(PERMANENT_WATER_SEASONALITY_MONTHS);
     return highOcc.or(highSeasonality).rename('permanent_water');
 }
 
@@ -56,10 +56,13 @@ function permanentWater(ee, { gsw = null } = {}) {
  * excluded — only genuinely intermittent pixels survive.
  */
 function ephemeralWater(ee, { gsw = null } = {}) {
-    if (!ee) {throw new Error('water-masks.ephemeralWater requires the ee module');}
+    if (!ee) {
+        throw new Error('water-masks.ephemeralWater requires the ee module');
+    }
     const image = gsw || loadGsw(ee);
     const occ = image.select('occurrence');
-    return occ.gt(EPHEMERAL_WATER_OCC_MIN)
+    return occ
+        .gt(EPHEMERAL_WATER_OCC_MIN)
         .and(occ.lte(EPHEMERAL_WATER_OCC_MAX))
         .rename('ephemeral_water');
 }
@@ -82,15 +85,19 @@ function ephemeralWater(ee, { gsw = null } = {}) {
  * @param {object} [args.worldCoverImage] — pre-loaded WorldCover image
  */
 function tidalUncertainty(ee, { elevationImage, gsw = null, worldCoverImage = null } = {}) {
-    if (!ee) {throw new Error('water-masks.tidalUncertainty requires the ee module');}
-    if (!elevationImage) {throw new Error('water-masks.tidalUncertainty requires an elevation image');}
+    if (!ee) {
+        throw new Error('water-masks.tidalUncertainty requires the ee module');
+    }
+    if (!elevationImage) {
+        throw new Error('water-masks.tidalUncertainty requires an elevation image');
+    }
     const image = gsw || loadGsw(ee);
     const wc = (worldCoverImage || loadWorldCover(ee)).select('Map');
 
-    const historical = image.select('max_extent').eq(1)
-        .or(image.select('occurrence').gt(0));
+    const historical = image.select('max_extent').eq(1).or(image.select('occurrence').gt(0));
     const lowElev = elevationImage.lte(TIDAL_ELEVATION_MAX_M);
-    const wcTidalCandidate = wc.eq(WC_CLASS.WATER)
+    const wcTidalCandidate = wc
+        .eq(WC_CLASS.WATER)
         .or(wc.eq(WC_CLASS.HERBACEOUS_WETLAND))
         .or(wc.eq(WC_CLASS.MANGROVE))
         .or(wc.eq(WC_CLASS.BARE_SPARSE));
@@ -112,9 +119,7 @@ function buildWaterStack(ee, { elevationImage } = {}) {
         gsw,
         permanent: permanentWater(ee, { gsw }),
         ephemeral: ephemeralWater(ee, { gsw }),
-        tidalUncertainty: elevationImage
-            ? tidalUncertainty(ee, { gsw, elevationImage })
-            : null,
+        tidalUncertainty: elevationImage ? tidalUncertainty(ee, { gsw, elevationImage }) : null,
     };
 }
 

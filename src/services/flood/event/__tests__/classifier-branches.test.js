@@ -19,7 +19,9 @@ const makeEe = () => {
     const makeProxy = (path) => {
         const p = new Proxy(function () {}, {
             get(_t, key) {
-                if (key === 'then' || key === Symbol.toPrimitive) {return undefined;}
+                if (key === 'then' || key === Symbol.toPrimitive) {
+                    return undefined;
+                }
                 return makeProxy(`${path}.${String(key)}`);
             },
             apply(_t, _thisArg, args) {
@@ -39,7 +41,9 @@ const makeEe = () => {
         { calls },
         {
             get(target, key) {
-                if (key === 'calls') {return target.calls;}
+                if (key === 'calls') {
+                    return target.calls;
+                }
                 return makeProxy(String(key));
             },
         },
@@ -48,10 +52,15 @@ const makeEe = () => {
 
 // Chainable image factory — for assertions that don't need proxy shape.
 const image = () => {
-    const chain = () => new Proxy(function () {}, {
-        get() { return chain(); },
-        apply() { return chain(); },
-    });
+    const chain = () =>
+        new Proxy(function () {}, {
+            get() {
+                return chain();
+            },
+            apply() {
+                return chain();
+            },
+        });
     return chain();
 };
 
@@ -163,11 +172,11 @@ describe('classifier.darkFloodSupportScore', () => {
             postVV: image(),
             postVH: image(),
             thresholds: {
-            vhDecreaseDb: 2.0,
-            vvDecreaseDb: 0.8,
-            postVHDb: -18,
-            postVVDb: -11,
-        },
+                vhDecreaseDb: 2.0,
+                vvDecreaseDb: 0.8,
+                postVHDb: -18,
+                postVVDb: -11,
+            },
         });
         expect(out).toBeDefined();
     });

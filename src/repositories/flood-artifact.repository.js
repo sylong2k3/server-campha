@@ -20,10 +20,7 @@ const PUBLISH_STATUSES = Object.freeze(['unpublished', 'publishing', 'published'
 const ARTIFACT_ROLES = Object.freeze(['PRODUCT', 'QA', 'CALIBRATION']);
 
 const findById = async (id, client = db) => {
-    const { rows } = await client.query(
-        'SELECT * FROM gis.flood_artifacts WHERE id = $1',
-        [id],
-    );
+    const { rows } = await client.query('SELECT * FROM gis.flood_artifacts WHERE id = $1', [id]);
     return rows[0] || null;
 };
 
@@ -55,13 +52,7 @@ const findByLayerName = async (workspace, layerName, client = db) => {
     return rows[0] || null;
 };
 
-const listPublished = async ({
-    module,
-    from,
-    to,
-    limit = 20,
-    offset = 0,
-} = {}) => {
+const listPublished = async ({ module, from, to, limit = 20, offset = 0 } = {}) => {
     const where = ["publish_status = 'published'"];
     const params = [];
     if (module) {

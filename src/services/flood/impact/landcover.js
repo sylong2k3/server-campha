@@ -43,7 +43,9 @@ const LANDCOVER_SOURCE = Object.freeze({
  * Load the ESA WorldCover Map band.
  */
 function loadLandcoverImage(ee) {
-    if (!ee) {throw new Error('impact.landcover.loadLandcoverImage requires the ee module');}
+    if (!ee) {
+        throw new Error('impact.landcover.loadLandcoverImage requires the ee module');
+    }
     return ee.ImageCollection(ASSETS.WORLDCOVER).first().select('Map').rename('worldcover_class');
 }
 
@@ -52,7 +54,9 @@ function loadLandcoverImage(ee) {
  * it into `[{ class, label, areaHa }, ...]`. Silently skips unknown classes.
  */
 function summariseLandcoverGroups(groupedResult) {
-    if (!groupedResult) {return [];}
+    if (!groupedResult) {
+        return [];
+    }
     const groups = groupedResult.groups || [];
     return groups
         .map((entry) => {

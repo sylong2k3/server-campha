@@ -62,11 +62,15 @@ async function runImpactAnalysis({
     dwCompositeYear = null,
     deps = defaultDeps(),
 } = {}) {
-    if (!ee) {throw new Error('impact.index.runImpactAnalysis requires the ee module');}
+    if (!ee) {
+        throw new Error('impact.index.runImpactAnalysis requires the ee module');
+    }
     if (!geeAdapter?.evaluate) {
         throw new Error('impact.index.runImpactAnalysis requires geeAdapter.evaluate');
     }
-    if (!runConfig) {throw new Error('impact.index.runImpactAnalysis requires runConfig');}
+    if (!runConfig) {
+        throw new Error('impact.index.runImpactAnalysis requires runConfig');
+    }
     if (!sourceFloodMask) {
         throw new Error('impact.index.runImpactAnalysis requires sourceFloodMask');
     }

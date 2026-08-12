@@ -15,7 +15,9 @@ const makeEe = () => {
     const makeProxy = (path) => {
         const p = new Proxy(function () {}, {
             get(_t, key) {
-                if (key === 'then' || key === Symbol.toPrimitive) {return undefined;}
+                if (key === 'then' || key === Symbol.toPrimitive) {
+                    return undefined;
+                }
                 return makeProxy(`${path}.${String(key)}`);
             },
             apply(_t, _thisArg, args) {
@@ -31,12 +33,17 @@ const makeEe = () => {
         proxies.add(p);
         return p;
     };
-    return new Proxy({ calls }, {
-        get(target, key) {
-            if (key === 'calls') {return target.calls;}
-            return makeProxy(String(key));
+    return new Proxy(
+        { calls },
+        {
+            get(target, key) {
+                if (key === 'calls') {
+                    return target.calls;
+                }
+                return makeProxy(String(key));
+            },
         },
-    });
+    );
 };
 
 describe('event/baseline.js', () => {
@@ -95,7 +102,9 @@ describe('event/morphology.js', () => {
     test('removeSmallFloodObjects requires ee + mask + positive minAreaM2', () => {
         const ee = makeEe();
         expect(() => morphology.removeSmallFloodObjects(ee, {})).toThrow(/floodMask/);
-        expect(() => morphology.removeSmallFloodObjects(ee, { floodMask: {} })).toThrow(/minAreaM2/);
+        expect(() => morphology.removeSmallFloodObjects(ee, { floodMask: {} })).toThrow(
+            /minAreaM2/,
+        );
         expect(() =>
             morphology.removeSmallFloodObjects(ee, { floodMask: {}, minAreaM2: 0 }),
         ).toThrow();

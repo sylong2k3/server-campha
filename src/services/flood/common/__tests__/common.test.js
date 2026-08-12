@@ -32,7 +32,9 @@ describe('datasets.js', () => {
             // FE tests earlier confirmed uppercase/nested identifiers are accepted.
             // Just sanity check we didn't accidentally leak a placeholder.
             expect(id).not.toContain('TODO');
-            if (!id) {throw new Error(`ASSET ${name} is empty`);}
+            if (!id) {
+                throw new Error(`ASSET ${name} is empty`);
+            }
         }
     });
 
@@ -71,15 +73,20 @@ describe('geometry.js', () => {
      */
     const makeFakeEe = () => {
         const calls = [];
-        const proxy = (name) => (...args) => {
-            calls.push({ name, args });
-            return {
-                filter: (f) => ({ ...proxy('FeatureCollection.filter')(f), geometry: proxy('geometry') }),
-                geometry: proxy('geometry'),
-                __name: name,
-                __args: args,
+        const proxy =
+            (name) =>
+            (...args) => {
+                calls.push({ name, args });
+                return {
+                    filter: (f) => ({
+                        ...proxy('FeatureCollection.filter')(f),
+                        geometry: proxy('geometry'),
+                    }),
+                    geometry: proxy('geometry'),
+                    __name: name,
+                    __args: args,
+                };
             };
-        };
         const fake = {
             FeatureCollection: proxy('FeatureCollection'),
             Feature: proxy('Feature'),

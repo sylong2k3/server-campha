@@ -14,15 +14,22 @@ const listResponse = (res, result, query, message) =>
 const overview = async (_req, res) => OK(res, 'Flood overview loaded', await service.overview());
 const legends = async (_req, res) => OK(res, 'Flood legends loaded', service.getLegends());
 const layers = async (req, res) =>
-    listResponse(res, await service.listPublished(req.query), req.query, 'Published flood layers loaded');
+    listResponse(
+        res,
+        await service.listPublished(req.query),
+        req.query,
+        'Published flood layers loaded',
+    );
 const publicRuns = async (req, res) =>
-    listResponse(res, await service.listPublicRuns(req.query), req.query, 'Flood run history loaded');
+    listResponse(
+        res,
+        await service.listPublicRuns(req.query),
+        req.query,
+        'Flood run history loaded',
+    );
 
-const dashboard = async (_req, res) => OK(
-    res,
-    'Flood dashboard loaded',
-    await service.overview({ mode: null, onlySucceeded: false }),
-);
+const dashboard = async (_req, res) =>
+    OK(res, 'Flood dashboard loaded', await service.overview({ mode: null, onlySucceeded: false }));
 const config = async (_req, res) => OK(res, 'Flood configuration loaded', service.getConfig());
 const queue = async (_req, res) => OK(res, 'Flood queue state loaded', service.getQueueState());
 const listRuns = async (req, res) =>
@@ -36,9 +43,17 @@ const rerun = async (req, res) =>
 const cancel = async (req, res) =>
     OK(res, 'Flood run cancelled', await service.cancel(Number(req.params.id), buildActor(req)));
 const publishArtifact = async (req, res) =>
-    OK(res, 'Flood artifact publication queued', await service.publishArtifact(Number(req.params.id), buildActor(req)));
+    OK(
+        res,
+        'Flood artifact publication queued',
+        await service.publishArtifact(Number(req.params.id), buildActor(req)),
+    );
 const unpublishArtifact = async (req, res) =>
-    OK(res, 'Flood artifact unpublished', await service.unpublishArtifact(Number(req.params.id), buildActor(req)));
+    OK(
+        res,
+        'Flood artifact unpublished',
+        await service.unpublishArtifact(Number(req.params.id), buildActor(req)),
+    );
 
 module.exports = {
     overview,

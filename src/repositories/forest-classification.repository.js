@@ -5,9 +5,12 @@ const cfg = require('../configs/forest-classification');
 
 // Debug — FC_DEBUG=true (hoặc NODE_ENV=development) → in `[FOREST-REPO:DBG] ...`
 // cho các query. Info/warn/error luôn ghi bất kể flag.
-const DEBUG = process.env.FC_DEBUG === 'true'
-    || process.env.NODE_ENV === 'development';
-const dbg = (tag, msg) => { if (DEBUG) {console.debug(`[FOREST-REPO:DBG:${tag}] ${msg}`);} };
+const DEBUG = process.env.FC_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const dbg = (tag, msg) => {
+    if (DEBUG) {
+        console.debug(`[FOREST-REPO:DBG:${tag}] ${msg}`);
+    }
+};
 
 // ── Snapshots ─────────────────────────────────────────────────────────────────
 
@@ -22,10 +25,10 @@ const dbg = (tag, msg) => { if (DEBUG) {console.debug(`[FOREST-REPO:DBG:${tag}] 
 const createSnapshot = async ({
     year,
     month,
-    status         = 'pending',
-    trigger        = 'cron',
-    requested_by   = null,
-    model_params   = {},
+    status = 'pending',
+    trigger = 'cron',
+    requested_by = null,
+    model_params = {},
     download_scale_m = null,
 }) => {
     const client = await db.pool.connect();
@@ -46,7 +49,12 @@ const createSnapshot = async ({
              VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, 100))
              RETURNING *`,
             [
-                year, month, attempt, status, trigger, requested_by,
+                year,
+                month,
+                attempt,
+                status,
+                trigger,
+                requested_by,
                 JSON.stringify(model_params),
                 download_scale_m,
             ],
@@ -72,13 +80,16 @@ const updateStatus = async (id, status, extra = {}) => {
     // set geoserver_layer (back-link) hoặc chuyển state (computing→completed).
     if (DEBUG) {
         const keys = Object.keys(extra).filter((k) => extra[k] !== undefined);
-        dbg('updateStatus', `id=${id} status=${status} fields=[${keys.join(',')}] ` +
-            (extra.geoserver_layer ? `layer=${extra.geoserver_layer} ` : '') +
-            (extra.error_message ? `err="${String(extra.error_message).slice(0, 80)}"` : ''));
+        dbg(
+            'updateStatus',
+            `id=${id} status=${status} fields=[${keys.join(',')}] ` +
+                (extra.geoserver_layer ? `layer=${extra.geoserver_layer} ` : '') +
+                (extra.error_message ? `err="${String(extra.error_message).slice(0, 80)}"` : ''),
+        );
     }
     const sets = ['status = $2', 'updated_at = NOW()'];
     const vals = [id, status];
-    let   idx  = 3;
+    let idx = 3;
 
     const addField = (col, val) => {
         if (val !== undefined) {
@@ -87,29 +98,29 @@ const updateStatus = async (id, status, extra = {}) => {
         }
     };
 
-    addField('error_message',        extra.error_message);
-    addField('computed_at',          extra.computed_at);
-    addField('published_at',         extra.published_at);
-    addField('gee_task_id',          extra.gee_task_id);
-    addField('minio_key',            extra.minio_key);
-    addField('geoserver_layer',      extra.geoserver_layer);
-    addField('geoserver_store',      extra.geoserver_store);
-    addField('oob_accuracy',         extra.oob_accuracy);
-    addField('test_accuracy',        extra.test_accuracy);
-    addField('test_kappa',           extra.test_kappa);
-    addField('s2_image_count',       extra.s2_image_count);
-    addField('ls_image_count',       extra.ls_image_count);
-    addField('duration_ms',          extra.duration_ms);
-    addField('gee_map_id',           extra.gee_map_id);
-    addField('gee_tile_url',         extra.gee_tile_url);
-    addField('gee_tile_generated_at',extra.gee_tile_generated_at);
-    addField('gee_download_url',     extra.gee_download_url);
-    addField('gt_zone_count',        extra.gt_zone_count);
-    addField('gt_point_count',       extra.gt_point_count);
-    addField('gt_window_days',       extra.gt_window_days);
-    addField('next_retry_at',        extra.next_retry_at);
-    addField('last_retry_error',     extra.last_retry_error);
-    addField('download_scale_m',     extra.download_scale_m);
+    addField('error_message', extra.error_message);
+    addField('computed_at', extra.computed_at);
+    addField('published_at', extra.published_at);
+    addField('gee_task_id', extra.gee_task_id);
+    addField('minio_key', extra.minio_key);
+    addField('geoserver_layer', extra.geoserver_layer);
+    addField('geoserver_store', extra.geoserver_store);
+    addField('oob_accuracy', extra.oob_accuracy);
+    addField('test_accuracy', extra.test_accuracy);
+    addField('test_kappa', extra.test_kappa);
+    addField('s2_image_count', extra.s2_image_count);
+    addField('ls_image_count', extra.ls_image_count);
+    addField('duration_ms', extra.duration_ms);
+    addField('gee_map_id', extra.gee_map_id);
+    addField('gee_tile_url', extra.gee_tile_url);
+    addField('gee_tile_generated_at', extra.gee_tile_generated_at);
+    addField('gee_download_url', extra.gee_download_url);
+    addField('gt_zone_count', extra.gt_zone_count);
+    addField('gt_point_count', extra.gt_point_count);
+    addField('gt_window_days', extra.gt_window_days);
+    addField('next_retry_at', extra.next_retry_at);
+    addField('last_retry_error', extra.last_retry_error);
+    addField('download_scale_m', extra.download_scale_m);
 
     if (extra.province_summary !== undefined) {
         sets.push(`province_summary = $${idx++}`);
@@ -123,7 +134,9 @@ const updateStatus = async (id, status, extra = {}) => {
 
     if (extra.district_export_summary !== undefined) {
         sets.push(`district_export_summary = $${idx++}`);
-        vals.push(extra.district_export_summary ? JSON.stringify(extra.district_export_summary) : null);
+        vals.push(
+            extra.district_export_summary ? JSON.stringify(extra.district_export_summary) : null,
+        );
     }
 
     const { rows } = await db.query(
@@ -250,18 +263,14 @@ const failActiveRunsForPeriod = async (year, month, errorMessage) => {
         [
             year,
             month,
-            String(errorMessage || 'GEE worker process terminated unexpectedly.')
-                .slice(0, 4000),
+            String(errorMessage || 'GEE worker process terminated unexpectedly.').slice(0, 4000),
         ],
     );
     return rows;
 };
 
 const getById = async (id) => {
-    const { rows } = await db.query(
-        'SELECT * FROM forest.forest_snapshots WHERE id = $1',
-        [id],
-    );
+    const { rows } = await db.query('SELECT * FROM forest.forest_snapshots WHERE id = $1', [id]);
     return rows[0] || null;
 };
 
@@ -277,8 +286,10 @@ const getLatestCompleted = async () => {
         const r = rows[0];
         console.debug(
             `[FOREST-REPO:DBG:getLatestCompleted] (${Date.now() - t0}ms) → ` +
-            (r ? `id=${r.id} y/m=${r.year}/${r.month} status=${r.status} ` +
-                 `hasLayer=${Boolean(r.geoserver_layer)} hasDlUrl=${Boolean(r.gee_download_url)}` : 'null'),
+                (r
+                    ? `id=${r.id} y/m=${r.year}/${r.month} status=${r.status} ` +
+                      `hasLayer=${Boolean(r.geoserver_layer)} hasDlUrl=${Boolean(r.gee_download_url)}`
+                    : 'null'),
         );
     }
     return rows[0] || null;
@@ -340,10 +351,15 @@ const listCompleted = async ({
     } else if (hasGeoserverLayer === true) {
         whereClauses.push(stableRasterSql);
     }
-    if (hasGeoserverLayer === false) {whereClauses.push(`NOT ${stableRasterSql}`);}
+    if (hasGeoserverLayer === false) {
+        whereClauses.push(`NOT ${stableRasterSql}`);
+    }
     const whereSql = whereClauses.join(' AND ');
     const orderSql = 's.year DESC, s.month DESC, s.created_at DESC, s.id DESC';
-    dbg('listCompleted', `page=${page} limit=${limit} filter=${hasGeoserverLayer ?? 'all'} WHERE=${whereSql}`);
+    dbg(
+        'listCompleted',
+        `page=${page} limit=${limit} filter=${hasGeoserverLayer ?? 'all'} WHERE=${whereSql}`,
+    );
 
     const districtPublishJoin = `
         LEFT JOIN LATERAL (
@@ -427,7 +443,10 @@ const listCompleted = async ({
     const total = rows[0].total_count;
     const items = rows.map(({ total_count: _totalCount, ...row }) => row);
     const withLayer = items.filter((r) => r.geoserver_layer).length;
-    dbg('listCompleted', `(${Date.now() - t0}ms) items=${items.length} total=${total} withGeoLayer=${withLayer}`);
+    dbg(
+        'listCompleted',
+        `(${Date.now() - t0}ms) items=${items.length} total=${total} withGeoLayer=${withLayer}`,
+    );
     return { items, total };
 };
 
@@ -449,17 +468,22 @@ const replaceDistrictAreas = async (snapshotId, areas) => {
     const client = await db.pool.connect();
     try {
         await client.query('BEGIN');
-        await client.query(
-            'DELETE FROM forest.forest_district_areas WHERE snapshot_id = $1',
-            [snapshotId],
-        );
+        await client.query('DELETE FROM forest.forest_district_areas WHERE snapshot_id = $1', [
+            snapshotId,
+        ]);
         for (const a of areas) {
             await client.query(
                 `INSERT INTO forest.forest_district_areas
                     (snapshot_id, district_code, district_name, class_id, class_name, area_ha)
                  VALUES ($1,$2,$3,$4,$5,$6)`,
-                [snapshotId, a.district_code || null, a.district_name || null,
-                 a.class_id, a.class_name, a.area_ha],
+                [
+                    snapshotId,
+                    a.district_code || null,
+                    a.district_name || null,
+                    a.class_id,
+                    a.class_name,
+                    a.area_ha,
+                ],
             );
         }
         await client.query('COMMIT');
@@ -489,12 +513,16 @@ const getDistrictAreas = async (snapshotId) => {
     for (const r of rows) {
         const key = r.district_code || r.district_name;
         if (!map.has(key)) {
-            map.set(key, { districtCode: r.district_code, districtName: r.district_name, classes: [] });
+            map.set(key, {
+                districtCode: r.district_code,
+                districtName: r.district_name,
+                classes: [],
+            });
         }
         map.get(key).classes.push({
-            classId:   r.class_id,
+            classId: r.class_id,
             className: r.class_name,
-            areaHa:    parseFloat(r.area_ha),
+            areaHa: parseFloat(r.area_ha),
         });
     }
     return [...map.values()];
@@ -552,14 +580,15 @@ const getPreviousCompleted = async (year, month) => {
 // completed (partial coverage) — không kéo theo toàn bộ.
 
 const insertDistrictExports = async (snapshotId, districts, scaleM = 150) => {
-    if (!Array.isArray(districts) || districts.length === 0) {return [];}
+    if (!Array.isArray(districts) || districts.length === 0) {
+        return [];
+    }
     const client = await db.pool.connect();
     try {
         await client.query('BEGIN');
-        await client.query(
-            'DELETE FROM forest.forest_district_exports WHERE snapshot_id = $1',
-            [snapshotId],
-        );
+        await client.query('DELETE FROM forest.forest_district_exports WHERE snapshot_id = $1', [
+            snapshotId,
+        ]);
         const inserted = [];
         for (const d of districts) {
             const { rows } = await client.query(
@@ -584,29 +613,31 @@ const insertDistrictExports = async (snapshotId, districts, scaleM = 150) => {
 const updateDistrictExport = async (id, patch) => {
     const sets = ['updated_at = NOW()'];
     const vals = [id];
-    let   idx  = 2;
+    let idx = 2;
     const add = (col, val, isJson = false) => {
-        if (val === undefined) {return;}
+        if (val === undefined) {
+            return;
+        }
         sets.push(`${col} = $${idx++}`);
         vals.push(isJson && val !== null ? JSON.stringify(val) : (val ?? null));
     };
-    add('status',                patch.status);
-    add('area_by_class',         patch.area_by_class, true);
-    add('total_area_ha',         patch.total_area_ha);
-    add('forest_area_ha',        patch.forest_area_ha);
-    add('gee_map_id',            patch.gee_map_id);
-    add('gee_tile_url',          patch.gee_tile_url);
-    add('gee_download_url',      patch.gee_download_url);
+    add('status', patch.status);
+    add('area_by_class', patch.area_by_class, true);
+    add('total_area_ha', patch.total_area_ha);
+    add('forest_area_ha', patch.forest_area_ha);
+    add('gee_map_id', patch.gee_map_id);
+    add('gee_tile_url', patch.gee_tile_url);
+    add('gee_download_url', patch.gee_download_url);
     add('gee_download_filename', patch.gee_download_filename);
-    add('gee_generated_at',      patch.gee_generated_at);
-    add('minio_key',             patch.minio_key);
-    add('geoserver_layer',       patch.geoserver_layer);
-    add('geoserver_store',       patch.geoserver_store);
-    add('raster_ingest_job_id',  patch.raster_ingest_job_id);
-    add('error_message',         patch.error_message);
-    add('duration_ms',           patch.duration_ms);
-    add('started_at',            patch.started_at);
-    add('completed_at',          patch.completed_at);
+    add('gee_generated_at', patch.gee_generated_at);
+    add('minio_key', patch.minio_key);
+    add('geoserver_layer', patch.geoserver_layer);
+    add('geoserver_store', patch.geoserver_store);
+    add('raster_ingest_job_id', patch.raster_ingest_job_id);
+    add('error_message', patch.error_message);
+    add('duration_ms', patch.duration_ms);
+    add('started_at', patch.started_at);
+    add('completed_at', patch.completed_at);
 
     const { rows } = await db.query(
         `UPDATE forest.forest_district_exports SET ${sets.join(', ')}

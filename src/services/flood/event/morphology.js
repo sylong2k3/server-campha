@@ -29,7 +29,9 @@ const MORPHOLOGY_RADIUS_M = 10;
  * @returns {object} ee.Image (binary, small clusters removed)
  */
 function removeSmallFloodObjects(ee, { floodMask, minAreaM2, pixelAreaM2 = 900 } = {}) {
-    if (!ee) {throw new Error('event.morphology.removeSmallFloodObjects requires the ee module');}
+    if (!ee) {
+        throw new Error('event.morphology.removeSmallFloodObjects requires the ee module');
+    }
     if (!floodMask) {
         throw new Error('event.morphology.removeSmallFloodObjects requires a floodMask');
     }
@@ -53,12 +55,21 @@ function removeSmallFloodObjects(ee, { floodMask, minAreaM2, pixelAreaM2 = 900 }
  * @returns {object} ee.Image (binary)
  */
 function openClose(ee, { mask, radiusMeters = MORPHOLOGY_RADIUS_M } = {}) {
-    if (!ee) {throw new Error('event.morphology.openClose requires the ee module');}
-    if (!mask) {throw new Error('event.morphology.openClose requires a mask');}
+    if (!ee) {
+        throw new Error('event.morphology.openClose requires the ee module');
+    }
+    if (!mask) {
+        throw new Error('event.morphology.openClose requires a mask');
+    }
     // Close (dilate then erode) — fills small gaps
-    const closed = mask.focal_max(radiusMeters, 'circle', 'meters').focal_min(radiusMeters, 'circle', 'meters');
+    const closed = mask
+        .focal_max(radiusMeters, 'circle', 'meters')
+        .focal_min(radiusMeters, 'circle', 'meters');
     // Open (erode then dilate) — removes small islands
-    return closed.focal_min(radiusMeters, 'circle', 'meters').focal_max(radiusMeters, 'circle', 'meters').rename('flood_mask');
+    return closed
+        .focal_min(radiusMeters, 'circle', 'meters')
+        .focal_max(radiusMeters, 'circle', 'meters')
+        .rename('flood_mask');
 }
 
 module.exports = {

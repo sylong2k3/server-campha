@@ -64,8 +64,12 @@ _assertWeightsSum();
  * Clamp `image` to [min, max], then map linearly to [0, 1].
  */
 function unitScale(ee, image, { min, max }) {
-    if (!ee) {throw new Error('rain.risk-model.unitScale requires the ee module');}
-    if (!image) {throw new Error('rain.risk-model.unitScale requires an image');}
+    if (!ee) {
+        throw new Error('rain.risk-model.unitScale requires the ee module');
+    }
+    if (!image) {
+        throw new Error('rain.risk-model.unitScale requires an image');
+    }
     if (!Number.isFinite(min) || !Number.isFinite(max) || max === min) {
         throw new Error('rain.risk-model.unitScale requires numeric min/max with max ≠ min');
     }
@@ -81,8 +85,12 @@ function unitScale(ee, image, { min, max }) {
  * values raise flood risk).
  */
 function invert01(ee, image) {
-    if (!ee) {throw new Error('rain.risk-model.invert01 requires the ee module');}
-    if (!image) {throw new Error('rain.risk-model.invert01 requires an image');}
+    if (!ee) {
+        throw new Error('rain.risk-model.invert01 requires the ee module');
+    }
+    if (!image) {
+        throw new Error('rain.risk-model.invert01 requires an image');
+    }
     return ee.Image(1).subtract(image);
 }
 
@@ -103,7 +111,9 @@ function combineFactors(
     ee,
     { rain24h, handImage, twiImage, slopeDeg, hydroDistance, builtDensity } = {},
 ) {
-    if (!ee) {throw new Error('rain.risk-model.combineFactors requires the ee module');}
+    if (!ee) {
+        throw new Error('rain.risk-model.combineFactors requires the ee module');
+    }
     for (const [name, val] of Object.entries({
         rain24h,
         handImage,
@@ -112,7 +122,9 @@ function combineFactors(
         hydroDistance,
         builtDensity,
     })) {
-        if (!val) {throw new Error(`rain.risk-model.combineFactors requires ${name}`);}
+        if (!val) {
+            throw new Error(`rain.risk-model.combineFactors requires ${name}`);
+        }
     }
 
     const fRain = unitScale(ee, rain24h, UNIT_SCALES.rain24h);

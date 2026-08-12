@@ -13,23 +13,22 @@ const geeQueue = require('../queues/gee-task.queue');
 let started = false;
 
 const startWorker = () => {
-    if (started) {return;}
+    if (started) {
+        return;
+    }
     started = true;
     console.info('[DISTRICT-RASTER-WORKER] STARTED concurrency=1 via GEE queue');
 };
 
 const stopWorker = () => {
-    if (!started) {return;}
+    if (!started) {
+        return;
+    }
     started = false;
     console.info('[DISTRICT-RASTER-WORKER] STOPPED');
 };
 
-const enqueue = ({
-    kind,
-    snapshotId,
-    label,
-    run,
-}) => {
+const enqueue = ({ kind, snapshotId, label, run }) => {
     if (!started) {
         return Promise.reject(new Error('District raster export worker is not started.'));
     }

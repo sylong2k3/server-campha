@@ -11,9 +11,12 @@
 
 const db = require('../configs/database');
 
-const DEBUG = process.env.FC_DEBUG === 'true'
-    || process.env.NODE_ENV === 'development';
-const dbg = (msg) => { if (DEBUG) {console.debug(`[FOREST-GT-REPO] ${msg}`);} };
+const DEBUG = process.env.FC_DEBUG === 'true' || process.env.NODE_ENV === 'development';
+const dbg = (msg) => {
+    if (DEBUG) {
+        console.debug(`[FOREST-GT-REPO] ${msg}`);
+    }
+};
 
 // ── ZONES ────────────────────────────────────────────────────────────────────
 
@@ -25,14 +28,23 @@ const insertZone = async ({ name, observedAt, classId, source, geom, notes, crea
          VALUES ($1, $2, $3, $4, ST_GeomFromGeoJSON($5), $6, $7)
          RETURNING id, name, observed_at, class_id, source, area_ha,
                    ST_AsGeoJSON(geom)::jsonb AS geom, notes, created_at`,
-        [name || null, observedAt, classId, source || 'field_survey',
-         JSON.stringify(geom), notes || null, createdBy || null],
+        [
+            name || null,
+            observedAt,
+            classId,
+            source || 'field_survey',
+            JSON.stringify(geom),
+            notes || null,
+            createdBy || null,
+        ],
     );
     return rows[0];
 };
 
 const insertZoneBulk = async (features, createdBy) => {
-    if (!features?.length) {return { inserted: 0, ids: [] };}
+    if (!features?.length) {
+        return { inserted: 0, ids: [] };
+    }
     dbg(`insertZoneBulk count=${features.length}`);
     const client = await db.pool.connect();
     const ids = [];
@@ -41,9 +53,10 @@ const insertZoneBulk = async (features, createdBy) => {
         for (const f of features) {
             const p = f.properties || {};
             const geom = f.geometry;
-            const multiGeom = geom.type === 'Polygon'
-                ? { type: 'MultiPolygon', coordinates: [geom.coordinates] }
-                : geom;
+            const multiGeom =
+                geom.type === 'Polygon'
+                    ? { type: 'MultiPolygon', coordinates: [geom.coordinates] }
+                    : geom;
             // Chấp nhận cả camel + snake — properties từ upload GeoJSON có
             // shape khác nhau tùy tool xuất.
             const classId = p.classId ?? p.class_id ?? p.class;
@@ -81,10 +94,17 @@ const listZones = async ({ page = 1, limit = 50, from, to, classId } = {}) => {
     const offset = (page - 1) * limit;
     const wh = ['is_active = TRUE'];
     const args = [];
-    if (from)    { args.push(from);    wh.push(`observed_at >= $${args.length}`); }
-    if (to)      { args.push(to);      wh.push(`observed_at <  $${args.length}`); }
+    if (from) {
+        args.push(from);
+        wh.push(`observed_at >= $${args.length}`);
+    }
+    if (to) {
+        args.push(to);
+        wh.push(`observed_at <  $${args.length}`);
+    }
     if (classId !== null && classId !== undefined) {
-        args.push(classId); wh.push(`class_id = $${args.length}`);
+        args.push(classId);
+        wh.push(`class_id = $${args.length}`);
     }
     args.push(limit, offset);
     const { rows } = await db.query(
@@ -112,7 +132,17 @@ const softDeleteZone = async (id) => {
 
 // ── POINTS ───────────────────────────────────────────────────────────────────
 
-const insertPoint = async ({ observedAt, classId, lng, lat, source, photoUrl, reporterName, notes, createdBy }) => {
+const insertPoint = async ({
+    observedAt,
+    classId,
+    lng,
+    lat,
+    source,
+    photoUrl,
+    reporterName,
+    notes,
+    createdBy,
+}) => {
     dbg(`insertPoint observed=${observedAt} class=${classId} coords=[${lng},${lat}]`);
     const { rows } = await db.query(
         `INSERT INTO forest.forest_gt_points
@@ -120,14 +150,25 @@ const insertPoint = async ({ observedAt, classId, lng, lat, source, photoUrl, re
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING id, observed_at, class_id, lng, lat, source, photo_url,
                    reporter_name, notes, created_at`,
-        [observedAt, classId, lng, lat, source || 'field_report',
-         photoUrl || null, reporterName || null, notes || null, createdBy || null],
+        [
+            observedAt,
+            classId,
+            lng,
+            lat,
+            source || 'field_report',
+            photoUrl || null,
+            reporterName || null,
+            notes || null,
+            createdBy || null,
+        ],
     );
     return rows[0];
 };
 
 const insertPointBulk = async (points, createdBy) => {
-    if (!points?.length) {return { inserted: 0, ids: [] };}
+    if (!points?.length) {
+        return { inserted: 0, ids: [] };
+    }
     dbg(`insertPointBulk count=${points.length}`);
     const client = await db.pool.connect();
     const ids = [];
@@ -167,10 +208,17 @@ const listPoints = async ({ page = 1, limit = 100, from, to, classId } = {}) => 
     const offset = (page - 1) * limit;
     const wh = ['is_active = TRUE'];
     const args = [];
-    if (from)    { args.push(from);    wh.push(`observed_at >= $${args.length}`); }
-    if (to)      { args.push(to);      wh.push(`observed_at <  $${args.length}`); }
+    if (from) {
+        args.push(from);
+        wh.push(`observed_at >= $${args.length}`);
+    }
+    if (to) {
+        args.push(to);
+        wh.push(`observed_at <  $${args.length}`);
+    }
     if (classId !== null && classId !== undefined) {
-        args.push(classId); wh.push(`class_id = $${args.length}`);
+        args.push(classId);
+        wh.push(`class_id = $${args.length}`);
     }
     args.push(limit, offset);
     const { rows } = await db.query(
@@ -222,11 +270,11 @@ const getGtForWindow = async ({ from, to }) => {
             type: 'Feature',
             geometry: r.geom,
             properties: {
-                gt_id:       r.id,
-                class:       r.class_id,   // property key `class` để runRfClassification match sampleRegions
-                observedAt:  r.observed_at,
-                area_ha:     Number(r.area_ha),
-                name:        r.name,
+                gt_id: r.id,
+                class: r.class_id, // property key `class` để runRfClassification match sampleRegions
+                observedAt: r.observed_at,
+                area_ha: Number(r.area_ha),
+                name: r.name,
             },
         })),
     };
@@ -236,27 +284,36 @@ const getGtForWindow = async ({ from, to }) => {
             type: 'Feature',
             geometry: r.geom,
             properties: {
-                gt_id:       r.id,
-                class:       r.class_id,
-                observedAt:  r.observed_at,
-                lng:         Number(r.lng),
-                lat:         Number(r.lat),
+                gt_id: r.id,
+                class: r.class_id,
+                observedAt: r.observed_at,
+                lng: Number(r.lng),
+                lat: Number(r.lat),
             },
         })),
     };
     const counts = {
-        zones: zRows.length, points: pRows.length,
+        zones: zRows.length,
+        points: pRows.length,
         byClass: zRows.concat(pRows).reduce((acc, r) => {
             acc[r.class_id] = (acc[r.class_id] || 0) + 1;
             return acc;
         }, {}),
     };
-    dbg(`getGtForWindow → zones=${counts.zones} points=${counts.points} byClass=${JSON.stringify(counts.byClass)}`);
+    dbg(
+        `getGtForWindow → zones=${counts.zones} points=${counts.points} byClass=${JSON.stringify(counts.byClass)}`,
+    );
     return { zones, points, counts };
 };
 
 module.exports = {
-    insertZone, insertZoneBulk, listZones, softDeleteZone,
-    insertPoint, insertPointBulk, listPoints, softDeletePoint,
+    insertZone,
+    insertZoneBulk,
+    listZones,
+    softDeleteZone,
+    insertPoint,
+    insertPointBulk,
+    listPoints,
+    softDeletePoint,
     getGtForWindow,
 };

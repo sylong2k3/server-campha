@@ -18,7 +18,9 @@ const silence = () => {
         debug: jest.spyOn(console, 'debug').mockImplementation(() => {}),
     };
     return () => {
-        for (const spy of Object.values(spies)) {spy.mockRestore();}
+        for (const spy of Object.values(spies)) {
+            spy.mockRestore();
+        }
     };
 };
 

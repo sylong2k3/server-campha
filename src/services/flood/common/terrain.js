@@ -35,7 +35,9 @@ const TERRAIN_SOURCE = Object.freeze({
  *            isFallback: boolean, nonCommercial: boolean }}
  */
 function loadDtm(ee, { useFallback = false } = {}) {
-    if (!ee) {throw new Error('terrain.loadDtm requires the ee module');}
+    if (!ee) {
+        throw new Error('terrain.loadDtm requires the ee module');
+    }
     if (useFallback) {
         const image = ee.ImageCollection(ASSETS.COPERNICUS_DEM_GLO30).select('DEM').mosaic();
         return {
@@ -58,8 +60,12 @@ function loadDtm(ee, { useFallback = false } = {}) {
  * Compute slope (degrees) from a DTM image. Uses `ee.Terrain.slope`.
  */
 function slopeDegrees(ee, dtmImage) {
-    if (!ee) {throw new Error('terrain.slopeDegrees requires the ee module');}
-    if (!dtmImage) {throw new Error('terrain.slopeDegrees requires a DTM image');}
+    if (!ee) {
+        throw new Error('terrain.slopeDegrees requires the ee module');
+    }
+    if (!dtmImage) {
+        throw new Error('terrain.slopeDegrees requires a DTM image');
+    }
     return ee.Terrain.slope(dtmImage);
 }
 
@@ -68,8 +74,12 @@ function slopeDegrees(ee, dtmImage) {
  * aspect wraps at 360°.
  */
 function aspectComponents(ee, dtmImage) {
-    if (!ee) {throw new Error('terrain.aspectComponents requires the ee module');}
-    if (!dtmImage) {throw new Error('terrain.aspectComponents requires a DTM image');}
+    if (!ee) {
+        throw new Error('terrain.aspectComponents requires the ee module');
+    }
+    if (!dtmImage) {
+        throw new Error('terrain.aspectComponents requires a DTM image');
+    }
     const aspect = ee.Terrain.aspect(dtmImage);
     const asRad = aspect.multiply(Math.PI / 180);
     return {

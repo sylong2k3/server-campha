@@ -11,10 +11,11 @@ function enqueueRun(run) {
         label: `Flood ${run.module} run #${run.id}`,
         priority: run.mode === 'product' ? 10 : 0,
         cooldownMs: queue.MANUAL_TASK_COOLDOWN_MS,
-        run: () => childProcessWorker.run({
-            kind: run.module,
-            payload: { runId: run.id },
-        }),
+        run: () =>
+            childProcessWorker.run({
+                kind: run.module,
+                payload: { runId: run.id },
+            }),
     });
     promise.catch(async (error) => {
         try {
@@ -29,7 +30,9 @@ function enqueueRun(run) {
                 });
             }
         } catch (persistError) {
-            console.error(`[FLOOD] could not persist failed run #${run.id}: ${persistError.message}`);
+            console.error(
+                `[FLOOD] could not persist failed run #${run.id}: ${persistError.message}`,
+            );
         }
     });
     return promise;

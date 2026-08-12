@@ -11,8 +11,11 @@ const loadWorker = (env = {}) => {
     const original = {};
     for (const [key, value] of Object.entries(env)) {
         original[key] = process.env[key];
-        if (value === undefined) {delete process.env[key];}
-        else {process.env[key] = String(value);}
+        if (value === undefined) {
+            delete process.env[key];
+        } else {
+            process.env[key] = String(value);
+        }
     }
     try {
         // Jest keeps its own module registry independent of require.cache; use its
@@ -24,8 +27,11 @@ const loadWorker = (env = {}) => {
         return require('../geeAnalysisProcess.worker');
     } finally {
         for (const key of Object.keys(env)) {
-            if (original[key] === undefined) {delete process.env[key];}
-            else {process.env[key] = original[key];}
+            if (original[key] === undefined) {
+                delete process.env[key];
+            } else {
+                process.env[key] = original[key];
+            }
         }
     }
 };
@@ -58,7 +64,9 @@ describe('geeAnalysisProcess.worker', () => {
     });
 
     afterEach(() => {
-        for (const spy of Object.values(logSpies)) {spy.mockRestore();}
+        for (const spy of Object.values(logSpies)) {
+            spy.mockRestore();
+        }
     });
 
     test('resolves with the child result on {type:result} message + exit(0)', async () => {

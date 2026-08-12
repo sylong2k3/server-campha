@@ -61,7 +61,9 @@ function createMiningMask(
         miningAssetId = MINING_POLYGON_ASSET_ID,
     } = {},
 ) {
-    if (!ee) {throw new Error('mining-mask.createMiningMask requires the ee module');}
+    if (!ee) {
+        throw new Error('mining-mask.createMiningMask requires the ee module');
+    }
     if (!slopeDeg || !handImage || !elevationImage) {
         throw new Error(
             'mining-mask.createMiningMask requires slopeDeg + handImage + elevationImage',
