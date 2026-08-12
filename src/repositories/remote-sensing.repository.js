@@ -153,7 +153,24 @@ const preparePublish = async (id, input, actorId) => {
             actorId,
         ];
         let layer;
-        if (image.layer_id) {
+        let targetLayerId = image.layer_id;
+        if (!targetLayerId) {
+            const {
+                rows: [existingLayer],
+            } = await client.query(
+                `SELECT l.id
+                 FROM gis.layers l
+                 WHERE l.code = $1 AND l.deleted_at IS NULL
+                   AND NOT EXISTS (
+                       SELECT 1 FROM raster.satellite_images active
+                       WHERE active.layer_id = l.id AND active.deleted_at IS NULL AND active.id <> $2
+                   )
+                 FOR UPDATE`,
+                [input.code, image.id],
+            );
+            targetLayerId = existingLayer?.id || null;
+        }
+        if (targetLayerId) {
             const {
                 rows: [updated],
             } = await client.query(
@@ -163,13 +180,19 @@ const preparePublish = async (id, input, actorId) => {
                      min_zoom=$7,max_zoom=$8,legend_config=$9::jsonb,metadata=$10::jsonb,
                      is_public=$11,publish_status='pending',version=version+1
                  WHERE id=$12 AND deleted_at IS NULL RETURNING *`,
-                [...values.slice(0, 11), image.layer_id],
+                [...values.slice(0, 11), targetLayerId],
             );
             if (!updated) {
                 await client.query('ROLLBACK');
                 return null;
             }
             layer = updated;
+            if (!image.layer_id) {
+                await client.query(
+                    'UPDATE raster.satellite_images SET layer_id=$2,updated_by=$3 WHERE id=$1',
+                    [id, layer.id, actorId],
+                );
+            }
         } else {
             const {
                 rows: [created],
