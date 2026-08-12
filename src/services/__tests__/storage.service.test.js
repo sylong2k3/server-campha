@@ -5,6 +5,7 @@ jest.mock('../../configs/minioClient', () => ({
 }));
 jest.mock('../minio.service', () => ({
     buildObjectKey: jest.fn(() => 'documents/2026/07/id/report.pdf'),
+    uploadStream: jest.fn(),
     getPresignedUploadUrl: jest.fn(),
     statQuarantineObject: jest.fn(),
     getQuarantineHead: jest.fn(),
@@ -45,9 +46,11 @@ const stream = (value = 'clean') => Readable.from([Buffer.from(value)]);
 describe('storage quarantine workflow', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        minio.uploadStream.mockResolvedValue({ etag: 'uploaded-etag' });
         minio.removeQuarantineObject.mockResolvedValue(undefined);
         minio.removeObject.mockResolvedValue(undefined);
         minio.promoteQuarantineObject.mockResolvedValue(undefined);
+        repo.markRejected.mockResolvedValue({ id: 11, lifecycle_status: 'rejected' });
     });
     test('presign records owner and never accepts arbitrary bucket', async () => {
         minio.getPresignedUploadUrl.mockResolvedValue({
@@ -182,6 +185,124 @@ describe('storage quarantine workflow', () => {
         repo.markDeleted.mockResolvedValue({ id: 11 });
         await expect(service.deleteObject(11, actor)).resolves.toEqual({ id: 11 });
         expect(minio.removeObject).toHaveBeenCalledWith({ objectKey: 'o', category: 'documents' });
+    });
+    test('direct upload streams to quarantine, scans and returns ready object', async () => {
+        const requestStream = stream('II*\0clean-raster');
+        repo.createQuarantine.mockResolvedValue({
+            ...pending(),
+            quarantine_key: 'quarantine/7/file.tif',
+        });
+        repo.claimForScan.mockResolvedValue({
+            ...pending(),
+            category: 'raster',
+            original_name: 'file.tif',
+            quarantine_key: 'quarantine/7/file.tif',
+            object_key: 'raster/file.tif',
+        });
+        minio.statQuarantineObject.mockResolvedValue({ size: 16, etag: 'uploaded-etag' });
+        minio.getQuarantineHead.mockResolvedValue(Buffer.from('49492a00', 'hex'));
+        minio.getQuarantineStream
+            .mockResolvedValueOnce(stream('clean'))
+            .mockResolvedValueOnce(stream('1234567890123456'));
+        clamav.scanStream.mockResolvedValue({ clean: true });
+        repo.markReady.mockResolvedValue({
+            id: 11,
+            lifecycle_status: 'ready',
+            scan_status: 'clean',
+        });
+
+        await expect(
+            service.directUpload(
+                {
+                    stream: requestStream,
+                    category: 'raster',
+                    originalName: 'file.tif',
+                    contentType: 'image/tiff',
+                    contentLength: 16,
+                },
+                { id: 7, orgId: 2, permissions: { raster: { create: true } } },
+            ),
+        ).resolves.toMatchObject({ lifecycle_status: 'ready', scan_status: 'clean' });
+        expect(minio.uploadStream).toHaveBeenCalledWith(
+            expect.objectContaining({
+                stream: requestStream,
+                fileSize: 16,
+                quarantine: true,
+            }),
+        );
+        expect(minio.promoteQuarantineObject).toHaveBeenCalled();
+    });
+    test('direct upload rejects oversized content before allocation', async () => {
+        await expect(
+            service.directUpload(
+                {
+                    stream: stream(),
+                    category: 'documents',
+                    originalName: 'report.pdf',
+                    contentType: 'application/pdf',
+                    contentLength: service.MAX_BYTES.documents + 1,
+                },
+                actor,
+            ),
+        ).rejects.toMatchObject({ status: 413 });
+        expect(repo.createQuarantine).not.toHaveBeenCalled();
+        expect(minio.uploadStream).not.toHaveBeenCalled();
+    });
+    test('direct upload cleans allocation when MinIO stream fails', async () => {
+        repo.createQuarantine.mockResolvedValue({
+            ...pending(),
+            quarantine_key: 'quarantine/7/report.pdf',
+        });
+        minio.uploadStream.mockRejectedValue(new Error('client aborted'));
+        await expect(
+            service.directUpload(
+                {
+                    stream: stream(),
+                    category: 'documents',
+                    originalName: 'report.pdf',
+                    contentType: 'application/pdf',
+                    contentLength: 5,
+                },
+                actor,
+            ),
+        ).rejects.toThrow('client aborted');
+        expect(repo.markRejected).toHaveBeenCalledWith(11, 'error');
+        expect(minio.removeQuarantineObject).toHaveBeenCalledWith(
+            expect.stringMatching(/^quarantine\/7\/[0-9a-f-]+\/report\.pdf$/),
+        );
+    });
+    test('direct upload keeps quarantine pending when ClamAV is unavailable', async () => {
+        repo.createQuarantine.mockResolvedValue({
+            ...pending(),
+            quarantine_key: 'quarantine/7/file.tif',
+        });
+        repo.claimForScan.mockResolvedValue({
+            ...pending(),
+            category: 'raster',
+            original_name: 'file.tif',
+            quarantine_key: 'quarantine/7/file.tif',
+            object_key: 'raster/file.tif',
+        });
+        minio.statQuarantineObject.mockResolvedValue({ size: 4, etag: 'uploaded-etag' });
+        minio.getQuarantineHead.mockResolvedValue(Buffer.from('49492a00', 'hex'));
+        minio.getQuarantineStream.mockResolvedValue(stream('clean'));
+        clamav.scanStream.mockRejectedValue(new clamav.ClamAvUnavailableError());
+
+        await expect(
+            service.directUpload(
+                {
+                    stream: stream('II*\0'),
+                    category: 'raster',
+                    originalName: 'file.tif',
+                    contentType: 'image/tiff',
+                    contentLength: 4,
+                },
+                { id: 7, orgId: 2, permissions: { raster: { create: true } } },
+            ),
+        ).rejects.toMatchObject({ status: 503 });
+        expect(repo.resetPending).toHaveBeenCalledWith(11);
+        expect(repo.markRejected).not.toHaveBeenCalled();
+        expect(minio.removeQuarantineObject).not.toHaveBeenCalled();
     });
     test('signature mismatch rejects and deletes quarantine object', async () => {
         repo.claimForScan.mockResolvedValue({

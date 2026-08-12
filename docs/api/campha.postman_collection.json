@@ -2204,7 +2204,7 @@
     },
     {
       "name": "Lưu trữ tệp",
-      "description": "Upload/download tệp qua MinIO presigned URL.\n\n**Luong upload:** (1) Presign -> nhan PUT URL -> (2) PUT tệp truc tiep len MinIO -> (3) Commit.\n\nToken: adminToken.",
+      "description": "Luồng chính: gửi raw binary qua API HTTPS; API stream vào MinIO nội bộ, quét ClamAV và trả object ready/clean. Luồng presign cũ được giữ tạm để tương thích.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -2236,6 +2236,62 @@
         }
       ],
       "item": [
+        {
+          "name": "Tải tệp trực tiếp qua API",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/tiff",
+                "type": "text"
+              },
+              {
+                "key": "X-File-Category",
+                "value": "raster",
+                "type": "text"
+              },
+              {
+                "key": "X-File-Name",
+                "value": "lop-phu.tif",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": []
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/storage/uploads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "storage",
+                "uploads"
+              ]
+            },
+            "description": "Chọn file tại Body > binary. Postman tự gửi Content-Length. API kiểm tra quyền, extension, dung lượng, magic bytes, ClamAV và SHA-256; MinIO chỉ được API truy cập nội bộ."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('Tệp ready/clean', () => { pm.expect(d.lifecycle_status).to.eql('ready'); pm.expect(d.scan_status).to.eql('clean'); });",
+                  "if (d && d.id) { pm.collectionVariables.set('storageObjectId', d.id); pm.environment.set('storageObjectId', d.id); }"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Tạo URL tải lên đã ký trước",
           "request": {

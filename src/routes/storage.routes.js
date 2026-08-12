@@ -7,12 +7,18 @@ const { verifyToken, enforcePasswordChange } = require('../middlewares/auth.midd
 const { validate } = require('../middlewares/validate.middleware');
 const {
     presignSchema,
+    directUploadHeadersSchema,
     objectIdParamsSchema,
     downloadQuerySchema,
 } = require('../validators/storage.validator');
 
 const router = Router();
 router.use(verifyToken, enforcePasswordChange);
+router.post(
+    '/uploads',
+    validate(directUploadHeadersSchema, 'headers'),
+    asyncHandler(storageController.directUpload),
+);
 router.post(
     '/uploads/presign',
     validate(presignSchema),

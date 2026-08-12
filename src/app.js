@@ -99,6 +99,8 @@ const corsOptions = {
         'X-Requested-With',
         'x-anonymous-id',
         'X-Map-Api-Key',
+        'X-File-Category',
+        'X-File-Name',
     ],
     exposedHeaders: [
         'Content-Range',
@@ -136,13 +138,17 @@ app.use((req, res, next) => {
 });
 
 const bodyLimit = process.env.REQUEST_BODY_LIMIT || '2mb';
-app.use(express.json({ limit: bodyLimit }));
-app.use(
-    express.urlencoded({
-        extended: true,
-        limit: bodyLimit,
-        parameterLimit: 1000,
-    }),
+const isDirectStorageUpload = (req) =>
+    req.method === 'POST' && req.path === '/api/v1/storage/uploads';
+const jsonParser = express.json({ limit: bodyLimit });
+const urlencodedParser = express.urlencoded({
+    extended: true,
+    limit: bodyLimit,
+    parameterLimit: 1000,
+});
+app.use((req, res, next) => (isDirectStorageUpload(req) ? next() : jsonParser(req, res, next)));
+app.use((req, res, next) =>
+    isDirectStorageUpload(req) ? next() : urlencodedParser(req, res, next),
 );
 app.use('/uploads', express.static('public/uploads'));
 if (process.env.NODE_ENV !== 'production') {

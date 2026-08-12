@@ -47,6 +47,24 @@ const assertCreatePermission = (category, actor) => {
     }
 };
 
+const allocateQuarantine = async ({ category, originalName, contentType, actor, expiresAt }) => {
+    const nonce = randomUUID();
+    const objectKey = minioService.buildObjectKey(nonce, originalName, category);
+    const quarantineKey = `quarantine/${actor.id}/${nonce}/${path.basename(objectKey)}`;
+    const record = await storageRepository.createQuarantine({
+        category,
+        bucket: getBucketForCategory(category),
+        objectKey,
+        quarantineKey,
+        ownerUserId: actor.id,
+        orgId: actor.orgId,
+        originalName,
+        expectedMime: contentType,
+        expiresAt,
+    });
+    return { record, quarantineKey };
+};
+
 const createPresignedUpload = async (input, actor) => {
     assertCreatePermission(input.category, actor);
     assertExtension(input.category, input.originalName, input.contentType);
@@ -153,9 +171,56 @@ const commitUpload = async (id, actor) => {
                 'MALWARE_SCANNER_UNAVAILABLE',
             ]);
         }
+        // Safe no-op after rejectUpload; SQL only resets rows still in quarantine/scanning.
         await storageRepository.resetPending(record.id);
         throw error;
     }
+};
+
+const directUpload = async (
+    { stream, category, originalName, contentType, contentLength },
+    actor,
+) => {
+    assertCreatePermission(category, actor);
+    assertExtension(category, originalName, contentType);
+    if (!Number.isSafeInteger(contentLength) || contentLength <= 0) {
+        throw new Api422Error('Dung lượng file không hợp lệ', ['INVALID_CONTENT_LENGTH']);
+    }
+    if (contentLength > MAX_BYTES[category]) {
+        throw new Api413Error('File vượt giới hạn dung lượng', ['FILE_TOO_LARGE']);
+    }
+
+    let allocation;
+    try {
+        allocation = await allocateQuarantine({
+            category,
+            originalName,
+            contentType,
+            actor,
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        });
+        await minioService.uploadStream({
+            stream,
+            objectKey: allocation.quarantineKey,
+            mimeType: contentType,
+            fileSize: contentLength,
+            category,
+            quarantine: true,
+        });
+        const stat = await minioService.statQuarantineObject(allocation.quarantineKey);
+        if (Number(stat.size) !== contentLength) {
+            throw new Api409Error('Kích thước file không khớp Content-Length', [
+                'CONTENT_LENGTH_MISMATCH',
+            ]);
+        }
+    } catch (error) {
+        if (allocation) {
+            await storageRepository.markRejected(allocation.record.id, 'error').catch(() => {});
+            await minioService.removeQuarantineObject(allocation.quarantineKey).catch(() => {});
+        }
+        throw error;
+    }
+    return commitUpload(allocation.record.id, actor);
 };
 
 const getDownloadUrl = async (id, expireSeconds, actor) => {
@@ -185,6 +250,7 @@ const deleteObject = async (id, actor) => {
 
 module.exports = {
     createPresignedUpload,
+    directUpload,
     commitUpload,
     getDownloadUrl,
     deleteObject,
