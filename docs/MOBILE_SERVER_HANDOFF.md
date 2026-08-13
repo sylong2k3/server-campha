@@ -118,7 +118,8 @@ KTTV chỉ còn request lịch sử trong folder Postman `Legacy - KTTV (không 
 - Optimistic update gửi `expectedUpdatedAt` ISO từ `updated_at` read-back gần nhất.
 - CMS Document/PDF download trả backend ticket URL ngắn hạn; mobile fetch URL đó, không ghép path MinIO.
 - GeoTIFF là raster: render qua GeoServer WMS + Mapbox `RasterSource`/`RasterLayer`; không dùng MVT.
-- WMS template giữ literal `{bbox-epsg-3857}`, `srs=EPSG:3857`, `format=image/png`, `transparent=true`.
+- WMS template dùng tham số `crs` (không phải `srs` — WMS 1.3.0), literal `{bbox-epsg-3857}`, `crs=EPSG:3857`, `format=image/png`, `transparent=true`. Xem [wms-getmap.bru](api/bruno/Map-Proxy/wms-getmap.bru) làm contract tham chiếu; `srs=` bị Joi strip âm thầm và fallback `EPSG:4326`, gây lệch ảnh không báo lỗi.
+- **Vé xem bản đồ (tile ticket, thêm 2026-08-13)**: `Mapbox RasterSource` không gắn được header `Authorization` vào từng tile request, nên WMS proxy cho layer không `is_public` sẽ 401 nếu chỉ trông vào Bearer. Trước khi build URL template, mobile phải gọi `GET /maps/layers/:layerId/tile-ticket?access=view` (có Bearer bình thường) để lấy `{ ticket, expiresAt }`, rồi nhúng `&ticket=<value>` vào URL WMS/WFS thay cho header. Vé hết hạn sau ~15 phút (`MAP_TILE_TICKET_TTL`), gắn cứng theo `layerId` + `access` — vé `view` không dùng được cho `/wfs` (`access=export`). Layer `is_public=true` không cần vé, hành vi cũ giữ nguyên. Xem [tile-ticket.bru](api/bruno/Map-Proxy/tile-ticket.bru). **Client-side (app mobile) chưa wiring — đây mới là phần server, cần FE mobile gọi endpoint trên trước khi rollout layer raster không public.**
 - Forest Classification đã bị loại khỏi runtime/API/worker ngày 2026-08-13.
 - API không coi HTTP `200` là đủ: mobile phải kiểm tra `data`, trạng thái nghiệp vụ và lỗi RBAC.
 

@@ -1,6 +1,7 @@
 const db = require('../configs/database');
 const { Api400Error, Api401Error, Api403Error, Api404Error } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
+const { verifyTileTicket } = require('../utils/map-tile-ticket.util');
 
 const ACCESS_COLUMNS = {
     view: 'can_view',
@@ -21,6 +22,11 @@ const requireLayerAccess = (access) => {
             return next(new Api400Error(t('invalid_data', req.lang)));
         }
 
+        const ticket = req.query?.ticket;
+        if (ticket && !verifyTileTicket(ticket, layerId, access)) {
+            return next(new Api403Error(t('map_tile_ticket_invalid', req.lang)));
+        }
+
         try {
             const { rows } = await db.query(
                 `SELECT l.id, l.code, l.name_vi, l.is_public, l.geoserver_layer,
@@ -35,6 +41,10 @@ const requireLayerAccess = (access) => {
             const layer = rows[0];
             if (!layer) {
                 return next(new Api404Error(t('map_layer_not_found', req.lang)));
+            }
+            if (ticket) {
+                req.layerAcl = layer;
+                return next();
             }
             if (access === 'view' && layer.is_public) {
                 req.layerAcl = layer;

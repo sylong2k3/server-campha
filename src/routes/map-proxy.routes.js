@@ -9,6 +9,7 @@ const {
     layerIdParamsSchema,
     wmsQuerySchema,
     wfsQuerySchema,
+    tileTicketQuerySchema,
 } = require('../validators/map-proxy.validator');
 const router = Router();
 router.use(optionalAuth);
@@ -25,5 +26,12 @@ router.get(
     validate(wfsQuerySchema, 'query'),
     requireLayerAccess('export'),
     asyncHandler(controller.wfs),
+);
+router.get(
+    '/layers/:layerId/tile-ticket',
+    validate(layerIdParamsSchema, 'params'),
+    validate(tileTicketQuerySchema, 'query'),
+    (req, res, next) => requireLayerAccess(req.query.access)(req, res, next),
+    asyncHandler(controller.tileTicket),
 );
 module.exports = router;

@@ -1,5 +1,6 @@
 'use strict';
 const { requestGeoserver } = require('../utils/geoserver.client');
+const { signTileTicket } = require('../utils/map-tile-ticket.util');
 const { Api404Error, Api413Error } = require('../core/error.response');
 const MAX_RESPONSE_BYTES = Number(process.env.MAP_PROXY_MAX_RESPONSE_MB || 25) * 1024 * 1024;
 const assertLayer = (layer) => {
@@ -59,4 +60,8 @@ const proxyWfs = async (layer, query) => {
     }
     return bufferResponse(await requestGeoserver(`/wfs?${params}`));
 };
-module.exports = { proxyWms, proxyWfs, bufferResponse, MAX_RESPONSE_BYTES };
+const issueTileTicket = (layer, access) => {
+    assertLayer(layer);
+    return signTileTicket(layer.id, access);
+};
+module.exports = { proxyWms, proxyWfs, issueTileTicket, bufferResponse, MAX_RESPONSE_BYTES };

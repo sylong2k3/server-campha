@@ -1,7 +1,9 @@
 'use strict';
+process.env.JWT_SECRET ||= 'test-map-proxy-ticket-secret-at-least-32-characters';
 jest.mock('../../utils/geoserver.client', () => ({ requestGeoserver: jest.fn() }));
 const { requestGeoserver } = require('../../utils/geoserver.client');
-const { proxyWms, proxyWfs } = require('../map-proxy.service');
+const { proxyWms, proxyWfs, issueTileTicket } = require('../map-proxy.service');
+const { verifyTileTicket } = require('../../utils/map-tile-ticket.util');
 const { Readable } = require('stream');
 const response = (body = '{}', type = 'application/json') => ({
     headers: {
@@ -41,5 +43,19 @@ describe('map proxy', () => {
         expect(target).toContain('request=GetFeature');
         expect(target).toContain('count=1000');
         expect(target).not.toContain('Transaction');
+    });
+    test('issueTileTicket signs a ticket bound to the layer and requested access', () => {
+        const { ticket, expiresAt } = issueTileTicket(
+            { id: 8, geoserver_layer: 'campha:flood' },
+            'view',
+        );
+        expect(expiresAt).toBeInstanceOf(Date);
+        expect(verifyTileTicket(ticket, 8, 'view')).toBe(true);
+        expect(verifyTileTicket(ticket, 8, 'export')).toBe(false);
+    });
+    test('issueTileTicket refuses layers not published to GeoServer', () => {
+        expect(() => issueTileTicket({ id: 9, geoserver_layer: null }, 'view')).toThrow(
+            'Lớp chưa được publish trên GeoServer',
+        );
     });
 });

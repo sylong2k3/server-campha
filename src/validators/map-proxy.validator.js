@@ -13,6 +13,7 @@ const wmsQuerySchema = Joi.object({
     format: Joi.string().valid('image/png', 'image/jpeg').default('image/png'),
     transparent: Joi.boolean().default(true),
     version: Joi.string().valid('1.3.0').default('1.3.0'),
+    ticket: Joi.string().max(2000).optional(),
 });
 const wfsQuerySchema = Joi.object({
     request: Joi.string().valid('GetFeature').insensitive().required(),
@@ -22,5 +23,14 @@ const wfsQuerySchema = Joi.object({
     count: Joi.number().integer().min(1).max(10000).default(1000),
     srsName: Joi.string().valid('EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
     outputFormat: Joi.string().valid('application/json').default('application/json'),
+    ticket: Joi.string().max(2000).optional(),
 });
-module.exports = { layerIdParamsSchema, wmsQuerySchema, wfsQuerySchema };
+const tileTicketQuerySchema = Joi.object({
+    access: Joi.string().valid('view', 'export').default('view'),
+});
+module.exports = {
+    layerIdParamsSchema,
+    wmsQuerySchema,
+    wfsQuerySchema,
+    tileTicketQuerySchema,
+};
