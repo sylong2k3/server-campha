@@ -50,7 +50,7 @@ describe('publishToGeoServer', () => {
         }
     });
 
-    test('copies COG into GEOSERVER_DATA_DIR/flood-rasters and publishes', async () => {
+    test('copies COG into GEOSERVER_DATA_DIR/raster and publishes', async () => {
         const fsp = makeFsp();
         const geoserver = makeGeoserver();
         const result = await publishToGeoServer(
@@ -61,7 +61,7 @@ describe('publishToGeoServer', () => {
                 layerRepo: { findByCode: jest.fn().mockResolvedValue(null) },
             },
         );
-        expect(fsp.mkdir).toHaveBeenCalledWith(expect.stringMatching(/flood-rasters$/), {
+        expect(fsp.mkdir).toHaveBeenCalledWith(expect.stringMatching(/raster$/), {
             recursive: true,
         });
         expect(fsp.copyFile).toHaveBeenCalledWith(

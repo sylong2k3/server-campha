@@ -26,6 +26,22 @@ const getMigrationFiles = () =>
             return { filename, sql, checksum: calculateChecksum(sql) };
         });
 
+const selectMigrationFiles = (files, filenames = []) => {
+    if (!filenames.length) {
+        return files;
+    }
+
+    const requested = new Set(filenames);
+    const selected = files.filter((file) => requested.has(file.filename));
+    const missing = filenames.filter(
+        (filename) => !selected.some((file) => file.filename === filename),
+    );
+    if (missing.length) {
+        throw new Error(`Unknown migration file(s): ${missing.join(', ')}`);
+    }
+    return selected;
+};
+
 const ensureMigrationsTable = async (db = pool) => {
     await db.query(`
     CREATE SCHEMA IF NOT EXISTS core;
@@ -84,17 +100,47 @@ const assertChecksums = (executed, files) => {
     }
 };
 
-const prepareMigrationState = async (db) => {
+const parseOnlyMigrationNames = (argv = process.argv) => {
+    const option = argv.find((arg) => arg.startsWith('--only='));
+    if (!option) {
+        return [];
+    }
+    const names = option
+        .slice('--only='.length)
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean);
+    if (!names.length || names.some((name) => !/^\d{3}_[a-z0-9_-]+\.sql$/i.test(name))) {
+        throw new Error('Use --only=NNN_migration_name.sql[,NNN_other_migration.sql]');
+    }
+    return [...new Set(names)];
+};
+
+const prepareMigrationState = async (db, { only = [] } = {}) => {
     await ensureMigrationsTable(db);
-    const files = getMigrationFiles();
+    const allFiles = getMigrationFiles();
+    const files = selectMigrationFiles(allFiles, only);
     const executed = await getExecutedMigrations(db);
     await backfillLegacyChecksums(db, executed, files);
-    assertChecksums(executed, files);
+    // Recovery mode is deliberately narrow: it validates the selected files
+    // only. This lets an operator apply a newly-required, unapplied migration
+    // to a historic database whose unrelated migration checksum is already
+    // known to be corrupt. Normal `migrate` still verifies the full history.
+    if (only.length) {
+        const selectedExecuted = new Map(
+            files
+                .filter((file) => executed.has(file.filename))
+                .map((file) => [file.filename, executed.get(file.filename)]),
+        );
+        assertChecksums(selectedExecuted, files);
+    } else {
+        assertChecksums(executed, files);
+    }
     return { files, executed };
 };
 
-const showStatus = async () => {
-    const { files, executed } = await prepareMigrationState(pool);
+const showStatus = async ({ only = [] } = {}) => {
+    const { files, executed } = await prepareMigrationState(pool, { only });
     console.log('Migration status:');
     files.forEach((file) => {
         const record = executed.get(file.filename);
@@ -102,14 +148,20 @@ const showStatus = async () => {
     });
 };
 
-const runMigrations = async () => {
+const runMigrations = async ({ only = [] } = {}) => {
     const client = await pool.connect();
     let lockAcquired = false;
 
     try {
         await client.query('SELECT pg_advisory_lock($1)', [MIGRATION_LOCK_ID]);
         lockAcquired = true;
-        const { files, executed } = await prepareMigrationState(client);
+        if (only.length) {
+            console.warn(
+                `Applying selected migrations only: ${only.join(', ')}. ` +
+                    'Unrelated historical checksums are not verified in this recovery mode.',
+            );
+        }
+        const { files, executed } = await prepareMigrationState(client, { only });
 
         for (const file of files) {
             if (executed.has(file.filename)) {
@@ -142,10 +194,11 @@ const runMigrations = async () => {
 
 const main = async () => {
     try {
+        const only = parseOnlyMigrationNames();
         if (process.argv.includes('--status')) {
-            await showStatus();
+            await showStatus({ only });
         } else {
-            await runMigrations();
+            await runMigrations({ only });
         }
     } finally {
         await pool.end();
@@ -165,6 +218,8 @@ module.exports = {
     assertChecksums,
     ensureMigrationsTable,
     getMigrationFiles,
+    parseOnlyMigrationNames,
+    selectMigrationFiles,
     runMigrations,
     showStatus,
 };

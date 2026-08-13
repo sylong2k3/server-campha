@@ -140,7 +140,7 @@ GET  /api/v1/web-map/layers
 - WMS 1.3.0 dùng `crs`, literal `{bbox-epsg-3857}`, `crs=EPSG:3857`, `format=image/png`, `transparent=true`. Không gửi `srs`; Joi có thể strip và fallback `EPSG:4326`, gây lệch ảnh không báo lỗi. Xem [wms-getmap.bru](api/bruno/Map-Proxy/wms-getmap.bru).
 - Layer raster không public cần tile ticket vì `RasterSource` không gắn Bearer header lên từng tile: gọi `GET /maps/layers/:layerId/tile-ticket?access=view`, rồi nhúng `ticket` vào URL WMS. Ticket khoảng 15 phút theo `MAP_TILE_TICKET_TTL`, khóa theo `layerId` và `access`; ticket `view` không dùng cho WFS `export`. Xem [tile-ticket.bru](api/bruno/Map-Proxy/tile-ticket.bru).
 - Mobile đã có cache/refresh ticket trong `MapRepository.validRasterTileTicket`; layer public không cần ticket.
-- Forest Classification đã bị loại khỏi runtime/API/worker ngày 2026-08-13.
+- Forest Classification là module runtime/API/worker đang hỗ trợ; mobile dùng các endpoint `/forest-classification/*` theo RBAC hiện hành.
 - HTTP `200` chưa đủ: mobile phải kiểm tra `data`, trạng thái nghiệp vụ và lỗi RBAC.
 
 ## Gate trước staging

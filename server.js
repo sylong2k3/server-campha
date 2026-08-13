@@ -17,6 +17,7 @@ const layerWorkerManager = require('./src/workers/layer-worker.manager');
 const fieldReportListener = require('./src/realtime/field-report-listener');
 const geeQueue = require('./src/queues/gee-task.queue');
 const rasterIngestWorker = require('./src/workers/rasterIngest.worker');
+const forestClassificationJob = require('./src/jobs/forest-classification.job');
 const { recoverInterruptedRuns } = require('./src/workers/geeInterruptedRunRecovery.worker');
 require('dotenv').config();
 
@@ -117,6 +118,7 @@ async function gracefulShutdown(signal) {
     await fieldReportListener.stop();
     await layerWorkerManager.stop();
     rasterIngestWorker.stopWorker();
+    forestClassificationJob.stop();
     geeQueue.stop();
     await Promise.race([geeQueue.onIdle(), new Promise((resolve) => setTimeout(resolve, 5000))]);
 
@@ -170,7 +172,13 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
         tokenCleanupJob.start();
         layerWorkerManager.start();
         geeQueue.start();
-        rasterIngestWorker.startWorker();
+        const rasterWorker = rasterIngestWorker.startWorker();
+        if (rasterWorker.started) {
+            // Do not make a newly queued Forest/Satellite archive wait for the
+            // first cron tick after a server restart.
+            void rasterIngestWorker.tick();
+        }
+        forestClassificationJob.start();
     }
 
     process.on('unhandledRejection', (error) => {

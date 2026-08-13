@@ -23,9 +23,9 @@ Server API cho hệ thống WebGIS & MobileGIS Cẩm Phả HydroMap (thành ph�
 
 Luồng artifact: `GEE → GCS → kiểm tra GeoTIFF/CRS/COG/checksum → MinIO → GeoServer → gis.layers → WebGIS`. API công khai nằm tại `/api/v1/flood`; API quản trị có RBAC tại `/api/v1/admin/flood`.
 
-## Forest Classification đã loại khỏi phạm vi
+## Forest Classification đang được hỗ trợ
 
-Ngày 2026-08-13, module Forest Classification bị xóa khỏi runtime vì Cẩm Phả không có phạm vi nghiệp vụ rừng. Không còn API, cron, worker, service hoặc bucket Forest. Migration lịch sử được giữ để bảo toàn lịch sử schema; không coi đó là module đang hoạt động.
+Forest Classification là module runtime đang hoạt động: API `/api/v1/forest-classification`, service/repository, worker ingest raster và giao diện client/admin đều được duy trì. Migration `083_forest_classification_domain.sql` là schema nền của module; không gỡ route, worker hoặc UI Forest khi triển khai các thay đổi raster khác.
 
 ## Cấu hình
 

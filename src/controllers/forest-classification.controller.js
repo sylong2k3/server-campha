@@ -17,13 +17,21 @@ const positiveInteger = (value, fallback, max = 100) => {
 
 const validPeriod = (year, month) => {
     const now = new Date();
-    return Number.isInteger(year) && Number.isInteger(month) && year >= 1984 && year <= now.getUTCFullYear()
-        && month >= 1 && month <= 12
-        && !(year === now.getUTCFullYear() && month > now.getUTCMonth() + 1);
+    return (
+        Number.isInteger(year) &&
+        Number.isInteger(month) &&
+        year >= 1984 &&
+        year <= now.getUTCFullYear() &&
+        month >= 1 &&
+        month <= 12 &&
+        !(year === now.getUTCFullYear() && month > now.getUTCMonth() + 1)
+    );
 };
 
 const formatSnapshot = (snapshot) => {
-    if (!snapshot) {return null;}
+    if (!snapshot) {
+        return null;
+    }
     return {
         id: snapshot.id,
         year: snapshot.year,
@@ -38,7 +46,7 @@ const formatSnapshot = (snapshot) => {
         geeTileUrl: snapshot.gee_tile_url || null,
         geeTileGeneratedAt: snapshot.gee_tile_generated_at || null,
         geeDownloadUrl: snapshot.gee_download_url || null,
-        downloadFilename: `forest_classification_${snapshot.year}_${String(snapshot.month).padStart(2, '0')}.zip`,
+        downloadFilename: `forest_classification_${snapshot.year}_${String(snapshot.month).padStart(2, '0')}.tif`,
         computedAt: snapshot.computed_at || null,
         errorMessage: snapshot.error_message || null,
         retryCount: Number(snapshot.retry_count || 0),
@@ -81,20 +89,37 @@ const getPublishedHistory = async (req, res) => {
 
 const refresh = async (req, res) => {
     const now = new Date();
-    const year = req.body?.year === undefined || req.body?.year === null
-        ? now.getUTCFullYear()
-        : Number(req.body.year);
-    const month = req.body?.month === undefined || req.body?.month === null
-        ? now.getUTCMonth() + 1
-        : Number(req.body.month);
+    const year =
+        req.body?.year === undefined || req.body?.year === null
+            ? now.getUTCFullYear()
+            : Number(req.body.year);
+    const month =
+        req.body?.month === undefined || req.body?.month === null
+            ? now.getUTCMonth() + 1
+            : Number(req.body.month);
     if (!validPeriod(year, month)) {
         throw new Api400Error('Kỳ phân tích không hợp lệ.', ['INVALID_ANALYSIS_PERIOD']);
     }
-    const run = await forest.requestRun({ year, month, trigger: 'manual', requestedBy: req.user?.id });
+    const run = await forest.requestRun({
+        year,
+        month,
+        trigger: 'manual',
+        requestedBy: req.user?.id,
+    });
     return res.status(202).json({
-        message: run.deduplicated ? 'Kỳ phân loại này đang được xử lý.' : 'Đã tiếp nhận yêu cầu phân loại rừng.',
+        message: run.deduplicated
+            ? 'Kỳ phân loại này đang được xử lý.'
+            : 'Đã tiếp nhận yêu cầu phân loại rừng.',
         status: 202,
-        data: { run: { year, month, status: 'queued', deduplicated: run.deduplicated, processing: processing(run.snapshot) } },
+        data: {
+            run: {
+                year,
+                month,
+                status: 'queued',
+                deduplicated: run.deduplicated,
+                processing: processing(run.snapshot),
+            },
+        },
     });
 };
 
@@ -117,9 +142,15 @@ const queryPeriod = async (req, res) => {
 
 const getSnapshot = async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);}
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);
+    }
     const data = await forest.getSnapshot(id);
-    if (!data) {throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', ['FOREST_SNAPSHOT_NOT_FOUND']);}
+    if (!data) {
+        throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [
+            'FOREST_SNAPSHOT_NOT_FOUND',
+        ]);
+    }
     OK(res, 'Lấy kết quả phân loại rừng thành công.', {
         snapshot: formatSnapshot(data.snapshot),
         districtAreas: data.districtAreas,
@@ -131,18 +162,27 @@ const getSnapshot = async (req, res) => {
 
 const getDistrictExports = async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);}
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);
+    }
     const snapshot = await snapshots.getById(id);
-    if (!snapshot) {throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', ['FOREST_SNAPSHOT_NOT_FOUND']);}
+    if (!snapshot) {
+        throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [
+            'FOREST_SNAPSHOT_NOT_FOUND',
+        ]);
+    }
     const rows = await forest.getDistrictExports(id);
-    const aggregate = rows.reduce((acc, row) => {
-        acc.totalHa += Number(row.total_area_ha || 0);
-        acc.forestHa += Number(row.forest_area_ha || 0);
-        Object.entries(row.area_by_class || {}).forEach(([classId, area]) => {
-            acc.byClass[classId] = (acc.byClass[classId] || 0) + Number(area || 0);
-        });
-        return acc;
-    }, { totalHa: 0, forestHa: 0, byClass: {} });
+    const aggregate = rows.reduce(
+        (acc, row) => {
+            acc.totalHa += Number(row.total_area_ha || 0);
+            acc.forestHa += Number(row.forest_area_ha || 0);
+            Object.entries(row.area_by_class || {}).forEach(([classId, area]) => {
+                acc.byClass[classId] = (acc.byClass[classId] || 0) + Number(area || 0);
+            });
+            return acc;
+        },
+        { totalHa: 0, forestHa: 0, byClass: {} },
+    );
     const districts = rows.map((row) => ({
         id: row.id,
         districtCode: row.district_code,
@@ -165,50 +205,86 @@ const getDistrictExports = async (req, res) => {
         completedAt: row.completed_at || null,
     }));
     OK(res, 'Lấy dữ liệu theo đơn vị hành chính thành công.', {
-        snapshotId: id, year: snapshot.year, month: snapshot.month, attempt: snapshot.attempt,
-        scaleM: snapshot.download_scale_m, total: districts.length, discoveredTotal: districts.length,
-        expectedTotal: Number(process.env.FC_EXPECTED_DISTRICT_COUNT || 1), districtCodeCount: districts.length,
-        coverageScope: 'districtMosaic', coverageCount: districts.length,
+        snapshotId: id,
+        year: snapshot.year,
+        month: snapshot.month,
+        attempt: snapshot.attempt,
+        scaleM: snapshot.download_scale_m,
+        total: districts.length,
+        discoveredTotal: districts.length,
+        expectedTotal: Number(process.env.FC_EXPECTED_DISTRICT_COUNT || 1),
+        districtCodeCount: districts.length,
+        coverageScope: 'districtMosaic',
+        coverageCount: districts.length,
         fullyPublished: snapshot.status === 'published',
-        completed: districts.filter((item) => item.status === 'completed' || item.status === 'published').length,
+        completed: districts.filter(
+            (item) => item.status === 'completed' || item.status === 'published',
+        ).length,
         failed: districts.filter((item) => item.status === 'failed').length,
         skipped: districts.filter((item) => item.status === 'skipped').length,
         pending: districts.filter((item) => ['pending', 'computing'].includes(item.status)).length,
-        aggregate, districts,
+        aggregate,
+        districts,
     });
 };
 
 const publishRaster = async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);}
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);
+    }
     const snapshot = await snapshots.getById(id);
-    if (!snapshot) {throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', ['FOREST_SNAPSHOT_NOT_FOUND']);}
+    if (!snapshot) {
+        throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [
+            'FOREST_SNAPSHOT_NOT_FOUND',
+        ]);
+    }
     if (!['completed', 'published'].includes(snapshot.status)) {
         throw new Api400Error('Kết quả chưa hoàn tất nên chưa thể công bố.', ['RESULT_NOT_READY']);
     }
     if (snapshot.geoserver_layer && req.query.force !== '1') {
-        return OK(res, 'Kết quả đã được công bố trên bản đồ.', { snapshotId: id, geoserverLayer: snapshot.geoserver_layer, alreadyPublished: true });
+        return OK(res, 'Kết quả đã được công bố trên bản đồ.', {
+            snapshotId: id,
+            geoserverLayer: snapshot.geoserver_layer,
+            alreadyPublished: true,
+        });
     }
     if (!snapshot.gee_download_url) {
         throw new Api400Error('Kết quả chưa có URL GeoTIFF để publish.', ['NO_DOWNLOAD_URL']);
     }
     const layerCode = `forest_classification_${snapshot.year}${String(snapshot.month).padStart(2, '0')}_${snapshot.id}`;
     const { job, deduplicated } = await ingest.enqueue({
-        sourceUrl: snapshot.gee_download_url, layerCode, nameVi: `Phân loại rừng ${snapshot.year}-${snapshot.month}`,
-        category: 'forest', isPublic: true,
-        requestParams: { linkedResource: { type: 'forest_snapshot', id } }, user: req.user, lang: req.lang,
+        sourceUrl: snapshot.gee_download_url,
+        layerCode,
+        nameVi: `Phân loại rừng ${snapshot.year}-${snapshot.month}`,
+        category: 'forest',
+        isPublic: true,
+        requestParams: {
+            bucketCategory: 'raster',
+            publishCategory: 'raster',
+            linkedResource: { type: 'forest_snapshot', id },
+        },
+        user: req.user,
+        lang: req.lang,
     });
     CREATED(res, 'Đã tiếp nhận yêu cầu publish kết quả phân loại.', {
-        snapshotId: id, jobId: job.id, status: job.status, layerCode, deduplicated: Boolean(deduplicated),
+        snapshotId: id,
+        jobId: job.id,
+        status: job.status,
+        layerCode,
+        deduplicated: Boolean(deduplicated),
     });
 };
 
 const parseGtQuery = (query, limitDefault) => ({
-    page: positiveInteger(query.page, 1), limit: positiveInteger(query.limit, limitDefault),
-    from: query.from || null, to: query.to || null,
-    classId: query.classId === undefined || query.classId === null || query.classId === ''
-        ? null
-        : Number(query.classId),
+    page: positiveInteger(query.page, 1),
+    limit: positiveInteger(query.limit, limitDefault),
+    from: query.from || null,
+    to: query.to || null,
+    classId:
+        query.classId === undefined || query.classId === null || query.classId === ''
+            ? null
+            : Number(query.classId),
 });
 
 const validateClass = (classId) => {
@@ -220,20 +296,28 @@ const validateClass = (classId) => {
 };
 
 const validateObservedAt = (value) => {
-    if (!value || Number.isNaN(Date.parse(value))) {throw new Api400Error('observedAt không hợp lệ.', ['INVALID_OBSERVED_AT']);}
+    if (!value || Number.isNaN(Date.parse(value))) {
+        throw new Api400Error('observedAt không hợp lệ.', ['INVALID_OBSERVED_AT']);
+    }
     return value;
 };
 
 const zoneGeometry = (geom) => {
     if (!['Polygon', 'MultiPolygon'].includes(geom?.type) || !Array.isArray(geom.coordinates)) {
-        throw new Api400Error('geom phải là GeoJSON Polygon hoặc MultiPolygon.', ['INVALID_GEOMETRY']);
+        throw new Api400Error('geom phải là GeoJSON Polygon hoặc MultiPolygon.', [
+            'INVALID_GEOMETRY',
+        ]);
     }
-    return geom.type === 'Polygon' ? { type: 'MultiPolygon', coordinates: [geom.coordinates] } : geom;
+    return geom.type === 'Polygon'
+        ? { type: 'MultiPolygon', coordinates: [geom.coordinates] }
+        : geom;
 };
 
 const listZones = async (req, res) => {
     const query = parseGtQuery(req.query, 50);
-    if (query.classId !== null) {validateClass(query.classId);}
+    if (query.classId !== null) {
+        validateClass(query.classId);
+    }
     const { items, total } = await gt.listZones(query);
     OK_LIST(res, 'Danh sách vùng mẫu.', items, { ...query, total });
 };
@@ -241,19 +325,32 @@ const listZones = async (req, res) => {
 const createZone = async (req, res) => {
     const body = req.body || {};
     const zone = await gt.insertZone({
-        name: body.name, observedAt: validateObservedAt(body.observedAt), classId: validateClass(body.classId),
-        source: body.source, geom: zoneGeometry(body.geom), notes: body.notes, createdBy: req.user?.id,
+        name: body.name,
+        observedAt: validateObservedAt(body.observedAt),
+        classId: validateClass(body.classId),
+        source: body.source,
+        geom: zoneGeometry(body.geom),
+        notes: body.notes,
+        createdBy: req.user?.id,
     });
     CREATED(res, 'Đã thêm vùng mẫu.', zone);
 };
 
 const bulkZone = async (req, res) => {
     const features = req.body?.features;
-    if (!Array.isArray(features) || !features.length) {throw new Api400Error('FeatureCollection rỗng.', ['EMPTY_FEATURE_COLLECTION']);}
-    if (features.length > 500) {throw new Api400Error('Tối đa 500 vùng mẫu mỗi lần.', ['BULK_LIMIT']);}
+    if (!Array.isArray(features) || !features.length) {
+        throw new Api400Error('FeatureCollection rỗng.', ['EMPTY_FEATURE_COLLECTION']);
+    }
+    if (features.length > 500) {
+        throw new Api400Error('Tối đa 500 vùng mẫu mỗi lần.', ['BULK_LIMIT']);
+    }
     features.forEach((feature) => {
         zoneGeometry(feature.geometry);
-        validateClass(feature.properties?.classId ?? feature.properties?.class_id ?? feature.properties?.class);
+        validateClass(
+            feature.properties?.classId ??
+                feature.properties?.class_id ??
+                feature.properties?.class,
+        );
     });
     const result = await gt.insertZones(features, req.user?.id);
     CREATED(res, `Đã thêm ${result.inserted} vùng mẫu.`, result);
@@ -261,35 +358,58 @@ const bulkZone = async (req, res) => {
 
 const deleteZone = async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || !(await gt.disableZone(id))) {throw new Api404Error('Không tìm thấy vùng mẫu.', ['ZONE_NOT_FOUND']);}
+    if (!Number.isInteger(id) || !(await gt.disableZone(id))) {
+        throw new Api404Error('Không tìm thấy vùng mẫu.', ['ZONE_NOT_FOUND']);
+    }
     OK(res, 'Đã xóa vùng mẫu.', { deleted: true, id });
 };
 
 const listPoints = async (req, res) => {
     const query = parseGtQuery(req.query, 100);
-    if (query.classId !== null) {validateClass(query.classId);}
+    if (query.classId !== null) {
+        validateClass(query.classId);
+    }
     const { items, total } = await gt.listPoints(query);
     OK_LIST(res, 'Danh sách điểm mẫu.', items, { ...query, total });
 };
 
 const pointPayload = (body, user) => {
-    const lng = Number(body.lng); const lat = Number(body.lat);
-    if (!Number.isFinite(lng) || !Number.isFinite(lat) || lng < 106 || lng > 109 || lat < 20 || lat > 22.5) {
+    const lng = Number(body.lng);
+    const lat = Number(body.lat);
+    if (
+        !Number.isFinite(lng) ||
+        !Number.isFinite(lat) ||
+        lng < 106 ||
+        lng > 109 ||
+        lat < 20 ||
+        lat > 22.5
+    ) {
         throw new Api400Error('Tọa độ điểm mẫu không hợp lệ.', ['INVALID_COORDINATE']);
     }
     return {
-        observedAt: validateObservedAt(body.observedAt), classId: validateClass(body.classId), lng, lat,
-        source: body.source, photoUrl: body.photoUrl, reporterName: body.reporterName, notes: body.notes,
+        observedAt: validateObservedAt(body.observedAt),
+        classId: validateClass(body.classId),
+        lng,
+        lat,
+        source: body.source,
+        photoUrl: body.photoUrl,
+        reporterName: body.reporterName,
+        notes: body.notes,
         createdBy: user?.id,
     };
 };
 
-const createPoint = async (req, res) => CREATED(res, 'Đã thêm điểm mẫu.', await gt.insertPoint(pointPayload(req.body || {}, req.user)));
+const createPoint = async (req, res) =>
+    CREATED(res, 'Đã thêm điểm mẫu.', await gt.insertPoint(pointPayload(req.body || {}, req.user)));
 
 const bulkPoint = async (req, res) => {
     const points = req.body?.points;
-    if (!Array.isArray(points) || !points.length) {throw new Api400Error('Danh sách điểm mẫu rỗng.', ['EMPTY_POINTS']);}
-    if (points.length > 1000) {throw new Api400Error('Tối đa 1.000 điểm mẫu mỗi lần.', ['BULK_LIMIT']);}
+    if (!Array.isArray(points) || !points.length) {
+        throw new Api400Error('Danh sách điểm mẫu rỗng.', ['EMPTY_POINTS']);
+    }
+    if (points.length > 1000) {
+        throw new Api400Error('Tối đa 1.000 điểm mẫu mỗi lần.', ['BULK_LIMIT']);
+    }
     points.forEach((point) => pointPayload(point, req.user));
     const result = await gt.insertPoints(points, req.user?.id);
     CREATED(res, `Đã thêm ${result.inserted} điểm mẫu.`, result);
@@ -297,11 +417,27 @@ const bulkPoint = async (req, res) => {
 
 const deletePoint = async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || !(await gt.disablePoint(id))) {throw new Api404Error('Không tìm thấy điểm mẫu.', ['POINT_NOT_FOUND']);}
+    if (!Number.isInteger(id) || !(await gt.disablePoint(id))) {
+        throw new Api404Error('Không tìm thấy điểm mẫu.', ['POINT_NOT_FOUND']);
+    }
     OK(res, 'Đã xóa điểm mẫu.', { deleted: true, id });
 };
 
 module.exports = {
-    getLatest, getHistory, getPublishedHistory, refresh, queryPeriod, getSnapshot, getDistrictExports, publishRaster,
-    listZones, createZone, bulkZone, deleteZone, listPoints, createPoint, bulkPoint, deletePoint,
+    getLatest,
+    getHistory,
+    getPublishedHistory,
+    refresh,
+    queryPeriod,
+    getSnapshot,
+    getDistrictExports,
+    publishRaster,
+    listZones,
+    createZone,
+    bulkZone,
+    deleteZone,
+    listPoints,
+    createPoint,
+    bulkPoint,
+    deletePoint,
 };

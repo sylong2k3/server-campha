@@ -75,7 +75,7 @@ describe('helpers', () => {
 
     test('buildObjectKey namespaces by year/month + safe layer code', () => {
         const key = buildObjectKey({ layer_code: 'cp_flood_event' }, 'job_7');
-        expect(key).toMatch(/^flood\/\d{4}\/\d{2}\/cp_flood_event\/job_7\.tif$/);
+        expect(key).toMatch(/^raster\/\d{4}\/\d{2}\/cp_flood_event\/job_7\.tif$/);
     });
 
     test('sha256File computes the checksum of a real file', async () => {
@@ -129,7 +129,7 @@ describe('runJob (happy path)', () => {
         const statuses = repo.updateStatus.mock.calls.map((c) => c[1].status);
         expect(statuses).toEqual(['validating', 'uploading', 'publishing', 'completed']);
         expect(minio.uploadStream).toHaveBeenCalledWith(
-            expect.objectContaining({ category: 'flood-rasters' }),
+            expect.objectContaining({ category: 'raster' }),
         );
         expect(publisher.publishToGeoServer).toHaveBeenCalled();
         expect(publisher.upsertRasterLayer).toHaveBeenCalled();
@@ -155,6 +155,37 @@ describe('runJob (happy path)', () => {
         expect(minio.uploadStream).toHaveBeenCalledWith(
             expect.objectContaining({ category: 'flood-calibration' }),
         );
+    });
+
+    test('converts a direct non-COG GeoTIFF before archive and publication', async () => {
+        const repo = makeRepo();
+        const download = makeDownload(II_TIFF);
+        const validateCrs = jest
+            .fn()
+            .mockResolvedValueOnce({ crs: 'EPSG:4326', isCog: false })
+            .mockResolvedValueOnce({ crs: 'EPSG:4326', isCog: true });
+        const convertToCog = jest.fn((source, target) => fs.promises.copyFile(source, target));
+
+        await runJob(
+            {
+                id: 12,
+                layer_code: 'satellite_ndvi',
+                source_url: 'https://x/y',
+                retry_count: 0,
+                request_params: {},
+            },
+            {
+                repo,
+                minio: makeMinio(),
+                publisher: makePublisher(),
+                download,
+                validateCrs,
+                convertToCog,
+            },
+        );
+
+        expect(convertToCog).toHaveBeenCalledTimes(1);
+        expect(validateCrs).toHaveBeenCalledTimes(2);
     });
 });
 

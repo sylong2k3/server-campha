@@ -11,6 +11,8 @@ const {
     calculateLegacyWindowsChecksum,
     assertChecksums,
     getMigrationFiles,
+    parseOnlyMigrationNames,
+    selectMigrationFiles,
 } = require('../migrate');
 
 describe('migration safety', () => {
@@ -63,5 +65,18 @@ describe('migration safety', () => {
         expect(() => assertChecksums(executed, [])).toThrow(
             'Applied migration file is missing: 001.sql',
         );
+    });
+
+    test('recovery selection accepts only known migration filenames', () => {
+        const files = [{ filename: '087_restore_legacy_satellite.sql' }];
+        expect(selectMigrationFiles(files, ['087_restore_legacy_satellite.sql'])).toEqual(files);
+        expect(() => selectMigrationFiles(files, ['999_missing.sql'])).toThrow(/Unknown migration/);
+        expect(
+            parseOnlyMigrationNames([
+                'node',
+                'migrate.js',
+                '--only=087_restore_legacy_satellite.sql',
+            ]),
+        ).toEqual(['087_restore_legacy_satellite.sql']);
     });
 });

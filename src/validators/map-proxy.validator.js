@@ -25,6 +25,11 @@ const wfsQuerySchema = Joi.object({
     outputFormat: Joi.string().valid('application/json').default('application/json'),
     ticket: Joi.string().max(2000).optional(),
 });
+const wcsQuerySchema = Joi.object({
+    request: Joi.string().valid('GetCoverage').insensitive().required(),
+    format: Joi.string().valid('image/tiff').default('image/tiff'),
+    ticket: Joi.string().max(2000).optional(),
+});
 const tileTicketQuerySchema = Joi.object({
     access: Joi.string().valid('view', 'export').default('view'),
 });
@@ -32,5 +37,6 @@ module.exports = {
     layerIdParamsSchema,
     wmsQuerySchema,
     wfsQuerySchema,
+    wcsQuerySchema,
     tileTicketQuerySchema,
 };

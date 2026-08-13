@@ -13,11 +13,11 @@ Ngày chốt source: 2026-08-12. Trạng thái chung:
 | FLOOD-S06 | Client WebGIS M1–M5 | Done | Browser/responsive/live WMS UAT |
 | FLOOD-S07 | Admin dashboard/run/artifact/publish | Done | Operator workflow UAT |
 | FLOOD-S08 | M5 trend/frequency/change/validation | Done | Multi-year science validation |
-| FLOOD-S09 | Regression, Forest removal, handoff | Done | Apply Flood migrations + E2E sign-off |
+| FLOOD-S09 | Regression, Forest boundary, handoff | Done | Apply Flood migrations + E2E sign-off |
 
-## Forest removal decision
+## Forest Classification boundary
 
-Forest Classification không thuộc Flood và không có phạm vi nghiệp vụ tại Cẩm Phả. Ngày 2026-08-13, route, model runtime, cron, GEE child, ground-truth API, bucket config và UI integration Forest đã bị xóa. Migration lịch sử vẫn giữ để không phá dữ liệu/schema đã áp dụng; không được dùng migration tồn tại làm bằng chứng module còn active.
+Forest Classification là module độc lập với Flood và vẫn được duy trì. Route, model runtime, worker ingest, API phân loại và UI Forest tiếp tục hoạt động; module dùng domain `forest.*` và hạ tầng raster chung, không thuộc phạm vi thay đổi của Flood.
 
 ## Evidence
 
