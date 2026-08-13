@@ -1,4 +1,4 @@
-﻿# Vận hành Storage, MinIO và Raster
+# Vận hành Storage, MinIO và Raster
 
 Cập nhật: **2026-08-13**.
 
@@ -63,19 +63,26 @@ Tệp có record `core.file_objects` phải dùng backend ticket:
 GET /api/v1/storage/objects/56/download-url?expireSeconds=300
 ```
 
-CMS Document/PDF Map cũng trả cùng dạng URL:
+CMS Document/PDF Map và ảnh phản ánh đã duyệt dùng URL API ổn định:
+
+```text
+{API_BASE_URL}/api/v1/storage/objects/56/file
+```
+
+File `internal`, ảnh phản ánh chưa duyệt và owner preview dùng URL ticket ngắn hạn:
 
 ```text
 {API_BASE_URL}/api/v1/storage/objects/56/file?ticket=<JWT-ngắn-hạn>
 ```
 
-`API_BASE_URL` có thể là origin (`https://apicampha.tourismpj.pro.vn`) hoặc đã có `/api/v1`; service chuẩn hóa để không thiếu/double prefix.
+`API_BASE_URL` có thể là origin (`https://apicampha.tourismpj.pro.vn`) hoặc đã có `/api/v1`; service chuẩn hóa để không thiếu/double prefix. Không lưu URL ticket vào DB; chỉ lưu bucket, object key và `file_object_id`.
 
 Quyền:
 
+- Không ticket, không đăng nhập: chỉ stream file được CMS `public` hoặc phản ánh `approved`/`resolved` tham chiếu.
 - Có ticket hợp lệ: chỉ stream file ID đã bind trong ticket.
-- Không ticket: phải có Bearer token và file phải thuộc owner hiện tại.
-- File không `ready`, ticket sai/hết hạn/sai ID: từ chối.
+- Không ticket, có đăng nhập: file phải thuộc owner hiện tại.
+- File không `ready/clean`, ticket sai/hết hạn/sai ID: từ chối.
 
 ## 4. MinIO SigV4 proxy
 
@@ -86,6 +93,8 @@ Presigned upload và artifact chưa có `file_object_id` có thể đi qua origi
 - Query có `X-Amz-Signature`.
 
 `Host` upstream phải là `MINIO_ENDPOINT:MINIO_PORT` vì SigV4 ký header này. Middleware dùng `MINIO_USE_SSL`, timeout mặc định 120 giây (`MINIO_PROXY_TIMEOUT_MS`) và hủy upstream khi client ngắt. Không log query đầy đủ vì chứa chữ ký.
+
+Khi API và MinIO cùng VPS, cấu hình `MINIO_ENDPOINT=127.0.0.1` (hoặc tên service trong private Docker network), bind MinIO API vào interface nội bộ và chặn cổng `9000/9001` từ Internet. `MINIO_PUBLIC_URL` chỉ là origin proxy cho presigned request; không lưu giá trị này hay presigned URL vào DB.
 
 ## 5. Xóa file bền vững
 

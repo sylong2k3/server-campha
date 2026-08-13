@@ -59,6 +59,35 @@ const findById = async (id) => {
     return row || null;
 };
 
+const findPublicById = async (id) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `SELECT f.* FROM core.file_objects f
+         WHERE f.id=$1 AND f.lifecycle_status='ready' AND f.scan_status='clean'
+           AND f.deleted_at IS NULL
+           AND (
+               EXISTS (
+                   SELECT 1 FROM cms.documents d
+                   WHERE d.file_object_id=f.id AND d.visibility='public' AND d.deleted_at IS NULL
+               )
+               OR EXISTS (
+                   SELECT 1 FROM cms.pdf_maps m
+                   WHERE m.file_object_id=f.id AND m.visibility='public' AND m.deleted_at IS NULL
+               )
+               OR EXISTS (
+                   SELECT 1
+                   FROM community.field_report_photos p
+                   JOIN community.field_reports r ON r.id=p.report_id
+                   WHERE p.file_object_id=f.id AND r.status IN ('approved','resolved')
+                     AND r.deleted_at IS NULL
+               )
+           )`,
+        [id],
+    );
+    return row || null;
+};
+
 const claimForScan = async (id, actorId) => {
     const {
         rows: [row],
@@ -152,6 +181,7 @@ module.exports = {
     createQuarantine,
     findAccessibleById,
     findById,
+    findPublicById,
     claimForScan,
     markReady,
     markRejected,

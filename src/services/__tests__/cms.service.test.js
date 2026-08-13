@@ -1,7 +1,10 @@
 'use strict';
 
 jest.mock('../../repositories/cms.repository');
-jest.mock('../minio.service', () => ({ getPresignedDownloadUrl: jest.fn() }));
+jest.mock('../minio.service', () => ({
+    getPublicFileUrl: jest.fn(),
+    getPresignedDownloadUrl: jest.fn(),
+}));
 jest.mock('../../utils/systemLogger.util', () => ({ logInfo: jest.fn() }));
 const repository = require('../../repositories/cms.repository');
 const minio = require('../minio.service');
@@ -44,6 +47,7 @@ const row = {
 describe('CMS service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        minio.getPublicFileUrl.mockReturnValue({ url: 'public-url', expiresAt: null });
         minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'signed', expiresAt: new Date() });
     });
     test('delegates public and admin reads with correct visibility mode', async () => {
@@ -120,12 +124,23 @@ describe('CMS service', () => {
         });
         await service.deleteDocument(1, new Date(), true, admin);
         expect(repository.deleteDocument).toHaveBeenCalledWith(1, expect.any(Date), 2, true);
-        await expect(service.documentDownload(1, 300, citizen)).rejects.toMatchObject({
-            status: 403,
+        await expect(service.documentDownload(1, 300, null)).resolves.toMatchObject({
+            url: 'public-url',
+            expiresAt: null,
         });
+        expect(repository.findDocument).toHaveBeenLastCalledWith(1, 'public', true);
+        expect(minio.getPublicFileUrl).toHaveBeenLastCalledWith(56);
+        expect(minio.getPresignedDownloadUrl).not.toHaveBeenCalled();
+        repository.findDocument.mockResolvedValueOnce(null);
+        await expect(service.documentDownload(2, 300, citizen)).rejects.toMatchObject({
+            status: 404,
+        });
+        expect(repository.findDocument).toHaveBeenLastCalledWith(2, 'public', true);
+        repository.findDocument.mockResolvedValueOnce({ ...row, visibility: 'internal' });
         await expect(service.documentDownload(1, 300, admin)).resolves.toMatchObject({
             url: 'signed',
         });
+        expect(repository.findDocument).toHaveBeenLastCalledWith(1, 'admin', true);
         expect(minio.getPresignedDownloadUrl).toHaveBeenLastCalledWith({
             objectKey: 'o',
             category: 'documents',
@@ -159,15 +174,21 @@ describe('CMS service', () => {
             status: 409,
             errors: ['FILE_STILL_IN_USE', 'layer'],
         });
-        await expect(service.pdfMapDownload(1, 300, citizen)).resolves.toMatchObject({
+        await expect(service.pdfMapDownload(1, 300, null)).resolves.toMatchObject({
+            url: 'public-url',
+            expiresAt: null,
+        });
+        expect(repository.findPdfMap).toHaveBeenLastCalledWith(1, 'public', true);
+        repository.findPdfMap.mockResolvedValueOnce({ ...row, visibility: 'internal' });
+        await expect(service.pdfMapDownload(1, 300, admin)).resolves.toMatchObject({
             url: 'signed',
         });
+        expect(repository.findPdfMap).toHaveBeenLastCalledWith(1, 'admin', true);
         expect(minio.getPresignedDownloadUrl).toHaveBeenLastCalledWith({
             objectKey: 'o',
             category: 'documents',
             expireSeconds: 300,
             fileId: 56,
         });
-        await expect(service.pdfMapDownload(1, 300, null)).rejects.toMatchObject({ status: 403 });
     });
 });

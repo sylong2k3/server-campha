@@ -31,6 +31,7 @@ jest.mock('../../repositories/storage.repository', () => ({
     resetPending: jest.fn(),
     findAccessibleById: jest.fn(),
     findById: jest.fn(),
+    findPublicById: jest.fn(),
     enqueueDelete: jest.fn(),
 }));
 const { Readable } = require('stream');
@@ -206,11 +207,28 @@ describe('storage quarantine workflow', () => {
             errors: ['FILE_STILL_IN_USE', 'cms_document'],
         });
     });
-    test('stream without ticket uses owner-scoped lookup', async () => {
+    test('stream without ticket uses owner lookup or a public DB reference', async () => {
         repo.findAccessibleById.mockResolvedValue(null);
         await expect(service.streamFile(11, null, actor)).rejects.toMatchObject({ status: 404 });
         expect(repo.findAccessibleById).toHaveBeenCalledWith(11, actor.id);
         expect(repo.findById).not.toHaveBeenCalled();
+
+        repo.findPublicById.mockResolvedValue({
+            id: 11,
+            lifecycle_status: 'ready',
+            scan_status: 'clean',
+            object_key: 'field-photos/photo.png',
+            category: 'field-photos',
+            detected_mime: 'image/png',
+            size_bytes: 5,
+            original_name: 'photo.png',
+        });
+        minio.getObjectStream.mockResolvedValue(stream('photo'));
+        await expect(service.streamFile(11, null, null)).resolves.toMatchObject({
+            access: 'public',
+            mimeType: 'image/png',
+        });
+        expect(repo.findPublicById).toHaveBeenCalledWith(11);
     });
     test('valid ticket streams its bound ready object and invalid ticket is rejected', async () => {
         const jwt = require('jsonwebtoken');
@@ -222,6 +240,7 @@ describe('storage quarantine workflow', () => {
         repo.findById.mockResolvedValue({
             id: 11,
             lifecycle_status: 'ready',
+            scan_status: 'clean',
             object_key: 'o',
             category: 'documents',
             detected_mime: 'application/pdf',
@@ -323,7 +342,7 @@ describe('storage quarantine workflow', () => {
         expect(repo.createQuarantine).not.toHaveBeenCalled();
         expect(minio.uploadStream).not.toHaveBeenCalled();
     });
-    test('direct upload cleans allocation when MinIO stream fails', async () => {
+    test('direct document upload uses MinIO and cleans allocation when stream fails', async () => {
         repo.createQuarantine.mockResolvedValue({
             ...pending(),
             quarantine_key: 'quarantine/7/report.pdf',
@@ -341,6 +360,9 @@ describe('storage quarantine workflow', () => {
                 actor,
             ),
         ).rejects.toThrow('client aborted');
+        expect(minio.uploadStream).toHaveBeenCalledWith(
+            expect.objectContaining({ category: 'documents', quarantine: true }),
+        );
         expect(repo.markRejected).toHaveBeenCalledWith(11, 'error');
         expect(minio.removeQuarantineObject).toHaveBeenCalledWith(
             expect.stringMatching(/^quarantine\/7\/[0-9a-f-]+\/report\.pdf$/),

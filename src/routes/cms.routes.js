@@ -58,8 +58,6 @@ publicRouter.get(
 );
 publicRouter.get(
     '/documents/:id/download-url',
-    verifyToken,
-    enforcePasswordChange,
     strict(v.idParamsSchema, 'params'),
     strict(v.downloadQuerySchema, 'query'),
     asyncHandler(controller.documentDownload),
@@ -76,8 +74,6 @@ publicRouter.get(
 );
 publicRouter.get(
     '/pdf-maps/:id/download-url',
-    verifyToken,
-    enforcePasswordChange,
     strict(v.idParamsSchema, 'params'),
     strict(v.downloadQuerySchema, 'query'),
     asyncHandler(controller.pdfMapDownload),
