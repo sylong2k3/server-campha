@@ -1,0 +1,4 @@
+# Migration checksums are calculated from the exact file bytes. Keep SQL files
+# on LF across Windows/Linux checkouts so an already-applied migration remains
+# verifiable in every environment.
+src/database/migrations/*.sql text eol=lf
