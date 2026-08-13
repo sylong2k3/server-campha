@@ -1,62 +1,51 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const { Api400Error } = require('../../core/error.response');
 const { assertType } = require('./cache');
+const { CAM_PHA_GEOMETRY, unwrapGeometry } = require('./geometry');
 
-const DEFAULT_AOI = {
-    type: 'Polygon',
-    coordinates: [
-        [
-            [107.05, 20.75],
-            [107.75, 20.75],
-            [107.75, 21.35],
-            [107.05, 21.35],
-            [107.05, 20.75],
-        ],
-    ],
-};
+const COLLECTION_ALIASES = Object.freeze({
+    AUTO: 'AUTO',
+    S2: 'S2',
+    SENTINEL2: 'S2',
+    SENTINEL_2: 'S2',
+    LANDSAT: 'LANDSAT',
+    L8: 'L8',
+    LANDSAT8: 'L8',
+    LANDSAT_8: 'L8',
+    L9: 'L9',
+    LANDSAT9: 'L9',
+    LANDSAT_9: 'L9',
+});
 
 const toDate = (value, field) => {
     const text = String(value || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(text) || Number.isNaN(Date.parse(`${text}T00:00:00Z`))) {
-        throw new Api400Error(`${field} phải có định dạng YYYY-MM-DD.`, ['INVALID_DATE']);
+        throw new Api400Error(`${field} must use YYYY-MM-DD format.`, ['INVALID_DATE']);
     }
     return text;
 };
 
-const nextDay = (date) => {
-    const value = new Date(`${date}T00:00:00Z`);
-    value.setUTCDate(value.getUTCDate() + 1);
-    return value.toISOString().slice(0, 10);
+const normalizeCollection = (value) => {
+    const input = String(value || 'AUTO').trim().toUpperCase().replace(/[ -]/g, '_');
+    const collection = COLLECTION_ALIASES[input];
+    if (!collection) {
+        throw new Api400Error(
+            'collection only accepts AUTO, S2, LANDSAT, L8, or L9.',
+            ['INVALID_COLLECTION'],
+        );
+    }
+    return collection;
 };
 
-const unwrapGeometry = (value) => {
-    if (value?.type === 'Feature') {
-        return value.geometry;
+const normalizeNdviThreshold = (value) => {
+    const threshold = Number(value ?? 0.3);
+    if (!Number.isFinite(threshold) || threshold < -1 || threshold > 1) {
+        throw new Api400Error('ndviMinThresh must be between -1 and 1.', [
+            'INVALID_NDVI_THRESHOLD',
+        ]);
     }
-    if (value?.type === 'FeatureCollection') {
-        return value.features?.[0]?.geometry || null;
-    }
-    return value;
-};
-
-const configuredAoi = () => {
-    const source = String(process.env.FC_BOUNDARY_GEOJSON || '').trim();
-    if (!source) {
-        return DEFAULT_AOI;
-    }
-    try {
-        const raw =
-            source.startsWith('{') || source.startsWith('[')
-                ? source
-                : fs.readFileSync(path.resolve(process.cwd(), source), 'utf8');
-        return unwrapGeometry(JSON.parse(raw)) || DEFAULT_AOI;
-    } catch (error) {
-        console.warn(`[SATELLITE] FC_BOUNDARY_GEOJSON cannot be loaded: ${error.message}`);
-        return DEFAULT_AOI;
-    }
+    return threshold;
 };
 
 const validCoordinates = (coordinates) => {
@@ -75,13 +64,13 @@ const validCoordinates = (coordinates) => {
 };
 
 const resolveGeometry = (input) => {
-    const geometry = unwrapGeometry(input) || configuredAoi();
+    const geometry = unwrapGeometry(input) || CAM_PHA_GEOMETRY;
     if (
         !['Polygon', 'MultiPolygon'].includes(geometry?.type) ||
         !validCoordinates(geometry.coordinates)
     ) {
         throw new Api400Error(
-            'geometry phải là GeoJSON Polygon hoặc MultiPolygon trong phạm vi Cẩm Phả.',
+            'geometry must be a GeoJSON Polygon or MultiPolygon within Cam Pha.',
             ['INVALID_GEOMETRY'],
         );
     }
@@ -93,24 +82,29 @@ const normalizeRequest = (imageType, raw = {}) => {
     const endDate = toDate(raw.endDate || raw.analysisDate, 'endDate');
     const startDate = toDate(raw.startDate || endDate, 'startDate');
     if (startDate > endDate) {
-        throw new Api400Error('startDate phải trước hoặc bằng endDate.', ['INVALID_DATE_RANGE']);
+        throw new Api400Error('startDate must be before or equal to endDate.', ['INVALID_DATE_RANGE']);
     }
     const cloudCover = Number(raw.cloudCover ?? 50);
     if (!Number.isFinite(cloudCover) || cloudCover < 0 || cloudCover > 100) {
-        throw new Api400Error('cloudCover phải nằm trong khoảng 0–100.', ['INVALID_CLOUD_COVER']);
+        throw new Api400Error('cloudCover must be between 0 and 100.', ['INVALID_CLOUD_COVER']);
     }
-    const collection = String(raw.collection || 'AUTO').toUpperCase();
-    if (!['AUTO', 'S2', 'LANDSAT'].includes(collection)) {
-        throw new Api400Error('collection chỉ nhận AUTO, S2 hoặc LANDSAT.', ['INVALID_COLLECTION']);
-    }
+
+    // Earth Engine filterDate uses an exclusive end bound, as in the legacy API.
     return {
         type,
         startDate,
         endDate,
-        collection,
+        collection: normalizeCollection(raw.collection),
         cloudCover,
+        ndviMinThresh: normalizeNdviThreshold(raw.ndviMinThresh),
         geometry: resolveGeometry(raw.geometry),
+        geometrySource: raw.geometry ? 'request' : 'cp_rg.geojson',
     };
 };
 
-module.exports = { nextDay, normalizeRequest };
+module.exports = {
+    DEFAULT_AOI: CAM_PHA_GEOMETRY,
+    normalizeCollection,
+    normalizeNdviThreshold,
+    normalizeRequest,
+};

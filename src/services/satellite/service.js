@@ -2,12 +2,12 @@
 
 const gee = require('../gee-earth-engine.adapter');
 const repository = require('../../repositories/satellite.repository');
-const { LEGENDS, hashRequest, requireSatelliteCache, toResponse } = require('./cache');
+const { hashRequest, requireSatelliteCache, toResponse } = require('./cache');
 const { normalizeRequest } = require('./request');
 const { buildImage } = require('./builders');
 
-const exportDownload = async (image, params, region) =>
-    gee
+const exportDownload = async (adapter, image, params, region) =>
+    adapter
         .getDownloadUrl(image, {
             name: `satellite_${params.type}_${params.startDate}`,
             region,
@@ -29,14 +29,19 @@ async function processRequest(imageType, rawParams, deps = {}) {
         return toResponse(cached, true);
     }
 
-    const { image, viz, region } = buildImage(params);
+    if (typeof adapter.ensureInitialized === 'function') {
+        await adapter.ensureInitialized();
+    }
+    const build = deps.buildImage || buildImage;
+    const { image, viz, region, stats = {}, legend = [], metadata: buildMetadata = {} } = await build(
+        params,
+        { evaluate: (value) => adapter.evaluate(value) },
+    );
     const map = await adapter.getMapId(image, viz);
-    const downloadUrl = await exportDownload(image, params, region);
+    const downloadUrl = await exportDownload(adapter, image, params, region);
     const metadata = {
         collection: params.collection,
-        source: ['heatmap', 'fire-risk'].includes(params.type)
-            ? 'LANDSAT_C2_L2'
-            : params.collection,
+        ...buildMetadata,
         generatedAt: new Date().toISOString(),
         downloadUrl,
         downloadFilename: downloadUrl ? `satellite_${params.type}_${params.startDate}.tif` : null,
@@ -51,8 +56,8 @@ async function processRequest(imageType, rawParams, deps = {}) {
             geometry: params.geometry,
             tileUrl: map.tileUrl,
             mapId: map.mapId,
-            stats: {},
-            legend: LEGENDS[params.type],
+            stats,
+            legend,
             metadata,
         }),
     );

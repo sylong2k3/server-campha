@@ -1,6 +1,7 @@
 'use strict';
 
 const { executeRun, requestRun } = require('../service');
+const { CAM_PHA_GEOMETRY } = require('../../satellite/geometry');
 
 const snapshot = { id: 9, year: 2026, month: 7 };
 
@@ -20,6 +21,9 @@ describe('forest-classification service', () => {
 
         await executeRun(snapshot, { repository, satellite, queueArchive });
 
+        expect(satellite.getClassified).toHaveBeenCalledWith(
+            expect.objectContaining({ geometry: CAM_PHA_GEOMETRY }),
+        );
         expect(queueArchive).toHaveBeenCalledWith(
             snapshot,
             expect.objectContaining({ downloadUrl: 'https://gee/tif' }),

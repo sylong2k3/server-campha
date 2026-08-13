@@ -4,6 +4,7 @@ const queue = require('../../queues/gee-task.queue');
 const snapshots = require('../../repositories/forest-classification.repository');
 const { periodDates } = require('./period');
 const { queueSnapshotArchive } = require('./archive');
+const { CAM_PHA_GEOMETRY } = require('../satellite/geometry');
 
 const activeStatuses = new Set(['pending', 'computing', 'exporting']);
 
@@ -21,7 +22,12 @@ async function executeRun(snapshot, deps = {}) {
     await repo.updateRun(snapshot.id, { status: 'computing', errorMessage: null });
     try {
         const { startDate, endDate } = periodDates(snapshot.year, snapshot.month);
-        const result = await satellite.getClassified({ startDate, endDate, collection: 'AUTO' });
+        const result = await satellite.getClassified({
+            startDate,
+            endDate,
+            collection: 'AUTO',
+            geometry: CAM_PHA_GEOMETRY,
+        });
         let archiveJob = null;
         try {
             archiveJob = await archive(snapshot, result);
