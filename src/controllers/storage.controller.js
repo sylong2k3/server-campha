@@ -1,8 +1,12 @@
 'use strict';
 
+const stream = require('stream');
+const { promisify } = require('util');
 const storageService = require('../services/storage.service');
 const { OK, CREATED } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
+
+const pipeline = promisify(stream.pipeline);
 
 const createPresignedUpload = async (req, res) => {
     const result = await storageService.createPresignedUpload(req.body, buildActor(req));
@@ -43,8 +47,11 @@ const streamFile = async (req, res) => {
         res.setHeader('Content-Length', result.sizeBytes);
     }
     const encodedName = encodeURIComponent(result.originalName);
-    res.setHeader('Content-Disposition', `inline; filename="${encodedName}"; filename*=UTF-8''${encodedName}`);
-    result.stream.pipe(res);
+    res.setHeader(
+        'Content-Disposition',
+        `inline; filename="${encodedName}"; filename*=UTF-8''${encodedName}`,
+    );
+    await pipeline(result.stream, res);
 };
 const deleteObject = async (req, res) => {
     const result = await storageService.deleteObject(Number(req.params.id), buildActor(req));

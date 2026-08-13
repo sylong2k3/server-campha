@@ -37,6 +37,7 @@ const row = {
     status: 'draft',
     visibility: 'public',
     object_key: 'o',
+    file_object_id: 56,
     original_name: 'a.pdf',
 };
 
@@ -125,6 +126,12 @@ describe('CMS service', () => {
         await expect(service.documentDownload(1, 300, admin)).resolves.toMatchObject({
             url: 'signed',
         });
+        expect(minio.getPresignedDownloadUrl).toHaveBeenLastCalledWith({
+            objectKey: 'o',
+            category: 'documents',
+            expireSeconds: 300,
+            fileId: 56,
+        });
     });
     test('PDF map CRUD read and download branches', async () => {
         repository.listPdfMaps.mockResolvedValue({ items: [], total: 0 });
@@ -154,6 +161,12 @@ describe('CMS service', () => {
         });
         await expect(service.pdfMapDownload(1, 300, citizen)).resolves.toMatchObject({
             url: 'signed',
+        });
+        expect(minio.getPresignedDownloadUrl).toHaveBeenLastCalledWith({
+            objectKey: 'o',
+            category: 'documents',
+            expireSeconds: 300,
+            fileId: 56,
         });
         await expect(service.pdfMapDownload(1, 300, null)).rejects.toMatchObject({ status: 403 });
     });

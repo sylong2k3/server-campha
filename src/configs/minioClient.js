@@ -14,12 +14,11 @@ const CATEGORY_BUCKET_ENV = Object.freeze({
 // Additive-optional categories introduced for the Flood/Hydrology domain
 // (see @docs/GEE_FLOOD_INTEGRATION_ARCHITECTURE.md §7.2). These bucket env
 // vars can be unset at boot without failing STORAGE_ENABLED=true validation.
-// If the flood pipeline actually consumes an unconfigured category the
-// getBucketForCategory() call throws with a clear "not configured" message.
+// If the flood pipeline consumes an unconfigured category,
+// getBucketForCategory() throws a clear "not configured" message.
 const OPTIONAL_CATEGORY_BUCKET_ENV = Object.freeze({
     'flood-rasters': 'MINIO_BUCKET_FLOOD_RASTERS',
     'flood-calibration': 'MINIO_BUCKET_FLOOD_CALIBRATION',
-    'forest-classification': 'MINIO_BUCKET_FOREST_CLASSIFICATION',
 });
 const BUCKET_PATTERN = /^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/;
 

@@ -23,13 +23,9 @@ Server API cho hệ thống WebGIS & MobileGIS Cẩm Phả HydroMap (thành ph�
 
 Luồng artifact: `GEE → GCS → kiểm tra GeoTIFF/CRS/COG/checksum → MinIO → GeoServer → gis.layers → WebGIS`. API công khai nằm tại `/api/v1/flood`; API quản trị có RBAC tại `/api/v1/admin/flood`.
 
-## Forest Classification được giữ ACTIVE
+## Forest Classification đã loại khỏi phạm vi
 
-- API: `/api/v1/forest-classification` (latest/query/snapshot/published history, admin refresh/publish và ground truth).
-- Mô hình: giữ taxonomy 13 lớp và chuỗi Random Forest v5.3; không đổi thành mô hình Flood.
-- Runtime: dùng queue GEE concurrency 1, child process riêng, cron tháng trên singleton worker và district raster export.
-- Publication: bucket MinIO riêng, GeoServer verify, `gis.layers` và back-link district fail-closed; snapshot chỉ published khi đủ tập district cấu hình.
-- RBAC: `system_admin`/`so_tnmt` quản lý và nhập ground truth; các vai trò còn lại đọc kết quả đã công bố.
+Ngày 2026-08-13, module Forest Classification bị xóa khỏi runtime vì Cẩm Phả không có phạm vi nghiệp vụ rừng. Không còn API, cron, worker, service hoặc bucket Forest. Migration lịch sử được giữ để bảo toàn lịch sử schema; không coi đó là module đang hoạt động.
 
 ## Cấu hình
 
@@ -41,19 +37,13 @@ Tạo `.env` và khai báo tối thiểu:
 - `FLOOD_GCS_BUCKET`, `FLOOD_GCS_SIGNED_URL_SECONDS`
 - `FLOOD_INGEST_WAIT_TIMEOUT_MS`, `FLOOD_INGEST_POLL_INTERVAL_MS`
 - `MINIO_BUCKET_FLOOD_RASTERS`, `MINIO_BUCKET_FLOOD_CALIBRATION`
-- `MINIO_BUCKET_FOREST_CLASSIFICATION`
-- `FC_ENABLED=true`, `FC_CRON`, `FC_CRON_TZ`
-- `FC_BOUNDARY_GEOJSON`, `FC_DISTRICTS_GEOJSON`: ranh giới Cẩm Phả/đơn vị hành chính chính thức được mount ngoài source.
-- `FC_EXPECTED_DISTRICT_COUNT`, `FC_AOI_TOTAL_HA`: phải được data owner chốt trước UAT production.
+- `API_BASE_URL`: public API origin; có thể có hoặc chưa có `/api/v1`.
+- `MINIO_PROXY_TIMEOUT_MS`: timeout SigV4 proxy, mặc định 120 giây.
 - `RASTER_INGEST_ENABLED`, `RASTER_INGEST_WORKER_POLL_CRON`
 - `FIREBASE_SERVICE_ACCOUNT*`
-- `KTTV_CREDENTIAL_ENCRYPTION_KEY`: 64 ký tự hex, dùng riêng từng môi trường.
-- `KTTV_ALLOWED_SOURCE_HOSTS`: allowlist host Weather API, phân tách bằng dấu phẩy.
-- `KTTV_COLLECTION_ENABLED=true`: bật scheduler REST/JSON; mặc định `false`.
-- `KTTV_SCHEDULE_SYNC_CRON`: lịch đồng bộ cấu hình nguồn, mặc định `*/5 * * * *`.
 
-Scheduler KTTV chỉ chạy trên singleton worker (`CLUSTER_WORKER_ID=0` hoặc tiến trình không cluster).
-Với nhiều replica độc lập, chỉ đặt `KTTV_COLLECTION_ENABLED=true` trên một replica/worker.
+KTTV chưa được mount trong `src/routes/index.js`. Request KTTV được giữ trong Postman dưới folder Legacy; không bật scheduler hoặc công bố API KTTV trước khi module/router được phục hồi và test lại.
+
 Secret dịch vụ phải nằm ngoài mã nguồn và không dùng chung giữa các môi trường.
 
 ## Chạy dự án
@@ -69,6 +59,8 @@ npm run dev
 
 ## Tài liệu
 
+- [Vận hành Storage, MinIO và Raster](docs/STORAGE_AND_RASTER_OPERATIONS.md)
+- [Postman collection](docs/api/campha.postman_collection.json)
 - [Kế hoạch xây dựng hệ thống](docs/KE_HOACH_XAY_DUNG_HE_THONG.md)
 - [Ma trận phân quyền](docs/MA_TRAN_PHAN_QUYEN.csv)
 - [Kiến trúc tích hợp GEE Flood](../docs/GEE_FLOOD_INTEGRATION_ARCHITECTURE.md)

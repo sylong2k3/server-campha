@@ -11,10 +11,12 @@ require('dotenv').config();
 
 const routes = require('./routes');
 const { errorHandler, notFoundHandler } = require('./middlewares/error-handler');
+const { minioBucketProxy } = require('./middlewares/minio-proxy.middleware');
 const { initPassport } = require('./configs/passport');
 const localeMiddleware = require('./middlewares/locale.middleware');
 const { t } = require('./utils/i18n.util');
 const metrics = require('./utils/metrics.util');
+const { redactSensitiveUrl } = require('./utils/redact-url.util');
 const metricsRoutes = require('./routes/metrics.routes');
 
 initPassport();
@@ -174,7 +176,12 @@ app.use(
 );
 
 if (process.env.HTTP_ACCESS_LOG_ENABLED !== 'false') {
-    app.use(morgan(process.env.NODE_ENV === 'development' ? 'dev' : 'combined'));
+    morgan.token('safe-url', (req) => redactSensitiveUrl(req.originalUrl || req.url));
+    const format =
+        process.env.NODE_ENV === 'development'
+            ? ':method :safe-url :status :response-time ms - :res[content-length]'
+            : ':remote-addr - :remote-user [:date[clf]] ":method :safe-url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent"';
+    app.use(morgan(format));
 }
 
 const limiter = rateLimit({
@@ -194,8 +201,6 @@ app.use('/api/', limiter);
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
-
-const { minioBucketProxy } = require('./middlewares/minio-proxy.middleware');
 
 app.use('/api/v1', routes);
 

@@ -6,8 +6,7 @@
  * @ported-from migration/kt_gee_migration/services/raster-ingest.publish.js
  *
  * Adaptations for the Cẩm Phả flood domain:
- *   - Fire Risk remains intentionally absent. Supported domains are Flood
- *     artifacts and the retained Forest Classification district rasters.
+ *   - Fire Risk and Forest Classification are intentionally absent.
  *   - `layer.repository` in this server does not (yet) expose findByCode /
  *     upsertLayerByCode. Callers must inject a repo with those methods, or
  *     accept the graceful "layerRepo not wired" error surfaced here.
@@ -71,10 +70,7 @@ async function publishToGeoServer({ storeName, cogPath, params }, deps = {}) {
         );
     }
 
-    const publishCategory =
-        params?.bucketCategory === 'forest-classification'
-            ? 'forest-classification'
-            : 'flood-rasters';
+    const publishCategory = 'flood-rasters';
     const publishDir = path.join(gsDataDir, publishCategory);
     const publishPath = path.join(publishDir, `${storeName}.tif`);
     await fsp.mkdir(publishDir, { recursive: true });

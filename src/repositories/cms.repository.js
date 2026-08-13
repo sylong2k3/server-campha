@@ -202,7 +202,7 @@ const listDocuments = async (filter, mode) => {
     return pageResult(rows);
 };
 const findDocument = async (id, mode, includeObject = false) => {
-    const internal = includeObject ? ',f.object_key' : '';
+    const internal = includeObject ? ',f.object_key,f.id AS file_object_id' : '';
     const {
         rows: [row],
     } = await db.query(
@@ -325,7 +325,7 @@ const listPdfMaps = async (filter, mode) => {
     return pageResult(rows);
 };
 const findPdfMap = async (id, mode, includeObject = false) => {
-    const internal = includeObject ? ',f.object_key' : '';
+    const internal = includeObject ? ',f.object_key,f.id AS file_object_id' : '';
     const {
         rows: [row],
     } = await db.query(

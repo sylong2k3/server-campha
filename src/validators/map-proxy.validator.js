@@ -9,7 +9,7 @@ const wmsQuerySchema = Joi.object({
         .required(),
     width: Joi.number().integer().min(1).max(4096).required(),
     height: Joi.number().integer().min(1).max(4096).required(),
-    crs: Joi.string().valid('EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
+    crs: Joi.string().valid('EPSG:3857', 'EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
     format: Joi.string().valid('image/png', 'image/jpeg').default('image/png'),
     transparent: Joi.boolean().default(true),
     version: Joi.string().valid('1.3.0').default('1.3.0'),

@@ -6,7 +6,7 @@ Sprint backlog track for migrating `@client/` and `@admin/` from legacy regional
 
 - Client: mục Fire Risk và API cũ đã được thay bằng bảng Flood/Hydrology M1–M5, lịch sử product, lớp WMS và chú giải/QA.
 - Admin: route `/flood`, dashboard, queue, lọc run, chi tiết stage/artifact, rerun/cancel và publish/unpublish theo RBAC.
-- Forest Classification: route, service, lịch sử, so sánh và quản trị ground-truth được giữ nguyên.
+- Forest Classification: đã xóa khỏi runtime/API/worker ngày 2026-08-13 vì không thuộc phạm vi nghiệp vụ Cẩm Phả; chỉ giữ migration lịch sử.
 - Build repository: client `PASS`; admin TypeScript + Vite `PASS`.
 - UAT: `RUNTIME_TO_VERIFY` cho 5 vai trò, GEE/GCS/MinIO/GeoServer thật, AOI chính thức và dữ liệu golden run.
 

@@ -241,7 +241,10 @@ const streamFile = async (id, ticket, actor) => {
     if (ticket) {
         try {
             const decoded = jwt.verify(ticket, process.env.JWT_SECRET);
-            if (decoded.purpose !== 'file_download' || Number(decoded.fileObjectId) !== Number(id)) {
+            if (
+                decoded.purpose !== 'file_download' ||
+                Number(decoded.fileObjectId) !== Number(id)
+            ) {
                 throw new Api403Error('Vé tải file không hợp lệ');
             }
         } catch (err) {
@@ -254,7 +257,9 @@ const streamFile = async (id, ticket, actor) => {
         throw new Api403Error('Yêu cầu vé tải file hoặc đăng nhập');
     }
 
-    const record = await storageRepository.findById(id);
+    const record = ticket
+        ? await storageRepository.findById(id)
+        : await storageRepository.findAccessibleById(id, actor.id);
     if (!record || record.lifecycle_status !== 'ready') {
         throw new Api404Error('Không tìm thấy file');
     }

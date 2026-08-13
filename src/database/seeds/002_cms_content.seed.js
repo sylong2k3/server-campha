@@ -267,7 +267,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2015,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2015 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2015 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'truocngap2015.pdf',
         sizeBytes: 1508819,
@@ -278,7 +279,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2015,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2015 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2015 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'saungap2015.pdf',
         sizeBytes: 1551524,
@@ -289,7 +291,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2018,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2018 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2018 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'truocngap2018.pdf',
         sizeBytes: 2146250,
@@ -300,7 +303,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2018,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2018 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2018 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'saungap2018.pdf',
         sizeBytes: 2179368,
@@ -311,7 +315,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2020,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2020 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2020 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'truocngap2020.pdf',
         sizeBytes: 2229484,
@@ -322,7 +327,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2020,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2020 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2020 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'saungap2020.pdf',
         sizeBytes: 2229059,
@@ -333,7 +339,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2022,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2022 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2022 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'truocngap2022.pdf',
         sizeBytes: 2348411,
@@ -344,7 +351,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2022,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2022 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2022 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'saungap2022.pdf',
         sizeBytes: 2279943,
@@ -355,7 +363,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2024,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2024 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ hiện trạng lớp phủ đất trước đợt ngập lụt năm 2024 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'truocngap2024.pdf',
         sizeBytes: 2257438,
@@ -366,7 +375,8 @@ const PDF_MAPS = [
         scaleLabel: '1:10.000',
         mapYear: 2024,
         preparingAgency: 'UBND thành phố Cẩm Phả',
-        description: 'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2024 trên địa bàn thành phố Cẩm Phả.',
+        description:
+            'Bản đồ biến động lớp phủ đất sau đợt ngập lụt năm 2024 trên địa bàn thành phố Cẩm Phả.',
         visibility: 'public',
         fileName: 'saungap2024.pdf',
         sizeBytes: 2362302,

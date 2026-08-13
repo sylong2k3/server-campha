@@ -64,7 +64,6 @@ describe('MinIO configuration', () => {
         const config = mod.getConfig();
         expect(config.buckets['flood-rasters']).toBeUndefined();
         expect(config.buckets['flood-calibration']).toBeUndefined();
-        expect(config.buckets['forest-classification']).toBeUndefined();
         expect(mod.hasBucketCategory('flood-rasters')).toBe(false);
     });
 
@@ -72,15 +71,12 @@ describe('MinIO configuration', () => {
         const mod = load({
             MINIO_BUCKET_FLOOD_RASTERS: 'campha-flood-rasters',
             MINIO_BUCKET_FLOOD_CALIBRATION: 'campha-flood-calibration',
-            MINIO_BUCKET_FOREST_CLASSIFICATION: 'campha-forest-classification',
         });
         const config = mod.getConfig();
         expect(config.buckets['flood-rasters']).toBe('campha-flood-rasters');
         expect(config.buckets['flood-calibration']).toBe('campha-flood-calibration');
-        expect(config.buckets['forest-classification']).toBe('campha-forest-classification');
         expect(mod.hasBucketCategory('flood-rasters')).toBe(true);
         expect(mod.hasBucketCategory('flood-calibration')).toBe(true);
-        expect(mod.hasBucketCategory('forest-classification')).toBe(true);
     });
 
     test('getBucketForCategory throws a clear "not configured" error for optional-but-unset', () => {

@@ -7,8 +7,9 @@ API local đã nghiệm thu: `http://127.0.0.1:3018/api/v1`
 ## Kết luận
 
 **GO cho phát triển mobile** với auth, CMS, văn bản/PDF, raster catalog, phản ánh hiện trường,
-weather, draft/measure, bản đồ điểm/MVT/nearby/feature, KTTV manual/automatic, API registry,
-offline sync, feature edit/history/restore và Mapbox Directions qua backend proxy.
+weather, draft/measure, bản đồ điểm/MVT/nearby/feature, API registry, offline sync,
+feature edit/history/restore và Mapbox Directions qua backend proxy. KTTV không nằm trong
+contract mobile hiện hành vì router không được mount.
 
 > Routing pgRouting/topology nghiệm thu trước đây đã bị thay thế ngày 2026-08-11.
 > Mobile giữ endpoint nội bộ; backend gọi Mapbox và giữ token Directions trong `.env`.
@@ -79,7 +80,10 @@ GET  /api/v1/auth/me
 GET  /api/v1/cms/news
 GET  /api/v1/cms/news/:id
 GET  /api/v1/cms/documents
+GET  /api/v1/cms/documents/:id/download-url
 GET  /api/v1/cms/pdf-maps
+GET  /api/v1/cms/pdf-maps/:id/download-url
+GET  /api/v1/storage/objects/:fileObjectId/file?ticket=:ticket
 
 GET  /api/v1/field-reports/public
 GET  /api/v1/field-reports/nearby
@@ -98,15 +102,7 @@ POST /api/v1/mobile/routes/shortest
 GET  /api/v1/web-map/layers
 ```
 
-KTTV hiện là module admin:
-
-```text
-GET  /api/v1/admin/kttv/stations
-GET  /api/v1/admin/kttv/scenarios
-GET  /api/v1/admin/kttv/inputs
-POST /api/v1/admin/kttv/inputs/manual
-POST /api/v1/admin/kttv/sources/:id/collect
-```
+KTTV chỉ còn request lịch sử trong folder Postman `Legacy - KTTV (không được mount)`. Source hiện tại không mount `/api/v1/admin/kttv`; mobile không gọi các URL này.
 
 ## Contract quan trọng
 
@@ -120,36 +116,17 @@ POST /api/v1/admin/kttv/sources/:id/collect
 - Routing trả `provider`, `profile`, `distance_m`, `duration_s`, `geometry`, `snapped_start`, `snapped_end`.
 - Token `MAPBOX_DIRECTIONS_TOKEN` chỉ nằm ở backend; không trả về response/log.
 - Optimistic update gửi `expectedUpdatedAt` ISO từ `updated_at` read-back gần nhất.
+- CMS Document/PDF download trả backend ticket URL ngắn hạn; mobile fetch URL đó, không ghép path MinIO.
+- GeoTIFF là raster: render qua GeoServer WMS + Mapbox `RasterSource`/`RasterLayer`; không dùng MVT.
+- WMS template giữ literal `{bbox-epsg-3857}`, `srs=EPSG:3857`, `format=image/png`, `transparent=true`.
+- Forest Classification đã bị loại khỏi runtime/API/worker ngày 2026-08-13.
 - API không coi HTTP `200` là đủ: mobile phải kiểm tra `data`, trạng thái nghiệp vụ và lỗi RBAC.
 
-## Kết quả nghiệm thu lưu tại thời điểm handoff
+## Kết quả nghiệm thu lịch sử
 
-- Inventory tĩnh: **158 route handlers**.
-- Live HTTP happy-path: **150/158 route**; tăng từ 72 lên 150.
-- 8 route còn lại được phân loại, không giả PASS:
-    - 7 auth route cần Google/email/OAuth account thật.
-    - 1 terrain URL chưa có API ingest tạo `geotiff_minio` fixture.
-- `/metrics` đã live 200, payload Prometheus 62.651 bytes; count reconciled ngoài parser `/api/v1`.
-- GeoServer retry publish đã sửa exact `already exists`; `POST /admin/layers/1/publish` live 200.
-- Registry delete live: temporary published layer, create 201, delete 200, read-back 404,
-  layer cleanup; fixture registry `1` vẫn `GET`-only.
-- Statistics create/update/refresh/compare đã live 200/201 trên hai polygon layer tạm.
-- Routing lịch sử rebuild/topology/shortest đã live 200 trên LineString tạm; luồng này nay bị Mapbox backend proxy thay thế.
-- Ba layer polygon/routing lịch sử đã soft-delete qua API; fixture chính vẫn nguyên.
-- Lifecycle tạm đã dọn qua HTTP: users, sessions, storage, CMS, raster, field report,
-  draft, shared feature/key, KTTV source/station, Shapefile layer.
-- Bootstrap lần đầu: 96 request HTTP.
-- Bootstrap rerun idempotent: đạt; không tạo lại manual fixture hoặc API key sau fix.
-- Verify sau cleanup: 30/30; MVT đúng content type và body **150 bytes**.
-- HTML acceptance console: 45 case; người dùng chạy browser và xác nhận xanh toàn bộ.
-- Unit: 47 suites, 338 tests đạt; 1 suite/6 tests skip có chủ đích.
-- Integration trên `campha_test`: 20/20 suites, 92/92 tests đạt.
-- Coverage baseline: lines 38,50%, functions 31,46%, branches 30,42%.
-- K6 local: 20 VU/15 giây, 1.500 request, 0% lỗi, p95 2,1 ms.
-- ESLint: đạt.
-- `git diff --check`: đạt; chỉ cảnh báo LF/CRLF.
-- Production dependency audit: 0 vulnerabilities.
-- Credential scan: 241 file; không phát hiện private key/JWT/AWS/Google API key.
+Các số bên dưới thuộc acceptance ngày 2026-08-08, trước khi bỏ KTTV/Forest và thêm Flood/Storage ticket. Không dùng chúng làm inventory hiện tại. Inventory source/Postman hiện hành ngày 2026-08-13: **152/152 route `/api/v1` active có request Postman**, KTTV nằm ngoài active audit.
+
+Chi tiết test server mới nhất và live PDF/WMS nằm trong walkthrough ngày 2026-08-13. Chạy lại acceptance mobile trước staging; không kế thừa PASS lịch sử cho route đã thay đổi.
 
 ## Gate ngoài local acceptance
 

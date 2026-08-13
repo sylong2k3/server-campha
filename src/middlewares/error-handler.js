@@ -1,12 +1,13 @@
 const { BaseError } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
 const systemLogger = require('../utils/systemLogger.util');
+const { redactSensitiveUrl } = require('../utils/redact-url.util');
 const multer = require('multer');
 
 const notFoundHandler = (req, res) => {
     return res.status(404).json({
         success: false,
-        message: `Route ${req.method} ${req.originalUrl} not found`,
+        message: `Route ${req.method} ${redactSensitiveUrl(req.originalUrl)} not found`,
         errors: ['NOT_FOUND'],
     });
 };
@@ -121,23 +122,20 @@ const errorHandler = (err, req, res, next) => {
     }
 
     const statusCode = err.status || err.statusCode || 500;
+    const safeUrl = redactSensitiveUrl(req.originalUrl);
     console.error('[ERROR]', {
         method: req.method,
-        url: req.originalUrl,
+        url: safeUrl,
         status: statusCode,
         message: err.message,
         stack: err.stack,
     });
 
-    systemLogger.logError(
-        'http',
-        `${req.method} ${req.originalUrl} → ${statusCode}: ${err.message}`,
-        {
-            stack: err.stack,
-            userId: req.user?.id || null,
-            ipAddress: req.ip,
-        },
-    );
+    systemLogger.logError('http', `${req.method} ${safeUrl} → ${statusCode}: ${err.message}`, {
+        stack: err.stack,
+        userId: req.user?.id || null,
+        ipAddress: req.ip,
+    });
 
     return res.status(statusCode).json({
         success: false,

@@ -83,6 +83,8 @@ CLAMAV_PORT=3310
 
 GOOGLE_CALLBACK_URL=https://api.example.vn/api/v1/auth/google/callback
 FRONTEND_URL=https://app.example.vn
+API_BASE_URL=https://api.example.vn
+MINIO_PROXY_TIMEOUT_MS=120000
 ```
 
 Bổ sung biến DB, JWT, SMTP, MinIO, GeoServer, Firebase, GEE và OpenWeather từ secret store.
@@ -230,7 +232,11 @@ Kiểm tra:
 Anonymous access: 403
 Quarantine expiration: 1 ngày
 Multipart dở: abort sau 1 ngày
+API chỉ proxy bucket cấu hình khi URL có X-Amz-Signature
+GET/HEAD/PUT dùng MINIO_USE_SSL và timeout; client abort hủy upstream
 ```
+
+Download tệp có `core.file_objects.id` dùng backend ticket, không dùng direct bucket URL. Xem `docs/STORAGE_AND_RASTER_OPERATIONS.md`.
 
 ## 9. GeoServer
 
@@ -317,7 +323,7 @@ sudo certbot --nginx -d api.example.vn
 sudo certbot renew --dry-run
 ```
 
-Thay domain ví dụ bằng domain thật.
+Thay domain ví dụ bằng domain thật. `proxy_read_timeout` phải lớn hơn thời gian stream tệp lớn dự kiến; Node/MinIO proxy vẫn giữ timeout riêng. Không thêm Nginx `location` public trỏ thẳng `:9000`: API xử lý ticket/SigV4 proxy.
 
 ## 13. Firewall
 
@@ -351,7 +357,7 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-> Không bật UFW qua SSH trước khi xác nhận rule `OpenSSH`. Theo quyết định hiện tại, MinIO/GeoServer public ports là ngoại lệ tạm thời; vẫn nên đóng trước production chính thức.
+> Không bật UFW qua SSH trước khi xác nhận rule `OpenSSH`. MinIO/GeoServer public ports chỉ là residual risk tạm thời; đóng `9000/9001` trước production vì backend ticket/SigV4 proxy đã thay ingress trực tiếp.
 
 ## 14. Backup và giám sát
 
@@ -396,6 +402,9 @@ Backup phải được đồng bộ ra nơi độc lập với VPS. Phải test 
 [ ] `npm ci --omit=dev`
 [ ] `npm run migrate:status`
 [ ] `npm run security:audit` → 0 production vulnerabilities
+[ ] `API_BASE_URL` sinh URL `/api/v1/storage/objects/:id/file?ticket=...`
+[ ] CMS PDF download: 200, `application/pdf`, magic `%PDF-`; ticket sai trả 403
+[ ] Postman active route audit: 152/152; KTTV chỉ nằm folder Legacy
 ```
 
 Không cài:

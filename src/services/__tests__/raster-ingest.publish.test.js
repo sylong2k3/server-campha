@@ -290,7 +290,7 @@ describe('backLinkResource', () => {
         );
     });
 
-    test('warns and skips for legacy fire_risk / forest / satellite types', async () => {
+    test('warns and skips unsupported legacy backlink types', async () => {
         const db = makeDbForBacklink();
         const result = await backLinkResource(
             { type: 'fire_risk', id: 1 },

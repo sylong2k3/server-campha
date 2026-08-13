@@ -3,7 +3,11 @@
 const { Router } = require('express');
 const asyncHandler = require('../helpers/async-handler');
 const storageController = require('../controllers/storage.controller');
-const { optionalAuth, verifyToken, enforcePasswordChange } = require('../middlewares/auth.middleware');
+const {
+    optionalAuth,
+    verifyToken,
+    enforcePasswordChange,
+} = require('../middlewares/auth.middleware');
 const { validate } = require('../middlewares/validate.middleware');
 const {
     presignSchema,

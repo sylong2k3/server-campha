@@ -23,6 +23,14 @@ const boundedExpiry = (value, fallback) => {
     return seconds;
 };
 
+const apiV1BaseUrl = () => {
+    const configured = (process.env.API_BASE_URL || 'https://apicampha.tourismpj.pro.vn').replace(
+        /\/+$/,
+        '',
+    );
+    return configured.endsWith('/api/v1') ? configured : `${configured}/api/v1`;
+};
+
 const safeName = (originalName) => {
     const ext = path
         .extname(originalName || '')
@@ -92,11 +100,10 @@ const getPresignedDownloadUrl = async ({ objectKey, category, expireSeconds, fil
         const jwt = require('jsonwebtoken');
         const ticket = jwt.sign(
             { fileObjectId: fileId, purpose: 'file_download' },
-            process.env.JWT_SECRET || 'secret',
+            process.env.JWT_SECRET,
             { expiresIn: `${expire}s` },
         );
-        const baseUrl = process.env.API_BASE_URL || 'https://apicampha.tourismpj.pro.vn/api/v1';
-        const url = `${baseUrl}/storage/objects/${fileId}/file?ticket=${ticket}`;
+        const url = `${apiV1BaseUrl()}/storage/objects/${fileId}/file?ticket=${ticket}`;
         return { url, expiresAt: new Date(Date.now() + expire * 1000) };
     }
     let url = await getClient().presignedGetObject(

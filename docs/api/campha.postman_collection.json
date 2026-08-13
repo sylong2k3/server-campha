@@ -14,9 +14,9 @@
     },
     {
       "key": "testPassword",
-      "value": "CamPha@2026",
-      "type": "string",
-      "description": "Mật khẩu chung (dev only)"
+      "value": "",
+      "type": "secret",
+      "description": "Mật khẩu test; nhập ở environment/local secret, không lưu trong collection."
     },
     {
       "key": "adminEmail",
@@ -307,6 +307,51 @@
     {
       "key": "mobileFeatureRestoreVersion",
       "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "storageUploadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "storageDownloadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "storageTicket",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cmsDownloadObjectId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cmsDocumentDownloadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cmsPdfDownloadUrl",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "floodRunId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "floodArtifactId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "legacyKttvBaseUrl",
+      "value": "http://legacy-kttv-route-not-mounted.invalid",
       "type": "string"
     }
   ],
@@ -2324,7 +2369,7 @@
                 "presign"
               ]
             },
-            "description": "category: layers|raster|documents|field-photos. Trả về { uploadUrl, objectId }."
+            "description": "category: layers|raster|documents|field-photos. Trả về { id, uploadUrl, expiresAt }; id là core.file_objects.id."
           },
           "event": [
             {
@@ -2332,8 +2377,11 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const j = pm.response.json(); if (j.data && j.data.objectId) { pm.collectionVariables.set('storageObjectId', j.data.objectId); pm.environment.set('storageObjectId', j.data.objectId); }"
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('Đúng contract presign', () => { pm.expect(d.id).to.exist; pm.expect(d.uploadUrl).to.be.a('string'); });",
+                  "if (d && d.id) { pm.collectionVariables.set('storageObjectId', d.id); pm.environment.set('storageObjectId', d.id); }",
+                  "if (d && d.uploadUrl) { pm.collectionVariables.set('storageUploadUrl', d.uploadUrl); pm.environment.set('storageUploadUrl', d.uploadUrl); }"
                 ]
               }
             }
@@ -2445,7 +2493,7 @@
                 }
               ]
             },
-            "description": "Tải hoặc xem tệp trực tiếp thông qua luồng Proxy của Server Backend (không cần mở public cổng 9000 của MinIO). Hỗ trợ xác thực qua tham số query ?ticket= hoặc Bearer token."
+            "description": "Stream qua backend ticket hoặc Bearer owner. MinIO không cần public cổng 9000."
           },
           "event": [
             {
@@ -2453,7 +2501,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Có content-type và body', () => { pm.expect(pm.response.headers.get('Content-Type')).to.exist; pm.expect(pm.response.responseSize).to.be.above(0); });"
                 ]
               }
             }
@@ -4021,7 +4070,10 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const d = pm.response.json().data;",
+                      "pm.test('Trả backend ticket URL', () => { pm.expect(d.url).to.include('/api/v1/storage/objects/'); pm.expect(d.url).to.include('ticket='); });",
+                      "if (d && d.url) { pm.collectionVariables.set('cmsDocumentDownloadUrl', d.url); pm.environment.set('cmsDocumentDownloadUrl', d.url); const m=d.url.match(//objects/(d+)/file?ticket=([^&]+)/); if(m){ pm.collectionVariables.set('cmsDownloadObjectId',m[1]); pm.collectionVariables.set('storageTicket',decodeURIComponent(m[2])); pm.environment.set('cmsDownloadObjectId',m[1]); pm.environment.set('storageTicket',decodeURIComponent(m[2])); } }"
                     ]
                   }
                 }
@@ -4159,7 +4211,10 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const d = pm.response.json().data;",
+                      "pm.test('Trả backend ticket URL', () => { pm.expect(d.url).to.include('/api/v1/storage/objects/'); pm.expect(d.url).to.include('ticket='); });",
+                      "if (d && d.url) { pm.collectionVariables.set('cmsPdfDownloadUrl', d.url); pm.environment.set('cmsPdfDownloadUrl', d.url); const m=d.url.match(//objects/(d+)/file?ticket=([^&]+)/); if(m){ pm.collectionVariables.set('cmsDownloadObjectId',m[1]); pm.collectionVariables.set('storageTicket',decodeURIComponent(m[2])); pm.environment.set('cmsDownloadObjectId',m[1]); pm.environment.set('storageTicket',decodeURIComponent(m[2])); } }"
                     ]
                   }
                 }
@@ -4939,6 +4994,40 @@
                   ]
                 }
               ]
+            }
+          ]
+        },
+        {
+          "name": "Xác minh stream tài liệu/PDF từ ticket CMS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/storage/objects/{{cmsDownloadObjectId}}/file?ticket={{storageTicket}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "storage",
+                "objects",
+                "{{cmsDownloadObjectId}}",
+                "file"
+              ]
+            },
+            "description": "Chạy sau URL tải tài liệu hoặc URL tải bản đồ PDF."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('Tệp có content-type và body', () => { pm.expect(pm.response.headers.get('Content-Type')).to.exist; pm.expect(pm.response.responseSize).to.be.above(0); });"
+                ]
+              }
             }
           ]
         }
@@ -7006,8 +7095,8 @@
       ]
     },
     {
-      "name": "Khí tượng thủy văn",
-      "description": "Kịch bản do đơn vị nghiệp vụ tạo/ban hành. Weather API tự động và dữ liệu nhập tay dùng chung bộ đối sánh; không tự sinh kịch bản, không chạy mô hình.",
+      "name": "Legacy - KTTV (không được mount)",
+      "description": "20 request lịch sử. Source hiện tại không mount /api/v1/admin/kttv; không chạy trong active collection audit.",
       "auth": {
         "type": "bearer",
         "bearer": [
@@ -7039,9 +7128,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/stations",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7050,7 +7139,8 @@
                 "kttv",
                 "stations"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7084,9 +7174,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/scenarios",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7095,7 +7185,8 @@
                 "kttv",
                 "scenarios"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7130,9 +7221,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}/publish",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}/publish",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7143,7 +7234,8 @@
                 "{{kttvScenarioId}}",
                 "publish"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7178,9 +7270,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/inputs/manual",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/inputs/manual",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7190,7 +7282,8 @@
                 "inputs",
                 "manual"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7225,9 +7318,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7236,7 +7329,8 @@
                 "kttv",
                 "sources"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7257,9 +7351,9 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/collect",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/collect",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7270,7 +7364,8 @@
                 "{{kttvSourceId}}",
                 "collect"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7291,9 +7386,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/inputs?page=1&limit=20",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/inputs?page=1&limit=20",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7312,7 +7407,8 @@
                   "value": "20"
                 }
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           }
         },
         {
@@ -7321,9 +7417,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/inputs/{{kttvInputId}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/inputs/{{kttvInputId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7333,7 +7429,8 @@
                 "inputs",
                 "{{kttvInputId}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           }
         },
         {
@@ -7342,9 +7439,9 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios?page=1&limit=20",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/scenarios?page=1&limit=20",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7363,7 +7460,8 @@
                   "value": "20"
                 }
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           }
         },
         {
@@ -7382,9 +7480,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources?page=1&limit=20",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources?page=1&limit=20",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7403,7 +7501,8 @@
                   "value": "20"
                 }
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7433,9 +7532,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7445,7 +7544,8 @@
                 "sources",
                 "{{kttvSourceId}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7490,9 +7590,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7502,7 +7602,8 @@
                 "sources",
                 "{{kttvSourceId}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7533,9 +7634,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/test-connection",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}/test-connection",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7546,7 +7647,8 @@
                 "{{kttvSourceId}}",
                 "test-connection"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7576,9 +7678,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}?expectedUpdatedAt={{kttvSourceUpdatedAt}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/sources/{{kttvSourceId}}?expectedUpdatedAt={{kttvSourceUpdatedAt}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7595,7 +7697,7 @@
                 }
               ]
             },
-            "description": "Request phá hủy. Chay sau cung sau khi test nguon."
+            "description": "Request phá hủy. Chay sau cung sau khi test nguon.\nLEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7625,9 +7727,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations?page=1&limit=20",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/stations?page=1&limit=20",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7646,7 +7748,8 @@
                   "value": "20"
                 }
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7676,9 +7779,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7688,7 +7791,8 @@
                 "stations",
                 "{{kttvStationCode}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7733,9 +7837,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7745,7 +7849,8 @@
                 "stations",
                 "{{kttvStationCode}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7776,9 +7881,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}?expectedUpdatedAt={{kttvStationUpdatedAt}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/stations/{{kttvStationCode}}?expectedUpdatedAt={{kttvStationUpdatedAt}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7795,7 +7900,7 @@
                 }
               ]
             },
-            "description": "Request phá hủy. Chạy sau cùng khi trạm không còn được dữ liệu đầu vào tham chiếu."
+            "description": "Request phá hủy. Chạy sau cùng khi trạm không còn được dữ liệu đầu vào tham chiếu.\nLEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7825,9 +7930,9 @@
               ]
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7837,7 +7942,8 @@
                 "scenarios",
                 "{{kttvScenarioId}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -7882,9 +7988,9 @@
               }
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}",
+              "raw": "{{legacyKttvBaseUrl}}/api/v1/admin/kttv/scenarios/{{kttvScenarioId}}",
               "host": [
-                "{{baseUrl}}"
+                "{{legacyKttvBaseUrl}}"
               ],
               "path": [
                 "api",
@@ -7894,7 +8000,8 @@
                 "scenarios",
                 "{{kttvScenarioId}}"
               ]
-            }
+            },
+            "description": "LEGACY: route không được mount trong server hiện tại."
           },
           "event": [
             {
@@ -8359,6 +8466,588 @@
                   "pm.test('200 OK', () => pm.response.to.have.status(200));"
                 ]
               }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ngập lụt",
+      "description": "API Flood/Hydrology đang được mount. Dùng tnmtToken cho route quản trị.",
+      "item": [
+        {
+          "name": "Công khai",
+          "item": [
+            {
+              "name": "Tổng quan ngập lụt",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/flood/overview",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "flood",
+                    "overview"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Chú giải ngập lụt",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/flood/legends",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "flood",
+                    "legends"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Danh sách lớp ngập lụt",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/flood/layers?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "flood",
+                    "layers"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Danh sách lần chạy công khai",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/flood/runs?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "flood",
+                    "runs"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Quản trị",
+          "auth": {
+            "type": "bearer",
+            "bearer": [
+              {
+                "key": "token",
+                "value": "{{tnmtToken}}",
+                "type": "string"
+              }
+            ]
+          },
+          "item": [
+            {
+              "name": "Dashboard ngập lụt",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/dashboard",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "dashboard"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cấu hình ngập lụt",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "config"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Hàng đợi xử lý",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/queue",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "queue"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Danh sách lần chạy quản trị",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/runs?page=1&limit=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "runs"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a=pm.response.json().data?.items||[]; if(a[0]?.id){ pm.collectionVariables.set('floodRunId',a[0].id); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Chi tiết lần chạy",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/runs/{{floodRunId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "runs",
+                    "{{floodRunId}}"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const d=pm.response.json().data; const a=d?.artifacts||[]; if(a[0]?.id){ pm.collectionVariables.set('floodArtifactId',a[0].id); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Tạo lần chạy",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"module\": \"event\",\n  \"mode\": \"product\",\n  \"config\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/runs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "runs"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
+                      "const d=pm.response.json().data; if(d?.id){ pm.collectionVariables.set('floodRunId',d.id); pm.environment.set('floodRunId',d.id); }"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Chạy lại",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/runs/{{floodRunId}}/rerun",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "runs",
+                    "{{floodRunId}}",
+                    "rerun"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Hủy lần chạy",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/runs/{{floodRunId}}/cancel",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "runs",
+                    "{{floodRunId}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Xuất bản artifact",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/artifacts/{{floodArtifactId}}/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "artifacts",
+                    "{{floodArtifactId}}",
+                    "publish"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Gỡ xuất bản artifact",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/artifacts/{{floodArtifactId}}/unpublish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "artifacts",
+                    "{{floodArtifactId}}",
+                    "unpublish"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
             }
           ]
         }

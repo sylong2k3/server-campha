@@ -1,5 +1,7 @@
 'use strict';
 
+process.env.JWT_SECRET ||= 'test-download-ticket-secret-at-least-32-characters';
+
 jest.mock('../../configs/minioClient', () => ({
     getBucketForCategory: jest.fn(() => 'campha-documents'),
 }));
@@ -14,6 +16,7 @@ jest.mock('../minio.service', () => ({
     removeQuarantineObject: jest.fn(),
     removeObject: jest.fn(),
     getPresignedDownloadUrl: jest.fn(),
+    getObjectStream: jest.fn(),
 }));
 jest.mock('../clamav.service', () => {
     class ClamAvUnavailableError extends Error {}
@@ -27,6 +30,7 @@ jest.mock('../../repositories/storage.repository', () => ({
     markRejected: jest.fn(),
     resetPending: jest.fn(),
     findAccessibleById: jest.fn(),
+    findById: jest.fn(),
     enqueueDelete: jest.fn(),
 }));
 const { Readable } = require('stream');
@@ -201,6 +205,61 @@ describe('storage quarantine workflow', () => {
             status: 409,
             errors: ['FILE_STILL_IN_USE', 'cms_document'],
         });
+    });
+    test('stream without ticket uses owner-scoped lookup', async () => {
+        repo.findAccessibleById.mockResolvedValue(null);
+        await expect(service.streamFile(11, null, actor)).rejects.toMatchObject({ status: 404 });
+        expect(repo.findAccessibleById).toHaveBeenCalledWith(11, actor.id);
+        expect(repo.findById).not.toHaveBeenCalled();
+    });
+    test('valid ticket streams its bound ready object and invalid ticket is rejected', async () => {
+        const jwt = require('jsonwebtoken');
+        const ticket = jwt.sign(
+            { fileObjectId: 11, purpose: 'file_download' },
+            process.env.JWT_SECRET,
+            { expiresIn: '60s' },
+        );
+        repo.findById.mockResolvedValue({
+            id: 11,
+            lifecycle_status: 'ready',
+            object_key: 'o',
+            category: 'documents',
+            detected_mime: 'application/pdf',
+            size_bytes: 5,
+            original_name: 'report.pdf',
+        });
+        minio.getObjectStream.mockResolvedValue(stream('%PDF'));
+        await expect(service.streamFile(11, ticket, null)).resolves.toMatchObject({
+            mimeType: 'application/pdf',
+            sizeBytes: 5,
+            originalName: 'report.pdf',
+        });
+        expect(repo.findById).toHaveBeenCalledWith(11);
+        await expect(service.streamFile(12, ticket, null)).rejects.toMatchObject({ status: 403 });
+        await expect(service.streamFile(11, 'broken', null)).rejects.toMatchObject({ status: 403 });
+    });
+    test('expired ticket and non-ready object are rejected', async () => {
+        const jwt = require('jsonwebtoken');
+        const expiredTicket = jwt.sign(
+            { fileObjectId: 11, purpose: 'file_download' },
+            process.env.JWT_SECRET,
+            { expiresIn: -1 },
+        );
+        await expect(service.streamFile(11, expiredTicket, null)).rejects.toMatchObject({
+            status: 403,
+        });
+        expect(repo.findById).not.toHaveBeenCalled();
+
+        const validTicket = jwt.sign(
+            { fileObjectId: 11, purpose: 'file_download' },
+            process.env.JWT_SECRET,
+            { expiresIn: '60s' },
+        );
+        repo.findById.mockResolvedValue({ id: 11, lifecycle_status: 'pending' });
+        await expect(service.streamFile(11, validTicket, null)).rejects.toMatchObject({
+            status: 404,
+        });
+        expect(minio.getObjectStream).not.toHaveBeenCalled();
     });
     test('direct upload streams to quarantine, scans and returns ready object', async () => {
         const requestStream = stream('II*\0clean-raster');

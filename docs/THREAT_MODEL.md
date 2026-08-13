@@ -35,17 +35,17 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 | Migration chạy đồng thời/bị sửa | Advisory lock, SHA256 checksum, transaction từng file | Backup/restore drill |
 | Upload độc hại/zip bomb | Presigned PUT chỉ vào quarantine; allow-list extension; magic bytes; size limit; ClamAV INSTREAM fail-closed; SHA-256 trước promote | Bật `clamd` native và UAT malware thật; ZIP entry/decompression limits ở Sprint 3 import |
 | SSRF/redirect qua GeoServer | Base URL chỉ từ server config; path nội bộ; resource identifier validation; `redirect: error`; sanitized upstream errors | Outbound firewall allow-list |
-| Lộ object storage | 5 bucket private; anonymous request trả 403; empty anonymous policy; download URL ngắn hạn theo owner | TLS/đóng cổng MinIO theo lịch vận hành |
+| Lộ object storage | Bucket private; anonymous request trả 403; backend ticket bind `fileObjectId`; Bearer không-ticket dùng owner-scoped lookup; SigV4 proxy chỉ bucket cấu hình + signed query + GET/HEAD/PUT | Đóng public 9000/9001, TLS nội bộ và rotate MinIO credentials |
 | Queue replay/trùng job | Chưa có queue nghiệp vụ | Khi có job dài: PostgreSQL `FOR UPDATE SKIP LOCKED` + idempotency; chỉ thêm Redis nếu đo được nút nghẽn |
 | Lộ secret | `.env` ignored; credential MinIO/GeoServer đọc từ `.secrets/`; `.env.example` chỉ chứa path | Secret manager/rotation production |
 | Xóa log che dấu hành vi | Cleanup yêu cầu DB permission, ghi audit riêng | WORM/export log production |
 | Stored XSS CMS/bình luận | News plain text/Markdown; comment plain text, từ chối markup; CSP Helmet | Chỉ thêm rich HTML với maintained allowlist sanitizer |
 | Lộ tài liệu nội bộ/IDOR | `visibility` lọc trong SQL; unauthorized trả 404; file metadata không lộ object key | Ma trận integration mọi role |
 | Spam bình luận | Login bắt buộc, trạng thái pending, rate limit 10/15 phút | CAPTCHA/moderation analytics khi có abuse thật |
-| File CMS/XXE/presigned leak | Quarantine + magic bytes + ClamAV fail-closed; XML cấm DTD/entity; URL ký 60–900 giây | Live MinIO/ClamAV UAT với fixtures thật |
+| File CMS/XXE/presigned leak | Quarantine + magic bytes + ClamAV fail-closed; XML cấm DTD/entity; CMS select internal `file_object_id` và trả backend ticket 60–3600 giây; query chữ ký không được log | Live MinIO/ClamAV UAT với fixtures thật |
 | Raster lớn gây cạn tài nguyên | Upload quarantine, giới hạn 2 GiB, GeoTIFF magic bytes, ClamAV fail-closed | Đo tải/live UAT với cảnh cắt nhỏ |
 | Satellite IDOR/lộ object key | Metadata API không serialize bucket/object key; file phải owner-owned/ready/clean; download RBAC | Integration anonymous + 5 role DB |
-| Presigned replay/tải hàng loạt | Compare URL 60 giây; download 60–900 giây và giới hạn 20/15 phút theo user | Shared limiter store khi chạy nhiều process |
+| Presigned replay/tải hàng loạt | Ticket/SigV4 ngắn hạn; purpose + file ID được verify; owner fallback; API rate limit; proxy timeout/client-abort | Shared limiter store khi chạy nhiều process; cân nhắc one-time JTI khi có yêu cầu chống replay tuyệt đối |
 | Metadata injection/query abuse | Joi strict; SQL tham số; sort/platform allowlist; page limit ≤100; ISO XML escape | Đối chiếu TCVN/QCVN chính thức + XML schema |
 | Share API replay/quota abuse | JWT secret riêng, JTI hash, DB lookup, PostgreSQL atomic quota, immediate revoke/rotate | Staging partner UAT |
 | Metrics disclosure/cardinality | Disabled mặc định; bearer timing-safe; bounded route/status labels; no-store | Nginx private route + token rotation |
@@ -56,8 +56,8 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 
 ## Giả định cần kiểm tra
 
-- MinIO và GeoServer hiện vẫn có cổng reachable; người vận hành đã quyết định đóng sau. Đây là residual risk được chấp nhận tạm thời, không phải trạng thái production-ready.
+- MinIO/GeoServer public port còn reachable là residual risk, không phải trạng thái production-ready. API đã có ticket và SigV4 proxy nên phải đóng 9000/9001 sau smoke test.
 - WFS/WMS trực tiếp hiện reachable; Node proxy đã read-only/ACL nhưng không thay thế firewall gate.
 - `CLAMAV_ENABLED=false` đến khi `clamd` native được cài và UAT; vì fail-closed nên commit upload sẽ trả 503 khi scanner chưa bật.
-- Nginx truyền đúng client IP và `TRUST_PROXY` được cấu hình chính xác.
+- Nginx truyền đúng client IP và `TRUST_PROXY`; `API_BASE_URL` trỏ public origin/API, không trỏ MinIO.
 - Mật khẩu seed bị đổi hoặc tài khoản seed bị xóa trước production.

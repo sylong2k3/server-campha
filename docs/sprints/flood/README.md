@@ -13,21 +13,18 @@ Ngày chốt source: 2026-08-12. Trạng thái chung:
 | FLOOD-S06 | Client WebGIS M1–M5 | Done | Browser/responsive/live WMS UAT |
 | FLOOD-S07 | Admin dashboard/run/artifact/publish | Done | Operator workflow UAT |
 | FLOOD-S08 | M5 trend/frequency/change/validation | Done | Multi-year science validation |
-| FLOOD-S09 | Regression, Forest retention, handoff | Done | Apply migrations 080–083 + E2E sign-off |
+| FLOOD-S09 | Regression, Forest removal, handoff | Done | Apply Flood migrations + E2E sign-off |
 
-## Forest regression guard
+## Forest removal decision
 
-Forest Classification không thuộc Flood. Migration `083` phục hồi persistence
-và RBAC; route, model v5.3, cron, GEE child, ground truth, client và admin đều
-giữ miền riêng. Production phải mount boundary/administrative-unit GeoJSON Cẩm
-Phả, đặt expected district count, tạo bucket Forest và chạy golden snapshot.
+Forest Classification không thuộc Flood và không có phạm vi nghiệp vụ tại Cẩm Phả. Ngày 2026-08-13, route, model runtime, cron, GEE child, ground-truth API, bucket config và UI integration Forest đã bị xóa. Migration lịch sử vẫn giữ để không phá dữ liệu/schema đã áp dụng; không được dùng migration tồn tại làm bằng chứng module còn active.
 
 ## Evidence
 
-- Server lint PASS; 74 suites/724 tests PASS, 1 suite/6 tests skip.
+- Server lint/test và live storage evidence: xem walkthrough ngày 2026-08-13; không giữ số suite cũ trong tài liệu sprint.
 - Client build PASS; client lint 0 error.
 - Admin TypeScript + Vite build PASS; targeted Flood lint PASS.
-- Server production dependency audit: 0 vulnerability.
+- Server production dependency audit tại thời điểm handoff: 0 vulnerability.
 
 Xem báo cáo đầy đủ tại
 [FIRE_RISK_TO_FLOOD_IMPLEMENTATION_RESULT.md](../../../../docs/FIRE_RISK_TO_FLOOD_IMPLEMENTATION_RESULT.md).

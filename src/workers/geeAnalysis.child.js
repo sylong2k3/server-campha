@@ -24,13 +24,7 @@ require('dotenv').config({ quiet: true });
 
 const db = require('../configs/database');
 const runExecutor = require('../services/flood/run-executor.service');
-const SUPPORTED_KINDS = Object.freeze([
-    'event',
-    'hand',
-    'rain',
-    'impact',
-    'trend',
-]);
+const SUPPORTED_KINDS = Object.freeze(['event', 'hand', 'rain', 'impact', 'trend']);
 
 let received = false;
 const MEMORY_HEARTBEAT_MS = Math.max(
