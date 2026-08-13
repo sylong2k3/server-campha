@@ -198,6 +198,7 @@ const layerUpdateSchema = Joi.object({
     expectedUpdatedAt: Joi.date().iso().required(),
     nameVi: Joi.string().trim().min(2).max(200),
     category: Joi.string().trim().min(1).max(50).allow(null),
+    categoryName: Joi.string().trim().min(2).max(120).allow(null),
     styleName: Joi.string()
         .pattern(/^[A-Za-z][A-Za-z0-9_-]{0,79}$/)
         .allow(null),
@@ -206,15 +207,18 @@ const layerUpdateSchema = Joi.object({
     legendConfig: Joi.object().unknown(true),
     metadata: Joi.object({ standardProfile: Joi.forbidden() }).unknown(true),
     isPublic: Joi.boolean(),
+    isEnableDefault: Joi.boolean(),
 }).or(
     'nameVi',
     'category',
+    'categoryName',
     'styleName',
     'minZoom',
     'maxZoom',
     'legendConfig',
     'metadata',
     'isPublic',
+    'isEnableDefault',
 );
 
 const permissionItem = Joi.object({

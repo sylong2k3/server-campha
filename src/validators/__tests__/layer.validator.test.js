@@ -63,6 +63,24 @@ describe('layer validator', () => {
         ).toBeUndefined();
     });
 
+    test('layer update accepts the default-enabled setting', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                isEnableDefault: true,
+            }).error,
+        ).toBeUndefined();
+    });
+
+    test('layer update accepts a Vietnamese category display name', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                categoryName: 'Ranh giới hành chính',
+            }).error,
+        ).toBeUndefined();
+    });
+
     test('ACL rejects duplicate role codes', () => {
         const item = {
             roleCode: 'citizen',

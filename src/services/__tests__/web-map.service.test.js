@@ -23,12 +23,15 @@ const layer = {
     id: 1,
     code: 'phuong',
     name_vi: 'Phường',
+    category: 'administrative',
+    category_name: 'Ranh giới hành chính',
     storage_kind: 'postgis',
     table_name: 'layer_1',
     style_name: 'style',
     min_zoom: 8,
     max_zoom: 18,
     legend_config: { type: 'single' },
+    is_enable_default: true,
     metadata: {
         searchFields: ['ten'],
         displayFields: ['ten'],
@@ -49,6 +52,10 @@ describe('web map service', () => {
         ]);
         expect(anonymous[0]).not.toHaveProperty('table_name');
         expect(anonymous[0]).not.toHaveProperty('metadata');
+        expect(anonymous[0]).toMatchObject({
+            categoryName: 'Ranh giới hành chính',
+            isEnableDefault: true,
+        });
         expect(anonymous[0]).toMatchObject({ canEdit: false, editableFields: [] });
         await expect(
             service.listLayers(undefined, { permissions: { map: { view: false } } }),

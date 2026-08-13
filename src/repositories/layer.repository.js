@@ -143,12 +143,14 @@ const updateMetadata = async (id, payload) => {
     const fields = {
         nameVi: 'name_vi',
         category: 'category',
+        categoryName: 'category_name',
         styleName: 'style_name',
         minZoom: 'min_zoom',
         maxZoom: 'max_zoom',
         legendConfig: 'legend_config',
         metadata: 'metadata',
         isPublic: 'is_public',
+        isEnableDefault: 'is_enable_default',
     };
     const params = [];
     const assignments = [];

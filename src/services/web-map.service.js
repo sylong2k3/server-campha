@@ -59,6 +59,7 @@ const serializeLayer = (layer, actor) => {
         code: layer.code,
         nameVi: layer.name_vi,
         category: layer.category,
+        categoryName: layer.category_name || null,
         geometryType: layer.geometry_type,
         storageKind: layer.storage_kind,
         srid: layer.srid,
@@ -68,6 +69,7 @@ const serializeLayer = (layer, actor) => {
         maxZoom: layer.max_zoom,
         legend: layer.legend_config,
         isPublic: layer.is_public,
+        isEnableDefault: layer.is_enable_default,
         canEdit: canEditLayer(layer, actor),
         editableFields,
     };

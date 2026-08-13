@@ -28,9 +28,9 @@ const catalog = async (actor, category) => {
         where.push(`l.category = $${params.length}`);
     }
     const { rows } = await db.query(
-        `SELECT l.id, l.code, l.name_vi, l.category, l.geometry_type, l.srid,
+        `SELECT l.id, l.code, l.name_vi, l.category, l.category_name, l.geometry_type, l.srid,
                 l.storage_kind, l.table_name, l.geoserver_layer, l.style_name,
-                l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.metadata,
+                l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.is_enable_default, l.metadata,
                 COALESCE(lp.can_edit, false) AS role_can_edit
          FROM gis.layers l
          LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $1

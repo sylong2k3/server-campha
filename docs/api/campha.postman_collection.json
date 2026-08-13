@@ -2852,7 +2852,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\",\n  \"nameVi\": \"Ranh gioi phuong (cập nhật)\",\n  \"isPublic\": true,\n  \"minZoom\": 10,\n  \"maxZoom\": 18\n}",
+              "raw": "{\n  \"expectedUpdatedAt\": \"2026-01-01T00:00:00.000Z\",\n  \"nameVi\": \"Ranh gioi phuong (cập nhật)\",\n  \"category\": \"administrative\",\n  \"categoryName\": \"Ranh giới hành chính\",\n  \"isPublic\": true,\n  \"isEnableDefault\": false,\n  \"minZoom\": 10,\n  \"maxZoom\": 18\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -3254,7 +3254,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                  "const items = pm.response.json().data.items; if (items && items.length > 0) { pm.collectionVariables.set('layerId', items[0].id); pm.environment.set('layerId', items[0].id); }"
+                  "const data = pm.response.json().data; const items = Array.isArray(data) ? data : (data?.items || []); if (items.length > 0) { pm.collectionVariables.set('layerId', items[0].id); pm.environment.set('layerId', items[0].id); }"
                 ]
               }
             }
