@@ -172,6 +172,199 @@ const NEWS_ITEMS = [
         status: 'draft',
         authorEmail: ADMIN_EMAIL,
     },
+
+    // ── Tin tức ngập lụt Cẩm Phả ─────────────────────────────────────────
+    {
+        title: 'Thông báo khẩn: Ngập lụt diện rộng tại TP. Cẩm Phả — Người dân cần sơ tán ngay',
+        summary:
+            'UBND thành phố Cẩm Phả phát thông báo khẩn cấp về tình trạng ngập lụt diện rộng do mưa lớn kéo dài từ ngày 20–22/07/2026. Nhiều khu vực trũng thấp bị ngập sâu từ 0,5 đến 1,5 m.',
+        content: `<h2>THÔNG BÁO KHẨN: Ngập lụt diện rộng tại TP. Cẩm Phả</h2>
+<p><strong>Ban hành: 21/07/2026 — UBND TP. Cẩm Phả</strong></p>
+<p>Do ảnh hưởng của rãnh áp thấp kết hợp hoàn lưu sau bão số 3, từ 22h ngày 20/07/2026 đến nay, mưa rất to đã gây ra tình trạng ngập lụt diện rộng trên địa bàn thành phố Cẩm Phả.</p>
+<h3>Các khu vực bị ảnh hưởng nặng</h3>
+<ul>
+  <li><strong>Phường Quang Hanh:</strong> Ngập từ 0,8–1,2 m tại tổ 3, 4, 5 — gần 200 hộ dân bị ảnh hưởng</li>
+  <li><strong>Phường Mông Dương:</strong> Ngập từ 0,5–1,5 m khu vực gần sông Mông Dương</li>
+  <li><strong>Phường Cẩm Thịnh:</strong> Ngập úng cục bộ 0,3–0,6 m tại các tuyến đường trũng thấp</li>
+  <li><strong>Phường Dương Huy:</strong> Lũ quét qua suối nhỏ, một số tuyến đường bị chia cắt</li>
+  <li><strong>Phường Cẩm Phú:</strong> Ngập 0,4–0,7 m tại khu vực chợ và đường Lê Thánh Tông</li>
+</ul>
+<h3>Lực lượng ứng cứu đã triển khai</h3>
+<p>UBND thành phố đã huy động hơn 300 cán bộ, chiến sĩ lực lượng vũ trang và dân quân tự vệ phối hợp cùng Phòng Cảnh sát PCCC&amp;CNCH tổ chức hỗ trợ sơ tán người dân, vật nuôi và tài sản tại các khu vực nguy hiểm.</p>
+<h3>Khuyến cáo người dân</h3>
+<ul>
+  <li>Không di chuyển ra đường khi không cần thiết, đặc biệt trẻ em và người già</li>
+  <li>Không lội qua khu vực nước chảy xiết, ngầm tràn đang ngập sâu</li>
+  <li>Cắt điện và đưa đồ đạc, thực phẩm lên cao trước khi nước dâng</li>
+  <li>Liên hệ đường dây nóng PCTT: <strong>0260 399 9999</strong> khi cần hỗ trợ khẩn cấp</li>
+</ul>
+<p><em>Thông tin cập nhật liên tục trên Cổng thông tin điện tử TP. Cẩm Phả và kênh quan trắc WebGIS.</em></p>`,
+        visibility: 'public',
+        status: 'published',
+        authorEmail: UBND_EMAIL,
+    },
+    {
+        title: 'Tình hình thiệt hại và khắc phục sau đợt ngập lụt tháng 7/2026 tại TP. Cẩm Phả',
+        summary:
+            'Sau 3 ngày mưa lớn (20–22/07/2026), đợt ngập lụt tháng 7 đã gây thiệt hại đáng kể trên địa bàn TP. Cẩm Phả. Hiện các đơn vị đang tập trung khắc phục hậu quả, dự kiến hoàn thành trước 01/08/2026.',
+        content: `<h2>Báo cáo thiệt hại và công tác khắc phục ngập lụt tháng 7/2026</h2>
+<p><strong>Cập nhật đến 23:00 ngày 23/07/2026 — UBND TP. Cẩm Phả</strong></p>
+<h3>Tổng quan thiệt hại</h3>
+<table border="1" cellpadding="4">
+  <tr><th>Hạng mục</th><th>Số lượng</th><th>Ghi chú</th></tr>
+  <tr><td>Hộ dân bị ngập</td><td>847 hộ</td><td>Tập trung ở Quang Hanh, Mông Dương, Cẩm Thịnh</td></tr>
+  <tr><td>Người đã sơ tán</td><td>1.234 người</td><td>Đến các địa điểm tập kết an toàn</td></tr>
+  <tr><td>Nhà bị sập/tốc mái</td><td>12 nhà</td><td>Không có thiệt hại về người</td></tr>
+  <tr><td>Đường bị chia cắt</td><td>8 tuyến</td><td>Dự kiến thông xe trong 48 giờ</td></tr>
+  <tr><td>Diện tích lúa bị hại</td><td>~45 ha</td><td>Xã Cộng Hòa và phường Dương Huy</td></tr>
+</table>
+<h3>Công tác khắc phục</h3>
+<p>Sở Xây dựng Quảng Ninh phối hợp UBND thành phố Cẩm Phả triển khai khắc phục hạ tầng:</p>
+<ul>
+  <li>Nạo vét và khơi thông 15 tuyến cống thoát nước chính</li>
+  <li>Bơm tiêu nước tại 6 điểm ngập sâu khu dân cư</li>
+  <li>Sửa chữa khẩn cấp 3 đoạn đường bị lún, sụt sau lũ</li>
+  <li>Củng cố và gia cố tạm thời 2 đoạn bờ kè sông Mông Dương bị sạt lở</li>
+</ul>
+<h3>Hỗ trợ nhân đạo</h3>
+<p>UBND thành phố đã phân bổ 500 suất quà hỗ trợ (gồm mì tôm, nước uống, thuốc men) cho các hộ dân bị ảnh hưởng nặng tại 4 phường trọng điểm. Hội Chữ thập đỏ thành phố tổ chức các điểm nấu ăn miễn phí cho người dân vùng ngập.</p>
+<p><em>Kết quả quan trắc mực nước thời gian thực có thể xem trên hệ thống WebGIS thành phố.</em></p>`,
+        visibility: 'public',
+        status: 'published',
+        authorEmail: UBND_EMAIL,
+    },
+    {
+        title: 'Hướng dẫn người dân ứng phó an toàn khi xảy ra ngập lụt tại TP. Cẩm Phả',
+        summary:
+            'Hướng dẫn chi tiết các biện pháp ứng phó an toàn trước, trong và sau khi ngập lụt xảy ra, dành cho người dân TP. Cẩm Phả — đặc biệt tại các phường có nguy cơ cao: Quang Hanh, Mông Dương, Cẩm Thịnh.',
+        content: `<h2>Hướng dẫn ứng phó ngập lụt — Dành cho người dân TP. Cẩm Phả</h2>
+<p><em>Ban hành bởi UBND TP. Cẩm Phả — Ban chỉ huy Phòng chống thiên tai</em></p>
+<h3>Trước khi ngập lụt</h3>
+<ul>
+  <li>Theo dõi bản tin thời tiết, cảnh báo KTTV và thông báo từ chính quyền địa phương</li>
+  <li>Chuyển đồ đạc, thực phẩm, thuốc men lên cao; tắt các thiết bị điện tầng dưới</li>
+  <li>Chuẩn bị túi đồ khẩn cấp gồm: đèn pin, pin dự phòng, thuốc thiết yếu, giấy tờ tùy thân, tiền mặt</li>
+  <li>Liên hệ hàng xóm, đặc biệt người già, người khuyết tật cần hỗ trợ sơ tán</li>
+  <li>Biết rõ địa điểm tập kết sơ tán gần nhất tại phường</li>
+</ul>
+<h3>Trong khi ngập lụt</h3>
+<ul>
+  <li><strong>Không lội qua nước chảy xiết</strong> — chỉ 15 cm nước chảy đã đủ sức cuốn ngã người lớn</li>
+  <li>Không sử dụng điện trong vùng ngập; nếu cần cắt CB tổng từ vị trí cao và khô ráo</li>
+  <li>Trẻ em phải mặc áo phao hoặc dụng cụ nổi nếu di chuyển trong vùng ngập</li>
+  <li>Gọi đường dây nóng PCTT: <strong>0260 399 9999</strong> hoặc 112 khi cần cứu hộ khẩn cấp</li>
+  <li>Không tự ý trở về nhà khi chính quyền chưa thông báo an toàn</li>
+</ul>
+<h3>Sau khi ngập rút</h3>
+<ul>
+  <li>Kiểm tra an toàn điện, gas trước khi dùng lại</li>
+  <li>Không uống nước lũ, không ăn thực phẩm tiếp xúc với nước lũ</li>
+  <li>Vệ sinh nhà cửa, phun khử khuẩn phòng tránh dịch bệnh (tiêu chảy, sốt xuất huyết)</li>
+  <li>Phản ánh hư hỏng hạ tầng (đường, cống, điện) qua ứng dụng Phản ánh hiện trường</li>
+</ul>
+<h3>Liên hệ hỗ trợ</h3>
+<ul>
+  <li>Đường dây nóng PCTT TP. Cẩm Phả: <strong>0260 399 9999</strong></li>
+  <li>Phòng Cảnh sát PCCC &amp; CNCH: <strong>114</strong></li>
+  <li>Trung tâm Y tế TP. Cẩm Phả: <strong>0260 386 2049</strong></li>
+</ul>`,
+        visibility: 'public',
+        status: 'published',
+        authorEmail: UBND_EMAIL,
+    },
+    {
+        title: 'Báo cáo nội bộ: Đánh giá thiệt hại và phương án khắc phục ngập lụt tháng 7/2026',
+        summary:
+            '[NỘI BỘ] Báo cáo chi tiết đánh giá thiệt hại, phân tích nguyên nhân và phương án khắc phục toàn diện sau đợt ngập lụt ngày 20–22/07/2026 — gửi lãnh đạo thành phố và các đơn vị liên quan.',
+        content: `<h2>BÁO CÁO NỘI BỘ: Đánh giá thiệt hại và phương án khắc phục ngập lụt tháng 7/2026</h2>
+<p><em>TÀI LIỆU NỘI BỘ — Không phổ biến rộng rãi</em></p>
+<p><strong>Ngày báo cáo:</strong> 24/07/2026 | <strong>Đơn vị lập:</strong> Phòng Quản lý Đô thị TP. Cẩm Phả</p>
+<h3>I. Phân tích nguyên nhân</h3>
+<h4>1. Nguyên nhân khách quan</h4>
+<ul>
+  <li>Lượng mưa 248 mm trong 24h (ngày 20–21/07) vượt tần suất thiết kế hệ thống thoát nước 50 năm (220 mm/24h)</li>
+  <li>Triều cường đạt 1,8 m lúc 03:00 ngày 21/07, kết hợp mưa lớn làm chậm thoát nước</li>
+  <li>Bão số 3 trước đó đã làm giảm sức chứa các hồ điều hòa</li>
+</ul>
+<h4>2. Nguyên nhân chủ quan (cần khắc phục)</h4>
+<ul>
+  <li>Hệ thống cống thoát nước phường Quang Hanh chưa được nâng cấp theo quy hoạch 2023</li>
+  <li>6/15 cống thu nước dọc đường Lê Thánh Tông bị lắng bùn, chỉ hoạt động 40% công suất</li>
+  <li>Bơm tiêu nước trạm Cẩm Thịnh hỏng 1/3 máy bơm (chưa sửa từ tháng 5/2026)</li>
+  <li>Hệ thống cảnh báo sớm chỉ gửi SMS, chưa tích hợp cảnh báo đẩy qua app di động</li>
+</ul>
+<h3>II. Thiệt hại chi tiết</h3>
+<table border="1" cellpadding="4">
+  <tr><th>Khu vực</th><th>Hộ ngập</th><th>Thời gian ngập</th><th>Độ ngập TĐ</th><th>Ước tính thiệt hại</th></tr>
+  <tr><td>Quang Hanh (tổ 3–5)</td><td>312 hộ</td><td>18 giờ</td><td>1,2 m</td><td>~1,8 tỷ đồng</td></tr>
+  <tr><td>Mông Dương (ven sông)</td><td>287 hộ</td><td>14 giờ</td><td>0,9 m</td><td>~1,2 tỷ đồng</td></tr>
+  <tr><td>Cẩm Thịnh (khu trũng)</td><td>181 hộ</td><td>10 giờ</td><td>0,5 m</td><td>~650 triệu đồng</td></tr>
+  <tr><td>Cẩm Phú (khu chợ)</td><td>67 hộ</td><td>6 giờ</td><td>0,4 m</td><td>~320 triệu đồng</td></tr>
+  <tr><td>Các phường khác</td><td>~200 hộ</td><td>4–8 giờ</td><td>0,3 m</td><td>~400 triệu đồng</td></tr>
+  <tr><td><strong>Tổng cộng</strong></td><td><strong>~1.047 hộ</strong></td><td>—</td><td>—</td><td><strong>~4,35 tỷ đồng</strong></td></tr>
+</table>
+<h3>III. Phương án khắc phục và đầu tư dài hạn</h3>
+<ol>
+  <li><strong>Ngắn hạn (trước 30/08/2026):</strong> Nạo vét toàn bộ hệ thống cống chính; sửa chữa bơm tiêu nước Cẩm Thịnh; gia cố bờ kè Mông Dương tại 2 điểm sạt lở.</li>
+  <li><strong>Trung hạn (Q4/2026–Q1/2027):</strong> Lập dự án nâng cấp cống thoát nước Quang Hanh (dự kiến 45 tỷ đồng); xây dựng thêm 2 hồ điều hòa tại khu vực phía Đông.</li>
+  <li><strong>Dài hạn (2027–2030):</strong> Rà soát toàn bộ quy hoạch thoát nước theo kịch bản biến đổi khí hậu; tích hợp mô hình ngập lụt với hệ thống GIS và cảnh báo sớm đa kênh.</li>
+</ol>
+<h3>IV. Kiến nghị</h3>
+<p>Phòng Quản lý Đô thị kiến nghị UBND thành phố phê duyệt ngân sách bổ sung 8 tỷ đồng từ Quỹ dự phòng thiên tai cho các hạng mục khắc phục khẩn cấp nêu trên.</p>`,
+        visibility: 'internal',
+        status: 'published',
+        authorEmail: UBND_EMAIL,
+    },
+    {
+        title: 'Phương án huy động và điều phối lực lượng ứng cứu ngập lụt — Tài liệu chỉ đạo nội bộ',
+        summary:
+            '[NỘI BỘ] Phương án chi tiết phân công nhiệm vụ, điều phối lực lượng và phương tiện ứng cứu khi xảy ra ngập lụt trên địa bàn TP. Cẩm Phả — dành cho Ban chỉ huy PCTT và các đơn vị phối hợp.',
+        content: `<h2>PHƯƠNG ÁN HUY ĐỘNG VÀ ĐIỀU PHỐI LỰC LƯỢNG ỨNG CỨU NGẬP LỤT</h2>
+<p><em>TÀI LIỆU NỘI BỘ — Ban chỉ huy PCTT TP. Cẩm Phả — Cập nhật 25/07/2026</em></p>
+<h3>I. Phân cấp báo động</h3>
+<table border="1" cellpadding="4">
+  <tr><th>Cấp báo động</th><th>Tiêu chí kích hoạt</th><th>Lực lượng huy động</th></tr>
+  <tr><td><strong>Cấp 1 (Theo dõi)</strong></td><td>Mưa ≥ 50 mm/6h hoặc mực nước vượt 65% ngưỡng báo động</td><td>Trực ban PCTT; kiểm tra đường dây nóng</td></tr>
+  <tr><td><strong>Cấp 2 (Sẵn sàng)</strong></td><td>Mưa ≥ 100 mm/12h hoặc mực nước đạt ngưỡng báo động 1</td><td>Tất cả lực lượng PCTT sẵn sàng; thông báo qua SMS</td></tr>
+  <tr><td><strong>Cấp 3 (Ứng cứu)</strong></td><td>Ngập ≥ 0,3 m tại điểm quan trắc hoặc báo động 2 kích hoạt</td><td>Huy động toàn bộ: dân quân, quân sự, PCCC, y tế</td></tr>
+  <tr><td><strong>Cấp 4 (Khẩn cấp)</strong></td><td>Ngập ≥ 1 m hoặc có nguy cơ sạt lở nghiêm trọng</td><td>Huy động lực lượng Quân khu 3; yêu cầu hỗ trợ tỉnh</td></tr>
+</table>
+<h3>II. Phân công nhiệm vụ cụ thể</h3>
+<h4>Ban chỉ huy PCTT thành phố</h4>
+<ul>
+  <li>Chỉ huy toàn diện; phê duyệt cấp báo động; liên lạc với tỉnh và trung ương</li>
+  <li>Phụ trách: Trưởng ban — Chủ tịch UBND TP.; Phó ban — Phó Chủ tịch phụ trách đô thị</li>
+</ul>
+<h4>Phòng Cảnh sát PCCC &amp; CNCH Cẩm Phả</h4>
+<ul>
+  <li>Tìm kiếm, cứu hộ người bị mắc kẹt; trang bị xuồng máy, thang chữa cháy</li>
+  <li>Phụ trách 4 điểm nóng: Quang Hanh tổ 3, Mông Dương ven sông, Cẩm Thịnh khu trũng, Cửa Ông phía bắc</li>
+</ul>
+<h4>Lực lượng dân quân và quân sự địa phương</h4>
+<ul>
+  <li>Hỗ trợ sơ tán người dân; tổ chức chốt chặn tại 12 điểm ngập trọng điểm</li>
+  <li>Huy động tối đa 400 người khi kích hoạt Cấp 3</li>
+</ul>
+<h4>Trung tâm Y tế TP. Cẩm Phả</h4>
+<ul>
+  <li>Lập 4 trạm y tế lưu động tại các điểm tập kết sơ tán; dự phòng thuốc kháng sinh, bù nước, chống rắn cắn</li>
+</ul>
+<h3>III. Liên lạc và thông tin</h3>
+<ul>
+  <li>Kênh chính: Radio VHF kênh 7 (tần số 156,350 MHz)</li>
+  <li>Báo cáo tình hình: mỗi 2 giờ một lần qua hệ thống GIS thời gian thực</li>
+</ul>
+<h3>IV. Địa điểm tập kết sơ tán</h3>
+<ul>
+  <li>Trường THPT Cẩm Phả: tối đa 800 người</li>
+  <li>Trường THCS Mông Dương: tối đa 500 người</li>
+  <li>Nhà văn hóa Quang Hanh: tối đa 300 người</li>
+  <li>Trụ sở UBND phường Cẩm Thịnh: tối đa 200 người</li>
+</ul>`,
+        visibility: 'internal',
+        status: 'published',
+        authorEmail: UBND_EMAIL,
+    },
 ];
 
 // ---------------------------------------------------------------------------

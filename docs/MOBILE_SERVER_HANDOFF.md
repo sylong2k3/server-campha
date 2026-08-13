@@ -1,41 +1,26 @@
 # Mobile Server Handoff
 
-Cập nhật: 2026-08-08  
-Môi trường nghiệm thu: `campha_mobile_acceptance`  
-API local đã nghiệm thu: `http://127.0.0.1:3018/api/v1`
+Cập nhật: 2026-08-13
+Nguồn máy đọc: [mobile-api-fixtures.json](api/mobile-api-fixtures.json)
 
-## Kết luận
+## Mục tiêu
 
-**GO cho phát triển mobile** với auth, CMS, văn bản/PDF, raster catalog, phản ánh hiện trường,
-weather, draft/measure, bản đồ điểm/MVT/nearby/feature, API registry, offline sync,
-feature edit/history/restore và Mapbox Directions qua backend proxy. KTTV không nằm trong
-contract mobile hiện hành vì router không được mount.
+`seed:mobile-test` tạo hoặc dùng lại dữ liệu kiểm thử mobile qua HTTP API thật:
 
-> Routing pgRouting/topology nghiệm thu trước đây đã bị thay thế ngày 2026-08-11.
-> Mobile giữ endpoint nội bộ; backend gọi Mapbox và giữ token Directions trong `.env`.
+- 5 tài khoản nền, đủ 5 role.
+- 22 tin public để kiểm tra trang 1/trang 2 và tìm kiếm.
+- Bình luận `approved`, `pending`, `rejected`.
+- Văn bản PDF public/internal và 3 bản đồ PDF public.
+- 6 phản ánh, đủ 5 trạng thái, đủ số ảnh 0–5 và GeoJSON Point/LineString/Polygon.
+- 3 mobile draft: Point, LineString, Polygon.
+- Đo khoảng cách, diện tích, thời tiết.
+- Mapbox Directions: `driving`, `walking`, `cycling`.
+- Point layer cho catalog/feature/nearby.
+- Editable LineString layer cho TNMT, history/restore và sync `applied`/`conflict`/`rejected`.
+- Raster metadata nếu storage/raster service sẵn sàng.
 
-GEE không thuộc gate mobile này. Server đã chạy degraded khi GEE unavailable.
-
-## Fixture manifest
-
-Nguồn máy đọc: [mobile-api-fixtures.json](./api/mobile-api-fixtures.json).
-
-| Fixture             | Giá trị ổn định                           |
-| ------------------- | ----------------------------------------- |
-| Prefix              | `MOBACC`                                  |
-| News                | ID `1`                                    |
-| Document            | ID `1`, code `MOBACC-DOC-001`             |
-| PDF map             | ID `1`                                    |
-| Raster              | ID `1`, scene `MOBACC-S2-20260808`        |
-| Field report        | ID `1`, `CP-2026-00000001`                |
-| Mobile draft        | ID `1`                                    |
-| KTTV station        | `MOBACC01`                                |
-| Scenarios           | `MOBACC_RAIN_NORMAL`, `MOBACC_RAIN_HEAVY` |
-| Published GIS layer | ID `1`, code `mobacc_mobile_points`       |
-| Feature test        | ID `2`                                    |
-| API registry        | ID `1`, slug `mobacc-mobile-points`       |
-
-ID chính xác phải đọc lại từ manifest sau mỗi lần bootstrap; không hardcode ID ở mobile production.
+KTTV không nằm trong contract hiện hành. Router KTTV đã bị gỡ; runner và manifest không gọi route KTTV.
+Routing giữ endpoint nội bộ nhưng backend gọi Mapbox; không dựng pgRouting topology.
 
 ## Tài khoản nền
 
@@ -47,46 +32,77 @@ ID chính xác phải đọc lại từ manifest sau mỗi lần bootstrap; khô
 | `so_xd`        | `xaydung@campha.gov.vn` |
 | `citizen`      | `citizen@campha.gov.vn` |
 
-Mật khẩu không lưu trong repo/manifest. Nhận qua kênh secret nội bộ rồi đặt `API_TEST_PASSWORD`.
-Token login, refresh token và API share key chỉ giữ trong RAM; bootstrap không ghi chúng ra file.
+Mật khẩu không lưu trong repo, manifest hoặc tài liệu. Đặt mật khẩu bằng `API_TEST_PASSWORD` trong terminal hiện tại.
+Runner chỉ giữ access/refresh token trong RAM. Manifest không chứa token, API key, presigned URL hoặc credential.
 
-## Chạy lại acceptance
+## Chạy seed và verify
+
+Chạy từ backend:
 
 ```powershell
-$env:API_BASE_URL='http://127.0.0.1:3018'
-$env:API_TEST_PASSWORD='<secret>'
-npm run acceptance:bootstrap
+$env:API_BASE_URL='http://127.0.0.1:3006'
+$env:API_TEST_PASSWORD='<secret nội bộ>'
+npm run seed:mobile-test
 npm run acceptance:verify
 ```
 
-`acceptance:bootstrap` idempotent theo prefix. Runner:
+Chạy từ workspace mobile:
 
-- Login 5 role.
-- Tạo hoặc reuse fixture qua HTTP API.
-- Upload qua presign URL, MinIO quarantine, file signature và ClamAV.
-- Read-back mọi fixture qua API.
-- Không gọi repository/SQL để dựng dữ liệu nghiệp vụ.
-- Ghi manifest không chứa secret.
+```powershell
+$env:API_BASE_URL='http://127.0.0.1:3006'
+$env:API_TEST_PASSWORD='<secret nội bộ>'
+npm --prefix '..\server-campha' run seed:mobile-test
+npm --prefix '..\server-campha' run acceptance:verify
+```
 
-`acceptance:verify` login mới và chạy 30 kiểm tra HTTP độc lập, gồm RBAC âm.
+Runner idempotent theo `API_FIXTURE_PREFIX`, mặc định `MOBACC`. Không dùng `reset-and-seed.js`; script đó xóa dữ liệu.
+
+## Điều kiện dịch vụ
+
+Manifest ghi từng module:
+
+- `ready`: fixture đã tạo và read-back qua API.
+- `conditional`: upstream hoặc worker chưa sẵn sàng; không tạo dữ liệu giả.
+- `manual`: trạng thái nằm trên thiết bị, backend không thể seed.
+
+| Module               | Điều kiện                                    |
+| -------------------- | -------------------------------------------- |
+| File/PDF/ảnh         | MinIO, file signature, commit và scan sạch   |
+| Raster               | MinIO và raster service                      |
+| GIS import           | `LAYER_WORKER_ENABLED`, GDAL, worker         |
+| Map publish          | GeoServer datastore trỏ đúng DB              |
+| Routing              | `MAPBOX_DIRECTIONS_TOKEN` và Mapbox online   |
+| Weather              | OpenWeather config và upstream online        |
+| Push                 | Firebase và khóa mã hóa device token         |
+| Email xác minh/reset | SMTP và email nhận thật                      |
+| Offline queue        | Tạo trong SQLite mobile khi thiết bị offline |
+
+Lần chạy local 2026-08-13 dừng ở `documents` với `MALWARE_SCANNER_UNAVAILABLE`: không có `clamd`, `clamscan`, Docker hoặc listener `127.0.0.1:3310`. Bật ClamAV rồi chạy lại hai lệnh; không tắt cơ chế fail-closed. Manifest hiện giữ `auth`/`cmsNews` là `ready`, module phụ thuộc file là `conditional`.
+
+ID có thể đổi giữa môi trường. Luôn đọc ID từ manifest sau bootstrap; không hardcode ID vào mobile production.
 
 ## Endpoint mobile chính
 
 ```text
+POST /api/v1/auth/register
 POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 GET  /api/v1/auth/me
+POST /api/v1/auth/forgot-password
+POST /api/v1/auth/change-password
 
 GET  /api/v1/cms/news
 GET  /api/v1/cms/news/:id
+GET  /api/v1/cms/news/:id/comments
 GET  /api/v1/cms/documents
 GET  /api/v1/cms/documents/:id/download-url
 GET  /api/v1/cms/pdf-maps
 GET  /api/v1/cms/pdf-maps/:id/download-url
-GET  /api/v1/storage/objects/:fileObjectId/file?ticket=:ticket
 
 GET  /api/v1/field-reports/public
 GET  /api/v1/field-reports/nearby
+GET  /api/v1/field-reports/mine
+GET  /api/v1/field-reports/:id
 POST /api/v1/field-reports
 PUT  /api/v1/devices/push-token
 
@@ -94,48 +110,44 @@ POST /api/v1/mobile/measure
 GET  /api/v1/mobile/drafts
 POST /api/v1/mobile/drafts
 GET  /api/v1/mobile/weather/current
-GET  /api/v1/mobile/layers/:layerId/tiles/:z/:x/:y.mvt
-GET  /api/v1/mobile/layers/:layerId/features/:featureId
-GET  /api/v1/mobile/layers/:layerId/nearby
 POST /api/v1/mobile/routes/shortest
-
+GET  /api/v1/mobile/layers/:layerId/features/:featureId
+PATCH /api/v1/mobile/layers/:layerId/features/:featureId
+GET  /api/v1/mobile/layers/:layerId/features/:featureId/history
+POST /api/v1/mobile/layers/:layerId/features/:featureId/restore/:version
+POST /api/v1/mobile/sync
+GET  /api/v1/mobile/layers/:layerId/nearby
+GET  /api/v1/mobile/layers/:layerId/tiles/:z/:x/:y.mvt
 GET  /api/v1/web-map/layers
 ```
-
-KTTV chỉ còn request lịch sử trong folder Postman `Legacy - KTTV (không được mount)`. Source hiện tại không mount `/api/v1/admin/kttv`; mobile không gọi các URL này.
 
 ## Contract quan trọng
 
 - Response thường: `{ message, status, data }`.
 - List phân trang: `{ data: { items }, metadata }`.
-- Một số nearby/list chuyên biệt trả `data` array trực tiếp.
-- Auth user role nằm ở `data.user.role.code`.
-- Geometry dùng GeoJSON, thứ tự tọa độ `[longitude, latitude]`.
-- Measure trả `area_m2` hoặc `length_m`.
-- Routing gửi `{ start, end, profile }`; `profile` là `driving`, `walking` hoặc `cycling`.
-- Routing trả `provider`, `profile`, `distance_m`, `duration_s`, `geometry`, `snapped_start`, `snapped_end`.
-- Token `MAPBOX_DIRECTIONS_TOKEN` chỉ nằm ở backend; không trả về response/log.
-- Optimistic update gửi `expectedUpdatedAt` ISO từ `updated_at` read-back gần nhất.
-- CMS Document/PDF download trả backend ticket URL ngắn hạn; mobile fetch URL đó, không ghép path MinIO.
+- Một số nearby trả `data` array trực tiếp.
+- Role nằm ở `data.user.role.code`.
+- GeoJSON dùng `[longitude, latitude]`.
+- Measure trả `length_m` hoặc `area_m2`.
+- Routing gửi `{ start, end, profile }`; profile gồm `driving`, `walking`, `cycling`.
+- Routing trả `provider`, `profile`, `distance_m`, `duration_s`, `geometry`, `steps`, `snapped_start`, `snapped_end`.
+- `MAPBOX_DIRECTIONS_TOKEN` chỉ nằm backend.
+- Editable feature chỉ dành cho đúng role `so_tnmt` có `map_feature.update` và ACL `can_edit`.
+- Optimistic update dùng `baseVersion`; field report/draft admin flow dùng `expectedUpdatedAt`.
+- Download Document/PDF trả backend ticket URL ngắn hạn; mobile không ghép MinIO URL.
+- File qua ticket có endpoint `GET /api/v1/storage/objects/:fileObjectId/file?ticket=:ticket`.
 - GeoTIFF là raster: render qua GeoServer WMS + Mapbox `RasterSource`/`RasterLayer`; không dùng MVT.
-- WMS template dùng tham số `crs` (không phải `srs` — WMS 1.3.0), literal `{bbox-epsg-3857}`, `crs=EPSG:3857`, `format=image/png`, `transparent=true`. Xem [wms-getmap.bru](api/bruno/Map-Proxy/wms-getmap.bru) làm contract tham chiếu; `srs=` bị Joi strip âm thầm và fallback `EPSG:4326`, gây lệch ảnh không báo lỗi.
-- **Vé xem bản đồ (tile ticket, thêm 2026-08-13)**: `Mapbox RasterSource` không gắn được header `Authorization` vào từng tile request, nên WMS proxy cho layer không `is_public` sẽ 401 nếu chỉ trông vào Bearer. Trước khi build URL template, mobile phải gọi `GET /maps/layers/:layerId/tile-ticket?access=view` (có Bearer bình thường) để lấy `{ ticket, expiresAt }`, rồi nhúng `&ticket=<value>` vào URL WMS/WFS thay cho header. Vé hết hạn sau ~15 phút (`MAP_TILE_TICKET_TTL`), gắn cứng theo `layerId` + `access` — vé `view` không dùng được cho `/wfs` (`access=export`). Layer `is_public=true` không cần vé, hành vi cũ giữ nguyên. Xem [tile-ticket.bru](api/bruno/Map-Proxy/tile-ticket.bru). **Client-side (app mobile) chưa wiring — đây mới là phần server, cần FE mobile gọi endpoint trên trước khi rollout layer raster không public.**
+- WMS 1.3.0 dùng `crs`, literal `{bbox-epsg-3857}`, `crs=EPSG:3857`, `format=image/png`, `transparent=true`. Không gửi `srs`; Joi có thể strip và fallback `EPSG:4326`, gây lệch ảnh không báo lỗi. Xem [wms-getmap.bru](api/bruno/Map-Proxy/wms-getmap.bru).
+- Layer raster không public cần tile ticket vì `RasterSource` không gắn Bearer header lên từng tile: gọi `GET /maps/layers/:layerId/tile-ticket?access=view`, rồi nhúng `ticket` vào URL WMS. Ticket khoảng 15 phút theo `MAP_TILE_TICKET_TTL`, khóa theo `layerId` và `access`; ticket `view` không dùng cho WFS `export`. Xem [tile-ticket.bru](api/bruno/Map-Proxy/tile-ticket.bru).
+- Mobile đã có cache/refresh ticket trong `MapRepository.validRasterTileTicket`; layer public không cần ticket.
 - Forest Classification đã bị loại khỏi runtime/API/worker ngày 2026-08-13.
-- API không coi HTTP `200` là đủ: mobile phải kiểm tra `data`, trạng thái nghiệp vụ và lỗi RBAC.
+- HTTP `200` chưa đủ: mobile phải kiểm tra `data`, trạng thái nghiệp vụ và lỗi RBAC.
 
-## Kết quả nghiệm thu lịch sử
+## Gate trước staging
 
-Các số bên dưới thuộc acceptance ngày 2026-08-08, trước khi bỏ KTTV/Forest và thêm Flood/Storage ticket. Không dùng chúng làm inventory hiện tại. Inventory source/Postman hiện hành ngày 2026-08-13: **152/152 route `/api/v1` active có request Postman**, KTTV nằm ngoài active audit.
-
-Chi tiết test server mới nhất và live PDF/WMS nằm trong walkthrough ngày 2026-08-13. Chạy lại acceptance mobile trước staging; không kế thừa PASS lịch sử cho route đã thay đổi.
-
-## Gate ngoài local acceptance
-
-Trước staging/production cần làm riêng:
-
-1. Thay secret acceptance bằng secret quản lý tập trung.
-2. Chạy UAT trên Android/iOS thật và mạng yếu.
-3. Cấp token Mapbox production riêng, quyền tối thiểu; duyệt quota, billing và coverage.
-4. Chạy ClamAV, MinIO, GeoServer, PostGIS bằng dịch vụ production có monitoring.
-5. Chạy k6 staging, restore drill, alerting và pentest Sprint 14.
-6. Đối chiếu QGIS và dữ liệu nền/DEM/polygon nghiệp vụ thật.
+1. Chạy seed và verifier trên đúng DB staging không chứa dữ liệu production.
+2. Chạy Android/iOS thật, GPS/camera permission, mạng yếu, background/resume.
+3. Test đăng ký, email xác minh, quên mật khẩu bằng email dùng một lần.
+4. Test offline conflict bằng hai client hoặc sửa server sau khi client lưu offline.
+5. Cấp token Mapbox/OpenWeather/Firebase production riêng, quyền tối thiểu.
+6. Chạy monitoring, restore drill, load test và pentest riêng.

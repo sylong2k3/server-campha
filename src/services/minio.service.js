@@ -84,9 +84,16 @@ const getPresignedUploadUrl = async (objectKey, expireSeconds) => {
     const expire = boundedExpiry(expireSeconds, PRESIGNED_UPLOAD_EXPIRE);
     const bucket = getQuarantineBucket();
     let url = await getClient().presignedPutObject(bucket, objectKey, expire);
-    if (process.env.MINIO_PUBLIC_URL) {
-        const publicUrl = process.env.MINIO_PUBLIC_URL.replace(/\/+$/, '');
-        url = url.replace(/^https?:\/\/[^/]+/, publicUrl);
+    // Always route uploads through the API server so mobile clients don't need
+    // direct MinIO access. MINIO_PUBLIC_URL takes precedence; API_BASE_URL is
+    // the fallback so the minioBucketProxy middleware can forward the PUT.
+    const proxyBase = process.env.MINIO_PUBLIC_URL
+        ? process.env.MINIO_PUBLIC_URL.replace(/\/+$/, '')
+        : process.env.API_BASE_URL
+          ? process.env.API_BASE_URL.replace(/\/api\/v1\/?$/, '').replace(/\/+$/, '')
+          : null;
+    if (proxyBase) {
+        url = url.replace(/^https?:\/\/[^/]+/, proxyBase);
     } else if (url.includes('localhost') || url.includes('127.0.0.1')) {
         const publicHost = `http://${process.env.MINIO_ENDPOINT || '103.163.119.247'}:${process.env.MINIO_PORT || 9000}`;
         url = url.replace(/^https?:\/\/[^/]+/, publicHost);
