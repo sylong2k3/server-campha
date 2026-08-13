@@ -6,8 +6,15 @@ const { pool } = require('../configs/database');
 const migrationsDir = path.join(__dirname, 'migrations');
 const MIGRATION_LOCK_ID = 1485903001;
 
-const calculateChecksum = (content) =>
-    crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+// SQL migrations are logically text files. Canonicalize line endings before
+// storing their checksum so new migrations have the same checksum on Windows
+// and Linux. Older deployments may already have a CRLF checksum; those are
+// accepted during verification below without relaxing content integrity.
+const normalizeLineEndings = (content) => String(content).replace(/\r\n?/g, '\n');
+const hashContent = (content) => crypto.createHash('sha256').update(content, 'utf8').digest('hex');
+const calculateChecksum = (content) => hashContent(normalizeLineEndings(content));
+const calculateLegacyWindowsChecksum = (content) =>
+    hashContent(normalizeLineEndings(content).replace(/\n/g, '\r\n'));
 
 const getMigrationFiles = () =>
     fs
@@ -65,7 +72,13 @@ const assertChecksums = (executed, files) => {
         if (!record.checksum) {
             throw new Error(`Applied migration has no checksum: ${filename}`);
         }
-        if (record.checksum.trim() !== file.checksum) {
+        const expectedChecksums = new Set([file.checksum]);
+        if (typeof file.sql === 'string') {
+            // Backward compatibility for migrations that were first applied
+            // from a Windows checkout before checksum normalization existed.
+            expectedChecksums.add(calculateLegacyWindowsChecksum(file.sql));
+        }
+        if (!expectedChecksums.has(record.checksum.trim())) {
             throw new Error(`Migration checksum mismatch: ${filename}`);
         }
     }
@@ -148,6 +161,7 @@ if (require.main === module) {
 
 module.exports = {
     calculateChecksum,
+    calculateLegacyWindowsChecksum,
     assertChecksums,
     ensureMigrationsTable,
     getMigrationFiles,
