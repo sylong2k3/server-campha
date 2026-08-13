@@ -5240,36 +5240,6 @@
           }
         },
         {
-          "name": "Chuỗi thời gian",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{tnmtToken}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/statistics/timeseries?type=flood",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statistics",
-                "timeseries"
-              ],
-              "query": [
-                {
-                  "key": "type",
-                  "value": "flood"
-                }
-              ]
-            }
-          }
-        },
-        {
           "name": "So sánh hai thời điểm",
           "request": {
             "method": "GET",

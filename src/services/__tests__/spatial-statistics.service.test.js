@@ -32,31 +32,4 @@ describe('Sprint 7 statistics service', () => {
         ).rejects.toMatchObject({ status: 403 });
         expect(repository.create).not.toHaveBeenCalled();
     });
-    test('groups area rows into time series', async () => {
-        repository.areas.mockResolvedValue([
-            {
-                observed_year: 2026,
-                observed_at: null,
-                administrative_code: 'P1',
-                administrative_name: 'Phường 1',
-                label: 'flood',
-                area_m2: '10',
-                area_ha: '0.001',
-                feature_count: '1',
-            },
-            {
-                observed_year: 2026,
-                observed_at: null,
-                administrative_code: 'P1',
-                administrative_name: 'Phường 1',
-                label: 'flood',
-                area_m2: '20',
-                area_ha: '0.002',
-                feature_count: '2',
-            },
-        ]);
-        await expect(service.timeSeries({ type: 'flood' }, actor)).resolves.toEqual([
-            expect.objectContaining({ year: 2026, areaM2: 30, featureCount: 3 }),
-        ]);
-    });
 });

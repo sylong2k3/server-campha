@@ -16,12 +16,6 @@ const areas = async (req, res) =>
         t('statistics_areas_success', req.lang),
         await service.listAreas(req.query, actor(req)),
     );
-const timeSeries = async (req, res) =>
-    OK(
-        res,
-        t('statistics_timeseries_success', req.lang),
-        await service.timeSeries(req.query, actor(req)),
-    );
 const compare = async (req, res) =>
     OK(
         res,
@@ -46,4 +40,4 @@ const refresh = async (req, res) =>
         t('statistics_refresh_success', req.lang),
         await service.refresh(Number(req.params.id), req.body, actor(req)),
     );
-module.exports = { listSources, areas, timeSeries, compare, createSource, updateSource, refresh };
+module.exports = { listSources, areas, compare, createSource, updateSource, refresh };

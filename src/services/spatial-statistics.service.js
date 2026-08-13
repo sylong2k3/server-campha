@@ -39,28 +39,6 @@ const listAreas = (filter, actor) => {
     requirePermission(actor, 'stats', 'view');
     return repository.areas(filter, actor.role);
 };
-const timeSeries = async (filter, actor) => {
-    const rows = await listAreas(filter, actor),
-        groups = new Map();
-    for (const row of rows) {
-        const key = `${row.observed_year || row.observed_at}|${row.administrative_code}|${row.label}`;
-        const current = groups.get(key) || {
-            year: row.observed_year,
-            observedAt: row.observed_at,
-            administrativeCode: row.administrative_code,
-            administrativeName: row.administrative_name,
-            label: row.label,
-            areaM2: 0,
-            areaHa: 0,
-            featureCount: 0,
-        };
-        current.areaM2 += Number(row.area_m2);
-        current.areaHa += Number(row.area_ha);
-        current.featureCount += Number(row.feature_count);
-        groups.set(key, current);
-    }
-    return [...groups.values()];
-};
 const createSource = async (input, actor) => {
     requirePermission(actor, 'spatial', 'analyze');
     try {
@@ -151,7 +129,6 @@ const compare = async (input, actor) => {
 module.exports = {
     listSources,
     listAreas,
-    timeSeries,
     createSource,
     updateSource,
     refresh,

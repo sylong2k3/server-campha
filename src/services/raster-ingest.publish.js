@@ -163,7 +163,6 @@ async function upsertRasterLayer(
             epsg_code: params?.epsg_code || DEFAULT_ANALYSIS_EPSG,
             category: params?.category || 'flood',
             layer_kind: 'overlay',
-            layer_group: params?.layer_group || null,
             data_year: params?.data_year || new Date().getUTCFullYear(),
             source_dataset: 'gee',
             is_active: true,
@@ -223,6 +222,45 @@ async function backLinkResource(linked, ctx, deps = {}) {
         return { skipped: true };
     }
     const db = deps.db || require('../configs/database');
+
+    if (linked.type === 'satellite') {
+        const result = await db.query(
+            `UPDATE satellite.image_results
+                SET geoserver_layer = $2,
+                    geoserver_store = $3,
+                    minio_key = $4,
+                    status = 'published',
+                    publish_error = NULL
+              WHERE id = $1`,
+            [
+                Number(linked.id),
+                ctx.geoserverLayer || null,
+                ctx.geoserverStore || null,
+                ctx.minioKey || null,
+            ],
+        );
+        return { rowCount: result?.rowCount || 0 };
+    }
+
+    if (linked.type === 'forest_snapshot') {
+        const result = await db.query(
+            `UPDATE forest.forest_snapshots
+                SET geoserver_layer = $2,
+                    geoserver_store = $3,
+                    minio_key = $4,
+                    status = 'published',
+                    published_at = NOW(),
+                    error_message = NULL
+              WHERE id = $1`,
+            [
+                Number(linked.id),
+                ctx.geoserverLayer || null,
+                ctx.geoserverStore || null,
+                ctx.minioKey || null,
+            ],
+        );
+        return { rowCount: result?.rowCount || 0 };
+    }
 
     if (linked.type !== 'flood_artifact') {
         console.warn(`[RASTER-INGEST] backLink unsupported type=${linked.type}`);
@@ -293,13 +331,28 @@ async function backLinkResource(linked, ctx, deps = {}) {
 }
 
 async function markBackLinkFailed(linked, error, deps = {}) {
-    if (linked?.type !== 'flood_artifact' || !Number.isFinite(Number(linked.id))) {
+    if (!Number.isFinite(Number(linked?.id))) {
         return { skipped: true };
     }
     const db = deps.db || require('../configs/database');
     const safeMessage = String(error?.message || 'Raster publication failed')
         .replace(/https?:\/\/\S+/gi, '[redacted-url]')
         .slice(0, 500);
+    if (linked.type === 'satellite') {
+        return db.query(
+            `UPDATE satellite.image_results SET status = 'failed', publish_error = $2 WHERE id = $1`,
+            [Number(linked.id), safeMessage],
+        );
+    }
+    if (linked.type === 'forest_snapshot') {
+        return db.query(
+            `UPDATE forest.forest_snapshots SET status = 'failed', error_message = $2 WHERE id = $1`,
+            [Number(linked.id), safeMessage],
+        );
+    }
+    if (linked.type !== 'flood_artifact') {
+        return { skipped: true };
+    }
     return db.query(
         `UPDATE gis.flood_artifacts
             SET publish_status = 'failed',

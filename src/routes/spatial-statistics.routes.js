@@ -24,11 +24,6 @@ publicRouter.get(
 );
 publicRouter.get('/areas', strict(validator.areasSchema, 'query'), asyncHandler(controller.areas));
 publicRouter.get(
-    '/timeseries',
-    strict(validator.areasSchema, 'query'),
-    asyncHandler(controller.timeSeries),
-);
-publicRouter.get(
     '/compare',
     analyzeLimiter,
     strict(validator.compareSchema, 'query'),
