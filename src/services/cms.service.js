@@ -172,6 +172,7 @@ const documentDownload = async (id, expireSeconds, actor) => {
         objectKey: row.object_key,
         category: 'documents',
         expireSeconds,
+        fileId: row.file_object_id,
     });
     return { url: signed.url, expiresAt: signed.expiresAt, fileName: row.original_name };
 };
@@ -236,6 +237,7 @@ const pdfMapDownload = async (id, expireSeconds, actor) => {
         objectKey: row.object_key,
         category: 'documents',
         expireSeconds,
+        fileId: row.file_object_id,
     });
     return { url: signed.url, expiresAt: signed.expiresAt, fileName: row.original_name };
 };
