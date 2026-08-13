@@ -2404,7 +2404,56 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json().data;",
+                  "if (data && data.url) {",
+                  "  pm.collectionVariables.set(\"storageDownloadUrl\", data.url);",
+                  "  pm.environment.set(\"storageDownloadUrl\", data.url);",
+                  "  const match = data.url.match(/[?&]ticket=([^&]+)/);",
+                  "  if (match && match[1]) {",
+                  "    pm.collectionVariables.set(\"storageTicket\", decodeURIComponent(match[1]));",
+                  "    pm.environment.set(\"storageTicket\", decodeURIComponent(match[1]));",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Tải/xem tệp trực tiếp qua Proxy Backend (Stream)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/storage/objects/{{storageObjectId}}/file?ticket={{storageTicket}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "storage",
+                "objects",
+                "{{storageObjectId}}",
+                "file"
+              ],
+              "query": [
+                {
+                  "key": "ticket",
+                  "value": "{{storageTicket}}"
+                }
+              ]
+            },
+            "description": "Tải hoặc xem tệp trực tiếp thông qua luồng Proxy của Server Backend (không cần mở public cổng 9000 của MinIO). Hỗ trợ xác thực qua tham số query ?ticket= hoặc Bearer token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
                 ]
               }
             }

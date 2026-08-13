@@ -46,6 +46,10 @@ const streamFile = async (req, res) => {
     res.setHeader('Content-Disposition', `inline; filename="${encodedName}"; filename*=UTF-8''${encodedName}`);
     result.stream.pipe(res);
 };
+const deleteObject = async (req, res) => {
+    const result = await storageService.deleteObject(Number(req.params.id), buildActor(req));
+    OK(res, 'File đã được đánh dấu xóa', result);
+};
 module.exports = {
     createPresignedUpload,
     directUpload,

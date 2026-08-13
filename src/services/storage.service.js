@@ -245,7 +245,9 @@ const streamFile = async (id, ticket, actor) => {
                 throw new Api403Error('Vé tải file không hợp lệ');
             }
         } catch (err) {
-            if (err instanceof Api403Error) throw err;
+            if (err instanceof Api403Error) {
+                throw err;
+            }
             throw new Api403Error('Vé tải file đã hết hạn hoặc không hợp lệ');
         }
     } else if (!actor || !actor.id) {
