@@ -140,11 +140,9 @@ describe('geeAnalysisProcess.worker', () => {
             GEE_CHILD_MAX_RSS_MB: 2048,
             GEE_CHILD_MAX_RSS_MB_EVENT: 4096,
             GEE_CHILD_MAX_RSS_MB_TREND: undefined,
-            GEE_CHILD_MAX_RSS_MB_FOREST: 3584,
         });
         expect(worker.resolveRssLimit('event')).toBe(4096);
         expect(worker.resolveRssLimit('trend')).toBeGreaterThanOrEqual(2048);
-        expect(worker.resolveRssLimit('forest-classification')).toBe(3584);
         // Unknown kind falls back to the global default.
         expect(worker.resolveRssLimit('what')).toBe(2048);
     });

@@ -48,6 +48,17 @@ const findAccessibleById = async (id, actorId) => {
     return row || null;
 };
 
+const findById = async (id) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `SELECT * FROM core.file_objects
+         WHERE id = $1 AND deleted_at IS NULL`,
+        [id],
+    );
+    return row || null;
+};
+
 const claimForScan = async (id, actorId) => {
     const {
         rows: [row],
@@ -140,6 +151,7 @@ const enqueueDelete = async (id, actorId) => {
 module.exports = {
     createQuarantine,
     findAccessibleById,
+    findById,
     claimForScan,
     markReady,
     markRejected,

@@ -75,17 +75,42 @@ const uploadBuffer = (buffer, options) => {
 const getPresignedUploadUrl = async (objectKey, expireSeconds) => {
     const expire = boundedExpiry(expireSeconds, PRESIGNED_UPLOAD_EXPIRE);
     const bucket = getQuarantineBucket();
-    const url = await getClient().presignedPutObject(bucket, objectKey, expire);
+    let url = await getClient().presignedPutObject(bucket, objectKey, expire);
+    if (process.env.MINIO_PUBLIC_URL) {
+        const publicUrl = process.env.MINIO_PUBLIC_URL.replace(/\/+$/, '');
+        url = url.replace(/^https?:\/\/[^/]+/, publicUrl);
+    } else if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        const publicHost = `http://${process.env.MINIO_ENDPOINT || '103.163.119.247'}:${process.env.MINIO_PORT || 9000}`;
+        url = url.replace(/^https?:\/\/[^/]+/, publicHost);
+    }
     return { url, expiresAt: new Date(Date.now() + expire * 1000), objectKey };
 };
 
-const getPresignedDownloadUrl = async ({ objectKey, category, expireSeconds }) => {
+const getPresignedDownloadUrl = async ({ objectKey, category, expireSeconds, fileId }) => {
     const expire = boundedExpiry(expireSeconds, PRESIGNED_DOWNLOAD_EXPIRE);
-    const url = await getClient().presignedGetObject(
+    if (fileId) {
+        const jwt = require('jsonwebtoken');
+        const ticket = jwt.sign(
+            { fileObjectId: fileId, purpose: 'file_download' },
+            process.env.JWT_SECRET || 'secret',
+            { expiresIn: `${expire}s` },
+        );
+        const baseUrl = process.env.API_BASE_URL || 'https://apicampha.tourismpj.pro.vn/api/v1';
+        const url = `${baseUrl}/storage/objects/${fileId}/file?ticket=${ticket}`;
+        return { url, expiresAt: new Date(Date.now() + expire * 1000) };
+    }
+    let url = await getClient().presignedGetObject(
         getBucketForCategory(category),
         objectKey,
         expire,
     );
+    if (process.env.MINIO_PUBLIC_URL) {
+        const publicUrl = process.env.MINIO_PUBLIC_URL.replace(/\/+$/, '');
+        url = url.replace(/^https?:\/\/[^/]+/, publicUrl);
+    } else if (url.includes('localhost') || url.includes('127.0.0.1')) {
+        const publicHost = `http://${process.env.MINIO_ENDPOINT || '103.163.119.247'}:${process.env.MINIO_PORT || 9000}`;
+        url = url.replace(/^https?:\/\/[^/]+/, publicHost);
+    }
     return { url, expiresAt: new Date(Date.now() + expire * 1000) };
 };
 

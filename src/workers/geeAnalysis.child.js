@@ -24,15 +24,12 @@ require('dotenv').config({ quiet: true });
 
 const db = require('../configs/database');
 const runExecutor = require('../services/flood/run-executor.service');
-const geeQueue = require('../queues/gee-task.queue');
-const districtRasterWorker = require('./districtRasterExport.worker');
 const SUPPORTED_KINDS = Object.freeze([
     'event',
     'hand',
     'rain',
     'impact',
     'trend',
-    'forest-classification',
 ]);
 
 let received = false;
@@ -81,22 +78,7 @@ process.once('message', async ({ kind, payload } = {}) => {
                     `Expected one of ${SUPPORTED_KINDS.join(', ')}.`,
             );
         }
-        let result;
-        if (kind === 'forest-classification') {
-            const forestService = require('../services/forest-classification.service');
-            geeQueue.start();
-            districtRasterWorker.startWorker();
-            result = await forestService.runAnalysis(
-                payload?.year,
-                payload?.month,
-                payload?.options || {},
-            );
-            await geeQueue.onIdle();
-            districtRasterWorker.stopWorker();
-            geeQueue.stop();
-        } else {
-            result = await runExecutor.executePersistedRun(payload || {});
-        }
+        const result = await runExecutor.executePersistedRun(payload || {});
         await db.pool.end();
         sendAndExit({ type: 'result', result }, 0);
     } catch (error) {

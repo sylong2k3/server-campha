@@ -14,7 +14,6 @@ const mobileGisRoutes = require('./mobile-gis.routes');
 const apiRegistryRoutes = require('./api-registry.routes');
 const sharedLayerRoutes = require('./shared-layer.routes');
 const floodRoutes = require('./flood.routes');
-const forestClassificationRoutes = require('./forest-classification.routes');
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -38,6 +37,5 @@ router.use('/admin/api-registry', apiRegistryRoutes);
 router.use('/shared', sharedLayerRoutes);
 router.use('/flood', floodRoutes.publicRouter);
 router.use('/admin/flood', floodRoutes.adminRouter);
-router.use('/forest-classification', forestClassificationRoutes);
 
 module.exports = router;

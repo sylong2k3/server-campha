@@ -2,9 +2,7 @@
 
 const geeQueue = require('../queues/gee-task.queue');
 
-const PIPELINE_LABELS = {
-    'forest-classification': 'Phân loại lớp phủ rừng',
-};
+const PIPELINE_LABELS = {};
 
 const nonNegativeInteger = (value) => {
     const parsed = Number(value);

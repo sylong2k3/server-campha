@@ -33,14 +33,24 @@ const getDownloadUrl = async (req, res) => {
     );
     OK(res, 'Đã tạo URL tải file', result);
 };
-const deleteObject = async (req, res) => {
-    const result = await storageService.deleteObject(Number(req.params.id), buildActor(req));
-    OK(res, 'Đã xóa file', result);
+const streamFile = async (req, res) => {
+    const fileId = Number(req.params.id);
+    const ticket = req.query.ticket;
+    const actor = req.user ? buildActor(req) : null;
+    const result = await storageService.streamFile(fileId, ticket, actor);
+    res.setHeader('Content-Type', result.mimeType);
+    if (result.sizeBytes) {
+        res.setHeader('Content-Length', result.sizeBytes);
+    }
+    const encodedName = encodeURIComponent(result.originalName);
+    res.setHeader('Content-Disposition', `inline; filename="${encodedName}"; filename*=UTF-8''${encodedName}`);
+    result.stream.pipe(res);
 };
 module.exports = {
     createPresignedUpload,
     directUpload,
     commitUpload,
     getDownloadUrl,
+    streamFile,
     deleteObject,
 };

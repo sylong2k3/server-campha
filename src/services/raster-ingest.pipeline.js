@@ -386,9 +386,7 @@ async function runJob(job, deps = {}) {
                     dataType: crsInfo?.dataType,
                     published: shouldPublish,
                 });
-                const failClosedBacklink = ['flood_artifact', 'forest_district'].includes(
-                    params.linkedResource.type,
-                );
+                const failClosedBacklink = params.linkedResource.type === 'flood_artifact';
                 if (failClosedBacklink && linked?.rowCount !== 1) {
                     const error = new Error(
                         `${params.linkedResource.type} ${params.linkedResource.id} was not back-linked`,
@@ -397,7 +395,7 @@ async function runJob(job, deps = {}) {
                     throw error;
                 }
             } catch (err) {
-                if (['flood_artifact', 'forest_district'].includes(params.linkedResource.type)) {
+                if (params.linkedResource.type === 'flood_artifact') {
                     throw err;
                 }
                 console.warn(`[RASTER-INGEST] backlink FAILED job=${job.id}: ${err.message}`);
@@ -417,7 +415,7 @@ async function runJob(job, deps = {}) {
                 typeof repo.findById === 'function' ? await repo.findById(job.id) : null;
             const linked = job.request_params?.linkedResource;
             if (
-                ['flood_artifact', 'forest_district'].includes(linked?.type) &&
+                linked?.type === 'flood_artifact' &&
                 ['failed', 'url_expired', 'dlq'].includes(failedJob?.status) &&
                 typeof publisher?.markBackLinkFailed === 'function'
             ) {

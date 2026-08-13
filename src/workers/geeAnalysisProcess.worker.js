@@ -32,7 +32,6 @@ const PER_KIND_RSS_MB = Object.freeze({
     rain: Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_RAIN, 10) || 1024,
     impact: Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_IMPACT, 10) || 768,
     trend: Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_TREND, 10) || 3072,
-    'forest-classification': Number.parseInt(process.env.GEE_CHILD_MAX_RSS_MB_FOREST, 10) || 3072,
 });
 
 const CHILD_TIMEOUT_MS = Math.max(
@@ -62,7 +61,7 @@ const resolveOldSpaceMb = (rssLimitMb) => {
  * the OS reclaim the child's memory.
  *
  * @param {object} opts
- * @param {'event'|'hand'|'rain'|'impact'|'trend'|'forest-classification'} opts.kind
+ * @param {'event'|'hand'|'rain'|'impact'|'trend'} opts.kind
  * @param {object} opts.payload — passed to the domain module's runAnalysis()
  * @returns {Promise<any>} result returned by the domain module
  */

@@ -7,6 +7,7 @@ const clamavService = require('./clamav.service');
 const storageRepository = require('../repositories/storage.repository');
 const { getBucketForCategory } = require('../configs/minioClient');
 const { detectFileType, CATEGORY_EXTENSIONS } = require('../utils/file-signature.util');
+const jwt = require('jsonwebtoken');
 const {
     Api403Error,
     Api404Error,
@@ -232,7 +233,41 @@ const getDownloadUrl = async (id, expireSeconds, actor) => {
         objectKey: record.object_key,
         category: record.category,
         expireSeconds,
+        fileId: record.id,
     });
+};
+
+const streamFile = async (id, ticket, actor) => {
+    if (ticket) {
+        try {
+            const decoded = jwt.verify(ticket, process.env.JWT_SECRET);
+            if (decoded.purpose !== 'file_download' || Number(decoded.fileObjectId) !== Number(id)) {
+                throw new Api403Error('Vé tải file không hợp lệ');
+            }
+        } catch (err) {
+            if (err instanceof Api403Error) throw err;
+            throw new Api403Error('Vé tải file đã hết hạn hoặc không hợp lệ');
+        }
+    } else if (!actor || !actor.id) {
+        throw new Api403Error('Yêu cầu vé tải file hoặc đăng nhập');
+    }
+
+    const record = await storageRepository.findById(id);
+    if (!record || record.lifecycle_status !== 'ready') {
+        throw new Api404Error('Không tìm thấy file');
+    }
+
+    const stream = await minioService.getObjectStream({
+        objectKey: record.object_key,
+        category: record.category,
+    });
+
+    return {
+        stream,
+        mimeType: record.detected_mime || record.expected_mime || 'application/pdf',
+        sizeBytes: Number(record.size_bytes),
+        originalName: record.original_name,
+    };
 };
 
 const deleteObject = async (id, actor) => {
@@ -254,6 +289,7 @@ module.exports = {
     directUpload,
     commitUpload,
     getDownloadUrl,
+    streamFile,
     deleteObject,
     hashStream,
     MAX_BYTES,

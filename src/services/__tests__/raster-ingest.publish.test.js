@@ -290,32 +290,6 @@ describe('backLinkResource', () => {
         );
     });
 
-    test('back-links a retained Forest district and evaluates snapshot promotion', async () => {
-        const db = makeDbForBacklink();
-        const result = await backLinkResource(
-            { type: 'forest_district', id: 11, districtCode: 'cam-pha' },
-            {
-                geoserverLayer: 'campha:forest_class_cam_pha_202608',
-                geoserverStore: 'forest_class_cam_pha_202608',
-                minioCategory: 'forest-classification',
-                minioKey: 'forest/2026/08/job.tif',
-                rasterIngestJobId: 91,
-            },
-            { db },
-        );
-        expect(result.rowCount).toBe(1);
-        expect(db.query).toHaveBeenNthCalledWith(
-            1,
-            expect.stringMatching(/UPDATE forest\.forest_district_exports/),
-            expect.arrayContaining([11, 'cam-pha']),
-        );
-        expect(db.query).toHaveBeenNthCalledWith(
-            2,
-            expect.stringMatching(/UPDATE forest\.forest_snapshots/),
-            [11, 1],
-        );
-    });
-
     test('warns and skips for legacy fire_risk / forest / satellite types', async () => {
         const db = makeDbForBacklink();
         const result = await backLinkResource(

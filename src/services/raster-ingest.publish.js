@@ -221,9 +221,6 @@ async function upsertRasterLayer(
 /**
  * Update gis.flood_artifacts.publish_status='published' and stamp
  * published_at + workspace/coverage/layer/style so the client can render.
- *
- * Supported types are `flood_artifact` and `forest_district`. Unknown/legacy
- * types are skipped; in particular this migration does not restore Fire Risk.
  */
 async function backLinkResource(linked, ctx, deps = {}) {
     if (!linked?.type || !linked?.id) {
@@ -231,69 +228,9 @@ async function backLinkResource(linked, ctx, deps = {}) {
     }
     const db = deps.db || require('../configs/database');
 
-    if (!['flood_artifact', 'forest_district'].includes(linked.type)) {
+    if (linked.type !== 'flood_artifact') {
         console.warn(`[RASTER-INGEST] backLink unsupported type=${linked.type}`);
         return { skipped: true };
-    }
-
-    if (linked.type === 'forest_district') {
-        const snapshotId = Number(linked.id);
-        const districtCode = String(linked.districtCode || '').trim();
-        if (!Number.isFinite(snapshotId) || !districtCode) {
-            return { skipped: true };
-        }
-        const archivedKey =
-            ctx.minioCategory && ctx.minioKey
-                ? `${ctx.minioCategory}/${ctx.minioKey}`
-                : ctx.minioKey || null;
-        const result = await db.query(
-            `UPDATE forest.forest_district_exports
-                SET status = CASE WHEN $7 THEN 'published' ELSE 'completed' END,
-                    minio_key = COALESCE($3, minio_key),
-                    geoserver_layer = COALESCE($4, geoserver_layer),
-                    geoserver_store = COALESCE($5, geoserver_store),
-                    raster_ingest_job_id = COALESCE($6, raster_ingest_job_id),
-                    error_message = NULL,
-                    completed_at = COALESCE(completed_at, NOW()),
-                    updated_at = NOW()
-              WHERE snapshot_id = $1 AND district_code = $2`,
-            [
-                snapshotId,
-                districtCode,
-                archivedKey,
-                ctx.geoserverLayer || null,
-                ctx.geoserverStore || null,
-                ctx.rasterIngestJobId || null,
-                ctx.published !== false,
-            ],
-        );
-        if (result?.rowCount === 1 && ctx.published !== false) {
-            const expected = Math.max(
-                1,
-                Number.parseInt(process.env.FC_EXPECTED_DISTRICT_COUNT, 10) || 1,
-            );
-            await db.query(
-                `UPDATE forest.forest_snapshots s
-                    SET status = 'published',
-                        published_at = COALESCE(published_at, NOW()),
-                        updated_at = NOW()
-                  WHERE s.id = $1
-                    AND s.status = 'completed'
-                    AND (SELECT COUNT(*) FROM forest.forest_district_exports d
-                         WHERE d.snapshot_id = s.id) = $2
-                    AND (SELECT COUNT(DISTINCT NULLIF(BTRIM(d.district_code), ''))
-                         FROM forest.forest_district_exports d
-                         WHERE d.snapshot_id = s.id) = $2
-                    AND NOT EXISTS (
-                        SELECT 1 FROM forest.forest_district_exports d
-                        WHERE d.snapshot_id = s.id
-                          AND (NULLIF(BTRIM(d.minio_key), '') IS NULL
-                               OR NULLIF(BTRIM(d.geoserver_layer), '') IS NULL)
-                    )`,
-                [snapshotId, expected],
-            );
-        }
-        return { rowCount: result?.rowCount || 0 };
     }
     const artifactId = Number(linked.id);
     if (!Number.isFinite(artifactId)) {
@@ -360,28 +297,13 @@ async function backLinkResource(linked, ctx, deps = {}) {
 }
 
 async function markBackLinkFailed(linked, error, deps = {}) {
-    if (
-        !['flood_artifact', 'forest_district'].includes(linked?.type) ||
-        !Number.isFinite(Number(linked.id))
-    ) {
+    if (linked?.type !== 'flood_artifact' || !Number.isFinite(Number(linked.id))) {
         return { skipped: true };
     }
     const db = deps.db || require('../configs/database');
     const safeMessage = String(error?.message || 'Raster publication failed')
         .replace(/https?:\/\/\S+/gi, '[redacted-url]')
         .slice(0, 500);
-    if (linked.type === 'forest_district') {
-        const districtCode = String(linked.districtCode || '').trim();
-        if (!districtCode) {
-            return { skipped: true };
-        }
-        return db.query(
-            `UPDATE forest.forest_district_exports
-                SET status = 'failed', error_message = $3, updated_at = NOW()
-              WHERE snapshot_id = $1 AND district_code = $2`,
-            [Number(linked.id), districtCode, safeMessage],
-        );
-    }
     return db.query(
         `UPDATE gis.flood_artifacts
             SET publish_status = 'failed',
