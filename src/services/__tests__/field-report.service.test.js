@@ -19,7 +19,10 @@ describe('Sprint 8 field report RBAC service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         minio.getPublicFileUrl.mockReturnValue({ url: 'public-photo', expiresAt: null });
-        minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'ticket-photo', expiresAt: new Date() });
+        minio.getPresignedDownloadUrl.mockResolvedValue({
+            url: 'ticket-photo',
+            expiresAt: new Date(),
+        });
     });
     test('citizen creates but cannot list admin', async () => {
         repo.create.mockResolvedValue({ id: 9 });
@@ -27,6 +30,16 @@ describe('Sprint 8 field report RBAC service', () => {
         expect(() => service.listAdmin({}, citizen)).toThrow(
             expect.objectContaining({ status: 403 }),
         );
+    });
+    test('an authenticated user can list only their own reports without create permission', async () => {
+        const actor = { id: 8, role: 'system_admin', permissions: {} };
+        repo.list.mockResolvedValue({ items: [], total: 0 });
+
+        await expect(service.listMine({ page: 1, limit: 10 }, actor)).resolves.toEqual({
+            items: [],
+            total: 0,
+        });
+        expect(repo.list).toHaveBeenCalledWith({ page: 1, limit: 10 }, 'mine', actor);
     });
     test.each(['system_admin', 'citizen'])('%s cannot review', async (role) => {
         const actor = { ...citizen, role, permissions: { field_report: { approve: true } } };

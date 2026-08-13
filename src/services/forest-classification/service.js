@@ -11,7 +11,8 @@ const activeStatuses = new Set(['pending', 'computing', 'exporting']);
 const summaryFromResult = (result, archiveJob = null) => ({
     byClass: result.stats?.areaByClass || {},
     totalHa: result.stats?.totalHa || null,
-    source: 'gee-on-demand-classified',
+    classSchema: 'campha_landcover_12',
+    source: 'campha-sentinel2-rule-based-v1',
     rasterIngestJobId: archiveJob?.job?.id || null,
 });
 

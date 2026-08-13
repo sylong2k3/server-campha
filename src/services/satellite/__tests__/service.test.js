@@ -38,7 +38,10 @@ describe('satellite processing service', () => {
             expect.objectContaining({
                 stats: { imageCount: 4, vegetationHa: 27.5, ndviThreshUsed: 0.3 },
                 legend: [{ value: 0.3, label: 'Vegetation' }],
-                metadata: expect.objectContaining({ source: ['L8', 'L9', 'S2'] }),
+                metadata: expect.objectContaining({
+                    source: ['L8', 'L9', 'S2'],
+                    productVersion: 'optical-v2',
+                }),
             }),
         );
         expect(result.stats.vegetationHa).toBe(27.5);

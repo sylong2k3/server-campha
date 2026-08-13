@@ -1,20 +1,11 @@
 'use strict';
 
 const { ee } = require('../../configs/gge');
-const {
-    buildNdvi,
-    buildOpticalComposite,
-    buildRgb,
-    resolveCollectionSources,
-} = require('./builders/optical');
+const { buildNdvi, buildOpticalComposite, buildRgb, resolveCollectionSources } = require('./builders/optical');
 const { buildHeatmap } = require('./builders/temperature');
+const { CLASS_DEFINITIONS, CLASSIFIED_VIZ, buildForestClassification } = require('../forest-classification/pipeline');
 
-const CLASSIFIED_LEGEND = Object.freeze([
-    { value: 0, label: 'Water / bare land', color: '#2c7bb6' },
-    { value: 1, label: 'Sparse vegetation', color: '#fdae61' },
-    { value: 2, label: 'Vegetation', color: '#abdda4' },
-    { value: 3, label: 'Dense vegetation', color: '#1a9850' },
-]);
+const CLASSIFIED_LEGEND = CLASS_DEFINITIONS;
 
 const FIRE_RISK_LEGEND = Object.freeze([
     { value: 0, label: 'Low', color: '#2c7bb6' },
@@ -61,19 +52,17 @@ const landsatThermalComposite = (params, region) => {
         .clip(region);
 };
 
-const buildClassified = (params, region) => {
-    const optical = buildOpticalComposite(params, region);
-    const ndvi = optical.normalizedDifference(['nir', 'red']).rename('ndvi');
-    return {
-        image: ee
-            .Image(0)
-            .where(ndvi.gte(0.2), 1)
-            .where(ndvi.gte(0.45), 2)
-            .where(ndvi.gte(0.65), 3)
-            .rename('class'),
-        viz: { min: 0, max: 3, palette: ['#2c7bb6', '#fdae61', '#abdda4', '#1a9850'] },
+const buildClassified = async (params, region, dependencies) => {
+    const { image, imageCount, areaByClass, totalHa } = await buildForestClassification(
+        params,
         region,
-        stats: {},
+        dependencies,
+    );
+    return {
+        image,
+        viz: CLASSIFIED_VIZ,
+        region,
+        stats: { imageCount, areaByClass, totalHa },
         legend: CLASSIFIED_LEGEND,
         metadata: {
             source: resolveCollectionSources(params.collection),
@@ -113,7 +102,7 @@ const buildImage = async (params, dependencies = {}) => {
         case 'heatmap':
             return buildHeatmap(params, region, dependencies);
         case 'classified':
-            return buildClassified(params, region);
+            return buildClassified(params, region, dependencies);
         case 'fire-risk':
             return buildFireRisk(params, region);
         default:

@@ -41,6 +41,7 @@ async function processRequest(imageType, rawParams, deps = {}) {
     const downloadUrl = await exportDownload(adapter, image, params, region);
     const metadata = {
         collection: params.collection,
+        productVersion: params.productVersion,
         ...buildMetadata,
         generatedAt: new Date().toISOString(),
         downloadUrl,

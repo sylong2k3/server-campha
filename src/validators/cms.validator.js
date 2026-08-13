@@ -13,10 +13,22 @@ const pagination = {
     limit: Joi.number().integer().min(1).max(100).default(20),
 };
 const publicListSchema = Joi.object(pagination);
+const sortOrder = Joi.string().uppercase().valid('ASC', 'DESC').default('DESC');
+const newsListSchema = Joi.object({
+    ...pagination,
+    sortBy: Joi.string()
+        .valid('published_at', 'created_at', 'updated_at', 'title')
+        .default('published_at'),
+    sortOrder,
+});
 const newsAdminListSchema = Joi.object({
     ...pagination,
     status: Joi.string().valid('draft', 'published', 'archived').optional(),
     visibility: Joi.string().valid('public', 'internal').optional(),
+    sortBy: Joi.string()
+        .valid('published_at', 'created_at', 'updated_at', 'title')
+        .default('published_at'),
+    sortOrder,
 });
 const newsCreateSchema = Joi.object({
     title: plain(300).required(),
@@ -62,6 +74,26 @@ const visibilityListSchema = Joi.object({
     ...pagination,
     visibility: Joi.string().valid('public', 'internal').optional(),
 });
+const documentListSchema = Joi.object({
+    ...pagination,
+    sortBy: Joi.string()
+        .valid('issued_at', 'created_at', 'updated_at', 'title', 'document_code')
+        .default('issued_at'),
+    sortOrder,
+});
+const adminDocumentListSchema = documentListSchema.keys({
+    visibility: Joi.string().valid('public', 'internal').optional(),
+});
+const pdfMapListSchema = Joi.object({
+    ...pagination,
+    yearFrom: Joi.number().integer().min(1900).max(2200).optional(),
+    yearTo: Joi.number().integer().min(1900).max(2200).optional(),
+    sortBy: Joi.string().valid('id', 'year', 'created_at', 'updated_at', 'title').default('year'),
+    sortOrder,
+});
+const adminPdfMapListSchema = pdfMapListSchema.keys({
+    visibility: Joi.string().valid('public', 'internal').optional(),
+});
 const pdfMapCreateSchema = Joi.object({
     title: plain(300).required(),
     scaleLabel: plain(100).required(),
@@ -89,6 +121,7 @@ module.exports = {
     idParamsSchema,
     commentParamsSchema,
     publicListSchema,
+    newsListSchema,
     newsAdminListSchema,
     newsCreateSchema,
     newsUpdateSchema,
@@ -98,8 +131,12 @@ module.exports = {
     documentCreateSchema,
     documentUpdateSchema,
     visibilityListSchema,
+    documentListSchema,
+    adminDocumentListSchema,
     pdfMapCreateSchema,
     pdfMapUpdateSchema,
+    pdfMapListSchema,
+    adminPdfMapListSchema,
     deleteQuerySchema,
     downloadQuerySchema,
 };

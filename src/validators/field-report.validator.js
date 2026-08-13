@@ -40,6 +40,7 @@ const createSchema = Joi.object({
 });
 const listSchema = Joi.object({
     status: Joi.string().valid('pending', 'under_review', 'approved', 'rejected', 'resolved'),
+    q: Joi.string().trim().min(1).max(100).optional(),
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(20),
 });

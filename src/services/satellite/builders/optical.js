@@ -8,10 +8,10 @@ const LANDSAT_8_ID = 'LANDSAT/LC08/C02/T1_L2';
 const LANDSAT_9_ID = 'LANDSAT/LC09/C02/T1_L2';
 
 const NDVI_LEGEND = Object.freeze([
-    { value: -0.2, label: 'It or no vegetation', color: '#d73027' },
-    { value: 0.2, label: 'Sparse vegetation', color: '#fee08b' },
-    { value: 0.5, label: 'Vegetation', color: '#ffffbf' },
-    { value: 0.8, label: 'Dense vegetation', color: '#1a9641' },
+    { value: -0.2, label: 'Ít hoặc không có thực vật', color: '#d73027' },
+    { value: 0.2, label: 'Thực vật thưa', color: '#fee08b' },
+    { value: 0.5, label: 'Thực vật trung bình', color: '#ffffbf' },
+    { value: 0.8, label: 'Thực vật dày', color: '#1a9641' },
 ]);
 
 const resolveCollectionSources = (collection) => {
@@ -89,7 +89,7 @@ const buildOpticalComposite = (params, region) => buildOpticalCollection(params,
 const assertHasImages = async (collection, evaluate) => {
     const count = Number(await evaluate(collection.size()));
     if (!Number.isFinite(count) || count <= 0) {
-        throw new Api400Error('No satellite image was found for the selected period and area.', [
+        throw new Api400Error('Không tìm thấy ảnh vệ tinh cho khoảng thời gian và khu vực đã chọn.', [
             'SATELLITE_IMAGE_NOT_FOUND',
         ]);
     }
@@ -100,7 +100,7 @@ const baseMetadata = (params) => ({
     source: resolveCollectionSources(params.collection),
     geometrySource: params.geometrySource,
     dateInterval: `[${params.startDate}, ${params.endDate})`,
-    cloudFilter: 'Sentinel-2 CLOUDY_PIXEL_PERCENTAGE + SCL; Landsat Collection 2 QA_PIXEL',
+    cloudFilter: 'Sentinel-2: CLOUDY_PIXEL_PERCENTAGE + mặt nạ SCL; Landsat: QA_PIXEL Bộ sưu tập 2',
     cloudCover: params.cloudCover,
 });
 

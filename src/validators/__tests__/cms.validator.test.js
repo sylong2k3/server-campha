@@ -16,6 +16,22 @@ describe('CMS validators', () => {
         expect(v.downloadQuerySchema.validate({ expireSeconds: 901 }).error).toBeDefined();
         expect(v.downloadQuerySchema.validate({}).value.expireSeconds).toBe(300);
     });
+    test('CMS list schemas allow only their supported sort fields', () => {
+        expect(
+            v.documentListSchema.validate({ sortBy: 'created_at', sortOrder: 'DESC' }).error,
+        ).toBeUndefined();
+        expect(v.documentListSchema.validate({ sortBy: 'year' }).error).toBeDefined();
+        expect(
+            v.pdfMapListSchema.validate({
+                sortBy: 'year',
+                sortOrder: 'ASC',
+                yearFrom: 2020,
+                yearTo: 2026,
+            }).error,
+        ).toBeUndefined();
+        expect(v.pdfMapListSchema.validate({ sortBy: 'id' }).error).toBeUndefined();
+        expect(v.pdfMapListSchema.validate({ sortBy: 'theme_code' }).error).toBeDefined();
+    });
     test('news and PDF schemas enforce status and metadata', () => {
         expect(
             v.newsCreateSchema.validate({ title: 'Tin', content: 'Nội dung', status: 'bad' }).error,
