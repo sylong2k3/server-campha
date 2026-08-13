@@ -11,44 +11,32 @@
 require('dotenv').config();
 
 const db = require('../../configs/database');
+const { getClient, getBucketForCategory } = require('../../configs/minioClient');
 
 const ADMIN_EMAIL = 'admin@campha.gov.vn';
 const TNMT_EMAIL = 'tnmt@campha.gov.vn';
 const UBND_EMAIL = 'ubnd@campha.gov.vn';
 
 // ---------------------------------------------------------------------------
-//  Helper: upsert một file_object placeholder (không có file thật trong MinIO)
+//  Helper: chỉ liên kết file thật đã qua storage pipeline; không giả ready/clean.
 // ---------------------------------------------------------------------------
-async function ensureFileObject({
-    ownerUserId,
-    orgId,
-    category,
-    bucket,
-    objectKey,
-    originalName,
-    mime,
-    sizeBytes,
-}) {
+async function ensureFileObject({ category, objectKey }) {
+    const bucket = getBucketForCategory(category);
+    try {
+        await getClient().statObject(bucket, objectKey);
+    } catch (error) {
+        if (['NoSuchKey', 'NoSuchObject', 'NotFound'].includes(error.code)) {
+            return null;
+        }
+        throw error;
+    }
     const { rows } = await db.query(
-        `SELECT id FROM core.file_objects WHERE bucket=$1 AND object_key=$2`,
+        `SELECT id FROM core.file_objects
+         WHERE bucket=$1 AND object_key=$2 AND lifecycle_status='ready'
+           AND scan_status='clean' AND deleted_at IS NULL`,
         [bucket, objectKey],
     );
-    if (rows[0]) {
-        return rows[0].id;
-    }
-
-    const { rows: ins } = await db.query(
-        `INSERT INTO core.file_objects
-             (category, bucket, object_key, owner_user_id, org_id, original_name,
-              expected_mime, detected_mime, size_bytes, sha256,
-              scan_status, lifecycle_status, ready_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,
-                 lpad('0', 64, '0'),
-                 'clean','ready',NOW())
-         RETURNING id`,
-        [category, bucket, objectKey, ownerUserId, orgId, originalName, mime, sizeBytes],
-    );
-    return ins[0].id;
+    return rows[0]?.id || null;
 }
 
 async function getUser(email) {
@@ -618,15 +606,13 @@ const PDF_MAPS = [
                 continue;
             }
             const fileId = await ensureFileObject({
-                ownerUserId: actor.id,
-                orgId: actor.org_id,
                 category: 'documents',
-                bucket: 'campha-documents',
                 objectKey: `seed/documents/${d.documentCode}/${d.fileName}`,
-                originalName: d.fileName,
-                mime: d.mime,
-                sizeBytes: d.sizeBytes,
             });
+            if (!fileId) {
+                console.warn(`  [SKIP] Thiếu file MinIO ready/clean: ${d.fileName}`);
+                continue;
+            }
             await db.query(
                 `INSERT INTO cms.documents(title,document_code,issuing_agency,issued_at,description,visibility,file_object_id,created_by)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8)`,
@@ -661,15 +647,13 @@ const PDF_MAPS = [
                 continue;
             }
             const fileId = await ensureFileObject({
-                ownerUserId: actor.id,
-                orgId: actor.org_id,
                 category: 'documents',
-                bucket: 'campha-documents',
                 objectKey,
-                originalName: m.fileName,
-                mime: 'application/pdf',
-                sizeBytes: m.sizeBytes,
             });
+            if (!fileId) {
+                console.warn(`  [SKIP] Thiếu file MinIO ready/clean: ${m.fileName}`);
+                continue;
+            }
             await db.query(
                 `INSERT INTO cms.pdf_maps(title,scale_label,map_year,preparing_agency,description,visibility,file_object_id,created_by,updated_by)
                  VALUES($1,$2,$3,$4,$5,$6,$7,$8,$8)`,

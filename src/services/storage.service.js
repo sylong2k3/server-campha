@@ -274,10 +274,19 @@ const streamFile = async (id, ticket, actor) => {
         throw new Api404Error('Không tìm thấy file');
     }
 
-    const stream = await minioService.getObjectStream({
-        objectKey: record.object_key,
-        category: record.category,
-    });
+    let stream;
+    try {
+        stream = await minioService.getObjectStream({
+            objectKey: record.object_key,
+            category: record.category,
+        });
+    } catch (error) {
+        if (['NoSuchKey', 'NoSuchObject', 'NotFound'].includes(error.code)) {
+            await storageRepository.markMissingObject(record.id);
+            throw new Api404Error('File không tồn tại trong kho dữ liệu', ['FILE_OBJECT_MISSING']);
+        }
+        throw error;
+    }
 
     return {
         stream,

@@ -132,6 +132,19 @@ const markRejected = async (id, scanStatus) => {
     return row || null;
 };
 
+const markMissingObject = async (id) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `UPDATE core.file_objects
+         SET lifecycle_status='rejected', scan_status='error', expires_at=NOW()
+         WHERE id=$1 AND lifecycle_status='ready' AND scan_status='clean'
+         RETURNING *`,
+        [id],
+    );
+    return row || null;
+};
+
 const resetPending = async (id) => {
     await db.query(
         `UPDATE core.file_objects SET scan_status = 'pending'
@@ -185,6 +198,7 @@ module.exports = {
     claimForScan,
     markReady,
     markRejected,
+    markMissingObject,
     resetPending,
     enqueueDelete,
 };

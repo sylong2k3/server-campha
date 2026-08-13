@@ -28,6 +28,7 @@ jest.mock('../../repositories/storage.repository', () => ({
     claimForScan: jest.fn(),
     markReady: jest.fn(),
     markRejected: jest.fn(),
+    markMissingObject: jest.fn(),
     resetPending: jest.fn(),
     findAccessibleById: jest.fn(),
     findById: jest.fn(),
@@ -256,6 +257,26 @@ describe('storage quarantine workflow', () => {
         expect(repo.findById).toHaveBeenCalledWith(11);
         await expect(service.streamFile(12, ticket, null)).rejects.toMatchObject({ status: 403 });
         await expect(service.streamFile(11, 'broken', null)).rejects.toMatchObject({ status: 403 });
+    });
+    test('returns a safe 404 when ready metadata points to a missing MinIO object', async () => {
+        repo.findPublicById.mockResolvedValue({
+            id: 11,
+            lifecycle_status: 'ready',
+            scan_status: 'clean',
+            object_key: 'seed/documents/missing.pdf',
+            category: 'documents',
+            detected_mime: 'application/pdf',
+            size_bytes: 5,
+            original_name: 'missing.pdf',
+        });
+        minio.getObjectStream.mockRejectedValue(
+            Object.assign(new Error('The specified key does not exist.'), { code: 'NoSuchKey' }),
+        );
+        await expect(service.streamFile(11, null, null)).rejects.toMatchObject({
+            status: 404,
+            errors: ['FILE_OBJECT_MISSING'],
+        });
+        expect(repo.markMissingObject).toHaveBeenCalledWith(11);
     });
     test('expired ticket and non-ready object are rejected', async () => {
         const jwt = require('jsonwebtoken');
