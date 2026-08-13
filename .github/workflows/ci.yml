@@ -31,8 +31,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run format:check
-      - run: pnpm test -- --runInBand
-      - run: pnpm run test:coverage -- --runInBand
+      - run: pnpm test --runInBand
+      - run: pnpm run test:coverage --runInBand
       - run: pnpm audit --audit-level=high
 
   semgrep:
