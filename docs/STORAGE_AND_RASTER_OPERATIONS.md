@@ -116,18 +116,20 @@ GeoTIFF → MinIO raster/flood bucket → validate CRS/COG/checksum
 → filesystem mirror GeoServer → coverage store → gis.layers
 ```
 
-Mobile Mapbox phải dùng GeoServer WMS cho GeoTIFF:
+Web/Mobile Mapbox phải dùng GeoServer WMS (qua proxy `/api/v1/maps/layers/:id/wms`) cho GeoTIFF:
 
 ```text
 service=WMS
 request=GetMap
-srs=EPSG:3857
+crs=EPSG:3857
 bbox={bbox-epsg-3857}
 format=image/png
 transparent=true
 ```
 
-Không dùng MVT cho GeoTIFF. WMS trả PNG trong/ngoài extent, tránh tile 400 làm Mapbox treo.
+Tham số đúng là `crs` (WMS 1.3.0), không phải `srs` (WMS 1.1.1) — validator Joi strip field lạ nên gửi nhầm `srs=` sẽ âm thầm fallback `EPSG:4326` mà không báo lỗi. Không dùng MVT cho GeoTIFF. WMS trả PNG trong/ngoài extent, tránh tile 400 làm Mapbox treo.
+
+**Auth cho tile URL template (thêm 2026-08-13):** `Mapbox RasterSource` tự gọi URL template, không gắn được header `Authorization`. Layer không `is_public` phải lấy vé trước: `GET /maps/layers/:id/tile-ticket?access=view` (Bearer bình thường) → `{ ticket, expiresAt }`, sau đó nhúng `&ticket=<value>` vào URL WMS/WFS thay header. Vé hết hạn ~15 phút (`MAP_TILE_TICKET_TTL`), bind cứng `layerId` + `access` (`view` cho WMS, `export` cho WFS). Layer `is_public=true` không cần vé.
 
 ## 7. Smoke test PDF
 

@@ -1,173 +1,196 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-08-08T15:08:20.984Z",
-  "baseUrl": "http://127.0.0.1:3018",
-  "apiBaseUrl": "http://127.0.0.1:3018/api/v1",
-  "prefix": "MOBACC",
-  "database": "campha_mobile_acceptance",
-  "fixturePolicy": "business fixtures created and read back through HTTP API only",
-  "accounts": [
-    {
-      "role": "system_admin",
-      "email": "admin@campha.gov.vn"
-    },
-    {
-      "role": "ubnd_tp",
-      "email": "ubnd@campha.gov.vn"
-    },
-    {
-      "role": "so_tnmt",
-      "email": "tnmt@campha.gov.vn"
-    },
-    {
-      "role": "so_xd",
-      "email": "xaydung@campha.gov.vn"
-    },
-    {
-      "role": "citizen",
-      "email": "citizen@campha.gov.vn"
-    }
-  ],
-  "fixtures": {
-    "news": {
-      "id": 1,
-      "title": "MOBACC Bản tin phục vụ phát triển mobile",
-      "commentId": 1
-    },
-    "content": {
-      "document": {
-        "id": 1,
-        "code": "MOBACC-DOC-001"
-      },
-      "pdfMap": {
-        "id": 1,
-        "title": "MOBACC Bản đồ PDF mobile"
-      }
-    },
-    "raster": {
-      "id": 1,
-      "sceneCode": "MOBACC-S2-20260808"
-    },
-    "fieldReport": {
-      "id": 1,
-      "referenceCode": "CP-2026-00000001",
-      "status": "approved"
-    },
-    "mobile": {
-      "draft": {
-        "id": 1,
-        "title": "MOBACC Vùng khảo sát mobile"
-      },
-      "weatherReady": true,
-      "weatherBlocker": null
-    },
-    "kttv": {
-      "station": {
-        "code": "MOBACC01",
-        "name": "MOBACC Trạm Cẩm Phả"
-      },
-      "scenarios": [
+    "schemaVersion": 2,
+    "generatedAt": "2026-08-13T10:03:04.545Z",
+    "baseUrl": "http://127.0.0.1:3006",
+    "apiBaseUrl": "http://127.0.0.1:3006/api/v1",
+    "prefix": "MOBACC",
+    "database": "campha",
+    "fixturePolicy": "business fixtures created and read back through HTTP API only",
+    "accounts": [
         {
-          "id": 1,
-          "code": "MOBACC_RAIN_NORMAL",
-          "status": "official"
+            "role": "system_admin",
+            "email": "admin@campha.gov.vn"
         },
         {
-          "id": 2,
-          "code": "MOBACC_RAIN_HEAVY",
-          "status": "official"
+            "role": "ubnd_tp",
+            "email": "ubnd@campha.gov.vn"
+        },
+        {
+            "role": "so_tnmt",
+            "email": "tnmt@campha.gov.vn"
+        },
+        {
+            "role": "so_xd",
+            "email": "xaydung@campha.gov.vn"
+        },
+        {
+            "role": "citizen",
+            "email": "citizen@campha.gov.vn"
         }
-      ],
-      "manualInput": {
-        "id": 3,
-        "matchStatus": "matched",
-        "scenarioId": 2
-      },
-      "source": {
-        "id": 1,
-        "name": "MOBACC Open-Meteo Weather API"
-      },
-      "automaticInput": {
-        "id": 8,
-        "matchStatus": "matched",
-        "scenarioId": 1
-      },
-      "automaticBlocker": null
+    ],
+    "fixtures": {
+        "authReady": true,
+        "news": {
+            "searchTerm": "MOBACC",
+            "primary": {
+                "id": 15,
+                "title": "MOBACC Tin kiểm thử mobile 01"
+            },
+            "total": 22,
+            "pageSize": 20,
+            "items": [
+                {
+                    "id": 15,
+                    "title": "MOBACC Tin kiểm thử mobile 01"
+                },
+                {
+                    "id": 16,
+                    "title": "MOBACC Tin kiểm thử mobile 02"
+                },
+                {
+                    "id": 17,
+                    "title": "MOBACC Tin kiểm thử mobile 03"
+                },
+                {
+                    "id": 18,
+                    "title": "MOBACC Tin kiểm thử mobile 04"
+                },
+                {
+                    "id": 19,
+                    "title": "MOBACC Tin kiểm thử mobile 05"
+                },
+                {
+                    "id": 20,
+                    "title": "MOBACC Tin kiểm thử mobile 06"
+                },
+                {
+                    "id": 21,
+                    "title": "MOBACC Tin kiểm thử mobile 07"
+                },
+                {
+                    "id": 22,
+                    "title": "MOBACC Tin kiểm thử mobile 08"
+                },
+                {
+                    "id": 23,
+                    "title": "MOBACC Tin kiểm thử mobile 09"
+                },
+                {
+                    "id": 24,
+                    "title": "MOBACC Tin kiểm thử mobile 10"
+                },
+                {
+                    "id": 25,
+                    "title": "MOBACC Tin kiểm thử mobile 11"
+                },
+                {
+                    "id": 26,
+                    "title": "MOBACC Tin kiểm thử mobile 12"
+                },
+                {
+                    "id": 27,
+                    "title": "MOBACC Tin kiểm thử mobile 13"
+                },
+                {
+                    "id": 28,
+                    "title": "MOBACC Tin kiểm thử mobile 14"
+                },
+                {
+                    "id": 29,
+                    "title": "MOBACC Tin kiểm thử mobile 15"
+                },
+                {
+                    "id": 30,
+                    "title": "MOBACC Tin kiểm thử mobile 16"
+                },
+                {
+                    "id": 31,
+                    "title": "MOBACC Tin kiểm thử mobile 17"
+                },
+                {
+                    "id": 32,
+                    "title": "MOBACC Tin kiểm thử mobile 18"
+                },
+                {
+                    "id": 33,
+                    "title": "MOBACC Tin kiểm thử mobile 19"
+                },
+                {
+                    "id": 34,
+                    "title": "MOBACC Tin kiểm thử mobile 20"
+                },
+                {
+                    "id": 35,
+                    "title": "MOBACC Tin kiểm thử mobile 21"
+                },
+                {
+                    "id": 36,
+                    "title": "MOBACC Tin kiểm thử mobile 22"
+                }
+            ],
+            "comments": {
+                "approved": 47,
+                "pending": 48,
+                "rejected": 49
+            }
+        }
     },
-    "layer": {
-      "id": 1,
-      "code": "mobacc_mobile_points",
-      "featureId": "2",
-      "publishStatus": "published",
-      "tableName": "layer_1_ff2c2e81",
-      "blocker": null
+    "modules": {
+        "auth": {
+            "status": "ready"
+        },
+        "cmsNews": {
+            "status": "ready"
+        },
+        "files": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "cmsDocuments": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "fieldReports": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "mobileDraftMeasure": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "raster": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "map": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "featureEditing": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "routing": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "mobileWeather": {
+            "status": "conditional",
+            "blocker": "MALWARE_SCANNER_UNAVAILABLE"
+        },
+        "offlineQueue": {
+            "status": "manual",
+            "blocker": "Queue nằm trong SQLite mobile; tắt mạng và lưu edit trên thiết bị để tạo item."
+        },
+        "registrationEmail": {
+            "status": "manual",
+            "blocker": "Dùng email mới; SMTP và REQUIRE_EMAIL_VERIFICATION quyết định nhánh kết quả."
+        }
     },
-    "registry": {
-      "ready": true,
-      "id": 1,
-      "slug": "mobacc-mobile-points",
-      "keyIssued": true,
-      "keyBlocker": null
-    }
-  },
-  "modules": {
-    "auth": {
-      "status": "ready"
+    "evidence": {
+        "bootstrapStatus": "blocked",
+        "blockerStage": "documents",
+        "requestCount": 41
     },
-    "cms": {
-      "status": "ready"
-    },
-    "files": {
-      "status": "ready"
-    },
-    "raster": {
-      "status": "ready"
-    },
-    "fieldReports": {
-      "status": "ready"
-    },
-    "mobileDraftMeasure": {
-      "status": "ready"
-    },
-    "mobileWeather": {
-      "status": "ready"
-    },
-    "kttvManual": {
-      "status": "ready"
-    },
-    "kttvAutomatic": {
-      "status": "ready"
-    },
-    "map": {
-      "status": "ready"
-    },
-    "apiRegistry": {
-      "status": "ready"
-    },
-    "routingOfflineEdit": {
-      "status": "deferred",
-      "blocker": "Fixture Excel chỉ có Point; cần line/editable layer nghiệp vụ qua import API."
-    }
-  },
-  "endpoints": {
-    "login": "/api/v1/auth/login",
-    "refresh": "/api/v1/auth/refresh",
-    "news": "/api/v1/cms/news",
-    "documents": "/api/v1/cms/documents",
-    "pdfMaps": "/api/v1/cms/pdf-maps",
-    "fieldReports": "/api/v1/field-reports/public",
-    "drafts": "/api/v1/mobile/drafts",
-    "measure": "/api/v1/mobile/measure",
-    "weather": "/api/v1/mobile/weather/current?longitude=107.31&latitude=21.01",
-    "mapCatalog": "/api/v1/web-map/layers",
-    "kttvStations": "/api/v1/admin/kttv/stations",
-    "kttvScenarios": "/api/v1/admin/kttv/scenarios",
-    "kttvInputs": "/api/v1/admin/kttv/inputs"
-  },
-  "evidence": {
-    "requestCount": 54,
-    "writes": 10,
-    "readBacks": 25
-  },
-  "secrets": "No token, API key, password or credential stored."
+    "secrets": "No token, API key, password, credential or presigned URL stored."
 }

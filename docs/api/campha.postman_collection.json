@@ -3738,6 +3738,60 @@
               }
             }
           ]
+        },
+        {
+          "name": "Tile Ticket (vé xem bản đồ cho Mapbox RasterSource)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{citizenToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/maps/layers/{{layerId}}/tile-ticket?access=view",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "maps",
+                "layers",
+                "{{layerId}}",
+                "tile-ticket"
+              ],
+              "query": [
+                {
+                  "key": "access",
+                  "value": "view"
+                }
+              ]
+            },
+            "description": "Phát vé JWT ngắn hạn (mặc định 15 phút) gắn với layerId + access ('view' cho WMS, 'export' cho WFS). Dùng khi client (Mapbox RasterSource URL template trên web/mobile) không gắn được header Authorization vào từng tile request — nhúng ?ticket=<value> thẳng vào URL /wms hoặc /wfs thay cho Bearer. Layer is_public vẫn dùng được không cần vé như trước."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('has ticket + expiresAt', () => {",
+                  "  const data = pm.response.json().data;",
+                  "  pm.expect(data).to.have.property('ticket');",
+                  "  pm.expect(data).to.have.property('expiresAt');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

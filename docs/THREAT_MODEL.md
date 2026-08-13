@@ -30,7 +30,7 @@ Nginx là ingress công khai duy nhất. DB, MinIO và GeoServer là dịch vụ
 |---|---|---|
 | Bypass/leo thang RBAC | Permission từ DB, không bypass `system_admin`, test hồi quy | Sinh test theo toàn ma trận |
 | IDOR xuyên tổ chức | `org_id` ép ở service/repository | Integration test DB thật |
-| Truy cập lớp trái phép | `gis.layer_permissions`; WMS ép tên layer từ DB; WFS chỉ `GetFeature` qua ACL `export` | Đóng WMS/WFS trực tiếp tại firewall/GeoServer theo lịch vận hành |
+| Truy cập lớp trái phép | `gis.layer_permissions`; WMS ép tên layer từ DB; WFS chỉ `GetFeature` qua ACL `export`; tile ticket JWT (2026-08-13) ngắn hạn ~15 phút, bind `layerId`+`access`, chỉ phát sau khi qua đúng `requireLayerAccess` — dùng cho Mapbox RasterSource không gắn được header | Đóng WMS/WFS trực tiếp tại firewall/GeoServer theo lịch vận hành; FE mobile/web chưa wiring gọi `tile-ticket` trước rollout layer raster không public |
 | Brute force/token replay | Rate limit, progressive lockout, token blacklist, refresh rotation/reuse detection; local + Google OAuth identities | Giám sát đăng nhập bất thường |
 | Migration chạy đồng thời/bị sửa | Advisory lock, SHA256 checksum, transaction từng file | Backup/restore drill |
 | Upload độc hại/zip bomb | Presigned PUT chỉ vào quarantine; allow-list extension; magic bytes; size limit; ClamAV INSTREAM fail-closed; SHA-256 trước promote | Bật `clamd` native và UAT malware thật; ZIP entry/decompression limits ở Sprint 3 import |

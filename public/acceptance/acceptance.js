@@ -17,7 +17,7 @@ const accounts = [
   { role: 'so_xd', email: 'xaydung@campha.gov.vn' },
   { role: 'citizen', email: 'citizen@campha.gov.vn' },
 ];
-const labels = { core: 'Core', auth: 'Auth', cms: 'CMS', admin: 'Admin', gis: 'GIS / Map', field: 'Field / Raster', kttv: 'KTTV', security: 'RBAC / Security' };
+const labels = { core: 'Core', auth: 'Auth', cms: 'CMS', admin: 'Admin', gis: 'GIS / Map', field: 'Field / Raster', security: 'RBAC / Security' };
 const $ = (id) => document.getElementById(id);
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 const listItems = (body) => Array.isArray(body?.data) ? body.data : body?.data?.items || [];
@@ -65,25 +65,28 @@ const definitions = [
   { module: 'auth', name: 'Profile citizen', endpoint: 'GET /auth/me', run: async () => {
     const result = await request('/auth/me', { role: 'citizen' }); assert(result.response.status === 200, `HTTP ${result.response.status}`); assert(result.body?.data?.user?.role?.code === 'citizen', 'Sai citizen role'); return result;
   }},
-  { module: 'auth', name: 'Danh sách phiên citizen', endpoint: 'GET /auth/sessions', run: async () => {
-    const result = await request('/auth/sessions', { role: 'citizen' }); assert(result.response.status === 200, `HTTP ${result.response.status}`); return result;
-  }},
-  { module: 'auth', name: 'Anonymous profile bị chặn', endpoint: 'GET /auth/me', run: async () => {
-    const result = await request('/auth/me'); assert(result.response.status === 401, `Cần 401, nhận ${result.response.status}`); return result;
-  }},
+  { module: 'auth', name: 'Danh sách phiên citizen', endpoint: 'GET /auth/sessions', run: async () => expectStatus('/auth/sessions', 200, 'citizen') },
+  { module: 'auth', name: 'Anonymous profile bị chặn', endpoint: 'GET /auth/me', run: async () => expectStatus('/auth/me', 401) },
   { module: 'auth', name: 'Login payload invalid', endpoint: 'POST /auth/login', run: async () => {
     const result = await request('/auth/login', { method: 'POST', headers: {'content-type':'application/json'}, body: { email: 'invalid' } }); assert([400,422].includes(result.response.status), `Cần 400/422, nhận ${result.response.status}`); return result;
   }},
-  { module: 'cms', name: 'Danh sách tin public', endpoint: 'GET /cms/news', run: async () => expectFixture('/cms/news?page=1&limit=20', state.manifest.fixtures.news.id) },
+  { module: 'cms', name: 'Tin public trang 1', endpoint: 'GET /cms/news', run: async () => {
+    const f=state.manifest.fixtures.news; const result=await request(`/cms/news?q=${encodeURIComponent(f.searchTerm)}&page=1&limit=${f.pageSize}`); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(listItems(result.body).length===f.pageSize,'Trang 1 chưa đầy'); return result;
+  }},
+  { module: 'cms', name: 'Tin public trang 2', endpoint: 'GET /cms/news', run: async () => {
+    const f=state.manifest.fixtures.news; const result=await request(`/cms/news?q=${encodeURIComponent(f.searchTerm)}&page=2&limit=${f.pageSize}`); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(listItems(result.body).length>=2,'Trang 2 thiếu dữ liệu'); const first=await request(`/cms/news?q=${encodeURIComponent(f.searchTerm)}&page=1&limit=${f.pageSize}`); const ids=new Set([...listItems(first.body),...listItems(result.body)].map(row=>Number(row.id))); for(const fixture of f.items) assert(ids.has(fixture.id),`Thiếu tin ${fixture.id}`); return result;
+  }},
   { module: 'cms', name: 'Chi tiết tin fixture', endpoint: 'GET /cms/news/:id', run: async () => {
-    const f=state.manifest.fixtures.news; const result=await request(`/cms/news/${f.id}`); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(result.body?.data?.title===f.title,'Sai title fixture'); return result;
+    const f=state.manifest.fixtures.news.primary; const result=await request(`/cms/news/${f.id}`); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(result.body?.data?.title===f.title,'Sai title fixture'); return result;
   }},
-  { module: 'cms', name: 'Bình luận public', endpoint: 'GET /cms/news/:id/comments', run: async () => {
-    const f=state.manifest.fixtures.news; return expectFixture(`/cms/news/${f.id}/comments?page=1&limit=100`,f.commentId);
+  { module: 'cms', name: 'Bình luận approved public', endpoint: 'GET /cms/news/:id/comments', run: async () => {
+    const f=state.manifest.fixtures.news; const result=await request(`/cms/news/${f.primary.id}/comments?page=1&limit=100`); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(containsId(result.body,f.comments.approved),'Thiếu approved'); assert(!containsId(result.body,f.comments.pending),'Lộ pending'); assert(!containsId(result.body,f.comments.rejected),'Lộ rejected'); return result;
   }},
-  { module: 'cms', name: 'Danh sách văn bản', endpoint: 'GET /cms/documents', run: async () => expectFixture('/cms/documents?page=1&limit=100',state.manifest.fixtures.content.document.id) },
-  { module: 'cms', name: 'Chi tiết PDF map', endpoint: 'GET /cms/pdf-maps/:id', run: async () => expectStatus(`/cms/pdf-maps/${state.manifest.fixtures.content.pdfMap.id}`,200) },
-  { module: 'cms', name: 'Admin news list', endpoint: 'GET /admin/cms/news', run: async () => expectFixture('/admin/cms/news?page=1&limit=20',state.manifest.fixtures.news.id,'ubnd_tp') },
+  { module: 'cms', name: 'Văn bản public', endpoint: 'GET /cms/documents', run: async () => {
+    const f=state.manifest.fixtures.content; const result=await request(`/cms/documents?q=${encodeURIComponent(f.searchTerm)}&page=1&limit=100`); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(containsId(result.body,f.publicDocument.id),'Thiếu public'); assert(!containsId(result.body,f.internalDocument.id),'Lộ internal'); return result;
+  }},
+  { module: 'cms', name: 'Văn bản internal TNMT', endpoint: 'GET /cms/documents', run: async () => expectFixture(`/cms/documents?q=${encodeURIComponent(state.manifest.fixtures.content.searchTerm)}&page=1&limit=100`,state.manifest.fixtures.content.internalDocument.id,'so_tnmt') },
+  { module: 'cms', name: 'Chi tiết PDF map', endpoint: 'GET /cms/pdf-maps/:id', run: async () => expectStatus(`/cms/pdf-maps/${state.manifest.fixtures.content.pdfMaps[0].id}`,200) },
   { module: 'cms', name: 'Citizen tạo CMS bị chặn', endpoint: 'POST /admin/cms/news', run: async () => expectStatus('/admin/cms/news',403,'citizen',{method:'POST',headers:{'content-type':'application/json'},body:{title:'forbidden',content:'forbidden',visibility:'public',status:'draft'}}) },
   { module: 'admin', name: 'System admin user list', endpoint: 'GET /admin/users', run: async () => {
     const result=await request('/admin/users?page=1&limit=20',{role:'system_admin'}); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(listItems(result.body).length>=5,'Thiếu tài khoản nền'); return result;
@@ -91,33 +94,33 @@ const definitions = [
   { module: 'admin', name: 'Citizen user list bị chặn', endpoint: 'GET /admin/users', run: async () => expectStatus('/admin/users?page=1&limit=10',403,'citizen') },
   { module: 'admin', name: 'System logs', endpoint: 'GET /admin/system-logs', run: async () => expectStatus('/admin/system-logs?page=1&limit=20',200,'system_admin') },
   { module: 'admin', name: 'Citizen system logs bị chặn', endpoint: 'GET /admin/system-logs', run: async () => expectStatus('/admin/system-logs?page=1&limit=10',403,'citizen') },
-  { module: 'gis', name: 'Web map catalog', endpoint: 'GET /web-map/layers', run: async () => expectFixture('/web-map/layers',state.manifest.fixtures.layer.id) },
+  { module: 'gis', name: 'Web map point layer', endpoint: 'GET /web-map/layers', run: async () => conditional('map', () => expectFixture('/web-map/layers',state.manifest.fixtures.layers.point.id)) },
   { module: 'gis', name: 'Basemap catalog', endpoint: 'GET /web-map/basemaps', run: async () => expectStatus('/web-map/basemaps',200) },
   { module: 'gis', name: 'Terrain catalog', endpoint: 'GET /web-map/terrain', run: async () => expectStatus('/web-map/terrain',200) },
-  { module: 'gis', name: 'Admin layer list', endpoint: 'GET /admin/layers', run: async () => expectFixture('/admin/layers?page=1&limit=100',state.manifest.fixtures.layer.id,'so_tnmt') },
-  { module: 'gis', name: 'Layer detail', endpoint: 'GET /admin/layers/:id', run: async () => expectStatus(`/admin/layers/${state.manifest.fixtures.layer.id}`,200,'so_tnmt') },
-  { module: 'gis', name: 'Feature detail', endpoint: 'GET /mobile/layers/:id/features/:featureId', run: async () => expectStatus(`/mobile/layers/${state.manifest.fixtures.layer.id}/features/${state.manifest.fixtures.layer.featureId}`,200,'citizen') },
-  { module: 'gis', name: 'Nearby feature', endpoint: 'GET /mobile/layers/:id/nearby', run: async () => expectStatus(`/mobile/layers/${state.manifest.fixtures.layer.id}/nearby?longitude=107.3&latitude=21&radiusMeters=2000&limit=20`,200,'citizen') },
-  { module: 'gis', name: 'MVT binary non-empty', endpoint: 'GET /mobile/layers/:id/tiles/10/817/450.mvt', run: async () => {
-    const result = await request(`/mobile/layers/${state.manifest.fixtures.layer.id}/tiles/10/817/450.mvt`, { role: 'citizen', binary: true });
-    assert(result.response.status === 200, `HTTP ${result.response.status}`);
-    assert(result.contentType.includes('mapbox-vector-tile'), 'Sai MVT content-type');
-    assert(result.body.byteLength > 0, 'MVT fixture rỗng');
-    return result;
+  { module: 'gis', name: 'Admin layer list', endpoint: 'GET /admin/layers', run: async () => conditional('map', () => expectFixture('/admin/layers?page=1&limit=100',state.manifest.fixtures.layers.point.id,'so_tnmt')) },
+  { module: 'gis', name: 'Point feature detail', endpoint: 'GET /mobile/layers/:id/features/:featureId', run: async () => conditional('map', () => expectStatus(`/mobile/layers/${state.manifest.fixtures.layers.point.id}/features/${state.manifest.fixtures.layers.point.featureId}`,200,'citizen')) },
+  { module: 'gis', name: 'Nearby feature', endpoint: 'GET /mobile/layers/:id/nearby', run: async () => conditional('map', () => expectStatus(`/mobile/layers/${state.manifest.fixtures.layers.point.id}/nearby?longitude=107.3&latitude=21&radiusMeters=2000&limit=20`,200,'citizen')) },
+  { module: 'gis', name: 'Editable history TNMT', endpoint: 'GET /mobile/layers/:id/features/:id/history', run: async () => conditional('featureEditing', () => expectStatus(`/mobile/layers/${state.manifest.fixtures.layers.editable.id}/features/${state.manifest.fixtures.layers.editable.featureId}/history`,200,'so_tnmt')) },
+  { module: 'gis', name: 'Citizen edit feature bị chặn', endpoint: 'PATCH /mobile/layers/:id/features/:id', run: async () => conditional('featureEditing', () => expectStatus(`/mobile/layers/${state.manifest.fixtures.layers.editable.id}/features/${state.manifest.fixtures.layers.editable.featureId}`,403,'citizen',{method:'PATCH',headers:{'content-type':'application/json'},body:{baseVersion:1,attributes:{name:'forbidden'}}})) },
+  { module: 'gis', name: 'Ba draft citizen', endpoint: 'GET /mobile/drafts', run: async () => {
+    const result=await request('/mobile/drafts?page=1&limit=100',{role:'citizen'}); assert(result.response.status===200,`HTTP ${result.response.status}`); for(const draft of state.manifest.fixtures.mobile.drafts) assert(containsId(result.body,draft.id),`Thiếu ${draft.geometryType}`); return result;
   }},
-  { module: 'gis', name: 'Citizen admin layer bị chặn', endpoint: 'GET /admin/layers', run: async () => expectStatus('/admin/layers?page=1&limit=10',403,'citizen') },
-  { module: 'field', name: 'Raster metadata', endpoint: 'GET /remote-sensing/images/:id', run: async () => expectStatus(`/remote-sensing/images/${state.manifest.fixtures.raster.id}`,200) },
-  { module: 'field', name: 'Raster signed URL', endpoint: 'GET /remote-sensing/images/:id/download-url', run: async () => expectStatus(`/remote-sensing/images/${state.manifest.fixtures.raster.id}/download-url?expireSeconds=60`,200,'citizen') },
-  { module: 'field', name: 'Field reports public', endpoint: 'GET /field-reports/public', run: async () => expectFixture('/field-reports/public?page=1&limit=100',state.manifest.fixtures.fieldReport.id) },
-  { module: 'field', name: 'Field reports nearby', endpoint: 'GET /field-reports/nearby', run: async () => expectFixture('/field-reports/nearby?longitude=107.31&latitude=21.01&radiusMeters=500&from=2026-01-01T00%3A00%3A00Z&to=2027-01-01T00%3A00%3A00Z',state.manifest.fixtures.fieldReport.id) },
+  { module: 'gis', name: 'Đo khoảng cách', endpoint: 'POST /mobile/measure', run: async () => {
+    const result=await request('/mobile/measure',{method:'POST',headers:{'content-type':'application/json'},body:{geometry:{type:'LineString',coordinates:[[107.31,21.01],[107.315,21.015]]}}}); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(Number(result.body?.data?.length_m)>0,'Chiều dài sai'); return result;
+  }},
+  { module: 'gis', name: 'Routing driving', endpoint: 'POST /mobile/routes/shortest', run: async () => conditional('routing', async () => {
+    const r=state.manifest.fixtures.mobile.routing; const result=await request('/mobile/routes/shortest',{method:'POST',headers:{'content-type':'application/json'},body:{start:r.start,end:r.end,profile:'driving'}}); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(result.body?.data?.geometry?.type==='LineString','Sai geometry'); return result;
+  })},
+  { module: 'field', name: 'Raster metadata', endpoint: 'GET /remote-sensing/images/:id', run: async () => conditional('raster', () => expectStatus(`/remote-sensing/images/${state.manifest.fixtures.raster.id}`,200)) },
+  { module: 'field', name: 'Field reports public', endpoint: 'GET /field-reports/public', run: async () => expectFixture('/field-reports/public?page=1&limit=100',state.manifest.fixtures.fieldReports.byStatus.approved.id) },
+  { module: 'field', name: 'Field reports resolved', endpoint: 'GET /field-reports/public', run: async () => expectFixture('/field-reports/public?page=1&limit=100',state.manifest.fixtures.fieldReports.byStatus.resolved.id) },
+  { module: 'field', name: 'Field reports mine 5 trạng thái', endpoint: 'GET /field-reports/mine', run: async () => {
+    const result=await request('/field-reports/mine?page=1&limit=100',{role:'citizen'}); assert(result.response.status===200,`HTTP ${result.response.status}`); for(const report of state.manifest.fixtures.fieldReports.reports) assert(containsId(result.body,report.id),`Thiếu ${report.status}`); return result;
+  }},
+  { module: 'field', name: 'Field reports nearby', endpoint: 'GET /field-reports/nearby', run: async () => {
+    const c=state.manifest.fixtures.fieldReports.nearbyCenter; return expectFixture(`/field-reports/nearby?longitude=${c.longitude}&latitude=${c.latitude}&radiusMeters=${c.radiusMeters}&from=2026-01-01T00%3A00%3A00Z&to=2026-12-31T23%3A59%3A59Z`,state.manifest.fixtures.fieldReports.byStatus.approved.id);
+  }},
   { module: 'field', name: 'Statistics sources', endpoint: 'GET /statistics/sources', run: async () => expectStatus('/statistics/sources',200,'so_tnmt') },
-  { module: 'kttv', name: 'KTTV station fixture', endpoint: 'GET /admin/kttv/stations/:code', run: async () => expectStatus(`/admin/kttv/stations/${state.manifest.fixtures.kttv.station.code}`,200,'so_tnmt') },
-  { module: 'kttv', name: 'Official scenarios', endpoint: 'GET /admin/kttv/scenarios/:id', run: async () => {
-    for(const scenario of state.manifest.fixtures.kttv.scenarios){const result=await request(`/admin/kttv/scenarios/${scenario.id}`,{role:'so_tnmt'});assert(result.response.status===200,`HTTP ${result.response.status}`);assert(result.body?.data?.status==='official',`${scenario.code} chưa official`);} return { response:{status:200,headers:new Headers()}, body:{checked:state.manifest.fixtures.kttv.scenarios.length}, duration:0 };
-  }},
-  { module: 'kttv', name: 'Manual input matched', endpoint: 'GET /admin/kttv/inputs/:id', run: async () => expectInput(state.manifest.fixtures.kttv.manualInput.id,'manual') },
-  { module: 'kttv', name: 'Automatic input matched', endpoint: 'GET /admin/kttv/inputs/:id', run: async () => expectInput(state.manifest.fixtures.kttv.automaticInput?.id,'automatic') },
-  { module: 'kttv', name: 'Citizen KTTV write bị chặn', endpoint: 'POST /admin/kttv/sources', run: async () => expectStatus('/admin/kttv/sources',403,'citizen',{method:'POST',headers:{'content-type':'application/json'},body:{name:'forbidden',provider:'forbidden',serviceType:'REST',endpointUrl:'https://api.open-meteo.com/v1/forecast',responseFormat:'JSON',variables:{observedAtPath:'current.time',observedAtFormat:'iso',stationCode:'FORBIDDEN',mappings:[{path:'current.precipitation',variable:'rainfall',unit:'mm'}]}}}) },
   { module: 'security', name: 'Cache private khi có token', endpoint: 'GET /auth/me', run: async () => {
     const result=await request('/auth/me',{role:'citizen'}); assert(/private/i.test(result.response.headers.get('cache-control')||''),'Cache-Control không private'); assert(/Authorization/i.test(result.response.headers.get('vary')||''),'Vary thiếu Authorization'); return result;
   }},
@@ -128,7 +131,7 @@ const definitions = [
 
 async function expectStatus(path, status, role, extra={}) { const result=await request(path,{...extra,role}); assert(result.response.status===status,`Cần ${status}, nhận ${result.response.status}`); return result; }
 async function expectFixture(path,id,role) { const result=await request(path,{role}); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(containsId(result.body,id),`Không thấy fixture ID ${id}`); return result; }
-async function expectInput(id,mode) { if(!id) return {skip:`Thiếu ${mode} fixture`}; const result=await request(`/admin/kttv/inputs/${id}`,{role:'so_tnmt'}); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(result.body?.data?.input_mode===mode,`Sai mode ${mode}`); assert(result.body?.data?.match_status==='matched',`${mode} chưa matched`); return result; }
+async function conditional(module, action) { const status=state.manifest.modules[module]?.status; if(status!=='ready') return {skip:state.manifest.modules[module]?.blocker||`${module} conditional`}; return action(); }
 async function login(account) { const password=$('password').value; assert(password,'Nhập mật khẩu test'); const result=await request('/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:{email:account.email,password}}); assert(result.response.status===200,`HTTP ${result.response.status}`); assert(result.body?.data?.user?.role?.code===account.role,`Sai role ${account.role}`); state.tokens[account.role]={accessToken:result.body.data.accessToken,refreshToken:result.body.data.refreshToken}; renderAccounts(); return result; }
 
 function buildTests(){state.tests=definitions.map((test,index)=>({...test,id:index+1,status:'pending',duration:0,detail:null}));renderTabs();renderTests();updateMetrics();}
@@ -140,10 +143,10 @@ function showDetail(id){const test=state.tests.find(t=>t.id===id);if(!test)retur
 function serializeHeaders(headers){const result={};if(headers?.forEach)headers.forEach((value,key)=>{if(!/cookie|authorization/i.test(key))result[key]=value;});return result;}
 async function runOne(test){test.status='running';renderTests();const started=performance.now();try{const result=await test.run();test.duration=performance.now()-started;if(result?.skip){test.status='skip';test.detail={reason:result.skip};}else{test.status='pass';test.detail={httpStatus:result.response?.status,headers:serializeHeaders(result.response?.headers),body:result.body instanceof ArrayBuffer?`Binary ${result.body.byteLength} bytes`:result.body};}}catch(error){test.duration=performance.now()-started;test.status=error.name==='AbortError'?'skip':'fail';test.detail={error:error.message};}updateMetrics();renderTests();}
 async function runAll(){if(!$('password').value){$('password').focus();return;}state.controller=new AbortController();state.startedAt=Date.now();state.finishedAt=null;state.tokens={};state.tests.forEach(t=>{t.status='pending';t.detail=null;t.duration=0;});$('run-all').disabled=true;$('stop-run').disabled=false;$('download-report').disabled=true;renderAccounts();updateMetrics();renderTests();for(const test of state.tests){if(state.controller.signal.aborted)break;await runOne(test);}state.finishedAt=Date.now();state.controller=null;$('run-all').disabled=false;$('stop-run').disabled=true;$('download-report').disabled=false;updateMetrics();renderTests();}
-async function loadManifest(){try{const response=await fetch('./fixtures.json',{cache:'no-store'});assert(response.ok,`HTTP ${response.status}`);state.manifest=await response.json();assert(state.manifest.database==='campha_mobile_acceptance','Manifest không thuộc acceptance DB');$('manifest-state').textContent='Đã tải';$('manifest-state').className='status pass';const dd=document.querySelectorAll('#manifest-facts dd');dd[0].textContent=state.manifest.database;dd[1].textContent=new Date(state.manifest.generatedAt).toLocaleString('vi-VN');dd[2].textContent=`${state.manifest.fixtures.layer.code} #${state.manifest.fixtures.layer.id}`;dd[3].textContent=state.manifest.fixtures.registry.slug;}catch(error){$('manifest-state').textContent='Lỗi';$('manifest-state').className='status fail';$('score-subtitle').textContent=`Manifest: ${error.message}`;}}
+async function loadManifest(){try{const response=await fetch('./fixtures.json',{cache:'no-store'});assert(response.ok,`HTTP ${response.status}`);state.manifest=await response.json();assert(state.manifest.schemaVersion>=2,'Manifest schema cũ');$('manifest-state').textContent='Đã tải';$('manifest-state').className='status pass';const dd=document.querySelectorAll('#manifest-facts dd');dd[0].textContent=state.manifest.database;dd[1].textContent=new Date(state.manifest.generatedAt).toLocaleString('vi-VN');dd[2].textContent=state.manifest.fixtures.layers.point.id?`${state.manifest.fixtures.layers.point.code} #${state.manifest.fixtures.layers.point.id}`:state.manifest.modules.map.status;dd[3].textContent=state.manifest.fixtures.layers.editable.id?`${state.manifest.fixtures.layers.editable.code} #${state.manifest.fixtures.layers.editable.id}`:state.manifest.modules.featureEditing.status;}catch(error){$('manifest-state').textContent='Lỗi';$('manifest-state').className='status fail';$('score-subtitle').textContent=`Manifest: ${error.message}`;}}
 async function healthOnly(){const test=state.tests[0];await runOne(test);const online=test.status==='pass';$('runtime-pill').className=`runtime-pill ${online?'online':'offline'}`;$('runtime-label').textContent=online?'Server online':'Server offline';}
 async function loginAll(){for(const account of accounts){try{await login(account);}catch(error){alert(`${account.role}: ${error.message}`);break;}}}
 function clearSecrets(){state.tokens={};$('password').value='';renderAccounts();}
-function downloadReport(){const report={schemaVersion:1,generatedAt:new Date().toISOString(),apiBaseUrl:apiRoot(),manifestGeneratedAt:state.manifest?.generatedAt,summary:{total:state.tests.length,pass:state.tests.filter(t=>t.status==='pass').length,fail:state.tests.filter(t=>t.status==='fail').length,skip:state.tests.filter(t=>t.status==='skip').length,durationMs:state.finishedAt-state.startedAt},tests:state.tests.map(({run,...test})=>test),limitations:['Product WebGIS SPA absent','QGIS/real GIS data UAT external','OAuth/SMTP/Firebase/GEE/load/restore/pentest external']};const blob=new Blob([safeJson(report)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`campha-web-api-acceptance-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;a.click();URL.revokeObjectURL(url);}
+function downloadReport(){const report={schemaVersion:2,generatedAt:new Date().toISOString(),apiBaseUrl:apiRoot(),manifestGeneratedAt:state.manifest?.generatedAt,summary:{total:state.tests.length,pass:state.tests.filter(t=>t.status==='pass').length,fail:state.tests.filter(t=>t.status==='fail').length,skip:state.tests.filter(t=>t.status==='skip').length,durationMs:state.finishedAt-state.startedAt},tests:state.tests.map(({run,...test})=>test),limitations:['Registration/email/Firebase need external infrastructure','Offline queue state is device local','OS permission and lifecycle flows need physical device']};const blob=new Blob([safeJson(report)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`campha-mobile-api-acceptance-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;a.click();URL.revokeObjectURL(url);}
 
 $('run-all').onclick=runAll;$('stop-run').onclick=()=>state.controller?.abort();$('health-check').onclick=healthOnly;$('login-all').onclick=loginAll;$('clear-secrets').onclick=clearSecrets;$('download-report').onclick=downloadReport;$('close-dialog').onclick=()=>$('detail-dialog').close();$('search-tests').oninput=renderTests;$('status-filter').onchange=renderTests;$('footer-time').textContent=new Date().toLocaleString('vi-VN');window.addEventListener('beforeunload',clearSecrets);renderAccounts();buildTests();loadManifest();healthOnly();

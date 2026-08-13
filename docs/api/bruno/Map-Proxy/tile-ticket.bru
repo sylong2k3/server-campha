@@ -1,0 +1,23 @@
+meta {
+  name: Tile Ticket (ve xem ban do cho Mapbox RasterSource)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/maps/layers/{{layerId}}/tile-ticket?access=view
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{citizenToken}}
+}
+
+tests {
+  test("200 OK", function() { expect(res.getStatus()).to.equal(200); });
+  test("has ticket + expiresAt", function() {
+    expect(res.getBody().data).to.have.property('ticket');
+    expect(res.getBody().data).to.have.property('expiresAt');
+  });
+}
