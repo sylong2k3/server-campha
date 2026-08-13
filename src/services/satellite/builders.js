@@ -83,7 +83,8 @@ const buildFireRisk = (params, region) => {
             .where(risk.gte(0.35), 1)
             .where(risk.gte(0.6), 2)
             .where(risk.gte(0.8), 3)
-            .rename('fire_risk'),
+            .rename('fire_risk')
+            .clip(region),
         viz: { min: 0, max: 3, palette: ['#2c7bb6', '#fee08b', '#f46d43', '#a50026'] },
         region,
         stats: {},

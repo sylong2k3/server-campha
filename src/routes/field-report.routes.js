@@ -63,6 +63,7 @@ adminRouter.get(
     strict(v.clusterSchema, 'query'),
     asyncHandler(controller.clusters),
 );
+adminRouter.get('/:id', strict(v.idParamsSchema, 'params'), asyncHandler(controller.get));
 adminRouter.patch(
     '/:id/review',
     analyzeLimiter,

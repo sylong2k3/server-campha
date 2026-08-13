@@ -24,11 +24,10 @@ const createUser = async (role, index) => {
     return { ...u, role, permissions: r.permissions };
 };
 describe('Sprint 8 field reports integration', () => {
-    let citizen, manager, admin, other, report;
+    let citizen, admin, other, report;
     beforeAll(async () => {
         citizen = await createUser('citizen', 1);
         other = await createUser('citizen', 2);
-        manager = await createUser('ubnd_tp', 1);
         admin = await createUser('system_admin', 1);
         report = await repository.create(
             {
@@ -49,10 +48,9 @@ describe('Sprint 8 field reports integration', () => {
         db.stopPoolMonitor();
         await db.pool.end();
     });
-    test('RBAC: citizen create, system admin cannot create/review, manager reviews', async () => {
+    test('RBAC: citizen creates, system admin cannot create but can review', async () => {
         const citizenToken = token('citizen', citizen.id),
-            adminToken = token('system_admin', admin.id),
-            managerToken = token('ubnd_tp', manager.id);
+            adminToken = token('system_admin', admin.id);
         expect(
             (
                 await request(app)
@@ -78,17 +76,9 @@ describe('Sprint 8 field reports integration', () => {
                     })
             ).status,
         ).toBe(403);
-        expect(
-            (
-                await request(app)
-                    .patch(`/api/v1/admin/field-reports/${report.id}/review`)
-                    .set('Authorization', `Bearer ${adminToken}`)
-                    .send({ status: 'approved', expectedUpdatedAt: report.updated_at })
-            ).status,
-        ).toBe(403);
         const approved = await request(app)
             .patch(`/api/v1/admin/field-reports/${report.id}/review`)
-            .set('Authorization', `Bearer ${managerToken}`)
+            .set('Authorization', `Bearer ${adminToken}`)
             .send({ status: 'approved', expectedUpdatedAt: report.updated_at });
         expect(approved.status).toBe(200);
     });

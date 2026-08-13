@@ -88,6 +88,7 @@ const pdfMapListSchema = Joi.object({
     ...pagination,
     yearFrom: Joi.number().integer().min(1900).max(2200).optional(),
     yearTo: Joi.number().integer().min(1900).max(2200).optional(),
+    scaleLabel: plain(100).optional(),
     sortBy: Joi.string().valid('id', 'year', 'created_at', 'updated_at', 'title').default('year'),
     sortOrder,
 });

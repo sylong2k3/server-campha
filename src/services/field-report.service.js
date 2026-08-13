@@ -106,7 +106,7 @@ const get = async (id, actor) => {
     return row;
 };
 const review = async (id, input, actor) => {
-    const reviewers = ['ubnd_tp', 'so_tnmt', 'so_xd'];
+    const reviewers = ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'];
     if (!reviewers.includes(actor.role)) {
         throw new Api403Error('Vai trò không được duyệt phản ánh');
     }

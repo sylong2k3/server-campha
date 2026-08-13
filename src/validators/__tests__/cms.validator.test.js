@@ -27,6 +27,7 @@ describe('CMS validators', () => {
                 sortOrder: 'ASC',
                 yearFrom: 2020,
                 yearTo: 2026,
+                scaleLabel: '1:10.000',
             }).error,
         ).toBeUndefined();
         expect(v.pdfMapListSchema.validate({ sortBy: 'id' }).error).toBeUndefined();

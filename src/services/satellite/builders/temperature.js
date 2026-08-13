@@ -3,17 +3,11 @@
 const { ee } = require('../../../configs/gge');
 const { Api400Error } = require('../../../core/error.response');
 
-// ST_B10 is the surface-temperature product from Landsat Collection 2 Level 2.
-// The thermal sensor's native ground sampling distance is about 100 m; USGS
-// distributes it on the 30 m Landsat grid. This is substantially more detailed
-// than the former 1 km MODIS product, without claiming resampling creates new
-// 30 m thermal observations.
-const LANDSAT_THERMAL_COLLECTIONS = Object.freeze({
-    L8: 'LANDSAT/LC08/C02/T1_L2',
-    L9: 'LANDSAT/LC09/C02/T1_L2',
-});
-const NATIVE_THERMAL_RESOLUTION_METERS = 100;
-const OUTPUT_RESOLUTION_METERS = 30;
+// MODIS is intentionally the sole heat-map source. It is lower resolution
+// (1 km) than Landsat, but its daily LST coverage is more reliable for the RG
+// boundary and avoids blank/black tiles when Landsat ST_B10 is fully masked.
+const MODIS_LST_ID = 'MODIS/061/MOD11A1';
+const MODIS_RESOLUTION_METERS = 1000;
 
 const HEATMAP_LEGEND = Object.freeze([
     { value: 20, label: 'Mát', color: '#313695' },
@@ -22,78 +16,46 @@ const HEATMAP_LEGEND = Object.freeze([
     { value: 45, label: 'Nóng', color: '#d73027' },
 ]);
 
-const resolveThermalSources = (collection) => {
-    switch (collection) {
-        case 'L8':
-            return ['L8'];
-        case 'L9':
-            return ['L9'];
-        case 'LANDSAT':
-        case 'S2':
-        case 'AUTO':
-        default:
-            // Sentinel-2 has no thermal band. AUTO and S2 therefore use both
-            // Landsat missions instead of silently producing an empty result.
-            return ['L8', 'L9'];
-    }
-};
-
-const maskThermalLandsat = (image) => {
-    const qa = image.select('QA_PIXEL');
-    const clearMask = qa
-        .bitwiseAnd(1 << 0) // Fill
-        .eq(0)
-        .and(qa.bitwiseAnd(1 << 1).eq(0)) // Dilated cloud
-        .and(qa.bitwiseAnd(1 << 3).eq(0)) // Cloud
-        .and(qa.bitwiseAnd(1 << 4).eq(0)) // Cloud shadow
-        .and(qa.bitwiseAnd(1 << 5).eq(0)); // Snow
-
-    // Landsat Collection 2 scale and offset for ST_B10: Kelvin -> Celsius.
-    return image
-        .updateMask(clearMask)
-        .select('ST_B10')
-        .multiply(0.00341802)
-        .add(149)
-        .subtract(273.15)
-        .rename('LST_C')
-        .toFloat();
-};
-
-const sourceCollection = (source, params, region) =>
+const buildModisCollection = (params, region) =>
     ee
-        .ImageCollection(LANDSAT_THERMAL_COLLECTIONS[source])
+        .ImageCollection(MODIS_LST_ID)
         .filterBounds(region)
         .filterDate(params.startDate, params.endDate)
-        .filter(ee.Filter.lte('CLOUD_COVER', params.cloudCover))
-        .map(maskThermalLandsat);
+        .select('LST_Day_1km');
 
-const buildThermalCollection = (params, region) =>
-    resolveThermalSources(params.collection).reduce(
-        (combined, source) => combined.merge(sourceCollection(source, params, region)),
-        ee.ImageCollection([]),
-    );
+const numberOrNull = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
 
 const buildHeatmap = async (params, region, { evaluate }) => {
-    const collection = buildThermalCollection(params, region);
+    const collection = buildModisCollection(params, region);
     const imageCount = Number(await evaluate(collection.size()));
     if (!Number.isFinite(imageCount) || imageCount <= 0) {
-        throw new Api400Error('Không tìm thấy ảnh nhiệt Landsat đạt điều kiện mây cho khoảng thời gian và khu vực đã chọn.', [
+        throw new Api400Error('Không tìm thấy ảnh nhiệt MODIS cho khoảng thời gian và khu vực đã chọn.', [
             'SATELLITE_IMAGE_NOT_FOUND',
         ]);
     }
 
-    const image = collection.median().rename('LST_C').clip(region);
+    // MODIS LST_Day_1km scale is 0.02 Kelvin. Clipping first keeps pixels
+    // outside the RG polygon masked in both the preview and downloaded GeoTIFF.
+    const image = collection
+        .mean()
+        .multiply(0.02)
+        .subtract(273.15)
+        .rename('LST_C')
+        .clip(region);
     const summary = await evaluate(
         image.reduceRegion({
-            reducer: ee.Reducer.mean().combine({ reducer2: ee.Reducer.minMax(), sharedInputs: true }),
+            reducer: ee.Reducer.count()
+                .combine({ reducer2: ee.Reducer.mean(), sharedInputs: true })
+                .combine({ reducer2: ee.Reducer.minMax(), sharedInputs: true }),
             geometry: region,
-            scale: OUTPUT_RESOLUTION_METERS,
+            scale: MODIS_RESOLUTION_METERS,
             maxPixels: 1e13,
             bestEffort: true,
         }),
     );
-    const numberOrNull = (value) => (Number.isFinite(Number(value)) ? Number(value) : null);
-    const sources = resolveThermalSources(params.collection);
+    const meanC = numberOrNull(summary?.LST_C_mean);
+    const minC = numberOrNull(summary?.LST_C_min);
+    const maxC = numberOrNull(summary?.LST_C_max);
 
     return {
         image,
@@ -101,32 +63,34 @@ const buildHeatmap = async (params, region, { evaluate }) => {
         region,
         stats: {
             imageCount,
-            meanC: numberOrNull(summary?.LST_C_mean),
-            minC: numberOrNull(summary?.LST_C_min),
-            maxC: numberOrNull(summary?.LST_C_max),
+            validPixelCount: numberOrNull(summary?.LST_C_count) || 0,
+            meanC,
+            minC,
+            maxC,
+            // Existing sidebar uses these keys.
+            lstMeanC: meanC,
+            lstMinC: minC,
+            lstMaxC: maxC,
         },
         legend: HEATMAP_LEGEND,
         metadata: {
-            source: sources.map((source) => LANDSAT_THERMAL_COLLECTIONS[source]),
+            source: MODIS_LST_ID,
+            thermalSource: 'modis',
             geometrySource: params.geometrySource,
             dateInterval: `[${params.startDate}, ${params.endDate})`,
-            resolutionMeters: OUTPUT_RESOLUTION_METERS,
-            nativeResolutionMeters: NATIVE_THERMAL_RESOLUTION_METERS,
-            resolutionNote:
-                'Băng nhiệt Landsat đo ở độ phân giải gốc khoảng 100 m và được USGS phân phối trên lưới 30 m; lưới 30 m không làm tăng chi tiết đo nhiệt thực tế.',
-            cloudFilter: 'Landsat Collection 2: CLOUD_COVER ≤ ngưỡng yêu cầu, đồng thời loại mây, bóng mây, tuyết và pixel rỗng bằng QA_PIXEL.',
-            cloudCover: params.cloudCover,
+            resolutionMeters: MODIS_RESOLUTION_METERS,
+            nativeResolutionMeters: MODIS_RESOLUTION_METERS,
+            downloadScaleMeters: MODIS_RESOLUTION_METERS,
+            resolutionNote: 'Ảnh nhiệt MODIS có độ phân giải 1 km và được cắt theo ranh giới RG Cẩm Phả.',
+            cloudFilter: 'Sản phẩm nhiệt MODIS hằng ngày đã được kiểm soát chất lượng bởi nguồn dữ liệu.',
         },
     };
 };
 
 module.exports = {
     HEATMAP_LEGEND,
-    LANDSAT_THERMAL_COLLECTIONS,
-    NATIVE_THERMAL_RESOLUTION_METERS,
-    OUTPUT_RESOLUTION_METERS,
+    MODIS_LST_ID,
+    MODIS_RESOLUTION_METERS,
     buildHeatmap,
-    buildThermalCollection,
-    maskThermalLandsat,
-    resolveThermalSources,
+    buildModisCollection,
 };

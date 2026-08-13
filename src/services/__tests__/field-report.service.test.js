@@ -41,11 +41,11 @@ describe('Sprint 8 field report RBAC service', () => {
         });
         expect(repo.list).toHaveBeenCalledWith({ page: 1, limit: 10 }, 'mine', actor);
     });
-    test.each(['system_admin', 'citizen'])('%s cannot review', async (role) => {
-        const actor = { ...citizen, role, permissions: { field_report: { approve: true } } };
+    test('citizen cannot review even with the approve permission', async () => {
+        const actor = { ...citizen, permissions: { field_report: { approve: true } } };
         await expect(service.review(1, {}, actor)).rejects.toMatchObject({ status: 403 });
     });
-    test.each(['ubnd_tp', 'so_tnmt', 'so_xd'])('%s can review', async (role) => {
+    test.each(['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'])('%s can review', async (role) => {
         const actor = { ...citizen, role, permissions: { field_report: { approve: true } } };
         repo.review.mockResolvedValue({ id: 1, status: 'approved' });
         await expect(service.review(1, { status: 'approved' }, actor)).resolves.toMatchObject({

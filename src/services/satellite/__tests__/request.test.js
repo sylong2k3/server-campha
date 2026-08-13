@@ -15,7 +15,7 @@ describe('satellite request normalization', () => {
         });
 
         expect(result.collection).toBe('L8');
-        expect(result.productVersion).toBe('optical-v2');
+        expect(result.productVersion).toBe('optical-rg-clip-v3');
         expect(result.endDate).toBe('2026-01-31');
         expect(result.ndviMinThresh).toBe(0.45);
     });
@@ -36,7 +36,7 @@ describe('satellite request normalization', () => {
     });
 
     test('versions the thermal product to invalidate MODIS cache entries', () => {
-        expect(normalizeRequest('heatmap', dates).productVersion).toBe('landsat-lst-v1');
+        expect(normalizeRequest('heatmap', dates).productVersion).toBe('modis-lst-rg-clip-v4');
     });
 
     test('rejects an unsupported collection and NDVI threshold', () => {

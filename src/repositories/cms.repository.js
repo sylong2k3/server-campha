@@ -370,7 +370,17 @@ const listPdfMaps = async (filter, mode) => {
         params.push(filter.visibility);
         conditions.push(`m.visibility=$${params.length}`);
     }
-    searchCondition('m.title', filter.q, params, conditions);
+    if (filter.q) {
+        params.push(`%${filter.q}%`);
+        conditions.push(
+            `(unaccent(lower(m.title)) ILIKE unaccent(lower($${params.length})) OR ` +
+                `unaccent(lower(COALESCE(m.description,''))) ILIKE unaccent(lower($${params.length})))`,
+        );
+    }
+    if (filter.scaleLabel) {
+        params.push(filter.scaleLabel);
+        conditions.push(`m.scale_label=$${params.length}`);
+    }
     if (filter.yearFrom) {
         params.push(filter.yearFrom);
         conditions.push(`m.map_year >= $${params.length}`);
