@@ -11,6 +11,12 @@ const listPublic = async (req, res) => {
         total: result.total,
     });
 };
+const getPublic = async (req, res) =>
+    OK(
+        res,
+        t('field_report_detail_success', req.lang),
+        await service.getPublic(Number(req.params.id)),
+    );
 const nearby = async (req, res) =>
     OK(res, t('field_report_nearby_success', req.lang), await service.nearby(req.query));
 const listMine = async (req, res) => {
@@ -76,6 +82,7 @@ const unregisterDevice = async (req, res) =>
     );
 module.exports = {
     listPublic,
+    getPublic,
     nearby,
     listMine,
     create,

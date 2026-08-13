@@ -238,6 +238,8 @@ const getDownloadUrl = async (id, expireSeconds, actor) => {
 };
 
 const streamFile = async (id, ticket, actor) => {
+    let access;
+    let record;
     if (ticket) {
         try {
             const decoded = jwt.verify(ticket, process.env.JWT_SECRET);
@@ -247,20 +249,28 @@ const streamFile = async (id, ticket, actor) => {
             ) {
                 throw new Api403Error('Vé tải file không hợp lệ');
             }
+            access = 'ticket';
         } catch (err) {
             if (err instanceof Api403Error) {
                 throw err;
             }
             throw new Api403Error('Vé tải file đã hết hạn hoặc không hợp lệ');
         }
-    } else if (!actor || !actor.id) {
-        throw new Api403Error('Yêu cầu vé tải file hoặc đăng nhập');
+        record = await storageRepository.findById(id);
+    } else if (actor?.id) {
+        record = await storageRepository.findAccessibleById(id, actor.id);
+        if (record) {
+            access = 'owner';
+        } else {
+            record = await storageRepository.findPublicById(id);
+            access = 'public';
+        }
+    } else {
+        record = await storageRepository.findPublicById(id);
+        access = 'public';
     }
 
-    const record = ticket
-        ? await storageRepository.findById(id)
-        : await storageRepository.findAccessibleById(id, actor.id);
-    if (!record || record.lifecycle_status !== 'ready') {
+    if (!record || record.lifecycle_status !== 'ready' || record.scan_status !== 'clean') {
         throw new Api404Error('Không tìm thấy file');
     }
 
@@ -271,9 +281,10 @@ const streamFile = async (id, ticket, actor) => {
 
     return {
         stream,
-        mimeType: record.detected_mime || record.expected_mime || 'application/pdf',
+        mimeType: record.detected_mime || record.expected_mime || 'application/octet-stream',
         sizeBytes: Number(record.size_bytes),
         originalName: record.original_name,
+        access,
     };
 };
 

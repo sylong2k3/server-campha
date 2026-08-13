@@ -171,7 +171,9 @@ async function getUserId(email) {
         `SELECT id FROM auth.users WHERE lower(email) = lower($1) AND deleted_at IS NULL`,
         [email],
     );
-    if (!rows[0]) throw new Error(`User không tồn tại: ${email}`);
+    if (!rows[0]) {
+        throw new Error(`User không tồn tại: ${email}`);
+    }
     return rows[0].id;
 }
 
@@ -180,7 +182,9 @@ async function getOrgId(email) {
         `SELECT org_id FROM auth.users WHERE lower(email) = lower($1) AND deleted_at IS NULL`,
         [email],
     );
-    if (!rows[0]) throw new Error(`Không tìm được org của user: ${email}`);
+    if (!rows[0]) {
+        throw new Error(`Không tìm được org của user: ${email}`);
+    }
     return rows[0].org_id;
 }
 

@@ -40,6 +40,11 @@ publicRouter.get(
     strict(v.nearbySchema, 'query'),
     asyncHandler(controller.nearby),
 );
+publicRouter.get(
+    '/public/:id',
+    strict(v.idParamsSchema, 'params'),
+    asyncHandler(controller.getPublic),
+);
 publicRouter.use(verifyToken, enforcePasswordChange);
 publicRouter.get('/mine', strict(v.listSchema, 'query'), asyncHandler(controller.listMine));
 publicRouter.post('/', createLimiter, strict(v.createSchema), asyncHandler(controller.create));

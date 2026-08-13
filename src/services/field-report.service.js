@@ -27,6 +27,36 @@ const listMine = (filter, actor) => {
     requirePermission(actor, 'create');
     return repository.list(filter, 'mine', actor);
 };
+const attachPhotos = async (row, isPublic) => {
+    const photos = await repository.photoObjects(row.id);
+    row.photos = await Promise.all(
+        photos.map(async (photo) => {
+            const link = isPublic
+                ? minioService.getPublicFileUrl(photo.id)
+                : await minioService.getPresignedDownloadUrl({
+                      objectKey: photo.object_key,
+                      category: 'field-photos',
+                      expireSeconds: 300,
+                      fileId: photo.id,
+                  });
+            return {
+                id: photo.id,
+                originalName: photo.original_name,
+                sizeBytes: photo.size_bytes,
+                url: link.url,
+                expiresAt: link.expiresAt,
+            };
+        }),
+    );
+    return row;
+};
+const getPublic = async (id) => {
+    const row = await repository.find(id, 'public');
+    if (!row) {
+        throw new Api404Error('Không tìm thấy phản ánh');
+    }
+    return attachPhotos(row, true);
+};
 const create = async (input, actor) => {
     requirePermission(actor, 'create');
     if (input.measuredGeometry) {
@@ -72,19 +102,7 @@ const get = async (id, actor) => {
     if (!row) {
         throw new Api404Error('Không tìm thấy phản ánh');
     }
-    const photos = await repository.photoObjects(id);
-    row.photos = await Promise.all(
-        photos.map(async (photo) => ({
-            id: photo.id,
-            originalName: photo.original_name,
-            sizeBytes: photo.size_bytes,
-            ...(await minioService.getPresignedDownloadUrl({
-                objectKey: photo.object_key,
-                category: 'field-photos',
-                expireSeconds: 300,
-            })),
-        })),
-    );
+    await attachPhotos(row, false);
     row.history = await repository.history(id);
     return row;
 };
@@ -149,6 +167,7 @@ const unregisterDevice = async (input, actor) => {
 };
 module.exports = {
     listPublic,
+    getPublic,
     nearby,
     listMine,
     create,

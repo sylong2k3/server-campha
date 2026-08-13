@@ -43,6 +43,12 @@ const streamFile = async (req, res) => {
     const actor = req.user ? buildActor(req) : null;
     const result = await storageService.streamFile(fileId, ticket, actor);
     res.setHeader('Content-Type', result.mimeType);
+    res.setHeader(
+        'Cache-Control',
+        result.access === 'public'
+            ? 'public, max-age=300, stale-while-revalidate=60'
+            : 'private, no-store',
+    );
     if (result.sizeBytes) {
         res.setHeader('Content-Length', result.sizeBytes);
     }

@@ -31,6 +31,13 @@ const apiV1BaseUrl = () => {
     return configured.endsWith('/api/v1') ? configured : `${configured}/api/v1`;
 };
 
+const getPublicFileUrl = (fileId) => {
+    if (!Number.isSafeInteger(Number(fileId)) || Number(fileId) <= 0) {
+        throw new TypeError('fileId must be a positive integer');
+    }
+    return { url: `${apiV1BaseUrl()}/storage/objects/${fileId}/file`, expiresAt: null };
+};
+
 const safeName = (originalName) => {
     const ext = path
         .extname(originalName || '')
@@ -195,6 +202,8 @@ const downloadToFile = async ({ objectKey, category, destPath }) => {
 
 module.exports = {
     boundedExpiry,
+    apiV1BaseUrl,
+    getPublicFileUrl,
     buildObjectKey,
     uploadStream,
     uploadBuffer,

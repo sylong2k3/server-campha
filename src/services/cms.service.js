@@ -42,6 +42,18 @@ const assertFileNotInUse = (row) => {
         ]);
     }
 };
+const managedFileLink = async (row, expireSeconds) => {
+    const link =
+        row.visibility === 'public'
+            ? minioService.getPublicFileUrl(row.file_object_id)
+            : await minioService.getPresignedDownloadUrl({
+                  objectKey: row.object_key,
+                  category: 'documents',
+                  expireSeconds,
+                  fileId: row.file_object_id,
+              });
+    return { url: link.url, expiresAt: link.expiresAt, fileName: row.original_name };
+};
 
 const listPublicNews = (filter) => repository.listNews(filter, true);
 const getPublicNews = (id) =>
@@ -163,18 +175,12 @@ const deleteDocument = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     return changed;
 };
 const documentDownload = async (id, expireSeconds, actor) => {
-    requirePermission(actor, 'documents', 'download_internal');
+    const mode = has(actor, 'documents', 'download_internal') ? 'admin' : 'public';
     const row = await getOr404(
-        () => repository.findDocument(id, 'admin', true),
+        () => repository.findDocument(id, mode, true),
         'Không tìm thấy văn bản',
     );
-    const signed = await minioService.getPresignedDownloadUrl({
-        objectKey: row.object_key,
-        category: 'documents',
-        expireSeconds,
-        fileId: row.file_object_id,
-    });
-    return { url: signed.url, expiresAt: signed.expiresAt, fileName: row.original_name };
+    return managedFileLink(row, expireSeconds);
 };
 
 const modeForPdf = (actor, admin) =>
@@ -228,18 +234,13 @@ const deletePdfMap = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     return changed;
 };
 const pdfMapDownload = async (id, expireSeconds, actor) => {
-    requirePermission(actor, 'pdf_maps', 'download');
+    const canDownloadInternal =
+        has(actor, 'pdf_maps', 'read') && has(actor, 'pdf_maps', 'download');
     const row = await getOr404(
-        () => repository.findPdfMap(id, 'public', true),
+        () => repository.findPdfMap(id, canDownloadInternal ? 'admin' : 'public', true),
         'Không tìm thấy bản đồ PDF',
     );
-    const signed = await minioService.getPresignedDownloadUrl({
-        objectKey: row.object_key,
-        category: 'documents',
-        expireSeconds,
-        fileId: row.file_object_id,
-    });
-    return { url: signed.url, expiresAt: signed.expiresAt, fileName: row.original_name };
+    return managedFileLink(row, expireSeconds);
 };
 
 module.exports = {

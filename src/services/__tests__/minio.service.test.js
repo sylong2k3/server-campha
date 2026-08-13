@@ -18,6 +18,15 @@ describe('minio download ticket URL', () => {
         process.env.API_BASE_URL = originalBaseUrl;
     });
 
+    test('builds a stable API URL for public managed files', () => {
+        process.env.API_BASE_URL = 'http://127.0.0.1:3006/api/v1/';
+        expect(minioService.getPublicFileUrl(56)).toEqual({
+            url: 'http://127.0.0.1:3006/api/v1/storage/objects/56/file',
+            expiresAt: null,
+        });
+        expect(() => minioService.getPublicFileUrl(0)).toThrow('positive integer');
+    });
+
     test.each([
         ['http://127.0.0.1:3006', 'http://127.0.0.1:3006/api/v1/storage/objects/56/file'],
         ['http://127.0.0.1:3006/', 'http://127.0.0.1:3006/api/v1/storage/objects/56/file'],
