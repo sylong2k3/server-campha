@@ -4643,7 +4643,7 @@
             },
             {
               "name": "Quản trị tài liệu",
-              "description": "Quan ly tai lieu / van ban. Khong co PATCH — thay the bang cach xoa roi tao moi.",
+              "description": "Quản lý tài liệu / văn bản, gồm CRUD metadata và liên kết file Storage.",
               "item": [
                 {
                   "name": "Danh sách tài liệu (quản trị)",
@@ -4769,6 +4769,54 @@
                         "exec": [
                           "pm.test('200 OK', () => pm.response.to.have.status(200));",
                           "const j = pm.response.json(); if (j.data && j.data.document) { pm.collectionVariables.set('documentUpdatedAt', j.data.document.updatedAt); pm.environment.set('documentUpdatedAt', j.data.document.updatedAt); }"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "Cập nhật tài liệu",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"expectedUpdatedAt\": \"{{documentUpdatedAt}}\",\n  \"title\": \"Bao cao kinh te xa hoi 2026 (cap nhat)\",\n  \"visibility\": \"public\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/api/v1/admin/cms/documents/{{documentId}}",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "api",
+                        "v1",
+                        "admin",
+                        "cms",
+                        "documents",
+                        "{{documentId}}"
+                      ]
+                    },
+                    "description": "Cập nhật metadata tài liệu. expectedUpdatedAt bắt buộc trong body; fileObjectId không được thay đổi."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                          "const d = pm.response.json().data; if (d && d.updated_at) { pm.collectionVariables.set('documentUpdatedAt', d.updated_at); pm.environment.set('documentUpdatedAt', d.updated_at); }"
                         ]
                       }
                     }

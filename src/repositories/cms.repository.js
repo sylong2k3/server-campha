@@ -236,6 +236,36 @@ const createDocument = async (input, actorId) => {
     );
     return row || null;
 };
+const updateDocument = async (id, input) => {
+    const sets = [];
+    const params = [];
+    const fields = {
+        title: 'title',
+        documentCode: 'document_code',
+        issuingAgency: 'issuing_agency',
+        issuedAt: 'issued_at',
+        description: 'description',
+        visibility: 'visibility',
+    };
+    for (const [key, column] of Object.entries(fields)) {
+        if (input[key] !== undefined) {
+            params.push(input[key] === '' ? null : input[key]);
+            sets.push(`${column}=$${params.length}`);
+        }
+    }
+    params.push(id);
+    const idIndex = params.length;
+    params.push(input.expectedUpdatedAt);
+    const version = versionCondition(params.length);
+    const {
+        rows: [row],
+    } = await db.query(
+        `UPDATE cms.documents SET ${sets.join(',')} WHERE id=$${idIndex}
+         AND deleted_at IS NULL ${version} RETURNING *`,
+        params,
+    );
+    return row || null;
+};
 const deleteFileEntity = async ({
     table,
     sourceType,
@@ -412,6 +442,7 @@ module.exports = {
     listDocuments,
     findDocument,
     createDocument,
+    updateDocument,
     deleteDocument,
     listPdfMaps,
     findPdfMap,

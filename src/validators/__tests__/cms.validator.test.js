@@ -30,4 +30,15 @@ describe('CMS validators', () => {
             }).error,
         ).toBeUndefined();
     });
+    test('document update requires a version and forbids replacing the file', () => {
+        const expectedUpdatedAt = '2026-08-13T00:00:00.000Z';
+        expect(
+            v.documentUpdateSchema.validate({ expectedUpdatedAt, title: 'Tên mới' }).error,
+        ).toBeUndefined();
+        expect(v.documentUpdateSchema.validate({ title: 'Tên mới' }).error).toBeDefined();
+        expect(v.documentUpdateSchema.validate({ expectedUpdatedAt }).error).toBeDefined();
+        expect(
+            v.documentUpdateSchema.validate({ expectedUpdatedAt, fileObjectId: 2 }).error,
+        ).toBeDefined();
+    });
 });

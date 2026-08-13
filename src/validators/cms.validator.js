@@ -50,6 +50,14 @@ const documentCreateSchema = Joi.object({
     visibility: Joi.string().valid('public', 'internal').default('public'),
     fileObjectId: Joi.number().integer().positive().required(),
 });
+const documentUpdateSchema = documentCreateSchema
+    .fork(['title', 'documentCode', 'issuingAgency', 'fileObjectId'], (field) => field.optional())
+    .keys({
+        visibility: Joi.string().valid('public', 'internal').optional(),
+        fileObjectId: Joi.forbidden(),
+        expectedUpdatedAt: Joi.date().iso().required(),
+    })
+    .or('title', 'documentCode', 'issuingAgency', 'issuedAt', 'description', 'visibility');
 const visibilityListSchema = Joi.object({
     ...pagination,
     visibility: Joi.string().valid('public', 'internal').optional(),
@@ -88,6 +96,7 @@ module.exports = {
     commentListSchema,
     commentModerateSchema,
     documentCreateSchema,
+    documentUpdateSchema,
     visibilityListSchema,
     pdfMapCreateSchema,
     pdfMapUpdateSchema,

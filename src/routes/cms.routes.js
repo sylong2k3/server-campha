@@ -131,6 +131,12 @@ adminRouter.get(
     strict(v.idParamsSchema, 'params'),
     asyncHandler(controller.getAdminDocument),
 );
+adminRouter.patch(
+    '/documents/:id',
+    strict(v.idParamsSchema, 'params'),
+    strict(v.documentUpdateSchema),
+    asyncHandler(controller.updateDocument),
+);
 adminRouter.delete(
     '/documents/:id',
     strict(v.idParamsSchema, 'params'),
