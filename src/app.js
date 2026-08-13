@@ -195,6 +195,8 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+const { minioBucketProxy } = require('./middlewares/minio-proxy.middleware');
+
 app.use('/api/v1', routes);
 
 app.get('/', (req, res) => {
@@ -206,6 +208,7 @@ app.get('/', (req, res) => {
     });
 });
 
+app.use(minioBucketProxy);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
