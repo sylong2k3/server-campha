@@ -162,6 +162,24 @@ const createDocument = async (input, actor) => {
         throw error;
     }
 };
+const updateDocument = async (id, input, actor) => {
+    requirePermission(actor, 'documents', 'update');
+    try {
+        const row = await repository.updateDocument(id, input);
+        const changed = await changedOrError(
+            row,
+            () => repository.findDocument(id, 'admin'),
+            'Không tìm thấy văn bản',
+        );
+        audit('document_updated', actor, { documentId: id });
+        return changed;
+    } catch (error) {
+        if (error.code === '23505') {
+            throw new Api409Error('Mã văn bản đã tồn tại', ['DOCUMENT_CONFLICT']);
+        }
+        throw error;
+    }
+};
 const deleteDocument = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     requirePermission(actor, 'documents', 'delete');
     const row = await repository.deleteDocument(id, expectedUpdatedAt, actor.id, deleteFiles);
@@ -258,6 +276,7 @@ module.exports = {
     listDocuments,
     getDocument,
     createDocument,
+    updateDocument,
     deleteDocument,
     documentDownload,
     listPdfMaps,

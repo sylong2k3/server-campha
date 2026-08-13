@@ -19,6 +19,7 @@ const admin = {
         documents: {
             read: true,
             create: true,
+            update: true,
             delete: true,
             read_internal: true,
             download_internal: true,
@@ -146,6 +147,33 @@ describe('CMS service', () => {
             category: 'documents',
             expireSeconds: 300,
             fileId: 56,
+        });
+    });
+    test('updates document metadata with permission and optimistic locking', async () => {
+        const input = { title: 'Updated', expectedUpdatedAt: '2026-08-13T00:00:00.000Z' };
+        repository.updateDocument.mockResolvedValue(row);
+        await expect(service.updateDocument(1, input, admin)).resolves.toBe(row);
+        expect(repository.updateDocument).toHaveBeenCalledWith(1, input);
+
+        await expect(service.updateDocument(1, input, citizen)).rejects.toMatchObject({
+            status: 403,
+        });
+
+        repository.updateDocument.mockResolvedValue(null);
+        repository.findDocument.mockResolvedValue(row);
+        await expect(service.updateDocument(1, input, admin)).rejects.toMatchObject({
+            status: 409,
+        });
+
+        repository.findDocument.mockResolvedValue(null);
+        await expect(service.updateDocument(1, input, admin)).rejects.toMatchObject({
+            status: 404,
+        });
+
+        repository.updateDocument.mockRejectedValue({ code: '23505' });
+        await expect(service.updateDocument(1, input, admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['DOCUMENT_CONFLICT'],
         });
     });
     test('PDF map CRUD read and download branches', async () => {

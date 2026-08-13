@@ -96,6 +96,12 @@ const getAdminDocument = async (req, res) =>
     );
 const createDocument = async (req, res) =>
     CREATED(res, 'Đã tạo văn bản', await service.createDocument(req.body, buildActor(req)));
+const updateDocument = async (req, res) =>
+    OK(
+        res,
+        'Đã cập nhật văn bản',
+        await service.updateDocument(Number(req.params.id), req.body, buildActor(req)),
+    );
 const deleteDocument = async (req, res) =>
     OK(
         res,
@@ -186,6 +192,7 @@ module.exports = {
     listAdminDocuments,
     getAdminDocument,
     createDocument,
+    updateDocument,
     deleteDocument,
     documentDownload,
     listPdfMaps,
