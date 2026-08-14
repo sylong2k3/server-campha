@@ -73,15 +73,24 @@ const sha256File = (filePath) =>
 
 const buildObjectKey = (job, tag, bucketCategory = DEFAULT_BUCKET_CATEGORY) => {
     const now = new Date();
-    const yyyy = now.getUTCFullYear();
-    const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const objectKeyYear = Number(job?.request_params?.objectKeyYear);
+    const objectKeyMonth = Number(job?.request_params?.objectKeyMonth);
+    const yyyy = Number.isInteger(objectKeyYear) ? objectKeyYear : now.getUTCFullYear();
+    const mm = String(
+        Number.isInteger(objectKeyMonth) && objectKeyMonth >= 1 && objectKeyMonth <= 12
+            ? objectKeyMonth
+            : now.getUTCMonth() + 1,
+    ).padStart(2, '0');
     const categoryPrefix = String(bucketCategory || DEFAULT_BUCKET_CATEGORY)
         .replace(/[^a-z0-9_-]/gi, '_')
         .toLowerCase();
     const safeCode = String(job.layer_code || 'job')
         .replace(/[^a-z0-9_-]/gi, '_')
         .toLowerCase();
-    return `${categoryPrefix}/${yyyy}/${mm}/${safeCode}/${tag}.tif`;
+    const safeTag = String(tag || 'latest')
+        .replace(/[^a-z0-9_-]/gi, '_')
+        .toLowerCase();
+    return `${categoryPrefix}/${yyyy}/${mm}/${safeCode}/${safeTag}.tif`;
 };
 
 const cleanup = async (files) => {
@@ -358,7 +367,7 @@ async function runJob(job, deps = {}) {
         }
         const t4 = Date.now();
         const category = params.bucketCategory || DEFAULT_BUCKET_CATEGORY;
-        const objectKey = buildObjectKey(job, tag, category);
+        const objectKey = buildObjectKey(job, params.objectKeyTag || tag, category);
         // We already have the sha256 from the download for a passthrough
         // COG; skip a second full-file hash unless the caller passed a
         // conversion mode that changed the bytes.

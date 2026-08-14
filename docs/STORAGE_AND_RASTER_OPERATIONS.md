@@ -127,19 +127,18 @@ GeoTIFF → MinIO raster/flood bucket → validate CRS/COG/checksum
 → filesystem mirror GeoServer → coverage store → gis.layers
 ```
 
-## 6.1. Chain raster Flood (Export → GCS → MinIO → GeoServer)
+## 6.1. Chain raster Flood (GEE getDownloadURL → MinIO → GeoServer)
 
-Flood M1..M5 dùng chain đầy đủ vì output là ee.Image có kích thước lớn, không tải trực tiếp qua `getDownloadURL` được. Chain thực thi trong [run-executor.service.js](../src/services/flood/run-executor.service.js) hàm `exportAndHarvest`:
+Flood M1..M5 dùng cùng pipeline với Forest Classification — không còn Google Cloud Storage trung gian. Chain thực thi trong [run-executor.service.js](../src/services/flood/run-executor.service.js) hàm `exportAndHarvest`:
 
 ```text
 GEE compute (M1..M5 pipeline)
-  → ee.batch.Export.image.toCloudStorage (bucket FLOOD_GCS_BUCKET)
-  → gcs.waitForObject + signedDownloadUrl v4 (FLOOD_GCS_SIGNED_URL_SECONDS mặc định 3600s)
-  → rasterIngest.enqueue({ sourceKind:'gcs_export', bucketCategory })
+  → ee.Image.getDownloadURL({format:GEO_TIFF, scale, region, filePerBand:false})
+  → signed GEE URL (~1h TTL, gắn với session GEE hiện tại)
+  → rasterIngest.enqueue({ sourceKind:'gee_download_url', bucketCategory })
   → raster-ingest pipeline: download → SHA-256 → CRS check (EPSG:32648) → MinIO
   → GeoServer coverage store + layer (workspace GEOSERVER_WORKSPACE)
   → waitForIngestJob poll cho tới completed / dlq
-  → gcs.deleteObject cleanup file GCS tạm
 ```
 
 Bucket đích chọn theo mode qua [configs/flood.js](../src/configs/flood.js) `bucketCategoryForMode`:
@@ -149,19 +148,20 @@ Bucket đích chọn theo mode qua [configs/flood.js](../src/configs/flood.js) `
 
 Env bắt buộc khi bật flood pipeline:
 
-- `FLOOD_GCS_BUCKET`: bucket GCS trung gian. Service account cần role `storage.objectAdmin`.
-- `GEE_KEY_PATH` hoặc `GOOGLE_APPLICATION_CREDENTIALS`: service key auth cho cả GEE lẫn GCS SDK.
+- `GEE_KEY_PATH` hoặc `GOOGLE_APPLICATION_CREDENTIALS`: service key auth cho GEE (chỉ GEE, không cần Cloud Storage role).
 - `MINIO_BUCKET_FLOOD_RASTERS`, `MINIO_BUCKET_FLOOD_CALIBRATION`: bucket đích. Nếu không cấu hình mà mode yêu cầu, ingest lỗi ngay lập tức với message "Storage category not configured" (fail-fast, không silent fallback).
+- `RASTER_INGEST_ENABLED=true`: nếu tắt, URL GEE sinh xong sẽ nằm chờ → hết hạn ~1h → 401. LUÔN bật ở prod.
 
 Env tuning tùy chọn:
 
-- `FLOOD_GCS_SIGNED_URL_SECONDS` (60-86400, mặc định 3600): thời gian sống signed URL. Đủ lâu cho raster-ingest tải xong nhưng không dư để tránh URL rò rỉ nằm active lâu.
 - `FLOOD_INGEST_WAIT_TIMEOUT_MS` (mặc định 25 phút): thời gian tối đa `run-executor` chờ raster-ingest xử lý xong 1 artifact.
 - `FLOOD_INGEST_POLL_INTERVAL_MS` (mặc định 2000): nhịp poll status ingest job.
 
-M5 trend cron ([jobs/flood-trend.job.js](../src/jobs/flood-trend.job.js)) mặc định TẮT (`FLOOD_TREND_ENABLED=false`). Bật khi ops muốn tự động tạo frequency map cho năm dương lịch vừa kết thúc. Cron mặc định `0 2 1 1,4,7,10 *` chạy 02:00 mùng 1 Jan/Apr/Jul/Oct; deduplicate qua `analysisKey` (SHA-256 config) trong bảng `gis.flood_analysis_runs` nên có chạy lại cùng năm cũng không tạo run trùng.
+Ràng buộc size: `getDownloadURL` giới hạn ~262MB tổng / 32MB/band (do GEE). Cẩm Phả × 30m × single-band binary/byte/float chưa vướng giới hạn này với mọi artifact hiện có (M1-M5). Nếu một module tương lai emit output lớn hơn, xử lý case-by-case (đổi scale coarser hoặc chuyển riêng artifact đó sang Export.image.toDrive), KHÔNG re-introduce GCS bucket cho toàn pipeline.
 
-Không lưu signed URL GCS vào DB. `gcs_object` được lưu trong `gis.flood_artifacts.gcs_object` chỉ để tra vết, không dùng làm nguồn download.
+Env cũ đã BỎ (không còn đọc): `FLOOD_GCS_BUCKET`, `FLOOD_GCS_SIGNED_URL_SECONDS`. Cột `gcs_bucket`/`gcs_object` trong `gis.flood_artifacts` giữ ở schema nhưng không được ghi.
+
+M5 trend cron ([jobs/flood-trend.job.js](../src/jobs/flood-trend.job.js)) mặc định TẮT (`FLOOD_TREND_ENABLED=false`). Bật khi ops muốn tự động tạo frequency map cho năm dương lịch vừa kết thúc. Cron mặc định `0 2 1 1,4,7,10 *` chạy 02:00 mùng 1 Jan/Apr/Jul/Oct; deduplicate qua `analysisKey` (SHA-256 config) trong bảng `gis.flood_analysis_runs` nên có chạy lại cùng năm cũng không tạo run trùng.
 
 Web/Mobile Mapbox phải dùng GeoServer WMS (qua proxy `/api/v1/maps/layers/:id/wms`) cho GeoTIFF:
 

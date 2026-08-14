@@ -12,7 +12,6 @@ const runRepo = require('../../repositories/flood-analysis-run.repository');
 const artifactRepo = require('../../repositories/flood-artifact.repository');
 const ingestRepo = require('../../repositories/raster-ingest.repository');
 const rasterIngest = require('../raster-ingest.service');
-const gcs = require('./gcs-artifact.service');
 const geometry = require('./common/geometry');
 const { ANALYSIS_CRS, ANALYSIS_SCALE_M, TREND_ANALYSIS_SCALE_M } = require('./common/projection');
 const debug = require('./debug.util');
@@ -199,6 +198,16 @@ async function ensureNotCancelled(runId) {
     }
 }
 
+/**
+ * Export → archive → publish, using the same pipeline as forest classification:
+ *   ee.Image.getDownloadURL() → signed GEE URL → raster-ingest download →
+ *   MinIO archive → GeoServer publish. No Google Cloud Storage intermediary.
+ *
+ * The GEE download URL is size-bounded (~262 MB total, 32 MB per band); this
+ * fits every current flood artifact (Cẩm Phả AOI × 30 m). If a future module
+ * emits something bigger, switch that ONE artifact to Export.image.toDrive
+ * instead of re-introducing a GCS bucket for everything.
+ */
 async function exportAndHarvest(run, science, aoi) {
     const catalogByCode = new Map(science.catalog.map((entry) => [entry.code, entry]));
     const artifactRows = [];
@@ -231,8 +240,8 @@ async function exportAndHarvest(run, science, aoi) {
         exportable: exportable.length,
         exportableCodes: exportable.map(({ definition }) => definition.code),
     });
-    const taskIds = {};
     const warnings = [...(science.metadata?.warnings || [])];
+    const scaleM = run.module === 'trend' ? TREND_ANALYSIS_SCALE_M : ANALYSIS_SCALE_M;
     for (const { artifact, definition, image } of exportable) {
         debug.log('run-executor.exportAndHarvest artifact', {
             runId: run.id,
@@ -241,57 +250,38 @@ async function exportAndHarvest(run, science, aoi) {
             role: definition.role,
         });
         await ensureNotCancelled(run.id);
-        const unique = `${Date.now()}_${artifact.id}`;
-        const prefix = `flood/${run.module}/run_${run.id}/${definition.code}/${unique}`;
-        const objectName = `${prefix}.tif`;
-        const { bucket } = gcs.config();
-        const task = await executeStage(run, `export:${definition.code}`, 'EXPORTING', () =>
-            geeAdapter.submitExportToCloudStorage({
-                image,
-                description: `campha_${run.module}_${definition.code}_r${run.id}`.slice(0, 100),
-                bucket,
-                fileNamePrefix: prefix,
-                region: aoi,
-                scale: run.module === 'trend' ? TREND_ANALYSIS_SCALE_M : ANALYSIS_SCALE_M,
-                crs: ANALYSIS_CRS,
-                formatOptions: { cloudOptimized: true },
-            }),
-        );
-        taskIds[definition.code] = task.taskName;
-        await runRepo.updateStatus(run.id, { geeTaskIds: taskIds });
-        const terminal = await executeStage(
+        const fileBase = `campha_${run.module}_${definition.code}_r${run.id}`.slice(0, 100);
+        const downloadUrl = await executeStage(
             run,
-            `wait_export:${definition.code}`,
-            'HARVESTING',
-            () => geeAdapter.pollExportTask(task.taskName),
+            `export:${definition.code}`,
+            'EXPORTING',
+            () =>
+                geeAdapter.getDownloadUrl(image.clip(aoi), {
+                    name: fileBase,
+                    scale: scaleM,
+                    region: aoi,
+                    crs: ANALYSIS_CRS,
+                    format: 'GEO_TIFF',
+                    filePerBand: false,
+                    maxPixels: 1e10,
+                }),
         );
-        if (terminal.state !== 'COMPLETED') {
-            const error = new Error(`GEE export ${definition.code} ended in ${terminal.state}`);
-            error.code = `GEE_EXPORT_${terminal.state}`;
-            debug.logError('run-executor.exportAndHarvest gee-export non-terminal', error, {
-                runId: run.id,
-                code: definition.code,
-                terminalState: terminal.state,
-            });
+        if (!downloadUrl) {
+            const error = new Error(`GEE getDownloadURL returned empty URL for ${definition.code}`);
+            error.code = 'GEE_DOWNLOAD_URL_EMPTY';
             throw error;
         }
-        debug.log('run-executor.exportAndHarvest gee-export completed', {
+        debug.log('run-executor.exportAndHarvest gee-download-url ok', {
             runId: run.id,
             code: definition.code,
-            objectName,
-        });
-        await gcs.waitForObject(objectName);
-        const signed = await gcs.signedDownloadUrl(objectName);
-        debug.log('run-executor.exportAndHarvest gcs signed', {
-            runId: run.id,
-            code: definition.code,
-            gcsBucket: signed.bucket,
         });
         const publish = run.mode === 'product' && definition.role === 'PRODUCT';
+        const bucketCategory =
+            run.mode === 'calibration' ? 'flood-calibration' : 'flood-rasters';
         const enqueued = await executeStage(run, `archive:${definition.code}`, 'ARCHIVING', () =>
             rasterIngest.enqueue({
-                sourceUrl: signed.url,
-                sourceKind: 'gcs_export',
+                sourceUrl: downloadUrl,
+                sourceKind: 'gee_download_url',
                 layerCode: layerCode(run, definition.code),
                 nameVi: definition.label?.vi || definition.code,
                 nameEn: definition.label?.en || definition.code,
@@ -300,12 +290,10 @@ async function exportAndHarvest(run, science, aoi) {
                 user: { id: run.started_by },
                 requestParams: {
                     publish,
-                    bucketCategory:
-                        run.mode === 'calibration' ? 'flood-calibration' : 'flood-rasters',
+                    bucketCategory,
                     styleName: definition.style || null,
                     epsg_code: 32648,
-                    scale_m: run.module === 'trend' ? 10 : 30,
-                    gee_task_id: task.taskId,
+                    scale_m: scaleM,
                     linkedResource: { type: 'flood_artifact', id: artifact.id },
                 },
             }),
@@ -315,14 +303,11 @@ async function exportAndHarvest(run, science, aoi) {
             code: definition.code,
             ingestJobId: enqueued.job.id,
             publish,
-            bucketCategory:
-                run.mode === 'calibration' ? 'flood-calibration' : 'flood-rasters',
+            bucketCategory,
         });
         await artifactRepo.updateAssetMetadata(artifact.id, {
-            gcsBucket: signed.bucket,
-            gcsObject: objectName,
             ingestJobId: enqueued.job.id,
-            metadata: { geeTaskId: task.taskId, archiveOnly: !publish },
+            metadata: { archiveOnly: !publish },
         });
         await executeStage(
             run,
@@ -330,22 +315,6 @@ async function exportAndHarvest(run, science, aoi) {
             publish ? 'PUBLISHING' : 'VALIDATING',
             () => waitForIngestJob(enqueued.job.id),
         );
-        try {
-            await gcs.deleteObject(objectName);
-            debug.log('run-executor.exportAndHarvest gcs cleaned', {
-                runId: run.id,
-                code: definition.code,
-            });
-        } catch (error) {
-            warnings.push(`GCS_CLEANUP_FAILED:${definition.code}`);
-            debug.logError('run-executor.exportAndHarvest gcs cleanup failed', error, {
-                runId: run.id,
-                code: definition.code,
-            });
-            await emit(run, `cleanup:${definition.code}`, 'stage_warn', {
-                code: error.code || error.name,
-            });
-        }
     }
     debug.log('run-executor.exportAndHarvest done', {
         runId: run.id,

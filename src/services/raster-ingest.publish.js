@@ -246,15 +246,81 @@ async function backLinkResource(linked, ctx, deps = {}) {
     }
 
     if (linked.type === 'forest_snapshot') {
+        const minio = deps.minio || require('./minio.service');
         const result = await db.query(
-            `UPDATE forest.forest_snapshots
-                SET geoserver_layer = $2,
-                    geoserver_store = $3,
-                    minio_key = $4,
-                    status = 'published',
-                    published_at = NOW(),
-                    error_message = NULL
-              WHERE id = $1`,
+            `WITH target AS (
+                 SELECT year, month
+                   FROM forest.forest_snapshots
+                  WHERE id = $1
+             ),
+             previous_artifacts AS MATERIALIZED (
+                 SELECT old.id,
+                        old.minio_key,
+                        COALESCE(
+                            old.geoserver_store,
+                            NULLIF(split_part(old.geoserver_layer, ':', 2), '')
+                        ) AS layer_code
+                   FROM forest.forest_snapshots old
+                   JOIN target
+                     ON target.year = old.year AND target.month = old.month
+                  WHERE old.id <> $1
+                    AND (
+                        old.status = 'published'
+                        OR old.geoserver_layer IS NOT NULL
+                        OR old.minio_key IS NOT NULL
+                    )
+             ),
+             cleared AS (
+                 UPDATE forest.forest_snapshots old
+                    SET geoserver_layer = NULL,
+                        geoserver_store = NULL,
+                        minio_key = NULL,
+                        published_at = NULL,
+                        status = CASE WHEN old.status = 'published' THEN 'completed' ELSE old.status END
+                   FROM previous_artifacts previous
+                 WHERE old.id = previous.id
+                 RETURNING old.id
+             ),
+             retired_layers AS (
+                 UPDATE gis.layers layer
+                    SET deleted_at = NOW(),
+                        cleanup_status = 'queued',
+                        publish_status = 'unpublished',
+                        version = version + 1
+                  WHERE layer.deleted_at IS NULL
+                    AND layer.code <> $3
+                    AND layer.code IN (
+                        SELECT layer_code
+                          FROM previous_artifacts
+                         WHERE layer_code IS NOT NULL
+                    )
+                 RETURNING layer.id
+             ),
+             cleanup_jobs AS (
+                 INSERT INTO gis.layer_cleanup_jobs (layer_id)
+                 SELECT id FROM retired_layers
+                 ON CONFLICT (layer_id) WHERE status IN ('queued', 'running') DO NOTHING
+                 RETURNING id
+             ),
+             published AS (
+                 UPDATE forest.forest_snapshots
+                    SET geoserver_layer = $2,
+                        geoserver_store = $3,
+                        minio_key = $4,
+                        status = 'published',
+                        published_at = NOW(),
+                        error_message = NULL
+                  WHERE id = $1
+                 RETURNING id
+             )
+             SELECT (SELECT COUNT(*)::int FROM published) AS row_count,
+                    (SELECT COUNT(*)::int FROM cleared) AS cleared_count,
+                    (SELECT COUNT(*)::int FROM retired_layers) AS retired_layer_count,
+                    COALESCE(
+                        (SELECT jsonb_agg(minio_key) FILTER (WHERE minio_key IS NOT NULL)
+                           FROM previous_artifacts),
+                        '[]'::jsonb
+                    ) AS old_minio_keys`,
             [
                 Number(linked.id),
                 ctx.geoserverLayer || null,
@@ -262,7 +328,32 @@ async function backLinkResource(linked, ctx, deps = {}) {
                 ctx.minioKey || null,
             ],
         );
-        return { rowCount: result?.rowCount || 0 };
+        const row = result?.rows?.[0] || {};
+        const oldMinioKeys = Array.isArray(row.old_minio_keys) ? row.old_minio_keys : [];
+        for (const objectKey of oldMinioKeys) {
+            if (
+                !objectKey ||
+                objectKey === ctx.minioKey ||
+                typeof minio?.removeObject !== 'function'
+            ) {
+                continue;
+            }
+            try {
+                await minio.removeObject({
+                    objectKey,
+                    category: ctx.minioCategory || 'raster',
+                });
+            } catch (error) {
+                console.warn(
+                    `[RASTER-INGEST] cleanup old forest raster FAILED key=${objectKey} — ${error.message}`,
+                );
+            }
+        }
+        return {
+            rowCount: Number(row.row_count || 0),
+            clearedCount: Number(row.cleared_count || 0),
+            retiredLayerCount: Number(row.retired_layer_count || 0),
+        };
     }
 
     if (linked.type !== 'flood_artifact') {

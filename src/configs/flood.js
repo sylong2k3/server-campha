@@ -35,14 +35,6 @@ const readNumber = (name, fallback) => {
     return Number.isFinite(value) && value > 0 ? value : fallback;
 };
 
-// ── GCS harvest (Export.image.toCloudStorage landing bucket) ────────────────
-const gcs = () => ({
-    bucket: process.env.FLOOD_GCS_BUCKET?.trim() || '',
-    signedUrlSeconds: readNumber('FLOOD_GCS_SIGNED_URL_SECONDS', 3600),
-});
-
-const isGcsConfigured = () => Boolean(gcs().bucket);
-
 // ── Ingest polling (run-executor waits for raster ingest to finish) ─────────
 const ingest = () => ({
     waitTimeoutMs: readNumber('FLOOD_INGEST_WAIT_TIMEOUT_MS', 25 * 60 * 1000),
@@ -76,7 +68,6 @@ const isTrendCronEnabled = () => trendCron().enabled;
 
 // ── Snapshot for /admin/flood/dashboard-style diagnostics ───────────────────
 const summariseConfig = () => ({
-    gcs: gcs(),
     ingest: ingest(),
     buckets: {
         product: BUCKET_BY_MODE.product,
@@ -89,9 +80,7 @@ const summariseConfig = () => ({
 });
 
 module.exports = {
-    gcs,
     ingest,
-    isGcsConfigured,
     bucketCategoryForMode,
     hasBucketForMode,
     trendCron,

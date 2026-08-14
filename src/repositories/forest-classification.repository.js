@@ -33,6 +33,20 @@ const getByPeriod = async (year, month) => {
     return rows[0] || null;
 };
 
+const getLatestSuccessfulByPeriod = async (year, month) => {
+    const { rows } = await db.query(
+        `SELECT * FROM forest.forest_snapshots
+         WHERE year = $1
+           AND month = $2
+           AND gee_download_url IS NOT NULL
+           AND status IN ('exporting', 'completed', 'published')
+         ORDER BY attempt DESC, id DESC
+         LIMIT 1`,
+        [year, month],
+    );
+    return rows[0] || null;
+};
+
 const createRun = async ({ year, month, trigger, requestedBy }) => {
     const client = await db.pool.connect();
     try {
@@ -87,7 +101,9 @@ const updateRun = async (id, patch = {}) => {
             );
         }
     });
-    if (!assignments.length) {return getById(id);}
+    if (!assignments.length) {
+        return getById(id);
+    }
     const { rows } = await db.query(
         `UPDATE forest.forest_snapshots SET ${assignments.join(', ')} WHERE id = $1 RETURNING *`,
         values,
@@ -97,14 +113,17 @@ const updateRun = async (id, patch = {}) => {
 
 const listRuns = async ({ page = 1, limit = 24, publishedOnly = false } = {}) => {
     const offset = (page - 1) * limit;
-    const where = publishedOnly
-        ? "WHERE status = 'published' OR geoserver_layer IS NOT NULL"
-        : '';
+    const where = publishedOnly ? "WHERE status = 'published' OR geoserver_layer IS NOT NULL" : '';
     const { rows } = await db.query(
-        `SELECT s.*, COUNT(*) OVER()::int AS total_count
-           FROM forest.forest_snapshots s
-           ${where}
-          ORDER BY s.year DESC, s.month DESC, s.attempt DESC
+        `WITH latest_by_period AS (
+             SELECT DISTINCT ON (s.year, s.month) s.*
+               FROM forest.forest_snapshots s
+               ${where}
+              ORDER BY s.year DESC, s.month DESC, s.attempt DESC, s.id DESC
+         )
+         SELECT latest_by_period.*, COUNT(*) OVER()::int AS total_count
+           FROM latest_by_period
+          ORDER BY year DESC, month DESC
           LIMIT $1 OFFSET $2`,
         [limit, offset],
     );
@@ -119,6 +138,7 @@ module.exports = {
     getLatest,
     getLatestCompleted,
     getByPeriod,
+    getLatestSuccessfulByPeriod,
     createRun,
     updateRun,
     listRuns,

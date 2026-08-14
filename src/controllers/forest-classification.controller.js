@@ -8,6 +8,7 @@ const { buildGeeProcessingState } = require('../utils/gee-processing-state.util'
 const { OK, OK_LIST, CREATED } = require('../core/success.response');
 const { Api400Error, Api404Error } = require('../core/error.response');
 const debug = require('../services/forest-classification/debug.util');
+const { buildPeriodLayerCode } = require('../services/forest-classification/archive');
 
 const CLASS_MIN = 0;
 const CLASS_MAX = 12;
@@ -137,7 +138,11 @@ const queryPeriod = async (req, res) => {
     if (!validPeriod(year, month)) {
         throw new Api400Error('year và month không hợp lệ.', ['INVALID_ANALYSIS_PERIOD']);
     }
-    debug.log('controller.queryPeriod received', { year, month, requestedBy: req.user?.id || null });
+    debug.log('controller.queryPeriod received', {
+        year,
+        month,
+        requestedBy: req.user?.id || null,
+    });
     const data = await forest.queryPeriod(year, month, req.user?.id || null);
     debug.log('controller.queryPeriod response', {
         snapshotId: data?.snapshot?.id,
@@ -191,6 +196,15 @@ const publishRaster = async (req, res) => {
     if (!['completed', 'published'].includes(snapshot.status)) {
         throw new Api400Error('Kết quả chưa hoàn tất nên chưa thể công bố.', ['RESULT_NOT_READY']);
     }
+    const latestSuccessful = await snapshots.getLatestSuccessfulByPeriod(
+        snapshot.year,
+        snapshot.month,
+    );
+    if (!latestSuccessful || Number(latestSuccessful.id) !== id) {
+        throw new Api400Error('Chỉ có thể công bố kết quả thành công mới nhất của kỳ.', [
+            'NOT_LATEST_SUCCESSFUL_RESULT',
+        ]);
+    }
     if (snapshot.geoserver_layer && req.query.force !== '1') {
         return OK(res, 'Kết quả đã được công bố trên bản đồ.', {
             snapshotId: id,
@@ -201,7 +215,7 @@ const publishRaster = async (req, res) => {
     if (!snapshot.gee_download_url) {
         throw new Api400Error('Kết quả chưa có URL GeoTIFF để publish.', ['NO_DOWNLOAD_URL']);
     }
-    const layerCode = `forest_classification_${snapshot.year}${String(snapshot.month).padStart(2, '0')}_${snapshot.id}`;
+    const layerCode = buildPeriodLayerCode(snapshot.year, snapshot.month);
     const { job, deduplicated } = await ingest.enqueue({
         sourceUrl: snapshot.gee_download_url,
         layerCode,
@@ -211,6 +225,10 @@ const publishRaster = async (req, res) => {
         requestParams: {
             bucketCategory: 'raster',
             publishCategory: 'raster',
+            objectKeyTag: 'latest',
+            objectKeyYear: snapshot.year,
+            objectKeyMonth: snapshot.month,
+            data_year: snapshot.year,
             linkedResource: { type: 'forest_snapshot', id },
         },
         user: req.user,

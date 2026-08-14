@@ -290,6 +290,43 @@ describe('backLinkResource', () => {
         );
     });
 
+    test('publishes one forest snapshot and cleans older period artifacts', async () => {
+        const db = {
+            query: jest.fn().mockResolvedValue({
+                rows: [
+                    {
+                        row_count: 1,
+                        cleared_count: 2,
+                        retired_layer_count: 1,
+                        old_minio_keys: ['raster/legacy/job_4.tif', 'raster/current/latest.tif'],
+                    },
+                ],
+            }),
+        };
+        const minio = { removeObject: jest.fn().mockResolvedValue(undefined) };
+
+        const result = await backLinkResource(
+            { type: 'forest_snapshot', id: 12 },
+            {
+                geoserverLayer: 'campha:forest_classification_202607',
+                geoserverStore: 'forest_classification_202607',
+                minioCategory: 'raster',
+                minioKey: 'raster/current/latest.tif',
+            },
+            { db, minio },
+        );
+
+        expect(result).toEqual({ rowCount: 1, clearedCount: 2, retiredLayerCount: 1 });
+        expect(db.query.mock.calls[0][0]).toMatch(/previous_artifacts AS MATERIALIZED/);
+        expect(db.query.mock.calls[0][0]).toMatch(/status = CASE WHEN old\.status = 'published'/);
+        expect(db.query.mock.calls[0][0]).toMatch(/INSERT INTO gis\.layer_cleanup_jobs/);
+        expect(minio.removeObject).toHaveBeenCalledTimes(1);
+        expect(minio.removeObject).toHaveBeenCalledWith({
+            objectKey: 'raster/legacy/job_4.tif',
+            category: 'raster',
+        });
+    });
+
     test('warns and skips unsupported legacy backlink types', async () => {
         const db = makeDbForBacklink();
         const result = await backLinkResource(

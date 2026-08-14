@@ -78,6 +78,17 @@ describe('helpers', () => {
         expect(key).toMatch(/^raster\/\d{4}\/\d{2}\/cp_flood_event\/job_7\.tif$/);
     });
 
+    test('buildObjectKey supports a stable period key for replace-in-place products', () => {
+        const key = buildObjectKey(
+            {
+                layer_code: 'forest_classification_202607',
+                request_params: { objectKeyYear: 2026, objectKeyMonth: 7 },
+            },
+            'latest',
+        );
+        expect(key).toBe('raster/2026/07/forest_classification_202607/latest.tif');
+    });
+
     test('sha256File computes the checksum of a real file', async () => {
         const tmp = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'sha-test-'));
         try {

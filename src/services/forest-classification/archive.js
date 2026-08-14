@@ -3,6 +3,9 @@
 const ingestConfig = require('../../configs/raster-ingest');
 const debug = require('./debug.util');
 
+const buildPeriodLayerCode = (year, month) =>
+    `forest_classification_${year}${String(month).padStart(2, '0')}`;
+
 const queueSnapshotArchive = async (snapshot, result, deps = {}) => {
     if (!ingestConfig.isEnabled()) {
         debug.log('archive.skipped raster-ingest disabled', { snapshotId: snapshot.id });
@@ -13,7 +16,9 @@ const queueSnapshotArchive = async (snapshot, result, deps = {}) => {
         return null;
     }
     const rasterIngest = deps.rasterIngest || require('../raster-ingest.service');
-    const layerCode = `forest_classification_${snapshot.year}${String(snapshot.month).padStart(2, '0')}_${snapshot.id}`;
+    // A period has one canonical raster. Re-running a successful period
+    // re-ingests this stable layer instead of accumulating snapshot layers.
+    const layerCode = buildPeriodLayerCode(snapshot.year, snapshot.month);
     debug.log('archive.enqueue', {
         snapshotId: snapshot.id,
         layerCode,
@@ -28,6 +33,9 @@ const queueSnapshotArchive = async (snapshot, result, deps = {}) => {
         requestParams: {
             bucketCategory: 'raster',
             publishCategory: 'raster',
+            objectKeyTag: 'latest',
+            objectKeyYear: snapshot.year,
+            objectKeyMonth: snapshot.month,
             data_year: snapshot.year,
             linkedResource: { type: 'forest_snapshot', id: snapshot.id },
         },
@@ -43,4 +51,4 @@ const queueSnapshotArchive = async (snapshot, result, deps = {}) => {
     return { ...queued, layerCode };
 };
 
-module.exports = { queueSnapshotArchive };
+module.exports = { buildPeriodLayerCode, queueSnapshotArchive };

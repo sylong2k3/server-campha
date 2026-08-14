@@ -95,10 +95,9 @@ const ENV_SCHEMA_KEYS = {
     GEE_POLL_INTERVAL_MS: positiveInteger.min(1000).default(30000),
     GEE_POLL_MAX_ATTEMPTS: positiveInteger.default(40),
     GEE_MAP_ID_TIMEOUT_MS: positiveInteger.min(1000).default(60000),
-    // Transient GCS harvest bucket used by Export.image.toCloudStorage.
-    // Credentials come from GOOGLE_APPLICATION_CREDENTIALS or GEE_KEY_PATH.
-    FLOOD_GCS_BUCKET: Joi.string().trim().allow(''),
-    FLOOD_GCS_SIGNED_URL_SECONDS: positiveInteger.min(60).max(86400).default(3600),
+    // Flood pipeline now uses ee.Image.getDownloadURL() → raster-ingest →
+    // MinIO (same shape as forest classification). Old FLOOD_GCS_BUCKET /
+    // FLOOD_GCS_SIGNED_URL_SECONDS env are no longer read; leave them unset.
     FLOOD_INGEST_WAIT_TIMEOUT_MS: positiveInteger.min(60000).default(1500000),
     FLOOD_INGEST_POLL_INTERVAL_MS: positiveInteger.min(500).default(2000),
     // Master switch for verbose flood pipeline logging (submit → queue → child
