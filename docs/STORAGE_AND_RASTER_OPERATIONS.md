@@ -18,7 +18,7 @@ Bucket bắt buộc: `MINIO_BUCKET_LAYERS`, `MINIO_BUCKET_RASTER`, `MINIO_BUCKET
 
 Bucket Flood tùy chọn: `MINIO_BUCKET_FLOOD_RASTERS`, `MINIO_BUCKET_FLOOD_CALIBRATION`.
 
-Forest Classification đã bị loại khỏi runtime Cẩm Phả. Không tạo bucket, cron, route hoặc worker Forest mới.
+Forest Classification đang là module runtime của Cẩm Phả. Module dùng route `/api/v1/forest-classification`, worker ingest raster và các bảng `forest.*`; không gỡ route, worker hoặc UI Forest khi vận hành kho raster chung.
 
 ## 2. Upload
 

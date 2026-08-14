@@ -6,7 +6,8 @@
  * @ported-from migration/kt_gee_migration/services/raster-ingest.publish.js
  *
  * Adaptations for the Cẩm Phả flood domain:
- *   - Fire Risk and Forest Classification are intentionally absent.
+ *   - Forest Classification has its own domain service and uses this shared
+ *     pipeline through the Forest routes; do not remove that integration.
  *   - `layer.repository` in this server does not (yet) expose findByCode /
  *     upsertLayerByCode. Callers must inject a repo with those methods, or
  *     accept the graceful "layerRepo not wired" error surfaced here.
@@ -38,7 +39,7 @@ const dbg = (tag, msg) => {
 // ── 1. GeoServer publish ──────────────────────────────────────────────────────
 
 /**
- * Copy the COG into `GEOSERVER_DATA_DIR/flood-rasters/<store>.tif` and create
+ * Copy the COG into `GEOSERVER_DATA_DIR/<publish-category>/<store>.tif` and create
  * a filesystem-backed GeoTIFF CoverageStore. If the layer already exists
  * (re-ingest of the same layer_code), truncate the GWC cache best-effort.
  *
@@ -70,7 +71,9 @@ async function publishToGeoServer({ storeName, cogPath, params }, deps = {}) {
         );
     }
 
-    const publishCategory = 'flood-rasters';
+    const publishCategory = String(
+        params?.publishCategory || params?.bucketCategory || 'raster',
+    ).replace(/[^a-z0-9_-]/gi, '_');
     const publishDir = path.join(gsDataDir, publishCategory);
     const publishPath = path.join(publishDir, `${storeName}.tif`);
     await fsp.mkdir(publishDir, { recursive: true });
@@ -147,7 +150,7 @@ async function upsertRasterLayer(
 
     // PostgreSQL identifier: strip characters that layer_registry rejects.
     const registryTableName = String(storeName).replace(/[^a-zA-Z0-9_]/g, '_');
-    const bucketCategory = params?.bucketCategory || 'flood-rasters';
+    const bucketCategory = params?.bucketCategory || 'raster';
 
     const client = await db.pool.connect();
     try {

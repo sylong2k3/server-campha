@@ -23,10 +23,9 @@ const mapDatabaseError = (error) => {
 };
 const listPublic = (filter) => repository.list(filter, 'public');
 const nearby = (input) => repository.nearby(input);
-const listMine = (filter, actor) => {
-    requirePermission(actor, 'create');
-    return repository.list(filter, 'mine', actor);
-};
+// Any authenticated subject may view their own reports. This is enforced again
+// in the repository's sender_user_id predicate, so it does not grant admin access.
+const listMine = (filter, actor) => repository.list(filter, 'mine', actor);
 const attachPhotos = async (row, isPublic) => {
     const photos = await repository.photoObjects(row.id);
     row.photos = await Promise.all(
@@ -107,7 +106,7 @@ const get = async (id, actor) => {
     return row;
 };
 const review = async (id, input, actor) => {
-    const reviewers = ['ubnd_tp', 'so_tnmt', 'so_xd'];
+    const reviewers = ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'];
     if (!reviewers.includes(actor.role)) {
         throw new Api403Error('Vai trò không được duyệt phản ánh');
     }

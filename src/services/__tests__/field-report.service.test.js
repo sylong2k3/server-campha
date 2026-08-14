@@ -19,7 +19,10 @@ describe('Sprint 8 field report RBAC service', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         minio.getPublicFileUrl.mockReturnValue({ url: 'public-photo', expiresAt: null });
-        minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'ticket-photo', expiresAt: new Date() });
+        minio.getPresignedDownloadUrl.mockResolvedValue({
+            url: 'ticket-photo',
+            expiresAt: new Date(),
+        });
     });
     test('citizen creates but cannot list admin', async () => {
         repo.create.mockResolvedValue({ id: 9 });
@@ -28,11 +31,21 @@ describe('Sprint 8 field report RBAC service', () => {
             expect.objectContaining({ status: 403 }),
         );
     });
-    test.each(['system_admin', 'citizen'])('%s cannot review', async (role) => {
-        const actor = { ...citizen, role, permissions: { field_report: { approve: true } } };
+    test('an authenticated user can list only their own reports without create permission', async () => {
+        const actor = { id: 8, role: 'system_admin', permissions: {} };
+        repo.list.mockResolvedValue({ items: [], total: 0 });
+
+        await expect(service.listMine({ page: 1, limit: 10 }, actor)).resolves.toEqual({
+            items: [],
+            total: 0,
+        });
+        expect(repo.list).toHaveBeenCalledWith({ page: 1, limit: 10 }, 'mine', actor);
+    });
+    test('citizen cannot review even with the approve permission', async () => {
+        const actor = { ...citizen, permissions: { field_report: { approve: true } } };
         await expect(service.review(1, {}, actor)).rejects.toMatchObject({ status: 403 });
     });
-    test.each(['ubnd_tp', 'so_tnmt', 'so_xd'])('%s can review', async (role) => {
+    test.each(['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'])('%s can review', async (role) => {
         const actor = { ...citizen, role, permissions: { field_report: { approve: true } } };
         repo.review.mockResolvedValue({ id: 1, status: 'approved' });
         await expect(service.review(1, { status: 'approved' }, actor)).resolves.toMatchObject({

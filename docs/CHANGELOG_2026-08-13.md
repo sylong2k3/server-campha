@@ -2,7 +2,7 @@
 
 ## Domain
 
-- Xóa hoàn toàn Forest Classification khỏi API, cron, worker, service/repository, bucket config và Postman vì không có nghiệp vụ rừng tại Cẩm Phả.
+- Khôi phục và duy trì Forest Classification trong API, worker, service/repository và giao diện; module dùng hạ tầng raster chung nhưng có domain `forest.*` riêng.
 - Giữ migration lịch sử; không rollback schema/data đã áp.
 - Giữ Flood/Hydrology M1–M5.
 

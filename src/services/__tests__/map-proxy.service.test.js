@@ -2,7 +2,7 @@
 process.env.JWT_SECRET ||= 'test-map-proxy-ticket-secret-at-least-32-characters';
 jest.mock('../../utils/geoserver.client', () => ({ requestGeoserver: jest.fn() }));
 const { requestGeoserver } = require('../../utils/geoserver.client');
-const { proxyWms, proxyWfs, issueTileTicket } = require('../map-proxy.service');
+const { proxyWms, proxyWfs, proxyWcs, issueTileTicket } = require('../map-proxy.service');
 const { verifyTileTicket } = require('../../utils/map-tile-ticket.util');
 const { Readable } = require('stream');
 const response = (body = '{}', type = 'application/json') => ({
@@ -43,6 +43,14 @@ describe('map proxy', () => {
         expect(target).toContain('request=GetFeature');
         expect(target).toContain('count=1000');
         expect(target).not.toContain('Transaction');
+    });
+    test('WCS is fixed to the published coverage and GeoTIFF output', async () => {
+        requestGeoserver.mockResolvedValue(response('tiff', 'image/tiff'));
+        await proxyWcs({ geoserver_layer: 'campha:elevation' }, { format: 'image/tiff' });
+        const target = requestGeoserver.mock.calls[0][0];
+        expect(target).toContain('request=GetCoverage');
+        expect(target).toContain('coverageId=campha__elevation');
+        expect(target).toContain('format=image%2Ftiff');
     });
     test('issueTileTicket signs a ticket bound to the layer and requested access', () => {
         const { ticket, expiresAt } = issueTileTicket(

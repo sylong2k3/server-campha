@@ -60,8 +60,21 @@ const proxyWfs = async (layer, query) => {
     }
     return bufferResponse(await requestGeoserver(`/wfs?${params}`));
 };
+const proxyWcs = async (layer, query) => {
+    const layerName = assertLayer(layer);
+    const params = new URLSearchParams({
+        service: 'WCS',
+        version: '2.0.1',
+        request: 'GetCoverage',
+        // GeoServer coverage identifiers use workspace__coverage, while the
+        // published layer stored by this application is workspace:coverage.
+        coverageId: layerName.replace(':', '__'),
+        format: query.format,
+    });
+    return bufferResponse(await requestGeoserver(`/wcs?${params}`));
+};
 const issueTileTicket = (layer, access) => {
     assertLayer(layer);
     return signTileTicket(layer.id, access);
 };
-module.exports = { proxyWms, proxyWfs, issueTileTicket, bufferResponse, MAX_RESPONSE_BYTES };
+module.exports = { proxyWms, proxyWfs, proxyWcs, issueTileTicket, bufferResponse, MAX_RESPONSE_BYTES };

@@ -23,7 +23,7 @@ const publicRouter = Router();
 publicRouter.use(optionalAuth);
 publicRouter.get(
     '/news',
-    strict(v.publicListSchema, 'query'),
+    strict(v.newsListSchema, 'query'),
     asyncHandler(controller.listPublicNews),
 );
 publicRouter.get(
@@ -48,7 +48,7 @@ publicRouter.post(
 );
 publicRouter.get(
     '/documents',
-    strict(v.publicListSchema, 'query'),
+    strict(v.documentListSchema, 'query'),
     asyncHandler(controller.listDocuments),
 );
 publicRouter.get(
@@ -64,7 +64,7 @@ publicRouter.get(
 );
 publicRouter.get(
     '/pdf-maps',
-    strict(v.publicListSchema, 'query'),
+    strict(v.pdfMapListSchema, 'query'),
     asyncHandler(controller.listPdfMaps),
 );
 publicRouter.get(
@@ -118,7 +118,7 @@ adminRouter.patch(
 );
 adminRouter.get(
     '/documents',
-    strict(v.visibilityListSchema, 'query'),
+    strict(v.adminDocumentListSchema, 'query'),
     asyncHandler(controller.listAdminDocuments),
 );
 adminRouter.post(
@@ -145,7 +145,7 @@ adminRouter.delete(
 );
 adminRouter.get(
     '/pdf-maps',
-    strict(v.visibilityListSchema, 'query'),
+    strict(v.adminPdfMapListSchema, 'query'),
     asyncHandler(controller.listAdminPdfMaps),
 );
 adminRouter.post('/pdf-maps', strict(v.pdfMapCreateSchema), asyncHandler(controller.createPdfMap));

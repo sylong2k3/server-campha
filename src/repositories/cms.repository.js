@@ -19,6 +19,30 @@ const paginate = (params, page, limit) => {
     params.push(limit, (page - 1) * limit);
     return `LIMIT $${params.length - 1} OFFSET $${params.length}`;
 };
+const newsSortColumns = {
+    published_at: 'COALESCE(published_at,created_at)',
+    created_at: 'created_at',
+    updated_at: 'updated_at',
+    title: 'title',
+};
+const documentSortColumns = {
+    issued_at: 'd.issued_at',
+    created_at: 'd.created_at',
+    updated_at: 'd.updated_at',
+    title: 'd.title',
+    document_code: 'd.document_code',
+};
+const pdfMapSortColumns = {
+    id: 'm.id',
+    year: 'm.map_year',
+    created_at: 'm.created_at',
+    updated_at: 'm.updated_at',
+    title: 'm.title',
+};
+const listSort = (columns, sortBy, sortOrder, fallback) => ({
+    column: columns[sortBy] || columns[fallback],
+    order: sortOrder === 'ASC' ? 'ASC' : 'DESC',
+});
 
 const listNews = async (filter, publicOnly) => {
     const conditions = ['deleted_at IS NULL'];
@@ -37,11 +61,12 @@ const listNews = async (filter, publicOnly) => {
     }
     searchCondition('title', filter.q, params, conditions);
     const paging = paginate(params, filter.page, filter.limit);
+    const sort = listSort(newsSortColumns, filter.sortBy, filter.sortOrder, 'published_at');
     const { rows } = await db.query(
         `SELECT id,title,summary,visibility,status,published_at,created_by,created_at,updated_at,
                 COUNT(*) OVER()::int total_count
          FROM cms.news WHERE ${conditions.join(' AND ')}
-         ORDER BY COALESCE(published_at,created_at) DESC,id DESC ${paging}`,
+         ORDER BY ${sort.column} ${sort.order},id ${sort.order} ${paging}`,
         params,
     );
     return pageResult(rows);
@@ -192,11 +217,13 @@ const listDocuments = async (filter, mode) => {
         );
     }
     const paging = paginate(params, filter.page, filter.limit);
+    const sort = listSort(documentSortColumns, filter.sortBy, filter.sortOrder, 'issued_at');
+    const nulls = filter.sortBy === 'issued_at' || !filter.sortBy ? ' NULLS LAST' : '';
     const { rows } = await db.query(
         `SELECT d.id,d.title,d.document_code,d.issuing_agency,d.issued_at,d.description,d.visibility,
                 f.original_name,f.size_bytes,d.created_at,d.updated_at,COUNT(*) OVER()::int total_count
          FROM cms.documents d JOIN core.file_objects f ON f.id=d.file_object_id
-         WHERE ${conditions.join(' AND ')} ORDER BY d.issued_at DESC NULLS LAST,d.id DESC ${paging}`,
+         WHERE ${conditions.join(' AND ')} ORDER BY ${sort.column} ${sort.order}${nulls},d.id ${sort.order} ${paging}`,
         params,
     );
     return pageResult(rows);
@@ -343,13 +370,32 @@ const listPdfMaps = async (filter, mode) => {
         params.push(filter.visibility);
         conditions.push(`m.visibility=$${params.length}`);
     }
-    searchCondition('m.title', filter.q, params, conditions);
+    if (filter.q) {
+        params.push(`%${filter.q}%`);
+        conditions.push(
+            `(unaccent(lower(m.title)) ILIKE unaccent(lower($${params.length})) OR ` +
+                `unaccent(lower(COALESCE(m.description,''))) ILIKE unaccent(lower($${params.length})))`,
+        );
+    }
+    if (filter.scaleLabel) {
+        params.push(filter.scaleLabel);
+        conditions.push(`m.scale_label=$${params.length}`);
+    }
+    if (filter.yearFrom) {
+        params.push(filter.yearFrom);
+        conditions.push(`m.map_year >= $${params.length}`);
+    }
+    if (filter.yearTo) {
+        params.push(filter.yearTo);
+        conditions.push(`m.map_year <= $${params.length}`);
+    }
     const paging = paginate(params, filter.page, filter.limit);
+    const sort = listSort(pdfMapSortColumns, filter.sortBy, filter.sortOrder, 'year');
     const { rows } = await db.query(
         `SELECT m.id,m.title,m.scale_label,m.map_year,m.preparing_agency,m.description,m.visibility,
                 f.original_name,f.size_bytes,m.created_at,m.updated_at,COUNT(*) OVER()::int total_count
          FROM cms.pdf_maps m JOIN core.file_objects f ON f.id=m.file_object_id
-         WHERE ${conditions.join(' AND ')} ORDER BY m.map_year DESC,m.id DESC ${paging}`,
+         WHERE ${conditions.join(' AND ')} ORDER BY ${sort.column} ${sort.order},m.id ${sort.order} ${paging}`,
         params,
     );
     return pageResult(rows);

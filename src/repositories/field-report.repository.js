@@ -29,6 +29,12 @@ const list = async (filter, mode, actor) => {
         params.push(filter.status);
         where.push(`r.status=$${params.length}`);
     }
+    if (filter.q) {
+        params.push(`%${filter.q}%`);
+        where.push(
+            `(unaccent(lower(r.reference_code)) ILIKE unaccent(lower($${params.length})) OR unaccent(lower(r.description)) ILIKE unaccent(lower($${params.length})))`,
+        );
+    }
     const paging = paginate(params, filter.page, filter.limit);
     const { rows } = await db.query(
         `SELECT ${fields},COUNT(*) OVER()::int total_count FROM community.field_reports r ${join} WHERE ${where.join(' AND ')} ORDER BY r.created_at DESC,r.id DESC ${paging}`,

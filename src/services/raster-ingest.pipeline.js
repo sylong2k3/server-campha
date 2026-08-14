@@ -8,7 +8,7 @@
  *   Stage 1 (downloading)   → stream fetch to /tmp with in-flight SHA-256
  *   Stage 2 (validating)    → TIFF magic-byte check (§22-G integrity)
  *   Stage 3 (crs_checking)  → gdalinfo --json (§22-F CRS whitelist)
- *   Stage 4 (uploading)     → PUT to MinIO under category='flood-rasters'
+ *   Stage 4 (uploading)     → PUT to MinIO under category='raster'
  *                             (or job.request_params.bucketCategory)
  *   Stage 5 (publishing)    → GeoServer CoverageStore + layer
  *   Stage 6 (registry)      → gis.layer_registry upsert + saveOutput()
@@ -22,9 +22,8 @@
  *   - Every external dependency is DI-swappable so tests don't need the
  *     network / GDAL / GeoServer / MinIO / Postgres
  *   - Bucket resolved per-job via category (no cfg.MINIO_BUCKET fallback)
- *   - ZIP→COG conversion deferred: flood analyses always export a single
- *     GeoTIFF via Export.image.toCloudStorage; a ZIP input raises a clear
- *     error pointing at the future gee-zip-rgb utility
+ *   - A non-COG GeoTIFF is converted with GDAL before it reaches MinIO or
+ *     GeoServer. This is required for direct Earth Engine downloads.
  */
 
 const fs = require('fs');
@@ -46,16 +45,18 @@ const dbg = (tag, msg) => {
 };
 const fmtMB = (bytes) => `${(bytes / 1048576).toFixed(2)}MB`;
 
-// Allowed CRS codes for the flood-domain (architecture doc §22-F).
-// EPSG:32648 = UTM 48N (Cẩm Phả analysis CRS from Flood_D_final.js).
-// EPSG:4326  = WGS84 (accepted; typical publisher-facing basemap).
+// EPSG:32648 = UTM 48N (Cẩm Phả analysis CRS); EPSG:4326 is accepted for
+// direct Earth Engine downloads and publisher-facing basemaps.
 const ALLOWED_CRS = new Set(['EPSG:32648', 'EPSG:4326']);
+const DEFAULT_BUCKET_CATEGORY = 'raster';
 
 const PIPELINE_ERROR_CODES = Object.freeze({
     ZIP_NOT_YET_SUPPORTED: 'ZIP_NOT_YET_SUPPORTED',
     NOT_A_TIFF: 'NOT_A_TIFF',
     UNSUPPORTED_CRS: 'UNSUPPORTED_CRS',
     GDALINFO_UNAVAILABLE: 'GDALINFO_UNAVAILABLE',
+    GDAL_TRANSLATE_UNAVAILABLE: 'GDAL_TRANSLATE_UNAVAILABLE',
+    COG_CONVERSION_FAILED: 'COG_CONVERSION_FAILED',
     NOT_A_COG: 'NOT_A_COG',
 });
 
@@ -70,14 +71,17 @@ const sha256File = (filePath) =>
             .on('error', reject);
     });
 
-const buildObjectKey = (job, tag) => {
+const buildObjectKey = (job, tag, bucketCategory = DEFAULT_BUCKET_CATEGORY) => {
     const now = new Date();
     const yyyy = now.getUTCFullYear();
     const mm = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const categoryPrefix = String(bucketCategory || DEFAULT_BUCKET_CATEGORY)
+        .replace(/[^a-z0-9_-]/gi, '_')
+        .toLowerCase();
     const safeCode = String(job.layer_code || 'job')
         .replace(/[^a-z0-9_-]/gi, '_')
         .toLowerCase();
-    return `flood/${yyyy}/${mm}/${safeCode}/${tag}.tif`;
+    return `${categoryPrefix}/${yyyy}/${mm}/${safeCode}/${tag}.tif`;
 };
 
 const cleanup = async (files) => {
@@ -153,6 +157,43 @@ async function defaultValidateCrs(tifPath) {
     });
 }
 
+async function defaultConvertToCog(sourcePath, cogPath) {
+    return new Promise((resolve, reject) => {
+        const gdalTranslate = spawn('gdal_translate', [
+            '-of',
+            'COG',
+            '-co',
+            'COMPRESS=DEFLATE',
+            '-co',
+            'BIGTIFF=IF_SAFER',
+            sourcePath,
+            cogPath,
+        ]);
+        let stderr = '';
+        gdalTranslate.stderr.on('data', (chunk) => {
+            stderr += chunk.toString();
+        });
+        gdalTranslate.once('error', (error) => {
+            const wrapped = new Error(
+                `gdal_translate not available for COG conversion (${error.code || error.message})`,
+            );
+            wrapped.code = PIPELINE_ERROR_CODES.GDAL_TRANSLATE_UNAVAILABLE;
+            reject(wrapped);
+        });
+        gdalTranslate.once('close', (exitCode) => {
+            if (exitCode === 0) {
+                resolve();
+                return;
+            }
+            const wrapped = new Error(
+                `gdal_translate COG conversion failed (exit=${exitCode}): ${stderr.slice(0, 500)}`,
+            );
+            wrapped.code = PIPELINE_ERROR_CODES.COG_CONVERSION_FAILED;
+            reject(wrapped);
+        });
+    });
+}
+
 function extractEpsgFromWkt(wkt) {
     if (!wkt || typeof wkt !== 'string') {
         return null;
@@ -215,6 +256,7 @@ async function runJob(job, deps = {}) {
     const publisher = 'publisher' in deps ? deps.publisher : defaults.publisher;
     const download = deps.download || downloadToFile;
     const validateCrs = deps.validateCrs || defaultValidateCrs;
+    const convertToCog = deps.convertToCog || defaultConvertToCog;
     const computeSha256 = deps.sha256File || sha256File;
 
     if (!repo) {
@@ -227,6 +269,8 @@ async function runJob(job, deps = {}) {
     const tag = `job_${job.id}`;
     const rawPath = path.join(cfg.TMP_DIR, `${tag}.raw`);
     const cogPath = path.join(cfg.TMP_DIR, `${tag}.tif`);
+    const params = job.request_params || {};
+    let convertedPath = null;
 
     console.info(
         `[RASTER-INGEST] job=${job.id} START layer=${job.layer_code} ` +
@@ -275,23 +319,34 @@ async function runJob(job, deps = {}) {
         // For a single-TIFF payload the "cog" IS the downloaded file. A future
         // ZIP handler would produce a fresh cogPath at this point.
         await fs.promises.rename(rawPath, cogPath);
-        const cog = { size: dl.bytes, sha256FromDownload: dl.sha256, mode: 'passthrough' };
+        let cog = { size: dl.bytes, sha256FromDownload: dl.sha256, mode: 'passthrough' };
 
         // ── Stage 3: CRS validate (§22-F) ────────────────────────────
         // CRS/COG validation is a publication safety gate. A host without
         // GDAL must fail closed instead of publishing a spatially unknown raster.
-        const crsInfo = await validateCrs(cogPath);
+        let crsInfo = await validateCrs(cogPath);
         if (!crsInfo?.crs || !ALLOWED_CRS.has(crsInfo.crs)) {
             const err = new Error(
-                `Unexpected CRS ${crsInfo?.crs || 'unknown'} for flood raster; expected one of ${[...ALLOWED_CRS].join(', ')}`,
+                `Unexpected CRS ${crsInfo?.crs || 'unknown'} for raster; expected one of ${[...ALLOWED_CRS].join(', ')}`,
             );
             err.code = PIPELINE_ERROR_CODES.UNSUPPORTED_CRS;
             throw err;
         }
         if (crsInfo.isCog === false) {
-            const err = new Error('GeoTIFF is not Cloud Optimized (GDAL LAYOUT is not COG)');
-            err.code = PIPELINE_ERROR_CODES.NOT_A_COG;
-            throw err;
+            // Direct getDownloadURL results are regular GeoTIFFs. Convert the
+            // temporary file before archiving so MinIO and GeoServer receive a COG.
+            convertedPath = `${cogPath}.converted`;
+            await convertToCog(cogPath, convertedPath);
+            await fs.promises.unlink(cogPath);
+            await fs.promises.rename(convertedPath, cogPath);
+            crsInfo = await validateCrs(cogPath);
+            if (crsInfo.isCog === false) {
+                const err = new Error('GDAL conversion did not produce a Cloud Optimized GeoTIFF');
+                err.code = PIPELINE_ERROR_CODES.NOT_A_COG;
+                throw err;
+            }
+            const { size } = await fs.promises.stat(cogPath);
+            cog = { size, mode: 'cog-converted' };
         }
         dbg('CRS', `ok crs=${crsInfo.crs}`);
 
@@ -302,9 +357,8 @@ async function runJob(job, deps = {}) {
             throw new Error('minio.service unavailable for upload');
         }
         const t4 = Date.now();
-        const params = job.request_params || {};
-        const category = params.bucketCategory || 'flood-rasters';
-        const objectKey = buildObjectKey(job, tag);
+        const category = params.bucketCategory || DEFAULT_BUCKET_CATEGORY;
+        const objectKey = buildObjectKey(job, tag, category);
         // We already have the sha256 from the download for a passthrough
         // COG; skip a second full-file hash unless the caller passed a
         // conversion mode that changed the bytes.
@@ -386,7 +440,11 @@ async function runJob(job, deps = {}) {
                     dataType: crsInfo?.dataType,
                     published: shouldPublish,
                 });
-                const failClosedBacklink = params.linkedResource.type === 'flood_artifact';
+                const failClosedBacklink = [
+                    'flood_artifact',
+                    'forest_snapshot',
+                    'satellite',
+                ].includes(params.linkedResource.type);
                 if (failClosedBacklink && linked?.rowCount !== 1) {
                     const error = new Error(
                         `${params.linkedResource.type} ${params.linkedResource.id} was not back-linked`,
@@ -395,7 +453,11 @@ async function runJob(job, deps = {}) {
                     throw error;
                 }
             } catch (err) {
-                if (params.linkedResource.type === 'flood_artifact') {
+                if (
+                    ['flood_artifact', 'forest_snapshot', 'satellite'].includes(
+                        params.linkedResource.type,
+                    )
+                ) {
                     throw err;
                 }
                 console.warn(`[RASTER-INGEST] backlink FAILED job=${job.id}: ${err.message}`);
@@ -415,7 +477,7 @@ async function runJob(job, deps = {}) {
                 typeof repo.findById === 'function' ? await repo.findById(job.id) : null;
             const linked = job.request_params?.linkedResource;
             if (
-                linked?.type === 'flood_artifact' &&
+                ['flood_artifact', 'forest_snapshot', 'satellite'].includes(linked?.type) &&
                 ['failed', 'url_expired', 'dlq'].includes(failedJob?.status) &&
                 typeof publisher?.markBackLinkFailed === 'function'
             ) {
@@ -426,7 +488,7 @@ async function runJob(job, deps = {}) {
         }
         throw err;
     } finally {
-        await cleanup([rawPath, cogPath]);
+        await cleanup([rawPath, cogPath, convertedPath]);
     }
 }
 
@@ -435,7 +497,9 @@ module.exports = {
     // Exposed for tests and admin diagnostics.
     ALLOWED_CRS,
     PIPELINE_ERROR_CODES,
+    DEFAULT_BUCKET_CATEGORY,
     sha256File,
     buildObjectKey,
     extractEpsgFromWkt,
+    defaultConvertToCog,
 };
