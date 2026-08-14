@@ -238,7 +238,7 @@ const ENV_SCHEMA_KEYS = {
     MAP_PROXY_MAX_RESPONSE_MB: positiveInteger.default(25),
     RASTER_INGEST_DEBUG: boolean.default('false'),
     // Raster ingest pipeline (GEE download URL → MinIO → GeoServer).
-    RASTER_INGEST_ENABLED: boolean.default('false'),
+    RASTER_INGEST_ENABLED: boolean.default('true'),
     RASTER_INGEST_TMP_DIR: Joi.string().trim().allow(''),
     RASTER_INGEST_MAX_MB: positiveInteger.min(1).default(3072),
     RASTER_INGEST_FETCH_TIMEOUT_MS: positiveInteger.min(1000).default(900000),
