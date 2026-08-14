@@ -2,8 +2,7 @@
 const db = require('../configs/database');
 const websocket = require('./websocket.server');
 const repository = require('../repositories/field-report.repository');
-const tokenRepository = require('../repositories/device-token.repository');
-const pushProvider = require('../utils/pushProvider.util');
+const notificationService = require('../services/notification.service');
 const systemLogger = require('../utils/systemLogger.util');
 const MANAGER_ROLES = ['ubnd_tp', 'so_tnmt', 'so_xd'];
 let client = null,
@@ -40,13 +39,23 @@ const handle = async (raw) => {
     MANAGER_ROLES.forEach((role) => websocket.notifyChannel(`role:${role}`, 'field_report', data));
     websocket.notifyUser(row.sender_user_id, 'field_report', data);
     if (pushEnabled && payload.event === 'status_changed') {
-        const tokens = await tokenRepository.activeForUser(row.sender_user_id);
-        const result = await pushProvider.sendToTokens(tokens, {
+        await notificationService.notifyUser(row.sender_user_id, {
+            type: 'field_report_status_changed',
             title: 'Phản ánh Cẩm Phả',
             body: `Trạng thái phản ánh ${row.reference_code}: ${row.status}`,
             data: { reportId: row.id, status: row.status },
         });
-        await tokenRepository.disableTokens(result.invalidTokens);
+    }
+    if (pushEnabled && payload.event === 'created') {
+        const message = {
+            type: 'field_report_created',
+            title: 'Phản ánh Cẩm Phả mới',
+            body: `Có phản ánh mới ${row.reference_code} cần xử lý`,
+            data: { reportId: row.id, status: row.status },
+        };
+        await Promise.all(
+            MANAGER_ROLES.map((role) => notificationService.broadcastToRole(role, message)),
+        );
     }
 };
 const scheduleRetry = () => {

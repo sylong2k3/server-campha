@@ -1,0 +1,15 @@
+'use strict';
+const { Router } = require('express');
+const asyncHandler = require('../helpers/async-handler');
+const controller = require('../controllers/notification.controller');
+const v = require('../validators/notification.validator');
+const { verifyToken, enforcePasswordChange } = require('../middlewares/auth.middleware');
+const { validate } = require('../middlewares/validate.middleware');
+const strict = (schema, source = 'body') => validate(schema, source, { stripUnknown: false });
+const router = Router();
+router.use(verifyToken, enforcePasswordChange);
+router.get('/mine', strict(v.listSchema, 'query'), asyncHandler(controller.listMine));
+router.get('/unread-count', asyncHandler(controller.unreadCount));
+router.patch('/read-all', asyncHandler(controller.markAllRead));
+router.patch('/:id/read', strict(v.idParamsSchema, 'params'), asyncHandler(controller.markRead));
+module.exports = router;
