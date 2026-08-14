@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS forest.forest_district_areas (
     snapshot_id     BIGINT NOT NULL REFERENCES forest.forest_snapshots(id) ON DELETE CASCADE,
     district_code   TEXT,
     district_name   TEXT,
-    class_id        SMALLINT NOT NULL CHECK (class_id BETWEEN 0 AND 11),
+    class_id        SMALLINT NOT NULL CHECK (class_id BETWEEN 0 AND 12),
     class_name      TEXT NOT NULL,
     area_ha         NUMERIC NOT NULL CHECK (area_ha >= 0),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS forest.forest_gt_zones (
     id              BIGSERIAL PRIMARY KEY,
     name            TEXT,
     observed_at     TIMESTAMPTZ NOT NULL,
-    class_id        SMALLINT NOT NULL CHECK (class_id BETWEEN 0 AND 11),
+    class_id        SMALLINT NOT NULL CHECK (class_id BETWEEN 0 AND 12),
     source          TEXT NOT NULL DEFAULT 'field_survey',
     geom            geometry(MultiPolygon, 4326) NOT NULL,
     area_ha         NUMERIC GENERATED ALWAYS AS (ST_Area(geom::geography) / 10000.0) STORED,
@@ -139,7 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_forest_gt_zones_window
 CREATE TABLE IF NOT EXISTS forest.forest_gt_points (
     id              BIGSERIAL PRIMARY KEY,
     observed_at     TIMESTAMPTZ NOT NULL,
-    class_id        SMALLINT NOT NULL CHECK (class_id BETWEEN 0 AND 11),
+    class_id        SMALLINT NOT NULL CHECK (class_id BETWEEN 0 AND 12),
     lng             DOUBLE PRECISION NOT NULL CHECK (lng BETWEEN 106 AND 109),
     lat             DOUBLE PRECISION NOT NULL CHECK (lat BETWEEN 20 AND 22.5),
     geom            geometry(Point, 4326) GENERATED ALWAYS AS (
