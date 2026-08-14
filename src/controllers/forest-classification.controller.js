@@ -215,6 +215,24 @@ const publishRaster = async (req, res) => {
     if (!snapshot.gee_download_url) {
         throw new Api400Error('Kết quả chưa có URL GeoTIFF để publish.', ['NO_DOWNLOAD_URL']);
     }
+    // GEE download URLs live ~1h. If we're beyond that window, the raster-ingest
+    // worker will get 401 UNAUTHENTICATED when it tries to fetch — the token
+    // is invalidated on GEE's side. Refuse up-front with an actionable message
+    // so ops re-runs the analysis to mint a fresh URL instead of watching a
+    // silent failed ingest.
+    const GEE_URL_TTL_MS = Math.max(
+        5 * 60_000,
+        Number(process.env.FC_GEE_URL_TTL_MS) || 45 * 60_000,
+    );
+    const urlAgeMs = snapshot.gee_tile_generated_at
+        ? Date.now() - new Date(snapshot.gee_tile_generated_at).getTime()
+        : null;
+    if (urlAgeMs !== null && urlAgeMs > GEE_URL_TTL_MS) {
+        throw new Api400Error(
+            'URL GeoTIFF từ Earth Engine đã hết hạn (>45 phút). Chạy lại kỳ này để tạo URL mới.',
+            ['GEE_DOWNLOAD_URL_STALE'],
+        );
+    }
     const layerCode = buildPeriodLayerCode(snapshot.year, snapshot.month);
     const { job, deduplicated } = await ingest.enqueue({
         sourceUrl: snapshot.gee_download_url,

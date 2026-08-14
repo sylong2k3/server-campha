@@ -251,6 +251,7 @@ async function exportAndHarvest(run, science, aoi) {
         });
         await ensureNotCancelled(run.id);
         const fileBase = `campha_${run.module}_${definition.code}_r${run.id}`.slice(0, 100);
+        const downloadUrlStart = Date.now();
         const downloadUrl = await executeStage(
             run,
             `export:${definition.code}`,
@@ -271,6 +272,9 @@ async function exportAndHarvest(run, science, aoi) {
             error.code = 'GEE_DOWNLOAD_URL_EMPTY';
             throw error;
         }
+        console.info(
+            `[FLOOD] run=${run.id} code=${definition.code} download-url generated in ${Date.now() - downloadUrlStart}ms token=${downloadUrl.split('-').pop().slice(0, 8)}…`,
+        );
         debug.log('run-executor.exportAndHarvest gee-download-url ok', {
             runId: run.id,
             code: definition.code,

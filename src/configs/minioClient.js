@@ -147,6 +147,12 @@ const initMinio = async () => {
             ],
         });
         console.info(t('minio_connected', process.env.APP_LANG || 'vi'));
+        const bucketSummary = Object.entries(config.buckets)
+            .map(([category, name]) => `${category}=${name}`)
+            .join(', ');
+        console.info(
+            `[MinIO] endpoint=${config.endpoint}:${config.port} ssl=${config.useSSL} region=${config.region} buckets=[${bucketSummary}] quarantine=${config.quarantineBucket}`,
+        );
         return true;
     } catch (error) {
         console.error(t('minio_connection_failed', process.env.APP_LANG || 'vi'), error.message);

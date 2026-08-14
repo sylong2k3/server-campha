@@ -6,6 +6,28 @@ const { hashRequest, requireSatelliteCache, toResponse } = require('./cache');
 const { normalizeRequest } = require('./request');
 const { buildImage } = require('./builders');
 
+// GEE getDownloadURL returns a signed thumbnail URL whose token invalidates
+// ~1h after issue (server-side session rotation). The satellite cache stores
+// stats/tileUrl/downloadUrl in one row; if we serve a stale downloadUrl the
+// raster-ingest worker downstream gets a 401 UNAUTHENTICATED on fetch. Set
+// the URL TTL well below GEE's 1h so we always regenerate before it dies.
+const CACHE_DOWNLOAD_URL_TTL_MS = Math.max(
+    5 * 60_000,
+    Number(process.env.SATELLITE_CACHE_URL_TTL_MS) || 30 * 60_000,
+);
+
+const cachedUrlIsFresh = (row) => {
+    if (!row?.metadata?.downloadUrl) {
+        return false;
+    }
+    const generatedAt = row.metadata?.generatedAt;
+    if (!generatedAt) {
+        return false;
+    }
+    const ageMs = Date.now() - new Date(generatedAt).getTime();
+    return ageMs < CACHE_DOWNLOAD_URL_TTL_MS;
+};
+
 /**
  * A GeoTIFF necessarily has a rectangular extent, but clipping the image to the
  * supplied polygon makes every pixel outside that polygon NoData. Supplying the
@@ -33,8 +55,20 @@ async function processRequest(imageType, rawParams, deps = {}) {
     const params = normalizeRequest(imageType, rawParams);
     const requestHash = hashRequest(params);
     const cached = await requireSatelliteCache(() => repo.getByHash(requestHash));
-    if (cached) {
+    if (cached && cachedUrlIsFresh(cached)) {
+        console.info(
+            `[SATELLITE-CACHE] HIT type=${params.type} start=${params.startDate} end=${params.endDate} — using cached downloadUrl (fresh)`,
+        );
         return toResponse(cached, true);
+    }
+    if (cached) {
+        console.info(
+            `[SATELLITE-CACHE] REGENERATE type=${params.type} start=${params.startDate} end=${params.endDate} — cached downloadUrl expired, recomputing`,
+        );
+    } else {
+        console.info(
+            `[SATELLITE-CACHE] MISS type=${params.type} start=${params.startDate} end=${params.endDate} — computing fresh`,
+        );
     }
 
     if (typeof adapter.ensureInitialized === 'function') {
@@ -58,9 +92,13 @@ async function processRequest(imageType, rawParams, deps = {}) {
         region,
         Number.isFinite(downloadScale) && downloadScale > 0 ? downloadScale : 30,
     );
+    console.info(
+        `[SATELLITE-CACHE] GENERATED type=${params.type} start=${params.startDate} downloadUrl=${downloadUrl ? 'ok' : 'null'} tileUrl=${map?.tileUrl ? 'ok' : 'null'}`,
+    );
     const metadata = {
         collection: params.collection,
         productVersion: params.productVersion,
+        ...(cached?.metadata || {}),
         ...buildMetadata,
         downloadClip: {
             geometrySource: params.geometrySource,
