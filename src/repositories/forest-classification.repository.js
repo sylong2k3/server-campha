@@ -97,18 +97,13 @@ const updateRun = async (id, patch = {}) => {
 
 const listRuns = async ({ page = 1, limit = 24, publishedOnly = false } = {}) => {
     const offset = (page - 1) * limit;
-    const where = publishedOnly ? "WHERE s.status = 'published' OR s.geoserver_layer IS NOT NULL" : '';
+    const where = publishedOnly
+        ? "WHERE status = 'published' OR geoserver_layer IS NOT NULL"
+        : '';
     const { rows } = await db.query(
-        `SELECT s.*,
-                COUNT(DISTINCT da.id)::int AS district_total,
-                COUNT(DISTINCT de.id) FILTER (WHERE de.geoserver_layer IS NOT NULL)::int AS district_geoserver_count,
-                COALESCE(array_agg(DISTINCT de.geoserver_layer) FILTER (WHERE de.geoserver_layer IS NOT NULL), '{}') AS geoserver_layers,
-                COUNT(*) OVER()::int AS total_count
+        `SELECT s.*, COUNT(*) OVER()::int AS total_count
            FROM forest.forest_snapshots s
-           LEFT JOIN forest.forest_district_areas da ON da.snapshot_id = s.id
-           LEFT JOIN forest.forest_district_exports de ON de.snapshot_id = s.id
            ${where}
-          GROUP BY s.id
           ORDER BY s.year DESC, s.month DESC, s.attempt DESC
           LIMIT $1 OFFSET $2`,
         [limit, offset],
@@ -119,33 +114,6 @@ const listRuns = async ({ page = 1, limit = 24, publishedOnly = false } = {}) =>
     };
 };
 
-const getDistrictAreas = async (snapshotId) => {
-    const { rows } = await db.query(
-        `SELECT district_code AS "districtCode", district_name AS "districtName",
-                jsonb_agg(jsonb_build_object(
-                    'classId', class_id, 'className', class_name, 'areaHa', area_ha
-                ) ORDER BY class_id) AS classes
-           FROM forest.forest_district_areas
-          WHERE snapshot_id = $1
-          GROUP BY district_code, district_name
-          ORDER BY district_name NULLS LAST, district_code NULLS LAST`,
-        [snapshotId],
-    );
-    return rows;
-};
-
-const listDistrictExports = async (snapshotId) => {
-    const { rows } = await db.query(
-        `SELECT de.*, rij.status AS raster_ingest_status
-           FROM forest.forest_district_exports de
-           LEFT JOIN gis.raster_ingest_jobs rij ON rij.id = de.raster_ingest_job_id
-          WHERE de.snapshot_id = $1
-          ORDER BY de.district_name NULLS LAST, de.district_code`,
-        [snapshotId],
-    );
-    return rows;
-};
-
 module.exports = {
     getById,
     getLatest,
@@ -154,6 +122,4 @@ module.exports = {
     createRun,
     updateRun,
     listRuns,
-    getDistrictAreas,
-    listDistrictExports,
 };

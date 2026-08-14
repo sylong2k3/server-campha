@@ -5,14 +5,20 @@ const deviceTokens = require('../repositories/device-token.repository');
 const userRepository = require('../repositories/user.repository');
 const notificationRepository = require('../repositories/notification.repository');
 const pushProvider = require('../utils/pushProvider.util');
+const websocket = require('../realtime/websocket.server');
 const { Api404Error } = require('../core/error.response');
+
+const emitCreated = (rows) => {
+    (rows || []).forEach((row) => websocket.notifyUser(row.user_id, 'notification', row));
+};
 
 /**
  * Persists a notification row for a single user (their private "my notifications"
  * inbox) and best-effort pushes it over FCM. Safe no-op push when FCM is disabled.
  */
 const notifyUser = async (userId, message) => {
-    await notificationRepository.createMany([userId], message);
+    const rows = await notificationRepository.createMany([userId], message);
+    emitCreated(rows);
     if (!pushProvider.isAvailable()) {
         return { successCount: 0, failureCount: 0, invalidTokens: [], disabled: true };
     }
@@ -37,7 +43,8 @@ const broadcastToRole = async (roleCode, message) => {
 
     const userIds = await userRepository.activeIdsByRoles([normalizedRole]);
     if (userIds.length > 0) {
-        await notificationRepository.createMany(userIds, message);
+        const rows = await notificationRepository.createMany(userIds, message);
+        emitCreated(rows);
     }
 
     if (!pushProvider.isAvailable()) {
@@ -81,4 +88,20 @@ const markAllRead = async (userId) => {
     return { updated };
 };
 
-module.exports = { broadcastToRole, notifyUser, listMine, unreadCount, markRead, markAllRead };
+const remove = async (id, userId) => {
+    const row = await notificationRepository.remove(id, userId);
+    if (!row) {
+        throw new Api404Error('Không tìm thấy thông báo');
+    }
+    return row;
+};
+
+module.exports = {
+    broadcastToRole,
+    notifyUser,
+    listMine,
+    unreadCount,
+    markRead,
+    markAllRead,
+    remove,
+};

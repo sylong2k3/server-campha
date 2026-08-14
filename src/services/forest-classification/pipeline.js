@@ -12,18 +12,18 @@ const { ee } = require('../../configs/gge');
 const { Api400Error } = require('../../core/error.response');
 
 const CLASS_DEFINITIONS = Object.freeze([
-    { value: 0, label: 'Nước mặt', color: '#1A73E8' },
-    { value: 1, label: 'Rừng tự nhiên', color: '#2D7B2E' },
-    { value: 2, label: 'Rừng trồng', color: '#85C946' },
-    { value: 3, label: 'Cây bụi / trảng cỏ', color: '#BFD760' },
-    { value: 4, label: 'Cây hàng năm', color: '#F5E642' },
-    { value: 5, label: 'Cây lâu năm', color: '#F9A825' },
-    { value: 6, label: 'Khu dân cư', color: '#E91E63' },
-    { value: 7, label: 'Công trình - hạ tầng', color: '#B71C1C' },
-    { value: 8, label: 'Đất trống', color: '#D7CCC8' },
-    { value: 9, label: 'Khai trường mỏ', color: '#000000' },
-    { value: 10, label: 'Bãi thải mỏ', color: '#795548' },
-    { value: 11, label: 'Đất ngập nước / ven biển', color: '#00BCD4' },
+    { value: 0, label: 'Nước mặt', nameEn: 'Surface water', color: '#1A73E8' },
+    { value: 1, label: 'Rừng tự nhiên', nameEn: 'Natural forest', color: '#2D7B2E' },
+    { value: 2, label: 'Rừng trồng', nameEn: 'Planted forest', color: '#85C946' },
+    { value: 3, label: 'Cây bụi / trảng cỏ', nameEn: 'Shrub / grassland', color: '#BFD760' },
+    { value: 4, label: 'Cây hàng năm', nameEn: 'Annual crop', color: '#F5E642' },
+    { value: 5, label: 'Cây lâu năm', nameEn: 'Perennial crop', color: '#F9A825' },
+    { value: 6, label: 'Khu dân cư', nameEn: 'Residential', color: '#E91E63' },
+    { value: 7, label: 'Công trình - hạ tầng', nameEn: 'Infrastructure', color: '#B71C1C' },
+    { value: 8, label: 'Đất trống', nameEn: 'Bare ground', color: '#D7CCC8' },
+    { value: 9, label: 'Khai trường mỏ', nameEn: 'Open-pit mine', color: '#000000' },
+    { value: 10, label: 'Bãi thải mỏ', nameEn: 'Mine waste dump', color: '#795548' },
+    { value: 11, label: 'Đất ngập nước / ven biển', nameEn: 'Wetlands / coastal', color: '#00BCD4' },
 ]);
 
 const CLASSIFIED_VIZ = Object.freeze({
@@ -31,6 +31,44 @@ const CLASSIFIED_VIZ = Object.freeze({
     max: 11,
     palette: CLASS_DEFINITIONS.map(({ color }) => color),
 });
+
+// Class-id groupings for the two aggregated indicators Cẩm Phả reports on the
+// dashboard (forest coverage and mining footprint). See
+// docs/FOREST_CLASSIFICATION_TAXONOMY.md §3.
+const FOREST_CLASS_IDS = Object.freeze([1, 2]); // natural + planted forest
+const MINE_CLASS_IDS = Object.freeze([9, 10]); // pit + waste dump
+
+const roundHa = (value) => Number(Number(value || 0).toFixed(2));
+const roundPercent = (value) => Number(Number(value || 0).toFixed(2));
+
+/**
+ * Build the class-level legend the FE consumes for the dashboard palette,
+ * legend widget and KPI breakdown. Contract shared with the client:
+ *   [{ classId, nameVi, nameEn, color, ha, percent }]
+ */
+const buildLegend = (areaByClass = {}, totalHa = 0) =>
+    CLASS_DEFINITIONS.map(({ value, label, nameEn, color }) => {
+        const ha = roundHa(areaByClass[String(value)] || 0);
+        const percent = totalHa > 0 ? roundPercent((ha / totalHa) * 100) : 0;
+        return { classId: value, nameVi: label, nameEn, color, ha, percent };
+    });
+
+/**
+ * Aggregated indicators the dashboard renders as top-level KPI cards:
+ * forestHa/mineHa and their percent share of the total classified area.
+ */
+const summariseCoverage = (areaByClass = {}, totalHa = 0) => {
+    const sumOf = (ids) =>
+        ids.reduce((total, classId) => total + Number(areaByClass[String(classId)] || 0), 0);
+    const forestHa = roundHa(sumOf(FOREST_CLASS_IDS));
+    const mineHa = roundHa(sumOf(MINE_CLASS_IDS));
+    return {
+        forestHa,
+        forestPercent: totalHa > 0 ? roundPercent((forestHa / totalHa) * 100) : 0,
+        mineHa,
+        minePercent: totalHa > 0 ? roundPercent((mineHa / totalHa) * 100) : 0,
+    };
+};
 
 const maskSentinel2 = (image) => {
     const scl = image.select('SCL');
@@ -343,12 +381,16 @@ const buildForestClassification = async (params, region, { evaluate }) => {
 module.exports = {
     CLASS_DEFINITIONS,
     CLASSIFIED_VIZ,
+    FOREST_CLASS_IDS,
+    MINE_CLASS_IDS,
     addDerivedBands,
     buildForestClassification,
+    buildLegend,
     buildSentinelCollection,
     buildSentinelComposite,
     classifyLandCover,
     computeAreaStats,
     loadAuxiliaryData,
     maskSentinel2,
+    summariseCoverage,
 };

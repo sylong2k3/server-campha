@@ -11,7 +11,6 @@ const router = Router();
 router.get('/latest', optionalAuth, asyncHandler(controller.getLatest));
 router.post('/query', optionalAuth, geeQueryLimiter, asyncHandler(controller.queryPeriod));
 router.get('/snapshot/:id', optionalAuth, asyncHandler(controller.getSnapshot));
-router.get('/snapshots/:id/districts', optionalAuth, asyncHandler(controller.getDistrictExports));
 router.get('/published-history', optionalAuth, asyncHandler(controller.getPublishedHistory));
 
 router.get('/history', verifyToken, requirePermission('forest_classification', 'manage'), asyncHandler(controller.getHistory));

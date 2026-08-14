@@ -5120,6 +5120,154 @@
             ]
         },
         {
+            "name": "Thông báo của tôi",
+            "item": [
+                {
+                    "name": "Danh sách thông báo của tôi",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{citizenToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/mine?page=1&limit=20&unreadOnly=false",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "mine"],
+                            "query": [
+                                {
+                                    "key": "page",
+                                    "value": "1"
+                                },
+                                {
+                                    "key": "limit",
+                                    "value": "20"
+                                },
+                                {
+                                    "key": "unreadOnly",
+                                    "value": "false"
+                                }
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                                    "const items = pm.response.json().data.items; if (items && items.length) { pm.collectionVariables.set('notificationId', items[0].id); }"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Số thông báo chưa đọc",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{citizenToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/unread-count",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "unread-count"]
+                        }
+                    }
+                },
+                {
+                    "name": "Đánh dấu một thông báo đã đọc",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{citizenToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}/read",
+                            "host": ["{{baseUrl}}"],
+                            "path": [
+                                "api",
+                                "v1",
+                                "notifications",
+                                "{{notificationId}}",
+                                "read"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Đánh dấu tất cả thông báo đã đọc",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{citizenToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/read-all",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "read-all"]
+                        }
+                    }
+                },
+                {
+                    "name": "Xoá thông báo của tôi",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{citizenToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "{{notificationId}}"]
+                        },
+                        "description": "Chỉ xoá được thông báo thuộc tài khoản đang đăng nhập."
+                    }
+                }
+            ]
+        },
+        {
             "name": "GIS di động",
             "item": [
                 {

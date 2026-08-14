@@ -25,4 +25,10 @@ const markAllRead = async (req, res) =>
         t('notifications_all_read', req.lang),
         await service.markAllRead(actor(req).id),
     );
-module.exports = { listMine, unreadCount, markRead, markAllRead };
+const remove = async (req, res) =>
+    OK(
+        res,
+        t('notification_deleted', req.lang),
+        await service.remove(Number(req.params.id), actor(req).id),
+    );
+module.exports = { listMine, unreadCount, markRead, markAllRead, remove };

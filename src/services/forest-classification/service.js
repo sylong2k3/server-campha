@@ -5,17 +5,25 @@ const snapshots = require('../../repositories/forest-classification.repository')
 const { periodDates } = require('./period');
 const { queueSnapshotArchive } = require('./archive');
 const { CAM_PHA_GEOMETRY } = require('../satellite/geometry');
+const { buildLegend, summariseCoverage } = require('./pipeline');
 const debug = require('./debug.util');
 
 const activeStatuses = new Set(['pending', 'computing', 'exporting']);
 
-const summaryFromResult = (result, archiveJob = null) => ({
-    byClass: result.stats?.areaByClass || {},
-    totalHa: result.stats?.totalHa || null,
-    classSchema: 'campha_landcover_12',
-    source: 'campha-sentinel2-rule-based-v1',
-    rasterIngestJobId: archiveJob?.job?.id || null,
-});
+const summaryFromResult = (result, archiveJob = null) => {
+    const areaByClass = result.stats?.areaByClass || {};
+    const totalHa = Number(result.stats?.totalHa) || 0;
+    const coverage = summariseCoverage(areaByClass, totalHa);
+    return {
+        byClass: areaByClass,
+        totalHa: totalHa || null,
+        ...coverage,
+        legend: buildLegend(areaByClass, totalHa),
+        classSchema: 'campha_landcover_12',
+        source: 'campha-sentinel2-rule-based-v1',
+        rasterIngestJobId: archiveJob?.job?.id || null,
+    };
+};
 
 async function executeRun(snapshot, deps = {}) {
     const repo = deps.repository || snapshots;
@@ -137,14 +145,9 @@ async function getLatest(deps = {}) {
     const latestCompleted = await repo.getLatestCompleted();
     const newest = await repo.getLatest();
     const snapshot = latestCompleted || newest || null;
-    const districtAreas =
-        snapshot && ['completed', 'published'].includes(snapshot.status)
-            ? await repo.getDistrictAreas(snapshot.id)
-            : [];
     return {
         snapshot,
         processingSnapshot: newest || snapshot,
-        districtAreas,
         comparison: null,
         stale: Boolean(latestCompleted && newest && newest.id !== latestCompleted.id),
         computing: Boolean(newest && activeStatuses.has(newest.status)),
@@ -159,9 +162,6 @@ async function getSnapshot(id, deps = {}) {
     }
     return {
         snapshot,
-        districtAreas: ['completed', 'published'].includes(snapshot.status)
-            ? await repo.getDistrictAreas(snapshot.id)
-            : [],
         comparison: null,
     };
 }
@@ -172,7 +172,6 @@ async function queryPeriod(year, month, requestedBy, deps = {}) {
     if (existing && ['completed', 'published'].includes(existing.status)) {
         return {
             snapshot: existing,
-            districtAreas: await repo.getDistrictAreas(existing.id),
             comparison: null,
             cached: true,
             computing: false,
@@ -184,7 +183,6 @@ async function queryPeriod(year, month, requestedBy, deps = {}) {
             : await requestRun({ year, month, trigger: 'user', requestedBy }, deps);
     return {
         snapshot: run.snapshot,
-        districtAreas: [],
         comparison: null,
         cached: false,
         computing: true,
@@ -199,5 +197,4 @@ module.exports = {
     getSnapshot,
     queryPeriod,
     listRuns: snapshots.listRuns,
-    getDistrictExports: snapshots.listDistrictExports,
 };

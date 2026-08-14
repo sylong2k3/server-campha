@@ -12,4 +12,5 @@ router.get('/mine', strict(v.listSchema, 'query'), asyncHandler(controller.listM
 router.get('/unread-count', asyncHandler(controller.unreadCount));
 router.patch('/read-all', asyncHandler(controller.markAllRead));
 router.patch('/:id/read', strict(v.idParamsSchema, 'params'), asyncHandler(controller.markRead));
+router.delete('/:id', strict(v.idParamsSchema, 'params'), asyncHandler(controller.remove));
 module.exports = router;

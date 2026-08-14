@@ -31,4 +31,10 @@ describe('notification.repository', () => {
         db.query.mockResolvedValue({ rows: [{ id: 1 }, { id: 2 }] });
         expect(await repository.markAllRead(7)).toBe(2);
     });
+    test('remove only deletes a notification owned by the requesting user', async () => {
+        db.query.mockResolvedValue({ rows: [{ id: 4 }] });
+        expect(await repository.remove(4, 7)).toEqual({ id: 4 });
+        expect(db.query.mock.calls[0][1]).toEqual([4, 7]);
+        expect(db.query.mock.calls[0][0]).toMatch(/id=\$1 AND user_id=\$2/);
+    });
 });

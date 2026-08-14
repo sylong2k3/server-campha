@@ -64,7 +64,6 @@ const getLatest = async (req, res) => {
     const data = await forest.getLatest();
     OK(res, 'Lấy kết quả phân loại rừng thành công.', {
         snapshot: formatSnapshot(data.snapshot),
-        districtAreas: data.districtAreas,
         comparison: data.comparison,
         stale: data.stale,
         computing: data.computing,
@@ -147,7 +146,6 @@ const queryPeriod = async (req, res) => {
     });
     OK(res, data.cached ? 'Lấy kết quả phân loại rừng thành công.' : 'Đang xử lý phân loại rừng.', {
         snapshot: formatSnapshot(data.snapshot),
-        districtAreas: data.districtAreas,
         comparison: data.comparison,
         cached: data.cached,
         computing: data.computing,
@@ -168,78 +166,9 @@ const getSnapshot = async (req, res) => {
     }
     OK(res, 'Lấy kết quả phân loại rừng thành công.', {
         snapshot: formatSnapshot(data.snapshot),
-        districtAreas: data.districtAreas,
         comparison: data.comparison,
         computing: forest.activeStatuses.has(data.snapshot.status),
         processing: processing(data.snapshot),
-    });
-};
-
-const getDistrictExports = async (req, res) => {
-    const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
-        throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);
-    }
-    const snapshot = await snapshots.getById(id);
-    if (!snapshot) {
-        throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [
-            'FOREST_SNAPSHOT_NOT_FOUND',
-        ]);
-    }
-    const rows = await forest.getDistrictExports(id);
-    const aggregate = rows.reduce(
-        (acc, row) => {
-            acc.totalHa += Number(row.total_area_ha || 0);
-            acc.forestHa += Number(row.forest_area_ha || 0);
-            Object.entries(row.area_by_class || {}).forEach(([classId, area]) => {
-                acc.byClass[classId] = (acc.byClass[classId] || 0) + Number(area || 0);
-            });
-            return acc;
-        },
-        { totalHa: 0, forestHa: 0, byClass: {} },
-    );
-    const districts = rows.map((row) => ({
-        id: row.id,
-        districtCode: row.district_code,
-        districtName: row.district_name,
-        status: row.status,
-        scaleM: row.scale_m,
-        areaByClass: row.area_by_class || null,
-        totalAreaHa: row.total_area_ha === null ? null : Number(row.total_area_ha),
-        forestAreaHa: row.forest_area_ha === null ? null : Number(row.forest_area_ha),
-        geeTileUrl: row.gee_tile_url || null,
-        geeDownloadUrl: row.gee_download_url || null,
-        geeDownloadFilename: row.gee_download_filename || null,
-        geoserverLayer: row.geoserver_layer || null,
-        geoserverStore: row.geoserver_store || null,
-        rasterIngestJobId: row.raster_ingest_job_id || null,
-        rasterIngestStatus: row.raster_ingest_status || null,
-        errorMessage: row.error_message || null,
-        durationMs: row.duration_ms || null,
-        startedAt: row.started_at || null,
-        completedAt: row.completed_at || null,
-    }));
-    OK(res, 'Lấy dữ liệu theo đơn vị hành chính thành công.', {
-        snapshotId: id,
-        year: snapshot.year,
-        month: snapshot.month,
-        attempt: snapshot.attempt,
-        scaleM: snapshot.download_scale_m,
-        total: districts.length,
-        discoveredTotal: districts.length,
-        expectedTotal: Number(process.env.FC_EXPECTED_DISTRICT_COUNT || 1),
-        districtCodeCount: districts.length,
-        coverageScope: 'districtMosaic',
-        coverageCount: districts.length,
-        fullyPublished: snapshot.status === 'published',
-        completed: districts.filter(
-            (item) => item.status === 'completed' || item.status === 'published',
-        ).length,
-        failed: districts.filter((item) => item.status === 'failed').length,
-        skipped: districts.filter((item) => item.status === 'skipped').length,
-        pending: districts.filter((item) => ['pending', 'computing'].includes(item.status)).length,
-        aggregate,
-        districts,
     });
 };
 
@@ -450,7 +379,6 @@ module.exports = {
     refresh,
     queryPeriod,
     getSnapshot,
-    getDistrictExports,
     publishRaster,
     listZones,
     createZone,

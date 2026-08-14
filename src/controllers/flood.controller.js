@@ -1,7 +1,11 @@
 'use strict';
 
 const service = require('../services/flood/analysis.service');
+const weatherService = require('../services/flood/weather.service');
+const eventDaily = require('../services/flood/event-daily.service');
+const eventDailyJob = require('../jobs/flood-event-daily.job');
 const { OK, CREATED, OK_LIST } = require('../core/success.response');
+const { Api503Error } = require('../core/error.response');
 const { buildActor } = require('../utils/actor.util');
 const debug = require('../services/flood/debug.util');
 
@@ -72,6 +76,36 @@ const unpublishArtifact = async (req, res) => {
     return OK(res, 'Flood artifact unpublished', unpublished);
 };
 
+// Auto-fill button for the M3 rainfall form. Returns the OpenWeather nowcast
+// at the Cẩm Phả center reshaped to match the run-form field names.
+const currentWeather = async (_req, res) => {
+    try {
+        const bundle = await weatherService.getCurrentRainfallBundle();
+        return OK(res, 'Đã lấy dữ liệu thời tiết hiện tại.', bundle);
+    } catch (error) {
+        if (error?.code === 'OPENWEATHER_NOT_CONFIGURED') {
+            throw new Api503Error(
+                'Chưa cấu hình khóa OpenWeather trên máy chủ.',
+                ['OPENWEATHER_NOT_CONFIGURED'],
+            );
+        }
+        throw error;
+    }
+};
+
+// Manual "fire the daily cron now" for ops/testing. Returns the same
+// structured result the cron logs on schedule. Idempotent via analysisKey.
+const triggerDaily = async (_req, res) => {
+    const settings = eventDailyJob.settings();
+    const result = await eventDaily.runOnce({
+        timezone: settings.timezone,
+        lookbackDays: settings.lookbackDays,
+        preStart: settings.preStart,
+        preEnd: settings.preEnd,
+    });
+    return OK(res, 'Đã chạy quy trình phát hiện ngập hàng ngày.', result);
+};
+
 module.exports = {
     overview,
     legends,
@@ -87,4 +121,6 @@ module.exports = {
     cancel,
     publishArtifact,
     unpublishArtifact,
+    currentWeather,
+    triggerDaily,
 };

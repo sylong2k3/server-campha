@@ -115,6 +115,31 @@ const ENV_SCHEMA_KEYS = {
     FLOOD_TREND_CATCHUP_ENABLED: boolean.default('false'),
     FLOOD_TREND_CATCHUP_DELAY_MS: nonNegativeInteger.default(120000),
     FLOOD_TREND_MODE: Joi.string().valid('product', 'calibration').default('product'),
+    // Daily M1 (event flood) scheduler. Fires nightly, checks Sentinel-1 has
+    // a scene in the last LOOKBACK_DAYS over Cẩm Phả; runs event detection
+    // if yes, logs skip otherwise. Deduped by analysisKey so re-runs on the
+    // same window are no-ops.
+    FLOOD_EVENT_DAILY_ENABLED: boolean.default('false'),
+    FLOOD_EVENT_DAILY_CRON: Joi.string().trim().min(9).default('0 3 * * *'),
+    FLOOD_EVENT_DAILY_CRON_TZ: Joi.string().trim().min(1).default('Asia/Ho_Chi_Minh'),
+    FLOOD_EVENT_DAILY_LOOKBACK_DAYS: positiveInteger.min(1).max(30).default(3),
+    // Pre-event baseline window — the "dry" reference the daily run diffs
+    // against. Bump these to the current dry-season boundary every year
+    // (Jan-Apr for Vietnam northern coast). Ops-owned tuning knob.
+    FLOOD_EVENT_DAILY_PRE_START: Joi.string()
+        .trim()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
+        .default('2024-01-01'),
+    FLOOD_EVENT_DAILY_PRE_END: Joi.string()
+        .trim()
+        .pattern(/^\d{4}-\d{2}-\d{2}$/)
+        .default('2024-04-30'),
+    FLOOD_EVENT_DAILY_CATCHUP_ENABLED: boolean.default('false'),
+    FLOOD_EVENT_DAILY_CATCHUP_DELAY_MS: nonNegativeInteger.default(120000),
+    // Center point of TP Cẩm Phả — used by /admin/flood/weather/current to
+    // pull OpenWeather nowcast rain data for the M3 rainfall form.
+    CAMPHA_CENTER_LNG: Joi.number().min(-180).max(180).default(107.303749),
+    CAMPHA_CENTER_LAT: Joi.number().min(-90).max(90).default(21.002361),
     // Retained Forest Classification runtime. Scientific tuning variables stay
     // backward-compatible; these keys cover deployment-critical boundaries,
     // schedule, export and publication completeness.

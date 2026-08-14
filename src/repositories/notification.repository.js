@@ -8,7 +8,7 @@ const createMany = async (userIds, { type, title, body, data }) => {
     const { rows } = await db.query(
         `INSERT INTO core.notifications(user_id,type,title,body,data)
          SELECT uid, $2, $3, $4, $5::jsonb FROM UNNEST($1::bigint[]) AS uid
-         RETURNING id,user_id`,
+         RETURNING id,user_id,type,title,body,data,read_at,created_at`,
         [ids, type || 'general', title, body || null, JSON.stringify(data || {})],
     );
     return rows;
@@ -59,4 +59,15 @@ const markAllRead = async (userId) => {
     );
     return rows.length;
 };
-module.exports = { createMany, listForUser, countUnread, markRead, markAllRead };
+const remove = async (id, userId) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `DELETE FROM core.notifications
+          WHERE id=$1 AND user_id=$2
+          RETURNING id`,
+        [id, userId],
+    );
+    return row || null;
+};
+module.exports = { createMany, listForUser, countUnread, markRead, markAllRead, remove };
