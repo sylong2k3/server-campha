@@ -4,6 +4,7 @@ const cron = require('node-cron');
 const forest = require('../services/forest-classification');
 const snapshots = require('../repositories/forest-classification.repository');
 const { previousCompletedPeriod } = require('../services/forest-classification/period');
+const debug = require('../services/forest-classification/debug.util');
 
 let scheduledTask = null;
 let catchupTimer = null;
@@ -19,16 +20,28 @@ async function queueMissingPeriod({ now = new Date(), deps = {} } = {}) {
     const repo = deps.repository || snapshots;
     const service = deps.forest || forest;
     const period = previousCompletedPeriod(now, timezone());
+    debug.log('job.queueMissingPeriod', { period });
     const existing = await repo.getByPeriod(period.year, period.month);
     if (existing) {
+        debug.log('job.queueMissingPeriod skipped: exists', {
+            period,
+            snapshotId: existing.id,
+            status: existing.status,
+        });
         return { queued: false, reason: 'PERIOD_ALREADY_EXISTS', period, snapshot: existing };
     }
     const run = await service.requestRun({ ...period, trigger: 'cron', requestedBy: null });
+    debug.log('job.queueMissingPeriod queued', {
+        period,
+        snapshotId: run?.snapshot?.id,
+        deduplicated: run?.deduplicated,
+    });
     return { queued: !run.deduplicated, period, ...run };
 }
 
 const runScheduled = async () => {
     try {
+        debug.log('job.runScheduled tick');
         const result = await queueMissingPeriod();
         if (result.queued) {
             console.info(
@@ -37,6 +50,7 @@ const runScheduled = async () => {
         }
         return result;
     } catch (error) {
+        debug.logError('job.runScheduled failed', error);
         console.error(`[FOREST] scheduled classification failed: ${error.message}`);
         return { queued: false, error: error.message };
     }

@@ -15,6 +15,7 @@ const rasterIngest = require('../raster-ingest.service');
 const gcs = require('./gcs-artifact.service');
 const geometry = require('./common/geometry');
 const { ANALYSIS_CRS, ANALYSIS_SCALE_M, TREND_ANALYSIS_SCALE_M } = require('./common/projection');
+const debug = require('./debug.util');
 
 const INGEST_TERMINAL_FAILURES = new Set(['failed', 'url_expired', 'dlq']);
 
@@ -74,19 +75,37 @@ async function emit(run, stage, eventType, detail = null, elapsedMs = null) {
 
 async function executeStage(run, stage, status, fn) {
     const started = Date.now();
+    debug.log('run-executor.stage start', {
+        runId: run.id,
+        module: run.module,
+        stage,
+        status,
+    });
     await runRepo.updateStatus(run.id, { status, stage });
     await emit(run, stage, 'stage_start');
     try {
         const value = await fn();
-        await emit(run, stage, 'stage_end', null, Date.now() - started);
+        const elapsed = Date.now() - started;
+        debug.log('run-executor.stage end', {
+            runId: run.id,
+            stage,
+            elapsed_ms: elapsed,
+        });
+        await emit(run, stage, 'stage_end', null, elapsed);
         return value;
     } catch (error) {
+        const elapsed = Date.now() - started;
+        debug.logError('run-executor.stage failed', error, {
+            runId: run.id,
+            stage,
+            elapsed_ms: elapsed,
+        });
         await emit(
             run,
             stage,
             'stage_error',
             { code: error.code || error.name },
-            Date.now() - started,
+            elapsed,
         );
         throw error;
     }
@@ -206,9 +225,21 @@ async function exportAndHarvest(run, science, aoi) {
     const exportable = artifactRows.filter(
         ({ definition }) => run.mode === 'calibration' || definition.role === 'PRODUCT',
     );
+    debug.log('run-executor.exportAndHarvest', {
+        runId: run.id,
+        artifactRows: artifactRows.length,
+        exportable: exportable.length,
+        exportableCodes: exportable.map(({ definition }) => definition.code),
+    });
     const taskIds = {};
     const warnings = [...(science.metadata?.warnings || [])];
     for (const { artifact, definition, image } of exportable) {
+        debug.log('run-executor.exportAndHarvest artifact', {
+            runId: run.id,
+            artifactId: artifact.id,
+            code: definition.code,
+            role: definition.role,
+        });
         await ensureNotCancelled(run.id);
         const unique = `${Date.now()}_${artifact.id}`;
         const prefix = `flood/${run.module}/run_${run.id}/${definition.code}/${unique}`;
@@ -237,10 +268,25 @@ async function exportAndHarvest(run, science, aoi) {
         if (terminal.state !== 'COMPLETED') {
             const error = new Error(`GEE export ${definition.code} ended in ${terminal.state}`);
             error.code = `GEE_EXPORT_${terminal.state}`;
+            debug.logError('run-executor.exportAndHarvest gee-export non-terminal', error, {
+                runId: run.id,
+                code: definition.code,
+                terminalState: terminal.state,
+            });
             throw error;
         }
+        debug.log('run-executor.exportAndHarvest gee-export completed', {
+            runId: run.id,
+            code: definition.code,
+            objectName,
+        });
         await gcs.waitForObject(objectName);
         const signed = await gcs.signedDownloadUrl(objectName);
+        debug.log('run-executor.exportAndHarvest gcs signed', {
+            runId: run.id,
+            code: definition.code,
+            gcsBucket: signed.bucket,
+        });
         const publish = run.mode === 'product' && definition.role === 'PRODUCT';
         const enqueued = await executeStage(run, `archive:${definition.code}`, 'ARCHIVING', () =>
             rasterIngest.enqueue({
@@ -264,6 +310,14 @@ async function exportAndHarvest(run, science, aoi) {
                 },
             }),
         );
+        debug.log('run-executor.exportAndHarvest ingest enqueued', {
+            runId: run.id,
+            code: definition.code,
+            ingestJobId: enqueued.job.id,
+            publish,
+            bucketCategory:
+                run.mode === 'calibration' ? 'flood-calibration' : 'flood-rasters',
+        });
         await artifactRepo.updateAssetMetadata(artifact.id, {
             gcsBucket: signed.bucket,
             gcsObject: objectName,
@@ -278,30 +332,59 @@ async function exportAndHarvest(run, science, aoi) {
         );
         try {
             await gcs.deleteObject(objectName);
+            debug.log('run-executor.exportAndHarvest gcs cleaned', {
+                runId: run.id,
+                code: definition.code,
+            });
         } catch (error) {
             warnings.push(`GCS_CLEANUP_FAILED:${definition.code}`);
+            debug.logError('run-executor.exportAndHarvest gcs cleanup failed', error, {
+                runId: run.id,
+                code: definition.code,
+            });
             await emit(run, `cleanup:${definition.code}`, 'stage_warn', {
                 code: error.code || error.name,
             });
         }
     }
+    debug.log('run-executor.exportAndHarvest done', {
+        runId: run.id,
+        artifactCount: artifactRows.length,
+        exportedCount: exportable.length,
+        warnings,
+    });
     return { artifactCount: artifactRows.length, exportedCount: exportable.length, warnings };
 }
 
 async function executePersistedRun({ runId } = {}) {
+    debug.log('run-executor.executePersistedRun start', { runId });
     const run = await runRepo.findById(runId);
     if (!run) {
+        debug.logError('run-executor.executePersistedRun', new Error('run not found'), { runId });
         throw new Error(`Flood run ${runId} not found`);
     }
     if (run.status === 'CANCELLED') {
+        debug.log('run-executor.executePersistedRun skipped: CANCELLED', { runId });
         return { runId, status: 'CANCELLED', artifactCount: 0 };
     }
+    debug.log('run-executor.executePersistedRun loaded', {
+        runId: run.id,
+        module: run.module,
+        mode: run.mode,
+        attemptNo: run.attempt_no,
+    });
     await geeAdapter.ensureInitialized();
+    debug.log('run-executor.gee.ensureInitialized ok', { runId });
     await runRepo.startRun(run.id);
     try {
         const science = await executeStage(run, 'compute', 'COMPUTING', () =>
             runScientificModule(run),
         );
+        debug.log('run-executor.science ok', {
+            runId,
+            artifactCount: Object.keys(science.artifacts || {}).length,
+            warnings: science.metadata?.warnings || [],
+        });
         const { geometry: aoi } = geometry.loadAoi(ee);
         const harvested = await exportAndHarvest(run, science, aoi);
         await runRepo.finishRun(run.id, {
@@ -313,8 +396,15 @@ async function executePersistedRun({ runId } = {}) {
             artifactCount: harvested.artifactCount,
             exportedCount: harvested.exportedCount,
         });
+        debug.log('run-executor.executePersistedRun SUCCEEDED', {
+            runId: run.id,
+            artifactCount: harvested.artifactCount,
+            exportedCount: harvested.exportedCount,
+            warnings: harvested.warnings,
+        });
         return { runId: run.id, status: 'SUCCEEDED', ...harvested };
     } catch (error) {
+        debug.logError('run-executor.executePersistedRun failed', error, { runId: run.id });
         const current = await runRepo.findById(run.id);
         if (current?.status !== 'CANCELLED') {
             await runRepo.finishRun(run.id, {

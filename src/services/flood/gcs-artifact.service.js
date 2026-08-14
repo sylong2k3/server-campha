@@ -1,6 +1,7 @@
 'use strict';
 
 const { Storage } = require('@google-cloud/storage');
+const debug = require('./debug.util');
 
 let storageClient = null;
 
@@ -33,6 +34,7 @@ function client() {
 
 async function signedDownloadUrl(objectName) {
     const { bucket, signedUrlSeconds } = config();
+    debug.log('gcs.signedDownloadUrl request', { bucket, objectName, signedUrlSeconds });
     const [url] = await client()
         .bucket(bucket)
         .file(objectName)
@@ -41,26 +43,37 @@ async function signedDownloadUrl(objectName) {
             action: 'read',
             expires: Date.now() + signedUrlSeconds * 1000,
         });
+    debug.log('gcs.signedDownloadUrl ok', { bucket, objectName });
     return { bucket, objectName, url };
 }
 
 async function waitForObject(objectName, { attempts = 12, intervalMs = 5000 } = {}) {
     const { bucket } = config();
+    debug.log('gcs.waitForObject start', { bucket, objectName, attempts, intervalMs });
     const file = client().bucket(bucket).file(objectName);
     for (let attempt = 0; attempt < attempts; attempt += 1) {
         const [exists] = await file.exists();
         if (exists) {
+            debug.log('gcs.waitForObject found', { bucket, objectName, attempt: attempt + 1 });
             return { bucket, objectName };
         }
+        debug.log('gcs.waitForObject miss', {
+            bucket,
+            objectName,
+            attempt: attempt + 1,
+            of: attempts,
+        });
         await new Promise((resolve) => setTimeout(resolve, intervalMs));
     }
     const error = new Error(`GCS export object did not appear: gs://${bucket}/${objectName}`);
     error.code = 'GCS_OBJECT_NOT_FOUND';
+    debug.logError('gcs.waitForObject timeout', error, { bucket, objectName });
     throw error;
 }
 
 async function deleteObject(objectName) {
     const { bucket } = config();
+    debug.log('gcs.deleteObject', { bucket, objectName });
     await client().bucket(bucket).file(objectName).delete({ ignoreNotFound: true });
 }
 

@@ -5,6 +5,7 @@ const snapshots = require('../../repositories/forest-classification.repository')
 const { periodDates } = require('./period');
 const { queueSnapshotArchive } = require('./archive');
 const { CAM_PHA_GEOMETRY } = require('../satellite/geometry');
+const debug = require('./debug.util');
 
 const activeStatuses = new Set(['pending', 'computing', 'exporting']);
 
@@ -20,33 +21,70 @@ async function executeRun(snapshot, deps = {}) {
     const repo = deps.repository || snapshots;
     const satellite = deps.satellite || require('../satellite');
     const archive = deps.queueArchive || queueSnapshotArchive;
+    debug.log('service.executeRun start', {
+        snapshotId: snapshot.id,
+        year: snapshot.year,
+        month: snapshot.month,
+        attempt: snapshot.attempt,
+        trigger: snapshot.trigger,
+    });
     await repo.updateRun(snapshot.id, { status: 'computing', errorMessage: null });
+    debug.log('service.executeRun status=computing', { snapshotId: snapshot.id });
     try {
         const { startDate, endDate } = periodDates(snapshot.year, snapshot.month);
+        debug.log('service.executeRun gee.getClassified start', {
+            snapshotId: snapshot.id,
+            startDate,
+            endDate,
+        });
+        const geeStart = Date.now();
         const result = await satellite.getClassified({
             startDate,
             endDate,
             collection: 'AUTO',
             geometry: CAM_PHA_GEOMETRY,
         });
+        debug.log('service.executeRun gee.getClassified ok', {
+            snapshotId: snapshot.id,
+            elapsed_ms: Date.now() - geeStart,
+            hasDownloadUrl: Boolean(result?.downloadUrl),
+            hasTileUrl: Boolean(result?.geeTileUrl),
+            totalHa: result?.stats?.totalHa || null,
+        });
         let archiveJob = null;
         try {
+            debug.log('service.executeRun archive.enqueue start', { snapshotId: snapshot.id });
             archiveJob = await archive(snapshot, result);
+            debug.log('service.executeRun archive.enqueue done', {
+                snapshotId: snapshot.id,
+                queued: Boolean(archiveJob),
+                jobId: archiveJob?.job?.id || null,
+                layerCode: archiveJob?.layerCode || null,
+            });
         } catch (error) {
             // Keep the interactive GEE result available; admins can retry
             // publication instead of losing a completed classification.
+            debug.logError('service.executeRun archive.enqueue failed', error, {
+                snapshotId: snapshot.id,
+            });
             console.error(
                 `[FOREST] archive enqueue failed for snapshot=${snapshot.id}: ${error.message}`,
             );
         }
+        const finalStatus = archiveJob ? 'exporting' : 'completed';
+        debug.log('service.executeRun finish', {
+            snapshotId: snapshot.id,
+            status: finalStatus,
+        });
         return repo.updateRun(snapshot.id, {
-            status: archiveJob ? 'exporting' : 'completed',
+            status: finalStatus,
             geeTileUrl: result.geeTileUrl,
             geeDownloadUrl: result.downloadUrl,
             provinceSummary: summaryFromResult(result, archiveJob),
             computedAt: new Date(),
         });
     } catch (error) {
+        debug.logError('service.executeRun failed', error, { snapshotId: snapshot.id });
         await repo.updateRun(snapshot.id, {
             status: 'failed',
             errorMessage: String(error?.message || 'Forest classification failed').slice(0, 1000),
@@ -59,16 +97,37 @@ async function executeRun(snapshot, deps = {}) {
 async function requestRun({ year, month, trigger, requestedBy }, deps = {}) {
     const repo = deps.repository || snapshots;
     const taskQueue = deps.queue || queue;
+    debug.log('service.requestRun', { year, month, trigger, requestedBy });
     const created = await repo.createRun({ year, month, trigger, requestedBy });
     const taskKey = `analysis:forest-classification:${year}-${String(month).padStart(2, '0')}`;
-    if (!created.deduplicated) {
+    if (created.deduplicated) {
+        debug.log('service.requestRun deduplicated', {
+            year,
+            month,
+            existingSnapshotId: created.snapshot?.id,
+            existingStatus: created.snapshot?.status,
+        });
+    } else {
+        debug.log('service.requestRun enqueue', {
+            year,
+            month,
+            snapshotId: created.snapshot?.id,
+            taskKey,
+        });
         taskQueue
             .enqueue({
                 key: taskKey,
                 label: `Forest classification ${year}-${String(month).padStart(2, '0')}`,
                 run: () => executeRun(created.snapshot, deps),
             })
-            .catch((error) => console.error(`[FOREST] ${year}/${month} failed: ${error.message}`));
+            .catch((error) => {
+                debug.logError('service.requestRun executeRun rejected', error, {
+                    year,
+                    month,
+                    snapshotId: created.snapshot?.id,
+                });
+                console.error(`[FOREST] ${year}/${month} failed: ${error.message}`);
+            });
     }
     return { ...created, taskKey };
 }

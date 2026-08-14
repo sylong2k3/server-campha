@@ -18,6 +18,7 @@ const fieldReportListener = require('./src/realtime/field-report-listener');
 const geeQueue = require('./src/queues/gee-task.queue');
 const rasterIngestWorker = require('./src/workers/rasterIngest.worker');
 const forestClassificationJob = require('./src/jobs/forest-classification.job');
+const floodTrendJob = require('./src/jobs/flood-trend.job');
 const { recoverInterruptedRuns } = require('./src/workers/geeInterruptedRunRecovery.worker');
 require('dotenv').config();
 
@@ -119,6 +120,7 @@ async function gracefulShutdown(signal) {
     await layerWorkerManager.stop();
     rasterIngestWorker.stopWorker();
     forestClassificationJob.stop();
+    floodTrendJob.stop();
     geeQueue.stop();
     await Promise.race([geeQueue.onIdle(), new Promise((resolve) => setTimeout(resolve, 5000))]);
 
@@ -179,6 +181,7 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
             void rasterIngestWorker.tick();
         }
         forestClassificationJob.start();
+        floodTrendJob.start();
     }
 
     process.on('unhandledRejection', (error) => {

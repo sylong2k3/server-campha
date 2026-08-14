@@ -1,6 +1,6 @@
 # Vận hành Storage, MinIO và Raster
 
-Cập nhật: **2026-08-13**.
+Cập nhật: **2026-08-14**.
 
 ## 1. Kiến trúc file
 
@@ -16,9 +16,11 @@ MinIO quarantine → kiểm tra size/magic bytes → ClamAV → SHA-256 → buck
 
 Bucket bắt buộc: `MINIO_BUCKET_LAYERS`, `MINIO_BUCKET_RASTER`, `MINIO_BUCKET_DOCUMENTS`, `MINIO_BUCKET_FIELD_PHOTOS`, `MINIO_BUCKET_QUARANTINE`.
 
-Bucket Flood tùy chọn: `MINIO_BUCKET_FLOOD_RASTERS`, `MINIO_BUCKET_FLOOD_CALIBRATION`.
+Bucket Flood tùy chọn: `MINIO_BUCKET_FLOOD_RASTERS` (sản phẩm publish), `MINIO_BUCKET_FLOOD_CALIBRATION` (archive-only, không auto-publish theo §19).
 
 Forest Classification đang là module runtime của Cẩm Phả. Module dùng route `/api/v1/forest-classification`, worker ingest raster và các bảng `forest.*`; không gỡ route, worker hoặc UI Forest khi vận hành kho raster chung.
+
+Flood/Hydrology là module runtime song song với Forest, dùng route `/api/v1/flood` + `/api/v1/admin/flood`, các bảng `gis.flood_analysis_runs`, `gis.flood_artifacts`, `gis.flood_run_stage_events`, `gis.flood_run_audit` (migration 080 + 082). Không gỡ khi vận hành kho raster chung.
 
 ## 2. Upload
 
@@ -124,6 +126,42 @@ Luồng raster:
 GeoTIFF → MinIO raster/flood bucket → validate CRS/COG/checksum
 → filesystem mirror GeoServer → coverage store → gis.layers
 ```
+
+## 6.1. Chain raster Flood (Export → GCS → MinIO → GeoServer)
+
+Flood M1..M5 dùng chain đầy đủ vì output là ee.Image có kích thước lớn, không tải trực tiếp qua `getDownloadURL` được. Chain thực thi trong [run-executor.service.js](../src/services/flood/run-executor.service.js) hàm `exportAndHarvest`:
+
+```text
+GEE compute (M1..M5 pipeline)
+  → ee.batch.Export.image.toCloudStorage (bucket FLOOD_GCS_BUCKET)
+  → gcs.waitForObject + signedDownloadUrl v4 (FLOOD_GCS_SIGNED_URL_SECONDS mặc định 3600s)
+  → rasterIngest.enqueue({ sourceKind:'gcs_export', bucketCategory })
+  → raster-ingest pipeline: download → SHA-256 → CRS check (EPSG:32648) → MinIO
+  → GeoServer coverage store + layer (workspace GEOSERVER_WORKSPACE)
+  → waitForIngestJob poll cho tới completed / dlq
+  → gcs.deleteObject cleanup file GCS tạm
+```
+
+Bucket đích chọn theo mode qua [configs/flood.js](../src/configs/flood.js) `bucketCategoryForMode`:
+
+- `mode='product'` → `flood-rasters` (publish, WMS công khai theo `is_public`).
+- `mode='calibration'` → `flood-calibration` (archive-only, không đăng ký GeoServer để phòng lộ số liệu chưa hiệu chỉnh).
+
+Env bắt buộc khi bật flood pipeline:
+
+- `FLOOD_GCS_BUCKET`: bucket GCS trung gian. Service account cần role `storage.objectAdmin`.
+- `GEE_KEY_PATH` hoặc `GOOGLE_APPLICATION_CREDENTIALS`: service key auth cho cả GEE lẫn GCS SDK.
+- `MINIO_BUCKET_FLOOD_RASTERS`, `MINIO_BUCKET_FLOOD_CALIBRATION`: bucket đích. Nếu không cấu hình mà mode yêu cầu, ingest lỗi ngay lập tức với message "Storage category not configured" (fail-fast, không silent fallback).
+
+Env tuning tùy chọn:
+
+- `FLOOD_GCS_SIGNED_URL_SECONDS` (60-86400, mặc định 3600): thời gian sống signed URL. Đủ lâu cho raster-ingest tải xong nhưng không dư để tránh URL rò rỉ nằm active lâu.
+- `FLOOD_INGEST_WAIT_TIMEOUT_MS` (mặc định 25 phút): thời gian tối đa `run-executor` chờ raster-ingest xử lý xong 1 artifact.
+- `FLOOD_INGEST_POLL_INTERVAL_MS` (mặc định 2000): nhịp poll status ingest job.
+
+M5 trend cron ([jobs/flood-trend.job.js](../src/jobs/flood-trend.job.js)) mặc định TẮT (`FLOOD_TREND_ENABLED=false`). Bật khi ops muốn tự động tạo frequency map cho năm dương lịch vừa kết thúc. Cron mặc định `0 2 1 1,4,7,10 *` chạy 02:00 mùng 1 Jan/Apr/Jul/Oct; deduplicate qua `analysisKey` (SHA-256 config) trong bảng `gis.flood_analysis_runs` nên có chạy lại cùng năm cũng không tạo run trùng.
+
+Không lưu signed URL GCS vào DB. `gcs_object` được lưu trong `gis.flood_artifacts.gcs_object` chỉ để tra vết, không dùng làm nguồn download.
 
 Web/Mobile Mapbox phải dùng GeoServer WMS (qua proxy `/api/v1/maps/layers/:id/wms`) cho GeoTIFF:
 

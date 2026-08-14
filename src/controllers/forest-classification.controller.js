@@ -4,8 +4,10 @@ const forest = require('../services/forest-classification.service');
 const snapshots = require('../repositories/forest-classification.repository');
 const gt = require('../repositories/forest-gt.repository');
 const ingest = require('../services/raster-ingest.service');
+const { buildGeeProcessingState } = require('../utils/gee-processing-state.util');
 const { OK, OK_LIST, CREATED } = require('../core/success.response');
 const { Api400Error, Api404Error } = require('../core/error.response');
+const debug = require('../services/forest-classification/debug.util');
 
 const CLASS_MIN = 0;
 const CLASS_MAX = 12;
@@ -55,11 +57,8 @@ const formatSnapshot = (snapshot) => {
     };
 };
 
-const processing = (snapshot) => ({
-    state: forest.activeStatuses.has(snapshot?.status) ? 'computing' : snapshot?.status || 'idle',
-    pipeline: 'forest-classification',
-    snapshotId: snapshot?.id || null,
-});
+const processing = (snapshot, taskKey = null) =>
+    buildGeeProcessingState({ pipeline: 'forest-classification', snapshot, taskKey });
 
 const getLatest = async (req, res) => {
     const data = await forest.getLatest();
@@ -100,11 +99,21 @@ const refresh = async (req, res) => {
     if (!validPeriod(year, month)) {
         throw new Api400Error('Kỳ phân tích không hợp lệ.', ['INVALID_ANALYSIS_PERIOD']);
     }
+    debug.log('controller.refresh received', {
+        year,
+        month,
+        requestedBy: req.user?.id || null,
+        ip: req.ip,
+    });
     const run = await forest.requestRun({
         year,
         month,
         trigger: 'manual',
         requestedBy: req.user?.id,
+    });
+    debug.log('controller.refresh response', {
+        snapshotId: run?.snapshot?.id,
+        deduplicated: run?.deduplicated,
     });
     return res.status(202).json({
         message: run.deduplicated
@@ -117,7 +126,7 @@ const refresh = async (req, res) => {
                 month,
                 status: 'queued',
                 deduplicated: run.deduplicated,
-                processing: processing(run.snapshot),
+                processing: processing(run.snapshot, run.taskKey),
             },
         },
     });
@@ -129,7 +138,13 @@ const queryPeriod = async (req, res) => {
     if (!validPeriod(year, month)) {
         throw new Api400Error('year và month không hợp lệ.', ['INVALID_ANALYSIS_PERIOD']);
     }
+    debug.log('controller.queryPeriod received', { year, month, requestedBy: req.user?.id || null });
     const data = await forest.queryPeriod(year, month, req.user?.id || null);
+    debug.log('controller.queryPeriod response', {
+        snapshotId: data?.snapshot?.id,
+        cached: data?.cached,
+        computing: data?.computing,
+    });
     OK(res, data.cached ? 'Lấy kết quả phân loại rừng thành công.' : 'Đang xử lý phân loại rừng.', {
         snapshot: formatSnapshot(data.snapshot),
         districtAreas: data.districtAreas,
@@ -233,6 +248,11 @@ const publishRaster = async (req, res) => {
     if (!Number.isInteger(id) || id <= 0) {
         throw new Api400Error('ID kết quả không hợp lệ.', ['INVALID_ID']);
     }
+    debug.log('controller.publishRaster received', {
+        snapshotId: id,
+        force: req.query?.force === '1',
+        requestedBy: req.user?.id || null,
+    });
     const snapshot = await snapshots.getById(id);
     if (!snapshot) {
         throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [

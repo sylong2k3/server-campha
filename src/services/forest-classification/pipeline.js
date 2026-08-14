@@ -132,14 +132,21 @@ const loadAuxiliaryData = (region, params) => {
         .median()
         .clip(region);
 
+    // ESA WorldCover class 95 = Mangroves. Mirrors services/flood/common/water-masks.js
+    // (WC_CLASS.MANGROVE) so both domains derive mangrove extent from the same
+    // maintained asset. The previous community GMW asset
+    // (projects/sat-io/open-datasets/GMW/v3/mangrove_gmw_v3_2020) went 404 —
+    // WorldCover is a first-party ESA release with stable IDs.
+    const worldCover = ee
+        .ImageCollection('ESA/WorldCover/v200')
+        .first()
+        .select('Map')
+        .clip(region);
     return {
         jrcWater: ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence').clip(region),
         dem: ee.Image('USGS/SRTMGL1_003').select('elevation').clip(region),
         sarVhVv: sentinel1.select('VH').subtract(sentinel1.select('VV')).rename('SAR_VH_VV'),
-        gmw: ee.ImageCollection('projects/sat-io/open-datasets/GMW/v3/mangrove_gmw_v3_2020')
-            .filterBounds(region)
-            .mosaic()
-            .clip(region),
+        gmw: worldCover.eq(95).rename('mangrove'),
         gladMining: ee.Image('projects/sat-io/open-datasets/GLAD/glad_global_mining_30m').clip(
             region,
         ),

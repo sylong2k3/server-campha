@@ -101,6 +101,20 @@ const ENV_SCHEMA_KEYS = {
     FLOOD_GCS_SIGNED_URL_SECONDS: positiveInteger.min(60).max(86400).default(3600),
     FLOOD_INGEST_WAIT_TIMEOUT_MS: positiveInteger.min(60000).default(1500000),
     FLOOD_INGEST_POLL_INTERVAL_MS: positiveInteger.min(500).default(2000),
+    // Master switch for verbose flood pipeline logging (submit → queue → child
+    // compute → export → GCS → ingest → publish). Off by default so production
+    // stays quiet; ops flips it to 'true' when diagnosing a stuck run.
+    FLOOD_DEBUG: boolean.default('false'),
+    // Optional M5 trend scheduler. Disabled by default because trend runs are
+    // heavy (multi-period, 10 m analysis scale) and should be opt-in per env.
+    // Default cadence is quarterly (Jan/Apr/Jul/Oct 1st @ 02:00 local) so a
+    // fresh run only overlaps freshly-closed wet seasons.
+    FLOOD_TREND_ENABLED: boolean.default('false'),
+    FLOOD_TREND_CRON: Joi.string().trim().min(9).default('0 2 1 1,4,7,10 *'),
+    FLOOD_TREND_CRON_TZ: Joi.string().trim().min(1).default('Asia/Ho_Chi_Minh'),
+    FLOOD_TREND_CATCHUP_ENABLED: boolean.default('false'),
+    FLOOD_TREND_CATCHUP_DELAY_MS: nonNegativeInteger.default(120000),
+    FLOOD_TREND_MODE: Joi.string().valid('product', 'calibration').default('product'),
     // Retained Forest Classification runtime. Scientific tuning variables stay
     // backward-compatible; these keys cover deployment-critical boundaries,
     // schedule, export and publication completeness.
@@ -113,6 +127,10 @@ const ENV_SCHEMA_KEYS = {
     FC_AOI_TOTAL_HA: Joi.number().positive(),
     FC_CATCHUP_ENABLED: boolean.default('true'),
     FC_CATCHUP_DELAY_MS: nonNegativeInteger.default(60000),
+    // Master switch for verbose forest classification pipeline logging
+    // (request → cron → executeRun → GEE compute → archive → raster-ingest).
+    // Mirrors FLOOD_DEBUG. Off by default; flip on when diagnosing a stuck run.
+    FOREST_DEBUG: boolean.default('false'),
     GEE_GCS_BUCKET: Joi.string().trim().allow(''),
     // GEE child-process worker (see workers/geeAnalysisProcess.worker.js).
     // Per-kind RSS limits: EVENT=2GB, HAND=1GB, RAIN=1GB, IMPACT=0.75GB,

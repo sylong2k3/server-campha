@@ -16,6 +16,7 @@ const defaults = require('./config/defaults');
 const versions = require('./config/versions');
 const { buildAllLegends } = require('./visualization/legends');
 const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
+const debug = require('./debug.util');
 
 function canonical(value) {
     if (Array.isArray(value)) {
@@ -70,7 +71,17 @@ async function createRun(payload) {
 }
 
 async function submit({ module, config = {}, mode = 'product' }, actor) {
+    debug.log('analysis.submit received', {
+        module,
+        mode,
+        actorId: actor?.id || actor?.userId || null,
+        configKeys: Object.keys(config || {}),
+    });
     if (mode === 'calibration' && actor?.permissions?.flood?.calibrate !== true) {
+        debug.log('analysis.submit rejected: calibration forbidden', {
+            module,
+            actorId: actor?.id,
+        });
         throw new Api403Error('Flood calibration permission is required', [
             'FLOOD_CALIBRATION_FORBIDDEN',
         ]);
@@ -79,9 +90,11 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
     try {
         normalized = validateRunConfig(module, { ...config, mode });
     } catch (error) {
+        debug.logError('analysis.submit validation failed', error, { module });
         throw new Api400Error(error.message, ['INVALID_FLOOD_CONFIG']);
     }
     const key = analysisKey(module, normalized);
+    debug.log('analysis.submit config validated', { module, analysisKey: key });
     await ensureRunAdmissible(key);
     const run = await createRun({
         analysisKey: key,
@@ -94,6 +107,13 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
         aoiSource: 'REFERENCE_GAUL',
         startedBy: actor?.id || actor?.userId || null,
     });
+    debug.log('analysis.submit run row created', {
+        runId: run.id,
+        module: run.module,
+        mode: run.mode,
+        attemptNo: run.attempt_no,
+        pipelineVersion: run.pipeline_version,
+    });
     await runRepo.insertAudit({
         analysisRunId: run.id,
         action: 'submit',
@@ -101,6 +121,7 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
         ...actorFields(actor),
     });
     orchestrator.enqueueRun(run);
+    debug.log('analysis.submit enqueued', { runId: run.id });
     return run;
 }
 
