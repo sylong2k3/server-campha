@@ -352,6 +352,18 @@ const countActiveUsersByRole = async (roleCode) => {
     return rows[0]?.total || 0;
 };
 
+const activeIdsByRoles = async (roleCodes) => {
+    const { rows } = await db.query(
+        `SELECT u.id
+           FROM auth.users u
+           INNER JOIN auth.roles r ON u.role_id = r.id
+          WHERE r.code = ANY($1::varchar[]) AND r.is_active = true
+            AND u.is_active = true AND u.deleted_at IS NULL`,
+        [roleCodes],
+    );
+    return rows.map((row) => row.id);
+};
+
 const findRoleByCode = async (code) => {
     const { rows } = await db.query(
         `SELECT id, code, name_vi, name_en, description_vi, description_en, permissions, sort_order, is_active
@@ -400,6 +412,7 @@ module.exports = {
     updateProfile,
     softDelete,
     countActiveUsersByRole,
+    activeIdsByRoles,
     findRoleByCode,
     incrementTokenVersion,
     findAllRoles,

@@ -16,6 +16,7 @@ const sharedLayerRoutes = require('./shared-layer.routes');
 const floodRoutes = require('./flood.routes');
 const satelliteRoutes = require('./satellite.routes');
 const forestClassificationRoutes = require('./forest-classification.routes');
+const notificationRoutes = require('./notification.routes');
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -43,5 +44,6 @@ router.use('/admin/flood', floodRoutes.adminRouter);
 // the uploaded raster catalogue API.
 router.use('/satellite', satelliteRoutes);
 router.use('/forest-classification', forestClassificationRoutes);
+router.use('/notifications', notificationRoutes);
 
 module.exports = router;
