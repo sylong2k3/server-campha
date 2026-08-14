@@ -132,24 +132,32 @@ const loadAuxiliaryData = (region, params) => {
         .median()
         .clip(region);
 
-    // ESA WorldCover class 95 = Mangroves. Mirrors services/flood/common/water-masks.js
-    // (WC_CLASS.MANGROVE) so both domains derive mangrove extent from the same
-    // maintained asset. The previous community GMW asset
-    // (projects/sat-io/open-datasets/GMW/v3/mangrove_gmw_v3_2020) went 404 —
-    // WorldCover is a first-party ESA release with stable IDs.
+    // ESA WorldCover v200 provides both mangrove (class 95) and bare-ground
+    // (class 60). Mirrors services/flood/common/water-masks.js and
+    // services/flood/common/mining-mask.js so both domains derive these masks
+    // from the same first-party ESA asset. The previous community GMW and
+    // GLAD mining assets (projects/sat-io/open-datasets/{GMW/v3,GLAD/glad_global_mining_30m})
+    // both went 404 within the community catalog.
     const worldCover = ee
         .ImageCollection('ESA/WorldCover/v200')
         .first()
         .select('Map')
         .clip(region);
+    const dem = ee.Image('USGS/SRTMGL1_003').select('elevation').clip(region);
+    // Mining proxy: WorldCover bare (60) intersected with terrain indicators
+    // (steep slope OR elevated pits). Downstream `coalMine` clause already
+    // filters by low NDVI/NIR so extra spectral gates are redundant.
+    const slopeDeg = ee.Terrain.slope(dem);
+    const miningProxy = worldCover
+        .eq(60)
+        .and(slopeDeg.gt(3).or(dem.gt(80)))
+        .rename('mining_proxy');
     return {
         jrcWater: ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence').clip(region),
-        dem: ee.Image('USGS/SRTMGL1_003').select('elevation').clip(region),
+        dem,
         sarVhVv: sentinel1.select('VH').subtract(sentinel1.select('VV')).rename('SAR_VH_VV'),
         gmw: worldCover.eq(95).rename('mangrove'),
-        gladMining: ee.Image('projects/sat-io/open-datasets/GLAD/glad_global_mining_30m').clip(
-            region,
-        ),
+        gladMining: miningProxy,
         hansen: ee.Image('UMD/hansen/global_forest_change_2023_v1_11')
             .select('treecover2000')
             .clip(region),

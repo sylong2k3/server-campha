@@ -15,6 +15,16 @@ const timezone = () => process.env.FC_CRON_TZ || 'Asia/Ho_Chi_Minh';
 const catchupEnabled = () =>
     String(process.env.FC_CATCHUP_ENABLED || 'true').toLowerCase() === 'true';
 const catchupDelayMs = () => Math.max(0, Number(process.env.FC_CATCHUP_DELAY_MS) || 60_000);
+// After this many consecutive failed attempts on the same period, cron stops
+// auto-retrying — the failure is likely a code/asset issue admins must fix
+// (e.g. GEE asset went 404). Manual refresh still works.
+const maxFailedAttempts = () => Math.max(1, Number(process.env.FC_MAX_FAILED_ATTEMPTS) || 3);
+
+// Statuses that count as "period already handled" — cron leaves them alone.
+// `failed` is intentionally excluded so a broken asset fix takes effect on
+// the next tick without an operator having to click refresh manually.
+const SETTLED_STATUSES = new Set(['completed', 'published']);
+const LIVE_STATUSES = new Set(['pending', 'computing', 'exporting']);
 
 async function queueMissingPeriod({ now = new Date(), deps = {} } = {}) {
     const repo = deps.repository || snapshots;
@@ -23,12 +33,48 @@ async function queueMissingPeriod({ now = new Date(), deps = {} } = {}) {
     debug.log('job.queueMissingPeriod', { period });
     const existing = await repo.getByPeriod(period.year, period.month);
     if (existing) {
-        debug.log('job.queueMissingPeriod skipped: exists', {
+        // Settled (completed/published) → nothing to do.
+        if (SETTLED_STATUSES.has(existing.status)) {
+            debug.log('job.queueMissingPeriod skipped: settled', {
+                period,
+                snapshotId: existing.id,
+                status: existing.status,
+            });
+            return { queued: false, reason: 'PERIOD_SETTLED', period, snapshot: existing };
+        }
+        // Live (pending/computing/exporting) → let it finish; requestRun would
+        // dedupe anyway, but skipping here avoids the extra DB round-trip.
+        if (LIVE_STATUSES.has(existing.status)) {
+            debug.log('job.queueMissingPeriod skipped: in-flight', {
+                period,
+                snapshotId: existing.id,
+                status: existing.status,
+            });
+            return { queued: false, reason: 'PERIOD_IN_FLIGHT', period, snapshot: existing };
+        }
+        // Failed — retry up to the configured cap. `attempt` is the retry counter
+        // maintained by repo.createRun; when it exceeds the cap, cron stops
+        // burning quota on a broken pipeline and waits for a manual refresh.
+        const attemptCount = Number(existing.attempt) || 0;
+        if (attemptCount >= maxFailedAttempts()) {
+            debug.log('job.queueMissingPeriod skipped: max-failures', {
+                period,
+                snapshotId: existing.id,
+                attempt: attemptCount,
+                cap: maxFailedAttempts(),
+            });
+            return {
+                queued: false,
+                reason: 'PERIOD_MAX_FAILED_ATTEMPTS',
+                period,
+                snapshot: existing,
+            };
+        }
+        debug.log('job.queueMissingPeriod retrying failed', {
             period,
-            snapshotId: existing.id,
-            status: existing.status,
+            previousSnapshotId: existing.id,
+            previousAttempt: attemptCount,
         });
-        return { queued: false, reason: 'PERIOD_ALREADY_EXISTS', period, snapshot: existing };
     }
     const run = await service.requestRun({ ...period, trigger: 'cron', requestedBy: null });
     debug.log('job.queueMissingPeriod queued', {
