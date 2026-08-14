@@ -330,7 +330,7 @@ describe('backLinkResource', () => {
     test('warns and skips unsupported legacy backlink types', async () => {
         const db = makeDbForBacklink();
         const result = await backLinkResource(
-            { type: 'fire_risk', id: 1 },
+            { type: 'unsupported_type', id: 1 },
             { geoserverLayer: 'x:y' },
             { db },
         );

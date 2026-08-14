@@ -1,18 +1,11 @@
 'use strict';
 
 const { ee } = require('../../configs/gge');
-const { buildNdvi, buildOpticalComposite, buildRgb, resolveCollectionSources } = require('./builders/optical');
+const { buildNdvi, buildRgb, resolveCollectionSources } = require('./builders/optical');
 const { buildHeatmap } = require('./builders/temperature');
 const { CLASS_DEFINITIONS, CLASSIFIED_VIZ, buildForestClassification } = require('../forest-classification/pipeline');
 
 const CLASSIFIED_LEGEND = CLASS_DEFINITIONS;
-
-const FIRE_RISK_LEGEND = Object.freeze([
-    { value: 0, label: 'Low', color: '#2c7bb6' },
-    { value: 1, label: 'Medium', color: '#fee08b' },
-    { value: 2, label: 'High', color: '#f46d43' },
-    { value: 3, label: 'Very high', color: '#a50026' },
-]);
 
 const landsatThermalComposite = (params, region) => {
     const maskAndSelect = (image) => {
@@ -71,28 +64,6 @@ const buildClassified = async (params, region, dependencies) => {
     };
 };
 
-const buildFireRisk = (params, region) => {
-    const optical = buildOpticalComposite(params, region);
-    const ndvi = optical.normalizedDifference(['nir', 'red']).rename('ndvi');
-    const temperature = landsatThermalComposite(params, region).select('lst').unitScale(20, 42);
-    const dryness = ee.Image(1).subtract(ndvi.unitScale(-0.2, 0.8));
-    const risk = dryness.multiply(0.65).add(temperature.multiply(0.35));
-    return {
-        image: ee
-            .Image(0)
-            .where(risk.gte(0.35), 1)
-            .where(risk.gte(0.6), 2)
-            .where(risk.gte(0.8), 3)
-            .rename('fire_risk')
-            .clip(region),
-        viz: { min: 0, max: 3, palette: ['#2c7bb6', '#fee08b', '#f46d43', '#a50026'] },
-        region,
-        stats: {},
-        legend: FIRE_RISK_LEGEND,
-        metadata: { source: 'LANDSAT_C2_L2', geometrySource: params.geometrySource },
-    };
-};
-
 const buildImage = async (params, dependencies = {}) => {
     const region = ee.Geometry(params.geometry);
     switch (params.type) {
@@ -104,8 +75,6 @@ const buildImage = async (params, dependencies = {}) => {
             return buildHeatmap(params, region, dependencies);
         case 'classified':
             return buildClassified(params, region, dependencies);
-        case 'fire-risk':
-            return buildFireRisk(params, region);
         default:
             throw new Error(`Unsupported satellite image type: ${params.type}`);
     }
@@ -113,7 +82,6 @@ const buildImage = async (params, dependencies = {}) => {
 
 module.exports = {
     CLASSIFIED_LEGEND,
-    FIRE_RISK_LEGEND,
     buildImage,
     landsatThermalComposite,
 };

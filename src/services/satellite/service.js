@@ -36,9 +36,22 @@ const cachedUrlIsFresh = (row) => {
  */
 const clipForPolygonDownload = (image, region) => image.clip(region);
 
-const exportDownload = async (adapter, image, params, region, scale = 30) =>
-    adapter
-        .getDownloadUrl(image, {
+/**
+ * Bake the visualization palette into the downloaded GeoTIFF for image types
+ * whose values are just class ids (classified) or diagnostic bands nobody can
+ * open in QGIS without a style sheet. Without `.visualize(viz)` the file is
+ * single-band byte/float and shows up black in every GIS client. Called for
+ * classified/heatmap; RGB/NDVI already carry meaningful values so they keep
+ * raw bands for downstream numeric analysis.
+ */
+const shouldBakeVisualization = (imageType) =>
+    imageType === 'classified' || imageType === 'heatmap';
+
+const exportDownload = async (adapter, image, params, region, scale = 30, viz = null) => {
+    const bake = viz && Array.isArray(viz.palette) && shouldBakeVisualization(params.type);
+    const imageForDownload = bake ? image.visualize(viz) : image;
+    return adapter
+        .getDownloadUrl(imageForDownload, {
             name: `satellite_${params.type}_${params.startDate}`,
             region,
             scale,
@@ -48,6 +61,7 @@ const exportDownload = async (adapter, image, params, region, scale = 30) =>
             filePerBand: false,
         })
         .catch(() => null);
+};
 
 async function processRequest(imageType, rawParams, deps = {}) {
     const repo = deps.repository || repository;
@@ -80,8 +94,8 @@ async function processRequest(imageType, rawParams, deps = {}) {
         { evaluate: (value) => adapter.evaluate(value) },
     );
     // Enforce clipping at the delivery boundary for every image type. Individual
-    // builders may already clip their composites, but this also protects future
-    // builders and prevents the fire-risk base image from filling outside RG.
+    // builders may already clip their composites; this second clip protects
+    // future builders from accidentally emitting pixels outside the AOI.
     const clippedImage = clipForPolygonDownload(image, region);
     const map = await adapter.getMapId(clippedImage, viz);
     const downloadScale = Number(buildMetadata.downloadScaleMeters);
@@ -91,6 +105,7 @@ async function processRequest(imageType, rawParams, deps = {}) {
         params,
         region,
         Number.isFinite(downloadScale) && downloadScale > 0 ? downloadScale : 30,
+        viz,
     );
     console.info(
         `[SATELLITE-CACHE] GENERATED type=${params.type} start=${params.startDate} downloadUrl=${downloadUrl ? 'ok' : 'null'} tileUrl=${map?.tileUrl ? 'ok' : 'null'}`,

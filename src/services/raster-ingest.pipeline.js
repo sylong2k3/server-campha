@@ -331,33 +331,69 @@ async function runJob(job, deps = {}) {
         let cog = { size: dl.bytes, sha256FromDownload: dl.sha256, mode: 'passthrough' };
 
         // ── Stage 3: CRS validate (§22-F) ────────────────────────────
-        // CRS/COG validation is a publication safety gate. A host without
-        // GDAL must fail closed instead of publishing a spatially unknown raster.
-        let crsInfo = await validateCrs(cogPath);
-        if (!crsInfo?.crs || !ALLOWED_CRS.has(crsInfo.crs)) {
-            const err = new Error(
-                `Unexpected CRS ${crsInfo?.crs || 'unknown'} for raster; expected one of ${[...ALLOWED_CRS].join(', ')}`,
-            );
-            err.code = PIPELINE_ERROR_CODES.UNSUPPORTED_CRS;
-            throw err;
-        }
-        if (crsInfo.isCog === false) {
-            // Direct getDownloadURL results are regular GeoTIFFs. Convert the
-            // temporary file before archiving so MinIO and GeoServer receive a COG.
-            convertedPath = `${cogPath}.converted`;
-            await convertToCog(cogPath, convertedPath);
-            await fs.promises.unlink(cogPath);
-            await fs.promises.rename(convertedPath, cogPath);
+        // CRS/COG validation is a publication safety gate. On hosts without
+        // GDAL (bare Windows VPS), ops can set RASTER_INGEST_REQUIRE_GDAL=false
+        // to skip both CRS whitelist + COG conversion — the raw TIFF from GEE
+        // gets uploaded as-is. Trade-off: no CRS safety net.
+        let crsInfo = null;
+        try {
             crsInfo = await validateCrs(cogPath);
-            if (crsInfo.isCog === false) {
-                const err = new Error('GDAL conversion did not produce a Cloud Optimized GeoTIFF');
-                err.code = PIPELINE_ERROR_CODES.NOT_A_COG;
+        } catch (error) {
+            if (
+                error?.code === PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE &&
+                !cfg.REQUIRE_GDAL
+            ) {
+                console.warn(
+                    `[RASTER-INGEST] job=${job.id} SKIP CRS check — gdalinfo not installed (RASTER_INGEST_REQUIRE_GDAL=false)`,
+                );
+            } else {
+                throw error;
+            }
+        }
+        if (crsInfo) {
+            if (!crsInfo.crs || !ALLOWED_CRS.has(crsInfo.crs)) {
+                const err = new Error(
+                    `Unexpected CRS ${crsInfo.crs || 'unknown'} for raster; expected one of ${[...ALLOWED_CRS].join(', ')}`,
+                );
+                err.code = PIPELINE_ERROR_CODES.UNSUPPORTED_CRS;
                 throw err;
             }
-            const { size } = await fs.promises.stat(cogPath);
-            cog = { size, mode: 'cog-converted' };
+            if (crsInfo.isCog === false) {
+                // Direct getDownloadURL results are regular GeoTIFFs. Convert
+                // the temporary file before archiving so MinIO/GeoServer
+                // receive a COG.
+                convertedPath = `${cogPath}.converted`;
+                try {
+                    await convertToCog(cogPath, convertedPath);
+                    await fs.promises.unlink(cogPath);
+                    await fs.promises.rename(convertedPath, cogPath);
+                    crsInfo = await validateCrs(cogPath);
+                    if (crsInfo.isCog === false) {
+                        const err = new Error(
+                            'GDAL conversion did not produce a Cloud Optimized GeoTIFF',
+                        );
+                        err.code = PIPELINE_ERROR_CODES.NOT_A_COG;
+                        throw err;
+                    }
+                    const { size } = await fs.promises.stat(cogPath);
+                    cog = { size, mode: 'cog-converted' };
+                } catch (error) {
+                    if (
+                        error?.code === PIPELINE_ERROR_CODES.GDAL_TRANSLATE_UNAVAILABLE &&
+                        !cfg.REQUIRE_GDAL
+                    ) {
+                        console.warn(
+                            `[RASTER-INGEST] job=${job.id} SKIP COG conversion — gdal_translate not installed`,
+                        );
+                    } else {
+                        throw error;
+                    }
+                }
+            }
+            dbg('CRS', `ok crs=${crsInfo.crs}`);
+        } else {
+            dbg('CRS', 'skipped (GDAL not installed)');
         }
-        dbg('CRS', `ok crs=${crsInfo.crs}`);
 
         await repo.updateStatus(job.id, { status: 'uploading', progress: 55 });
 

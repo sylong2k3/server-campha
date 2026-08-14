@@ -23,21 +23,12 @@ const LEGENDS = Object.freeze({
         { value: 2, label: 'Thảm thực vật', color: '#abdda4' },
         { value: 3, label: 'Rừng / thực vật dày', color: '#1a9850' },
     ],
-    'fire-risk': [
-        { value: 0, label: 'Thấp', color: '#2c7bb6' },
-        { value: 1, label: 'Trung bình', color: '#fee08b' },
-        { value: 2, label: 'Cao', color: '#f46d43' },
-        { value: 3, label: 'Rất cao', color: '#a50026' },
-    ],
 });
 
 const normalType = (value) => {
     const key = String(value || '').toLowerCase();
     if (key === 'heat-map' || key === 'heat_map') {
         return 'heatmap';
-    }
-    if (key === 'fire_risk' || key === 'firerisk') {
-        return 'fire-risk';
     }
     return key;
 };

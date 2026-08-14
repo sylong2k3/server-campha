@@ -25,7 +25,6 @@ const PRODUCT_VERSIONS = Object.freeze({
     ndvi: 'optical-rg-clip-v3',
     heatmap: 'modis-lst-rg-clip-v4',
     classified: 'campha-landcover-12-rg-clip-v2',
-    'fire-risk': 'fire-risk-rg-clip-v2',
 });
 
 const toDate = (value, field) => {

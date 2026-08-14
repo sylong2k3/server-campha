@@ -58,6 +58,14 @@ const CONCURRENCY = 1;
 // gdal_translate / gdalwarp for COG conversion or CRS validation.
 const GDAL_CACHEMAX_MB = Number(process.env.GDAL_CACHEMAX_MB || 512);
 
+// When true (default), the pipeline REQUIRES gdalinfo + gdal_translate on
+// PATH. Set to 'false' on hosts without GDAL (e.g. bare Windows VPS) to make
+// the pipeline skip CRS validation + COG conversion; the raw TIFF from GEE
+// gets uploaded as-is. Trade-off: we lose the §22-F CRS safety gate — trust
+// GEE's output CRS blindly.
+const REQUIRE_GDAL =
+    String(process.env.RASTER_INGEST_REQUIRE_GDAL || 'true').toLowerCase() === 'true';
+
 // Worker poll cadence.
 const WORKER_POLL_CRON = process.env.RASTER_INGEST_WORKER_POLL_CRON || '*/15 * * * * *';
 
@@ -77,6 +85,7 @@ const summariseConfig = () => ({
     concurrency: CONCURRENCY,
     requestedConcurrency: REQUESTED_CONCURRENCY,
     gdalCacheMaxMb: GDAL_CACHEMAX_MB,
+    requireGdal: REQUIRE_GDAL,
     workerPollCron: WORKER_POLL_CRON,
 });
 
@@ -91,6 +100,7 @@ module.exports = {
     CONCURRENCY,
     REQUESTED_CONCURRENCY,
     GDAL_CACHEMAX_MB,
+    REQUIRE_GDAL,
     WORKER_POLL_CRON,
     isEnabled,
     summariseConfig,

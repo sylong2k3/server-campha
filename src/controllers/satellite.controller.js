@@ -36,7 +36,6 @@ module.exports = {
     getNdvi: respond('getNdvi'),
     getHeatmap: respond('getHeatmap'),
     getClassified: respond('getClassified'),
-    getFireRisk: respond('getFireRisk'),
     publishToGeoServer: publish,
     publishToRaster: publish,
 };

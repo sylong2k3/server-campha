@@ -151,7 +151,7 @@ const initMinio = async () => {
             .map(([category, name]) => `${category}=${name}`)
             .join(', ');
         console.info(
-            `[MinIO] endpoint=${config.endpoint}:${config.port} ssl=${config.useSSL} region=${config.region} buckets=[${bucketSummary}] quarantine=${config.quarantineBucket}`,
+            `[MinIO] endpoint=${config.endPoint}:${config.port} ssl=${config.useSSL} region=${config.region} buckets=[${bucketSummary}] quarantine=${config.quarantineBucket}`,
         );
         return true;
     } catch (error) {
