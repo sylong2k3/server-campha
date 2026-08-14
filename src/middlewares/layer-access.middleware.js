@@ -46,7 +46,7 @@ const requireLayerAccess = (access) => {
                 req.layerAcl = layer;
                 return next();
             }
-            if (access === 'view' && layer.is_public) {
+            if ((access === 'view' || access === 'export') && layer.is_public) {
                 req.layerAcl = layer;
                 return next();
             }

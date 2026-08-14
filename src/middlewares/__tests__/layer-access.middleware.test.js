@@ -23,6 +23,14 @@ describe('requireLayerAccess', () => {
         expect(req.layerAcl.id).toBe(1);
     });
 
+    test('cho khách xuất lớp public qua WFS', async () => {
+        db.query.mockResolvedValue({ rows: [{ id: 8, is_public: true, allowed: false }] });
+        const req = { params: { layerId: '8' }, lang: 'vi' };
+
+        expect(await invoke('export', req)).toBeUndefined();
+        expect(req.layerAcl.id).toBe(8);
+    });
+
     test('yêu cầu đăng nhập cho lớp private', async () => {
         db.query.mockResolvedValue({ rows: [{ id: 2, is_public: false, allowed: false }] });
         const error = await invoke('view', { params: { layerId: '2' }, lang: 'vi' });
