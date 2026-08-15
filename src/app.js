@@ -48,6 +48,9 @@ if (trustProxy === 'true') {
             .map((value) => value.trim())
             .filter(Boolean),
     );
+} else if (trustProxy !== 'false') {
+    // Mặc định trust 1 hop proxy (NGINX / reverse proxy) khi chạy sau proxy
+    app.set('trust proxy', 1);
 }
 
 const corsOrigins = process.env.CORS_ORIGINS || '*';
