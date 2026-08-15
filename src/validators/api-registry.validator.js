@@ -29,6 +29,12 @@ const registryParams = Joi.object({ registryId: id }),
         q: Joi.string().trim().max(200).allow('').optional(),
         page: Joi.number().integer().min(1).default(1),
         limit: Joi.number().integer().valid(10, 20, 50, 100).default(20),
+        // Accept both camelCase and snake_case for isActive/layerId so callers
+        // wired to the legacy DB column names keep working.
+        isActive: Joi.boolean().optional(),
+        is_active: Joi.boolean().optional(),
+        layerId: Joi.number().integer().positive().optional(),
+        layer_id: Joi.number().integer().positive().optional(),
         sortBy: Joi.string()
             .valid('created_at', 'updated_at', 'name', 'slug')
             .default('created_at'),

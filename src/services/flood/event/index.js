@@ -202,6 +202,10 @@ async function runSentinel1Flood({
             artifacts: {},
             catalog: [],
             metadata: deps.result.buildM1ResultMetadata({
+                preStart: config.preStart,
+                preEnd: config.preEnd,
+                postStart: config.postStart,
+                postEnd: config.postEnd,
                 warnings: ['NO_SAR_ORBIT_MATCH'],
             }),
             diagnostics: null,
@@ -411,6 +415,10 @@ async function runSentinel1Flood({
         lastM1Threshold: decisionThreshold,
         preSceneCount: orbit.preCount,
         postSceneCount: orbit.postCount,
+        preStart: config.preStart,
+        preEnd: config.preEnd,
+        postStart: config.postStart,
+        postEnd: config.postEnd,
         warnings: [
             ...(usedFallback ? ['THRESHOLD_FALLBACK_USED'] : []),
             ...(terrainStack.isFallback ? ['TERRAIN_FELL_BACK_TO_DSM'] : []),

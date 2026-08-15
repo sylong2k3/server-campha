@@ -20,6 +20,18 @@ const list = async (filter) => {
         p.push(`%${filter.q}%`);
         where.push(`(r.name ILIKE $${p.length} OR r.slug ILIKE $${p.length})`);
     }
+    // Accept isActive (camelCase) OR is_active (snake) so admin callers wired
+    // to the DB column name still work.
+    const isActiveFilter = filter.isActive ?? filter.is_active;
+    if (typeof isActiveFilter === 'boolean') {
+        p.push(isActiveFilter);
+        where.push(`r.is_active = $${p.length}`);
+    }
+    const layerIdFilter = filter.layerId ?? filter.layer_id;
+    if (Number.isFinite(Number(layerIdFilter))) {
+        p.push(Number(layerIdFilter));
+        where.push(`r.layer_id = $${p.length}`);
+    }
     p.push(filter.limit, (filter.page - 1) * filter.limit);
     const sort = SORT[filter.sortBy] || SORT.created_at,
         order = filter.sortOrder === 'ASC' ? 'ASC' : 'DESC';

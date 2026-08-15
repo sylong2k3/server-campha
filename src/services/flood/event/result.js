@@ -25,8 +25,8 @@ const M1_ARTIFACTS = Object.freeze([
         code: 'main_flood_non_tidal',
         role: 'PRODUCT',
         label: {
-            vi: 'Ngập lụt (không tính vùng triều)',
-            en: 'Confirmed flood (excluding tidal zones)',
+            vi: 'Ngập lụt',
+            en: 'Confirmed flood',
         },
         description:
             'Main reportable flood mask from Sentinel-1. Tidal-uncertainty pixels are excluded here per §80 — those live in tidal_candidate.',
@@ -117,6 +117,10 @@ function buildM1ResultMetadata({
     lastM1Threshold,
     preSceneCount,
     postSceneCount,
+    preStart,
+    preEnd,
+    postStart,
+    postEnd,
     warnings = [],
 } = {}) {
     return {
@@ -126,6 +130,10 @@ function buildM1ResultMetadata({
         lastM1Threshold: Number.isFinite(lastM1Threshold) ? lastM1Threshold : null,
         preSceneCount: Number.isFinite(preSceneCount) ? preSceneCount : null,
         postSceneCount: Number.isFinite(postSceneCount) ? postSceneCount : null,
+        preStart: preStart || null,
+        preEnd: preEnd || null,
+        postStart: postStart || null,
+        postEnd: postEnd || null,
         warnings,
     };
 }

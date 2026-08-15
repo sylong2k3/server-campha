@@ -197,6 +197,10 @@ describe('event/result.js', () => {
             lastM1Threshold: null,
             preSceneCount: null,
             postSceneCount: null,
+            preStart: null,
+            preEnd: null,
+            postStart: null,
+            postEnd: null,
             warnings: [],
         });
     });

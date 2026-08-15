@@ -4,6 +4,8 @@ const { OK, OK_LIST } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
 const { t } = require('../utils/i18n.util');
 const actor = (req) => buildActor(req);
+const send = async (req, res) =>
+    OK(res, t('notification_sent', req.lang), await service.sendNotification(req.body, actor(req)));
 const listMine = async (req, res) => {
     const result = await service.listMine(actor(req).id, req.query);
     return OK_LIST(res, t('get_list_success', req.lang), result.items, {
@@ -31,4 +33,4 @@ const remove = async (req, res) =>
         t('notification_deleted', req.lang),
         await service.remove(Number(req.params.id), actor(req).id),
     );
-module.exports = { listMine, unreadCount, markRead, markAllRead, remove };
+module.exports = { send, listMine, unreadCount, markRead, markAllRead, remove };
