@@ -16,31 +16,31 @@ const listResponse = (res, result, query, message) =>
         total: result.total,
     });
 
-const overview = async (_req, res) => OK(res, 'Flood overview loaded', await service.overview());
-const legends = async (_req, res) => OK(res, 'Flood legends loaded', service.getLegends());
+const overview = async (_req, res) => OK(res, 'Đã tải tổng quan ngập lụt', await service.overview());
+const legends = async (_req, res) => OK(res, 'Đã tải chú giải ngập lụt', service.getLegends());
 const layers = async (req, res) =>
     listResponse(
         res,
         await service.listPublished(req.query),
         req.query,
-        'Published flood layers loaded',
+        'Đã tải danh sách lớp ngập đã công bố',
     );
 const publicRuns = async (req, res) =>
     listResponse(
         res,
         await service.listPublicRuns(req.query),
         req.query,
-        'Flood run history loaded',
+        'Đã tải lịch sử phân tích ngập',
     );
 
 const dashboard = async (_req, res) =>
-    OK(res, 'Flood dashboard loaded', await service.overview({ mode: null, onlySucceeded: false }));
-const config = async (_req, res) => OK(res, 'Flood configuration loaded', service.getConfig());
-const queue = async (_req, res) => OK(res, 'Flood queue state loaded', service.getQueueState());
+    OK(res, 'Đã tải bảng điều khiển ngập lụt', await service.overview({ mode: null, onlySucceeded: false }));
+const config = async (_req, res) => OK(res, 'Đã tải cấu hình ngập lụt', service.getConfig());
+const queue = async (_req, res) => OK(res, 'Đã tải trạng thái hàng đợi', service.getQueueState());
 const listRuns = async (req, res) =>
-    listResponse(res, await service.listRuns(req.query), req.query, 'Flood runs loaded');
+    listResponse(res, await service.listRuns(req.query), req.query, 'Đã tải danh sách lượt phân tích');
 const getRun = async (req, res) =>
-    OK(res, 'Flood run loaded', await service.getRunDetail(Number(req.params.id)));
+    OK(res, 'Đã tải chi tiết lượt phân tích', await service.getRunDetail(Number(req.params.id)));
 const submit = async (req, res) => {
     debug.log('controller.submit received', {
         module: req.body?.module,
@@ -49,31 +49,31 @@ const submit = async (req, res) => {
     });
     const run = await service.submit(req.body, buildActor(req));
     debug.log('controller.submit response', { runId: run.id, status: run.status });
-    return CREATED(res, 'Flood run queued', run);
+    return CREATED(res, 'Đã đưa lượt phân tích vào hàng đợi', run);
 };
 const rerun = async (req, res) => {
     debug.log('controller.rerun received', { runId: req.params.id });
     const run = await service.rerun(Number(req.params.id), buildActor(req));
     debug.log('controller.rerun response', { newRunId: run.id });
-    return CREATED(res, 'Flood rerun queued', run);
+    return CREATED(res, 'Đã đưa lượt chạy lại vào hàng đợi', run);
 };
 const cancel = async (req, res) => {
     debug.log('controller.cancel received', { runId: req.params.id });
     const cancelled = await service.cancel(Number(req.params.id), buildActor(req));
     debug.log('controller.cancel response', { runId: cancelled?.id, status: cancelled?.status });
-    return OK(res, 'Flood run cancelled', cancelled);
+    return OK(res, 'Đã hủy lượt phân tích', cancelled);
 };
 const publishArtifact = async (req, res) => {
     debug.log('controller.publishArtifact received', { artifactId: req.params.id });
     const published = await service.publishArtifact(Number(req.params.id), buildActor(req));
     debug.log('controller.publishArtifact response', { artifactId: published?.id });
-    return OK(res, 'Flood artifact publication queued', published);
+    return OK(res, 'Đã đưa yêu cầu công bố vào hàng đợi', published);
 };
 const unpublishArtifact = async (req, res) => {
     debug.log('controller.unpublishArtifact received', { artifactId: req.params.id });
     const unpublished = await service.unpublishArtifact(Number(req.params.id), buildActor(req));
     debug.log('controller.unpublishArtifact response', { artifactId: unpublished?.id });
-    return OK(res, 'Flood artifact unpublished', unpublished);
+    return OK(res, 'Đã thu hồi công bố artifact', unpublished);
 };
 
 // Auto-fill button for the M3 rainfall form. Returns the OpenWeather nowcast

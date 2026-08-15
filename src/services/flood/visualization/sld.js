@@ -3,14 +3,25 @@
 const { ARTIFACT_LAYER_DEFINITIONS } = require('./layer-definitions');
 
 /**
+ * Legacy layer-code aliases — maps old artifact codes (written to the DB
+ * before a rename) to their current ARTIFACT_LAYER_DEFINITIONS key.
+ */
+const ARTIFACT_CODE_ALIASES = Object.freeze({
+    flood_main: 'main_flood_non_tidal',
+});
+
+/**
  * Extract artifact_code from a flood layer registry code.
  * Layer codes follow the pattern: fl_{module}_{artifact_code}_{artifact_id}
+ * Resolves any known aliases before returning.
  */
 function artifactCodeFromLayerCode(layerCode) {
     const m = String(layerCode || '').match(
         /^fl_(?:event|hand|rain|impact|trend)_(.+)_\d+$/,
     );
-    return m ? m[1] : null;
+    if (!m) return null;
+    const raw = m[1];
+    return ARTIFACT_CODE_ALIASES[raw] || raw;
 }
 
 function buildColorMap(def) {
