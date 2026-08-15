@@ -114,20 +114,6 @@ const RAIN_RISK_DEFAULTS = Object.freeze({
     PROBABILITY_CALIBRATED: false,
 });
 
-// ── Forecast (M6) — Kịch bản Mưa + Thuỷ triều ─────────────────────────────
-// Tham số mô hình quy đổi mưa → mực ngập (docs/M6_calibration.md §3).
-// rainfallCoefficient: hệ số thực nghiệm (m) — tăng → nhạy hơn với mưa.
-// RAIN_EXPONENT = 0.6 được cố định trong tide.js và không đổi tại đây.
-// maximumHAND: pixel có HAND > giá trị này không được tính là ngập.
-const FORECAST_DEFAULTS = Object.freeze({
-    // Hệ số quy đổi mưa (m). Calibrate từ số liệu 2015–2023 Quảng Ninh.
-    rainfallCoefficient: 2.0,
-    // Ngưỡng dốc tối đa (độ) — cùng giá trị với M2 (Flood_D:228).
-    maximumSlope: 12,
-    // Giới hạn HAND tối đa (m) — pixel quá xa thung lũng không ngập vì triều.
-    maximumHAND: 25,
-});
-
 // ── Impact (M4) — Flood_D lines 238–242 ─────────────────────────────────────
 const IMPACT_DEFAULTS = Object.freeze({
     // Flood_D:238 — 'M1' | 'M2' | 'M3' source selector.
@@ -212,7 +198,6 @@ module.exports = {
     RAIN_RISK_DEFAULTS,
     IMPACT_DEFAULTS,
     TREND_DEFAULTS,
-    FORECAST_DEFAULTS,
     RUN_MODES,
     DEFAULT_RUN_MODE,
     RUN_CONFIG_TOGGLES,

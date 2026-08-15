@@ -106,24 +106,6 @@ const triggerDaily = async (_req, res) => {
     return OK(res, 'Đã chạy quy trình phát hiện ngập hàng ngày.', result);
 };
 
-// Kịch bản lượng mưa + thuỷ triều → lớp phủ dự báo (M6).
-// Nhận payload { rainfall: { amount24h }, tideLevelM } (thuỷ triều là tùy chọn),
-// tính toán trực tiếp và trả về lớp phủ dự báo tương ứng ngay lập tức (không qua GEE).
-const forecastScenario = async (req, res) => {
-    const config = req.body?.config || req.body || {};
-    debug.log('controller.forecastScenario received', {
-        rainfall24hMm: config?.rainfall?.amount24h,
-        tideLevelM: config?.tideLevelM,
-        ip: req.ip,
-    });
-    const result = await service.getForecastScenario(config);
-    debug.log('controller.forecastScenario matched', {
-        effectiveLevelM: result?.effectiveLevelM,
-        matchedLayer: result?.matchedLayer?.code,
-    });
-    return OK(res, 'Kịch bản dự báo ngập lụt.', result);
-};
-
 module.exports = {
     overview,
     legends,
@@ -141,5 +123,4 @@ module.exports = {
     unpublishArtifact,
     currentWeather,
     triggerDaily,
-    forecastScenario,
 };

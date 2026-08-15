@@ -14,7 +14,6 @@ const PIPELINE_VERSIONS = Object.freeze({
     RAIN_RISK: 'RAIN_RISK_V1',
     IMPACT: 'IMPACT_V1',
     TREND: 'TREND_V1',
-    FORECAST: 'FORECAST_V1',
 });
 
 const CONFIG_VERSION = 'V1';
@@ -25,7 +24,6 @@ const MODULE_TO_PIPELINE_VERSION = Object.freeze({
     rain: PIPELINE_VERSIONS.RAIN_RISK,
     impact: PIPELINE_VERSIONS.IMPACT,
     trend: PIPELINE_VERSIONS.TREND,
-    forecast: PIPELINE_VERSIONS.FORECAST,
 });
 
 const pipelineVersionFor = (module) => {

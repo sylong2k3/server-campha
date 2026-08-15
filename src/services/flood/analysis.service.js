@@ -330,7 +330,7 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'hand', 'rain', 'impact', 'trend', 'forecast'];
+    const modules = ['event', 'hand', 'rain', 'impact', 'trend'];
     const latest = await Promise.all(
         modules.map((module) =>
             runRepo.findLatestByModule(module, {
@@ -370,19 +370,11 @@ function getConfig() {
             rain: defaults.RAIN_RISK_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
-            forecast: defaults.FORECAST_DEFAULTS,
         },
         versions: versions.MODULE_TO_PIPELINE_VERSION,
         configVersion: versions.CONFIG_VERSION,
         probabilityCalibrated: false,
     };
-}
-
-const forecastService = require('./forecast');
-
-async function getForecastScenario(config = {}) {
-    const normalized = validateRunConfig('forecast', config);
-    return forecastService.getForecastScenario(normalized);
 }
 
 module.exports = {
@@ -399,7 +391,6 @@ module.exports = {
     unpublishArtifact,
     overview,
     getConfig,
-    getForecastScenario,
     getLegends: buildAllLegends,
     getQueueState: orchestrator.getQueueState,
 };

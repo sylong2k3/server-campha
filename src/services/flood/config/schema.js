@@ -176,26 +176,12 @@ const trendSchema = Joi.object({
     }, 'trend-consistency')
     .unknown(false);
 
-// ── M6 (Forecast) — Kịch bản Dự báo Ngập Lụt (Demo) ───────────────────────────
-const forecastSchema = Joi.object({
-    mode: modeSchema,
-    rainfall: Joi.object({
-        amount24h: Joi.number().min(0).max(2000),
-        amount72h: Joi.number().min(0).max(5000),
-        amount7d: Joi.number().min(0).max(15000),
-    }).optional(),
-    tideLevelM: Joi.number().min(-1).max(10).optional(),
-})
-    .optional()
-    .unknown(true);
-
 const SCHEMAS = Object.freeze({
     event: eventSchema,
     hand: handSchema,
     rain: rainSchema,
     impact: impactSchema,
     trend: trendSchema,
-    forecast: forecastSchema,
 });
 
 /**

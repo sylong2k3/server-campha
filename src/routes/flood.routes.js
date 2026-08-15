@@ -26,11 +26,6 @@ publicRouter.get(
     strict(validator.publicListSchema, 'query'),
     asyncHandler(controller.publicRuns),
 );
-// Kịch bản dự báo (trực tiếp không dùng GEE): nhập lượng mưa (mm) + thuỷ triều (m, tùy chọn)
-publicRouter.post(
-    '/forecast/scenario',
-    asyncHandler(controller.forecastScenario),
-);
 
 const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);
@@ -94,12 +89,6 @@ adminRouter.post(
     '/daily/trigger',
     requirePermission('flood', 'run'),
     asyncHandler(controller.triggerDaily),
-);
-// Kịch bản dự báo: nhập lượng mưa + thuỷ triều → lớp phủ dự báo (M6).
-adminRouter.post(
-    '/forecast/scenario',
-    requirePermission('flood', 'read'),
-    asyncHandler(controller.forecastScenario),
 );
 
 module.exports = { publicRouter, adminRouter };
