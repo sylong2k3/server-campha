@@ -30,6 +30,7 @@ const requireLayerAccess = (access) => {
         try {
             const { rows } = await db.query(
                 `SELECT l.id, l.code, l.name_vi, l.is_public, l.geoserver_layer,
+                        l.style_name, l.metadata,
                         l.min_zoom, l.max_zoom,
                         COALESCE(lp.${permissionColumn}, false) AS allowed
                  FROM gis.layers l

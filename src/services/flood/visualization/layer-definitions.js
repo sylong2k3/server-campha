@@ -18,8 +18,8 @@ const M1_LAYERS = Object.freeze({
         min: 1,
         max: 1,
         label: {
-            vi: 'Ngập lụt (không tính vùng triều)',
-            en: 'Confirmed flood (excluding tidal zones)',
+            vi: 'Ngập lụt',
+            en: 'Confirmed flood',
         },
     },
     open_water: {

@@ -29,13 +29,20 @@ const bufferResponse = async (response) => {
         contentType: response.headers.get('content-type') || 'application/octet-stream',
     };
 };
+const resolveStyleName = (layer) => {
+    const explicit = layer?.style_name || layer?.styleName;
+    if (typeof explicit === 'string' && explicit.trim()) return explicit.trim();
+    const metaStyle = layer?.metadata?.style;
+    if (typeof metaStyle === 'string' && metaStyle.trim()) return metaStyle.trim();
+    return '';
+};
 const proxyWms = async (layer, query) => {
     const params = new URLSearchParams({
         service: 'WMS',
         request: 'GetMap',
         version: query.version,
         layers: assertLayer(layer),
-        styles: '',
+        styles: resolveStyleName(layer),
         crs: query.crs,
         bbox: query.bbox,
         width: String(query.width),
