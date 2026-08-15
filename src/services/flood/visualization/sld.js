@@ -88,4 +88,13 @@ function buildSld(geoserverLayer, artifactCode) {
     );
 }
 
-module.exports = { buildSld, artifactCodeFromLayerCode };
+/**
+ * Returns true when the string is a recognized flood artifact code
+ * that has a palette definition, so the proxy can apply an SLD without
+ * needing to rely on the layer's category column.
+ */
+function isKnownArtifactCode(code) {
+    return typeof code === 'string' && code.trim() !== '' && code.trim() in ARTIFACT_LAYER_DEFINITIONS;
+}
+
+module.exports = { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode };

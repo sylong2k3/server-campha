@@ -2,7 +2,7 @@
 const { requestGeoserver } = require('../utils/geoserver.client');
 const { signTileTicket } = require('../utils/map-tile-ticket.util');
 const { Api404Error, Api413Error } = require('../core/error.response');
-const { buildSld, artifactCodeFromLayerCode } = require('./flood/visualization/sld');
+const { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode } = require('./flood/visualization/sld');
 const MAX_RESPONSE_BYTES = Number(process.env.MAP_PROXY_MAX_RESPONSE_MB || 25) * 1024 * 1024;
 const assertLayer = (layer) => {
     if (!layer?.geoserver_layer) {
@@ -43,11 +43,16 @@ const proxyWms = async (layer, query) => {
     // For flood artifact layers, build a per-request SLD from the legend palette
     // so GeoServer renders with the correct colors without needing persistent
     // GeoServer SLD styles (which the raster-ingest pipeline does not create).
-    let sldBody = null;
-    if (layer.category === 'flood') {
-        const artifactCode = artifactCodeFromLayerCode(layer.code);
-        sldBody = artifactCode ? buildSld(layerName, artifactCode) : null;
-    }
+    //
+    // Resolve artifact code via two methods (in priority order):
+    // 1. Parse layer.code for the fl_{module}_{artifact_code}_{id} pattern
+    // 2. Use layer.style_name directly if it is a known artifact code
+    //    (style_name = artifact_code is set by the ingest pipeline and works
+    //     even when layer.category is NULL in older DB rows)
+    const artifactCode =
+        artifactCodeFromLayerCode(layer.code) ||
+        (isKnownArtifactCode(layer.style_name) ? layer.style_name.trim() : null);
+    const sldBody = artifactCode ? buildSld(layerName, artifactCode) : null;
 
     const params = new URLSearchParams({
         service: 'WMS',
