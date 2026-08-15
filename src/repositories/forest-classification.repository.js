@@ -57,7 +57,7 @@ const listActiveRuns = async () => {
     return rows;
 };
 
-const createRun = async ({ year, month, trigger, requestedBy }) => {
+const createRun = async ({ year, month, trigger, requestedBy, modelParams = {} }) => {
     const client = await db.pool.connect();
     try {
         await client.query('BEGIN');
@@ -76,10 +76,17 @@ const createRun = async ({ year, month, trigger, requestedBy }) => {
             [year, month],
         );
         const inserted = await client.query(
-            `INSERT INTO forest.forest_snapshots (year, month, attempt, status, trigger, requested_by)
-             VALUES ($1, $2, $3, 'pending', $4, $5)
+            `INSERT INTO forest.forest_snapshots (year, month, attempt, status, trigger, requested_by, model_params)
+             VALUES ($1, $2, $3, 'pending', $4, $5, $6::jsonb)
              RETURNING *`,
-            [year, month, attempt.rows[0].attempt, trigger, requestedBy || null],
+            [
+                year,
+                month,
+                attempt.rows[0].attempt,
+                trigger,
+                requestedBy || null,
+                JSON.stringify(modelParams || {}),
+            ],
         );
         await client.query('COMMIT');
         return { snapshot: inserted.rows[0], deduplicated: false };
@@ -98,6 +105,8 @@ const updateRun = async (id, patch = {}) => {
         gee_tile_url: patch.geeTileUrl,
         gee_tile_generated_at: patch.geeTileUrl ? new Date() : undefined,
         gee_download_url: patch.geeDownloadUrl,
+        s2_image_count: patch.s2ImageCount,
+        duration_ms: patch.durationMs,
         error_message: patch.errorMessage,
         computed_at: patch.computedAt,
     };

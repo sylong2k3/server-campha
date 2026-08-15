@@ -107,6 +107,78 @@ describe('notification.service', () => {
         });
     });
 
+    describe('broadcastToAll', () => {
+        test('persists one notification per active user and reports the recipient count', async () => {
+            userRepository.activeIds.mockResolvedValue([1, 2, 3]);
+            notificationRepository.createMany.mockResolvedValue([
+                { id: 21, user_id: 1 },
+                { id: 22, user_id: 2 },
+                { id: 23, user_id: 3 },
+            ]);
+            pushProvider.isAvailable.mockReturnValue(false);
+
+            const result = await service.broadcastToAll({ title: 'Thông báo chung' });
+
+            expect(notificationRepository.createMany).toHaveBeenCalledWith([1, 2, 3], {
+                title: 'Thông báo chung',
+            });
+            expect(websocket.notifyUser).toHaveBeenCalledTimes(3);
+            expect(result).toMatchObject({ recipientCount: 3, disabled: true });
+        });
+    });
+
+    describe('sendNotification', () => {
+        test('sends a forest notification to one active user and persists its channel', async () => {
+            userRepository.findByIdSafe.mockResolvedValue({ id: 7, is_active: true });
+            notificationRepository.createMany.mockResolvedValue([{ id: 30, user_id: 7 }]);
+            pushProvider.isAvailable.mockReturnValue(false);
+
+            const result = await service.sendNotification(
+                {
+                    target: 'user',
+                    userId: 7,
+                    channel: 'forest',
+                    type: 'forest_classification_published',
+                    title: 'Kết quả phân loại rừng mới',
+                    body: 'Kỳ tháng 8 đã được công bố.',
+                },
+                { id: 99 },
+            );
+
+            expect(notificationRepository.createMany).toHaveBeenCalledWith(
+                [7],
+                expect.objectContaining({
+                    type: 'forest_classification_published',
+                    data: { channel: 'forest' },
+                }),
+            );
+            expect(result).toMatchObject({
+                target: 'user',
+                userId: 7,
+                recipientCount: 1,
+                sentBy: 99,
+            });
+        });
+
+        test('rejects an inactive direct recipient', async () => {
+            userRepository.findByIdSafe.mockResolvedValue({ id: 7, is_active: false });
+            await expect(
+                service.sendNotification(
+                    {
+                        target: 'user',
+                        userId: 7,
+                        channel: 'flood',
+                        type: 'flood_warning',
+                        title: 'Cảnh báo ngập',
+                        body: 'Nội dung',
+                    },
+                    { id: 99 },
+                ),
+            ).rejects.toMatchObject({ status: 404 });
+            expect(notificationRepository.createMany).not.toHaveBeenCalled();
+        });
+    });
+
     describe('remove', () => {
         test('deletes only through the repository user scope', async () => {
             notificationRepository.remove.mockResolvedValue({ id: 3 });

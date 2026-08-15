@@ -29,12 +29,17 @@ async function executeRun(snapshot, deps = {}) {
     const repo = deps.repository || snapshots;
     const satellite = deps.satellite || require('../satellite');
     const archive = deps.queueArchive || queueSnapshotArchive;
+    const modelParams = snapshot.model_params || {};
+    const cloudCover = Number.isFinite(Number(modelParams.cloudCover))
+        ? Number(modelParams.cloudCover)
+        : undefined;
     debug.log('service.executeRun start', {
         snapshotId: snapshot.id,
         year: snapshot.year,
         month: snapshot.month,
         attempt: snapshot.attempt,
         trigger: snapshot.trigger,
+        cloudCover: cloudCover ?? '(default)',
     });
     await repo.updateRun(snapshot.id, { status: 'computing', errorMessage: null });
     debug.log('service.executeRun status=computing', { snapshotId: snapshot.id });
@@ -44,6 +49,7 @@ async function executeRun(snapshot, deps = {}) {
             snapshotId: snapshot.id,
             startDate,
             endDate,
+            cloudCover: cloudCover ?? '(default)',
         });
         const geeStart = Date.now();
         const result = await satellite.getClassified({
@@ -51,6 +57,7 @@ async function executeRun(snapshot, deps = {}) {
             endDate,
             collection: 'AUTO',
             geometry: CAM_PHA_GEOMETRY,
+            ...(cloudCover !== undefined ? { cloudCover } : {}),
         });
         debug.log('service.executeRun gee.getClassified ok', {
             snapshotId: snapshot.id,
@@ -80,15 +87,23 @@ async function executeRun(snapshot, deps = {}) {
             );
         }
         const finalStatus = archiveJob ? 'exporting' : 'completed';
+        const s2ImageCount = Number.isFinite(Number(result?.stats?.imageCount))
+            ? Number(result.stats.imageCount)
+            : undefined;
+        const durationMs = Date.now() - geeStart;
         debug.log('service.executeRun finish', {
             snapshotId: snapshot.id,
             status: finalStatus,
+            s2ImageCount,
+            durationMs,
         });
         return repo.updateRun(snapshot.id, {
             status: finalStatus,
             geeTileUrl: result.geeTileUrl,
             geeDownloadUrl: result.downloadUrl,
             provinceSummary: summaryFromResult(result, archiveJob),
+            s2ImageCount,
+            durationMs,
             computedAt: new Date(),
         });
     } catch (error) {
@@ -102,11 +117,15 @@ async function executeRun(snapshot, deps = {}) {
     }
 }
 
-async function requestRun({ year, month, trigger, requestedBy }, deps = {}) {
+async function requestRun({ year, month, trigger, requestedBy, cloudCover }, deps = {}) {
     const repo = deps.repository || snapshots;
     const taskQueue = deps.queue || queue;
-    debug.log('service.requestRun', { year, month, trigger, requestedBy });
-    const created = await repo.createRun({ year, month, trigger, requestedBy });
+    const modelParams = {};
+    if (Number.isFinite(Number(cloudCover))) {
+        modelParams.cloudCover = Number(cloudCover);
+    }
+    debug.log('service.requestRun', { year, month, trigger, requestedBy, cloudCover });
+    const created = await repo.createRun({ year, month, trigger, requestedBy, modelParams });
     const taskKey = `analysis:forest-classification:${year}-${String(month).padStart(2, '0')}`;
     if (created.deduplicated) {
         debug.log('service.requestRun deduplicated', {

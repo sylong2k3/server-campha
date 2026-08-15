@@ -5120,8 +5120,155 @@
             ]
         },
         {
-            "name": "Thông báo của tôi",
+            "name": "Thông báo",
             "item": [
+                {
+                    "name": "Gửi thông báo phân loại rừng cho một người dùng",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{tnmtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"target\": \"user\",\n  \"userId\": {{userId}},\n  \"channel\": \"forest\",\n  \"type\": \"forest_classification_published\",\n  \"title\": \"Kết quả phân loại rừng mới\",\n  \"body\": \"Kỳ phân loại rừng mới đã được công bố trên bản đồ.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/send",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "send"]
+                        },
+                        "description": "Yêu cầu quyền notifications.send. Kênh forest được lưu trong data.channel để client điều hướng tới bản đồ."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                                    "pm.test('Sent to one recipient', () => pm.expect(pm.response.json().data.recipientCount).to.eql(1));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Gửi cảnh báo ngập theo vai trò",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{tnmtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"target\": \"role\",\n  \"roleCode\": \"citizen\",\n  \"channel\": \"flood\",\n  \"type\": \"flood_warning\",\n  \"title\": \"Cảnh báo ngập lụt\",\n  \"body\": \"Vui lòng theo dõi lớp cảnh báo ngập mới nhất trên bản đồ.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/send",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "send"]
+                        },
+                        "description": "Gửi tới mọi tài khoản đang hoạt động thuộc roleCode và lưu một bản ghi hộp thư cho từng người nhận."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                                    "pm.test('Recipient count returned', () => pm.expect(pm.response.json().data.recipientCount).to.be.a('number'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "Gửi thông báo tới tất cả người dùng",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "auth": {
+                            "type": "bearer",
+                            "bearer": [
+                                {
+                                    "key": "token",
+                                    "value": "{{tnmtToken}}",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"target\": \"all\",\n  \"channel\": \"system\",\n  \"type\": \"announcement\",\n  \"title\": \"Thông báo chung\",\n  \"body\": \"Nội dung thông báo gửi tới tất cả người dùng đang hoạt động.\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/notifications/send",
+                            "host": ["{{baseUrl}}"],
+                            "path": ["api", "v1", "notifications", "send"]
+                        },
+                        "description": "Thao tác đặc quyền, yêu cầu notifications.send. Chỉ gửi tới tài khoản và vai trò đang hoạt động."
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                                    "pm.test('Recipient count returned', () => pm.expect(pm.response.json().data.recipientCount).to.be.a('number'));"
+                                ]
+                            }
+                        }
+                    ]
+                },
                 {
                     "name": "Danh sách thông báo của tôi",
                     "request": {

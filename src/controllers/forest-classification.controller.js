@@ -35,6 +35,7 @@ const formatSnapshot = (snapshot) => {
     if (!snapshot) {
         return null;
     }
+    const modelParams = snapshot.model_params || {};
     return {
         id: snapshot.id,
         year: snapshot.year,
@@ -55,6 +56,10 @@ const formatSnapshot = (snapshot) => {
         retryCount: Number(snapshot.retry_count || 0),
         nextRetryAt: snapshot.next_retry_at || null,
         lastRetryError: snapshot.last_retry_error || null,
+        modelParams,
+        cloudCover: Number.isFinite(Number(modelParams.cloudCover))
+            ? Number(modelParams.cloudCover)
+            : null,
     };
 };
 
@@ -99,15 +104,27 @@ const refresh = async (req, res) => {
     if (!validPeriod(year, month)) {
         throw new Api400Error('Kỳ phân tích không hợp lệ.', ['INVALID_ANALYSIS_PERIOD']);
     }
+    let cloudCover;
+    if (req.body?.cloudCover !== undefined && req.body?.cloudCover !== null && req.body?.cloudCover !== '') {
+        const parsed = Number(req.body.cloudCover);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+            throw new Api400Error('Ngưỡng mây (cloudCover) phải nằm trong khoảng 0–100.', [
+                'INVALID_CLOUD_COVER',
+            ]);
+        }
+        cloudCover = parsed;
+    }
     debug.log('controller.refresh received', {
         year,
         month,
+        cloudCover: cloudCover ?? '(default)',
         requestedBy: req.user?.id || null,
         ip: req.ip,
     });
     const run = await forest.requestRun({
         year,
         month,
+        cloudCover,
         trigger: 'manual',
         requestedBy: req.user?.id,
     });
