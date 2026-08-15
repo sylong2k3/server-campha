@@ -378,6 +378,13 @@ function getConfig() {
     };
 }
 
+const forecastService = require('./forecast');
+
+async function getForecastScenario(config = {}) {
+    const normalized = validateRunConfig('forecast', config);
+    return forecastService.getForecastScenario(normalized);
+}
+
 module.exports = {
     analysisKey,
     submit,
@@ -392,6 +399,7 @@ module.exports = {
     unpublishArtifact,
     overview,
     getConfig,
+    getForecastScenario,
     getLegends: buildAllLegends,
     getQueueState: orchestrator.getQueueState,
 };

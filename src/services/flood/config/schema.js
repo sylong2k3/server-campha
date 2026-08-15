@@ -176,36 +176,37 @@ const trendSchema = Joi.object({
     }, 'trend-consistency')
     .unknown(false);
 
-// ── M6 (Forecast) — Kịch bản Lượng mưa + Thuỷ triều ───────────────────────────
+// ── M6 (Forecast) — Kịch bản Lượng mưa + Thuỷ triều (Không dùng GEE) ──────────
 const forecastSchema = Joi.object({
     mode: modeSchema,
-    // Lượng mưa nhập tay (mm). amount24h bắt buộc; các khoảng khác là tùy chọn.
+    // Lượng mưa nhập tay (mm) — Tùy chọn
     rainfall: Joi.object({
-        amount24h: Joi.number().min(0).max(2000).required().messages({
+        amount24h: Joi.number().min(0).max(2000).messages({
             'number.base': 'rainfall.amount24h phải là số (mm)',
-            'any.required': 'rainfall.amount24h là bắt buộc',
         }),
         amount72h: Joi.number().min(0).max(5000),
         amount7d: Joi.number().min(0).max(15000),
-    })
-        .required()
-        .messages({ 'any.required': 'rainfall object là bắt buộc' }),
-    // Mực thuỷ triều (m, so với CDL/MSL).
-    // Cẩm Phả thực tế: 0.0 – 3.5 m. Dải -1..10 cho phép nước rút và kịch bản cực đoan.
-    tideLevelM: Joi.number().min(-1).max(10).required().messages({
+    }).optional(),
+    // Mực thuỷ triều (m) — Tùy chọn (Cẩm Phả thực tế: 0.0 – 3.5 m)
+    tideLevelM: Joi.number().min(-1).max(10).optional().messages({
         'number.base': 'tideLevelM phải là số (m)',
-        'any.required': 'tideLevelM là bắt buộc',
     }),
-    // Tham số mô hình — tùy chọn, có default từ FORECAST_DEFAULTS.
+    // Tham số mô hình tùy chọn
     rainfallCoefficient: Joi.number().min(0.1).max(10),
     maximumSlope: Joi.number().min(0).max(45),
     maximumHAND: Joi.number().min(0).max(100),
 })
     .custom((value, helpers) => {
-        // amount24h = 0 AND tideLevelM ≤ 0 ⇒ h_eff = 0 ⇒ kết quả trống: cảnh báo nhưng không reject.
-        // (Operator có thể muốn chạy kịch bản "không mưa, triều rút" để baseline.)
+        const hasRain = Number.isFinite(value?.rainfall?.amount24h);
+        const hasTide = Number.isFinite(value?.tideLevelM);
+        if (!hasRain && !hasTide) {
+            return helpers.error('forecast.missingInput');
+        }
         return value;
-    }, 'forecast-level-check')
+    }, 'forecast-input-check')
+    .messages({
+        'forecast.missingInput': 'Cần nhập ít nhất lượng mưa (rainfall.amount24h) hoặc mực thuỷ triều (tideLevelM).',
+    })
     .unknown(false);
 
 const SCHEMAS = Object.freeze({
