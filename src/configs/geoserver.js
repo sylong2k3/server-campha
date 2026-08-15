@@ -62,7 +62,7 @@ const getConfig = () => {
             process.env.GEOSERVER_DATASTORE || 'campha_postgis',
             'GEOSERVER_DATASTORE',
         ),
-        timeoutMs: Number(process.env.GEOSERVER_TIMEOUT_MS || 15000),
+        timeoutMs: Number(process.env.GEOSERVER_TIMEOUT_MS || 300000),
     };
 };
 
@@ -74,7 +74,7 @@ const assertGeoserverConfigured = () => {
     if (
         !Number.isInteger(config.timeoutMs) ||
         config.timeoutMs < 1000 ||
-        config.timeoutMs > 120000
+        config.timeoutMs > 1800000
     ) {
         throw new Error('GEOSERVER_TIMEOUT_MS is invalid');
     }

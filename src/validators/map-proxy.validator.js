@@ -7,8 +7,8 @@ const wmsQuerySchema = Joi.object({
     bbox: Joi.string()
         .pattern(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
         .required(),
-    width: Joi.number().integer().min(1).max(4096).required(),
-    height: Joi.number().integer().min(1).max(4096).required(),
+    width: Joi.number().integer().min(1).max(32768).required(),
+    height: Joi.number().integer().min(1).max(32768).required(),
     crs: Joi.string().valid('EPSG:3857', 'EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
     format: Joi.string().valid('image/png', 'image/jpeg').default('image/png'),
     transparent: Joi.boolean().default(true),
@@ -20,7 +20,7 @@ const wfsQuerySchema = Joi.object({
     bbox: Joi.string()
         .pattern(/^-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?,-?\d+(\.\d+)?$/)
         .optional(),
-    count: Joi.number().integer().min(1).max(10000).default(1000),
+    count: Joi.number().integer().min(1).max(1000000).default(50000),
     srsName: Joi.string().valid('EPSG:4326', 'EPSG:5899').default('EPSG:4326'),
     outputFormat: Joi.string().valid('application/json').default('application/json'),
     ticket: Joi.string().max(2000).optional(),

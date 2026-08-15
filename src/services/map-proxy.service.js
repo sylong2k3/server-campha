@@ -3,7 +3,7 @@ const { requestGeoserver } = require('../utils/geoserver.client');
 const { signTileTicket } = require('../utils/map-tile-ticket.util');
 const { Api404Error, Api413Error } = require('../core/error.response');
 const { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode } = require('./flood/visualization/sld');
-const MAX_RESPONSE_BYTES = Number(process.env.MAP_PROXY_MAX_RESPONSE_MB || 25) * 1024 * 1024;
+const MAX_RESPONSE_BYTES = Number(process.env.MAP_PROXY_MAX_RESPONSE_MB || 500) * 1024 * 1024;
 const assertLayer = (layer) => {
     if (!layer?.geoserver_layer) {
         throw new Api404Error('Lớp chưa được publish trên GeoServer');
