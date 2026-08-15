@@ -52,6 +52,7 @@ const MODULE_RUNNERS = Object.freeze({
     hand: { module: './hand', fn: 'runHandScenario' },
     rain: { module: './rain', fn: 'runRainRisk' },
     trend: { module: './trend', fn: 'runTrendAnalysis' },
+    forecast: { module: './forecast', fn: 'runForecast' },
 });
 
 function safeMessage(error) {

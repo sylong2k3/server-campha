@@ -563,6 +563,32 @@ const healthCheck = async () => {
     }
 };
 
+/**
+ * Gán default style cho một layer đã publish trên GeoServer.
+ *
+ * @param {string} geoserverLayerName — 'workspace:layerName'
+ * @param {string} styleName          — tên style đã tồn tại trong workspace
+ * @returns {Promise<void>}
+ */
+const setDefaultStyle = async (geoserverLayerName, styleName) => {
+    if (!geoserverLayerName || !styleName) {
+        return; // non-fatal: thiếu tham số → bỏ qua
+    }
+    const config = assertGeoserverConfigured();
+    const qualifiedStyle = styleName.includes(':')
+        ? styleName
+        : `${config.workspace}:${styleName}`;
+    await requestGeoserver(`/rest/layers/${encodeLayerName(geoserverLayerName)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            layer: {
+                defaultStyle: { name: qualifiedStyle },
+            },
+        }),
+    });
+};
+
 module.exports = {
     GeoServerError,
     requestGeoserver,
@@ -572,6 +598,7 @@ module.exports = {
     deletePostgisDatastore,
     uploadStyle,
     deleteStyle,
+    setDefaultStyle,
     publishVectorLayer,
     publishRasterLayer,
     publishS3GeoTiffLayer,
@@ -586,3 +613,4 @@ module.exports = {
     // Health
     healthCheck,
 };
+

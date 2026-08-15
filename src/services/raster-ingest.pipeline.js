@@ -221,6 +221,7 @@ function loadDefaults() {
     let repo = null;
     let minio = null;
     let publisher = null;
+    let geoserver = null;
     try {
         repo = require('../repositories/raster-ingest.repository');
     } catch {
@@ -236,7 +237,12 @@ function loadDefaults() {
     } catch {
         /* not yet ported */
     }
-    return { repo, minio, publisher };
+    try {
+        geoserver = require('../utils/geoserver.client');
+    } catch {
+        /* not yet ported */
+    }
+    return { repo, minio, publisher, geoserver };
 }
 
 // ── Public: runJob ────────────────────────────────────────────────────────────
@@ -263,6 +269,7 @@ async function runJob(job, deps = {}) {
     const repo = 'repo' in deps ? deps.repo : defaults.repo;
     const minio = 'minio' in deps ? deps.minio : defaults.minio;
     const publisher = 'publisher' in deps ? deps.publisher : defaults.publisher;
+    const geoserver = 'geoserver' in deps ? deps.geoserver : defaults.geoserver;
     const download = deps.download || downloadToFile;
     const validateCrs = deps.validateCrs || defaultValidateCrs;
     const convertToCog = deps.convertToCog || defaultConvertToCog;
@@ -432,6 +439,21 @@ async function runJob(job, deps = {}) {
             geoserverLayer = published.geoserverLayer;
             isReingest = published.isReingest;
             dbg('PUBLISH', `→ ${geoserverLayer} reingest=${isReingest} (${Date.now() - t5}ms)`);
+
+            // ── Stage 5b: Gán default style (non-fatal) ───────────────
+            const styleName = params?.styleName || null;
+            if (styleName && typeof geoserver?.setDefaultStyle === 'function') {
+                try {
+                    await geoserver.setDefaultStyle(geoserverLayer, styleName);
+                    dbg('STYLE', `default style → ${styleName}`);
+                } catch (styleErr) {
+                    // Style chưa upload lên GeoServer → layer vẫn publish được,
+                    // chỉ hiển thị màu grayscale mặc định.
+                    console.warn(
+                        `[RASTER-INGEST] setDefaultStyle FAILED job=${job.id} style=${styleName}: ${styleErr.message}`,
+                    );
+                }
+            }
         } else {
             dbg('PUBLISH', 'skipped by product/calibration publication policy');
         }

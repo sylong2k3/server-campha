@@ -106,6 +106,23 @@ const triggerDaily = async (_req, res) => {
     return OK(res, 'Đã chạy quy trình phát hiện ngập hàng ngày.', result);
 };
 
+// Kịch bản lượng mưa + thuỷ triều → lớp phủ dự báo (M6).
+// Nhận payload { rainfall: { amount24h }, tideLevelM } và đưa vào queue.
+const forecastScenario = async (req, res) => {
+    const { config = {} } = req.body;
+    debug.log('controller.forecastScenario received', {
+        rainfall24hMm: config?.rainfall?.amount24h,
+        tideLevelM: config?.tideLevelM,
+        ip: req.ip,
+    });
+    const run = await service.submit(
+        { module: 'forecast', config, mode: req.body?.mode || 'product' },
+        buildActor(req),
+    );
+    debug.log('controller.forecastScenario queued', { runId: run.id, status: run.status });
+    return CREATED(res, 'Kịch bản dự báo đã được đưa vào hàng chờ.', run);
+};
+
 module.exports = {
     overview,
     legends,
@@ -123,4 +140,5 @@ module.exports = {
     unpublishArtifact,
     currentWeather,
     triggerDaily,
+    forecastScenario,
 };

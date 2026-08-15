@@ -330,7 +330,7 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'hand', 'rain', 'impact', 'trend'];
+    const modules = ['event', 'hand', 'rain', 'impact', 'trend', 'forecast'];
     const latest = await Promise.all(
         modules.map((module) =>
             runRepo.findLatestByModule(module, {
@@ -370,6 +370,7 @@ function getConfig() {
             rain: defaults.RAIN_RISK_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
+            forecast: defaults.FORECAST_DEFAULTS,
         },
         versions: versions.MODULE_TO_PIPELINE_VERSION,
         configVersion: versions.CONFIG_VERSION,

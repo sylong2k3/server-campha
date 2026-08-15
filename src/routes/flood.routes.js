@@ -90,5 +90,12 @@ adminRouter.post(
     requirePermission('flood', 'run'),
     asyncHandler(controller.triggerDaily),
 );
+// Kịch bản dự báo: nhập lượng mưa + thuỷ triều → lớp phủ dự báo (M6).
+adminRouter.post(
+    '/forecast/scenario',
+    requirePermission('flood', 'run'),
+    strict(validator.submitSchema),
+    asyncHandler(controller.forecastScenario),
+);
 
 module.exports = { publicRouter, adminRouter };
