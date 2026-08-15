@@ -1,4 +1,5 @@
 const analysisService = require('../analysis.service');
+const floodScenarioRepo = require('../../../repositories/flood-scenario.repository');
 const layerRepo = require('../../../repositories/layer.repository');
 const { simulationSchema } = require('../../../validators/flood.validator');
 
@@ -63,28 +64,37 @@ describe('Flood Simulation Service & Validator', () => {
             jest.restoreAllMocks();
         });
 
-        test('maps low rainfall (<50mm) to year 2015', async () => {
+        test('maps rainfall via matched scenario from DB repo', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue({
+                id: 1,
+                code: 'scenario_light',
+                name_vi: 'Kịch bản ngập nhẹ',
+                layer_code: 'lop_phu_sau_ngap_2015',
+            });
+
             const result = await analysisService.simulateFlood({ rainfall: 30, tide: 1.0 });
             expect(result.code).toBe('lop_phu_sau_ngap_2015');
             expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.scenarioYear).toBe(2015);
+            expect(result.simulationParams.scenarioCode).toBe('scenario_light');
         });
 
-        test('promotes year 2015 to 2018 when tide >= 2.0m', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 30, tide: 2.5 });
-            expect(result.code).toBe('lop_phu_sau_ngap_2018');
-            expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.scenarioYear).toBe(2018);
-        });
+        test('falls back to hardcoded thresholds if DB returns no scenario', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue(null);
 
-        test('maps extreme rainfall (>=300mm) to year 2024', async () => {
             const result = await analysisService.simulateFlood({ rainfall: 350, tide: 3.0 });
             expect(result.code).toBe('lop_phu_sau_ngap_2024');
             expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.scenarioYear).toBe(2024);
+            expect(result.simulationParams.matchedLayerCode).toBe('lop_phu_sau_ngap_2024');
         });
 
         test('returns layer map structure with isEnableDefault = true', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue({
+                id: 4,
+                code: 'scenario_severe',
+                name_vi: 'Kịch bản ngập nghiêm trọng',
+                layer_code: 'lop_phu_sau_ngap_2022',
+            });
+
             const result = await analysisService.simulateFlood({ rainfall: 120, tide: 2.5 });
             expect(result).toMatchObject({
                 id: expect.any(Number),
@@ -97,9 +107,10 @@ describe('Flood Simulation Service & Validator', () => {
                 simulationParams: {
                     rainfall: 120,
                     tide: 2.5,
-                    scenarioYear: 2022,
-                    scenarioCode: 'lop_phu_sau_ngap_2022',
-                    scenarioName: 'Lớp phủ sau ngập Cẩm Phả năm 2022',
+                    scenarioId: 4,
+                    scenarioCode: 'scenario_severe',
+                    scenarioName: 'Kịch bản ngập nghiêm trọng',
+                    matchedLayerCode: 'lop_phu_sau_ngap_2022',
                 },
             });
         });
