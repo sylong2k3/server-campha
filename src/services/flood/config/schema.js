@@ -176,38 +176,18 @@ const trendSchema = Joi.object({
     }, 'trend-consistency')
     .unknown(false);
 
-// ── M6 (Forecast) — Kịch bản Lượng mưa + Thuỷ triều (Không dùng GEE) ──────────
+// ── M6 (Forecast) — Kịch bản Dự báo Ngập Lụt (Demo) ───────────────────────────
 const forecastSchema = Joi.object({
     mode: modeSchema,
-    // Lượng mưa nhập tay (mm) — Tùy chọn
     rainfall: Joi.object({
-        amount24h: Joi.number().min(0).max(2000).messages({
-            'number.base': 'rainfall.amount24h phải là số (mm)',
-        }),
+        amount24h: Joi.number().min(0).max(2000),
         amount72h: Joi.number().min(0).max(5000),
         amount7d: Joi.number().min(0).max(15000),
     }).optional(),
-    // Mực thuỷ triều (m) — Tùy chọn (Cẩm Phả thực tế: 0.0 – 3.5 m)
-    tideLevelM: Joi.number().min(-1).max(10).optional().messages({
-        'number.base': 'tideLevelM phải là số (m)',
-    }),
-    // Tham số mô hình tùy chọn
-    rainfallCoefficient: Joi.number().min(0.1).max(10),
-    maximumSlope: Joi.number().min(0).max(45),
-    maximumHAND: Joi.number().min(0).max(100),
+    tideLevelM: Joi.number().min(-1).max(10).optional(),
 })
-    .custom((value, helpers) => {
-        const hasRain = Number.isFinite(value?.rainfall?.amount24h);
-        const hasTide = Number.isFinite(value?.tideLevelM);
-        if (!hasRain && !hasTide) {
-            return helpers.error('forecast.missingInput');
-        }
-        return value;
-    }, 'forecast-input-check')
-    .messages({
-        'forecast.missingInput': 'Cần nhập ít nhất lượng mưa (rainfall.amount24h) hoặc mực thuỷ triều (tideLevelM).',
-    })
-    .unknown(false);
+    .optional()
+    .unknown(true);
 
 const SCHEMAS = Object.freeze({
     event: eventSchema,
