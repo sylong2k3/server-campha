@@ -23,7 +23,7 @@ describe('Sprint 8 realtime privacy', () => {
         });
         notificationService.notifyUser.mockResolvedValue({ invalidTokens: [] });
         await listener.handle(JSON.stringify({ reportId: 3, event: 'status_changed' }));
-        expect(ws.notifyChannel).toHaveBeenCalledTimes(3);
+        expect(ws.notifyChannel).toHaveBeenCalledTimes(4);
         const data = ws.notifyChannel.mock.calls[0][2];
         expect(data).not.toHaveProperty('description');
         expect(data).not.toHaveProperty('sender_user_id');
@@ -49,16 +49,23 @@ describe('Sprint 8 realtime privacy', () => {
             invalidTokens: [],
         });
         await listener.handle(JSON.stringify({ reportId: 4, event: 'created' }));
-        expect(notificationService.broadcastToRole).toHaveBeenCalledTimes(3);
+        expect(notificationService.broadcastToRole).toHaveBeenCalledTimes(4);
         expect(notificationService.broadcastToRole).toHaveBeenCalledWith(
             'ubnd_tp',
+            expect.objectContaining({ data: { reportId: 4, status: 'pending' } }),
+        );
+        expect(notificationService.broadcastToRole).toHaveBeenCalledWith(
+            'system_admin',
             expect.objectContaining({ data: { reportId: 4, status: 'pending' } }),
         );
         expect(notificationService.broadcastToRole).toHaveBeenCalledWith(
             'so_tnmt',
             expect.anything(),
         );
-        expect(notificationService.broadcastToRole).toHaveBeenCalledWith('so_xd', expect.anything());
+        expect(notificationService.broadcastToRole).toHaveBeenCalledWith(
+            'so_xd',
+            expect.anything(),
+        );
         expect(notificationService.notifyUser).not.toHaveBeenCalled();
     });
 });

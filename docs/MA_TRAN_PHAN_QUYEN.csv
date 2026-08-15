@@ -46,7 +46,7 @@ A.1-7,Tìm kiếm / phân trang bản đồ PDF (quản trị),pdf_maps,read,0,0
 A.1-8,Nhận thông báo cập nhật từ mobile,field_report,notify,0,0,1,1,1,1,
 A.1-8,Xem thông tin thay đổi tại vị trí,field_report,read,0,0,1,1,1,1,
 A.1-8,Thống kê số người phản ánh cùng địa điểm,field_report,stats,0,0,1,1,1,1,
-A.1-8,Duyệt hoặc bác bỏ phản ánh,field_report,approve,0,0,1,1,1,0,QT không có quyền duyệt
+A.1-8,Duyệt hoặc bác bỏ phản ánh,field_report,approve,0,0,1,1,1,1,Migration 098 — QT toàn quyền trừ phân quyền và sửa/xóa dữ liệu bản đồ
 A.1-9,Khai báo phạm vi lưới tính bước thời gian,hydro,edit_params,0,0,0,1,1,1,
 A.1-9,Nhập chỉnh sửa tham số thủy văn,hydro,edit_params,0,0,0,1,1,1,
 A.1-9,Nhập chỉnh sửa tham số thủy lực,hydro,edit_params,0,0,0,1,1,1,
@@ -102,7 +102,7 @@ A.2-8,Đăng nhập web,auth,login,1,1,1,1,1,1,
 A.2-9,Đăng ký tài khoản web,auth,register,1,0,0,0,0,0,Chỉ khách chưa đăng nhập
 A.2-10,Xem kết quả dự báo xu hướng ngập,flood_forecast,read,0,1,1,1,1,1,
 A.2-10,Chạy mô hình dự báo lưu kịch bản,flood_forecast,run,0,0,1,1,1,1,MÂU THUẪN với A.1-9 (UB không được chạy mô hình) — cần chốt J.1-9
-A.2-11,Gửi phản ánh kèm ảnh và tọa độ,field_report,create,0,1,0,0,0,0,Chỉ người dân đã đăng ký
+A.2-11,Gửi phản ánh kèm ảnh và tọa độ,field_report,create,0,1,1,1,1,1,Mọi vai trò đã đăng nhập; dùng chung key field_report.create với B-2
 B-1,Bật tắt lớp bản đồ trên mobile,map,view,1,1,1,1,1,1,
 B-1,Phóng to thu nhỏ lớp bản đồ,map,view,1,1,1,1,1,1,
 B-1,Xem thuộc tính lớp bản đồ,map,view_attributes,1,1,1,1,1,1,
@@ -112,8 +112,8 @@ B-1,Đo đạc chiều dài diện tích,map,measure,1,1,1,1,1,1,
 B-1,Xem thông tin thời tiết,weather,read,1,1,1,1,1,1,
 B-1,Vẽ điểm đường vùng,map,draw,0,1,1,1,1,1,
 B-1,Cập nhật thuộc tính và không gian đối tượng,map_feature,update,0,0,0,1,0,0,Chỉ TNMT — endpoint nguy hiểm nhất hệ thống
-B-2,Chụp ảnh hiện trạng lấn chiếm,field_report,create,0,1,1,1,1,0,QT không có quyền
-B-2,Đo đạc tương đối khu vực lấn chiếm,field_report,measure,0,1,1,1,1,0,QT không có quyền
+B-2,Chụp ảnh hiện trạng lấn chiếm,field_report,create,0,1,1,1,1,1,Migration 098 — QT toàn quyền trừ phân quyền và sửa/xóa dữ liệu bản đồ
+B-2,Đo đạc tương đối khu vực lấn chiếm,field_report,measure,0,1,1,1,1,1,Migration 098 — QT toàn quyền trừ phân quyền và sửa/xóa dữ liệu bản đồ
 B-3,Đăng nhập mobile,auth,login,1,1,1,1,1,1,
 B-4,Đăng ký tài khoản mobile,auth,register,1,0,0,0,0,0,Chỉ khách chưa đăng nhập
 B-5,Đọc tin tức trên mobile,news,read_public,1,1,1,1,1,1,
