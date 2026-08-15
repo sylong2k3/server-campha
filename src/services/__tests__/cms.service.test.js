@@ -98,6 +98,12 @@ describe('CMS service', () => {
         await expect(service.moderateComment(1, 'approved', admin)).rejects.toMatchObject({
             status: 404,
         });
+        repository.findComment.mockResolvedValue(row);
+        await expect(service.getPublicComment(1)).resolves.toBe(row);
+        await expect(service.getAdminComment(1, admin)).resolves.toBe(row);
+        repository.findComment.mockResolvedValue(null);
+        await expect(service.getPublicComment(1)).rejects.toMatchObject({ status: 404 });
+        await expect(service.getAdminComment(1, admin)).rejects.toMatchObject({ status: 404 });
     });
     test('documents select public/internal/admin modes and validate file conflicts', async () => {
         repository.listDocuments.mockResolvedValue({ items: [], total: 0 });

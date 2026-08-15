@@ -48,7 +48,7 @@ describe('Sprint 8 field reports integration', () => {
         db.stopPoolMonitor();
         await db.pool.end();
     });
-    test('RBAC: citizen creates, system admin cannot create but can review', async () => {
+    test('RBAC: citizen and system admin both create; system admin reviews', async () => {
         const citizenToken = token('citizen', citizen.id),
             adminToken = token('system_admin', admin.id);
         expect(
@@ -70,12 +70,12 @@ describe('Sprint 8 field reports integration', () => {
                     .post('/api/v1/field-reports')
                     .set('Authorization', `Bearer ${adminToken}`)
                     .send({
-                        description: 'Phản ánh không được phép từ admin',
+                        description: 'Phản ánh do quản trị viên gửi từ hiện trường',
                         longitude: 107.34,
                         latitude: 21.02,
                     })
             ).status,
-        ).toBe(403);
+        ).toBe(201);
         const approved = await request(app)
             .patch(`/api/v1/admin/field-reports/${report.id}/review`)
             .set('Authorization', `Bearer ${adminToken}`)

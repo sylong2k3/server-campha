@@ -4,7 +4,9 @@ const websocket = require('./websocket.server');
 const repository = require('../repositories/field-report.repository');
 const notificationService = require('../services/notification.service');
 const systemLogger = require('../utils/systemLogger.util');
-const MANAGER_ROLES = ['ubnd_tp', 'so_tnmt', 'so_xd'];
+// Khớp danh sách reviewer trong field-report.service.js: ai duyệt được phản ánh
+// thì nhận thông báo phản ánh mới.
+const MANAGER_ROLES = ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'];
 let client = null,
     retryTimer = null,
     stopping = false,

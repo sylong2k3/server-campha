@@ -106,6 +106,20 @@ const triggerDaily = async (_req, res) => {
     return OK(res, 'Đã chạy quy trình phát hiện ngập hàng ngày.', result);
 };
 
+const simulation = async (req, res) => {
+    const rainfall =
+        req.query.rainfall ??
+        req.body?.rainfall ??
+        req.query.rainfall_mm ??
+        req.body?.rainfall_mm;
+    const tide = req.query.tide ?? req.body?.tide ?? req.query.tide_m ?? req.body?.tide_m;
+    const result = await service.simulateFlood(
+        { rainfall, tide },
+        buildActor(req),
+    );
+    return OK(res, 'Mô phỏng ngập lụt thành công', result);
+};
+
 module.exports = {
     overview,
     legends,
@@ -123,4 +137,6 @@ module.exports = {
     unpublishArtifact,
     currentWeather,
     triggerDaily,
+    simulation,
 };
+

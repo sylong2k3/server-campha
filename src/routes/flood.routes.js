@@ -26,6 +26,16 @@ publicRouter.get(
     strict(validator.publicListSchema, 'query'),
     asyncHandler(controller.publicRuns),
 );
+publicRouter.get(
+    '/simulation',
+    strict(validator.simulationSchema, 'query'),
+    asyncHandler(controller.simulation),
+);
+publicRouter.post(
+    '/simulation',
+    strict(validator.simulationSchema, 'body'),
+    asyncHandler(controller.simulation),
+);
 
 const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);

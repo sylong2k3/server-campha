@@ -5,6 +5,7 @@ const runRepo = require('../../repositories/flood-analysis-run.repository');
 const artifactRepo = require('../../repositories/flood-artifact.repository');
 const ingestRepo = require('../../repositories/raster-ingest.repository');
 const layerRepo = require('../../repositories/layer.repository');
+const webMapService = require('../web-map.service');
 const orchestrator = require('./orchestrator.service');
 const geeAdapter = require('../gee-earth-engine.adapter');
 const rasterIngest = require('../raster-ingest.service');
@@ -377,6 +378,50 @@ function getConfig() {
     };
 }
 
+async function simulateFlood({ rainfall, tide }, actor) {
+    const rainVal = Number(rainfall);
+    const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
+
+    let scenarioIndex = 1;
+    if (rainVal >= 300) {
+        scenarioIndex = 5;
+    } else if (rainVal >= 200) {
+        scenarioIndex = 4;
+    } else if (rainVal >= 100) {
+        scenarioIndex = 3;
+    } else if (rainVal >= 50) {
+        scenarioIndex = 2;
+    } else {
+        scenarioIndex = 1;
+    }
+
+    if (tideVal !== null && tideVal >= 2.0) {
+        scenarioIndex = Math.min(5, scenarioIndex + 1);
+    }
+
+    const scenarioCode = `script_scenario_${scenarioIndex}`;
+    const layer = await layerRepo.findByCode(scenarioCode);
+    if (!layer) {
+        throw new Api404Error(`Không tìm thấy lớp dữ liệu cho kịch bản ${scenarioCode}`, [
+            'SCENARIO_LAYER_NOT_FOUND',
+        ]);
+    }
+
+    const serialized = webMapService.serializeLayer(layer, actor);
+    serialized.isEnableDefault = true;
+
+    return {
+        ...serialized,
+        simulationParams: {
+            rainfall: rainVal,
+            tide: tideVal,
+            scenarioIndex,
+            scenarioCode: layer.code,
+            scenarioName: layer.name_vi,
+        },
+    };
+}
+
 module.exports = {
     analysisKey,
     submit,
@@ -391,6 +436,8 @@ module.exports = {
     unpublishArtifact,
     overview,
     getConfig,
+    simulateFlood,
     getLegends: buildAllLegends,
     getQueueState: orchestrator.getQueueState,
 };
+
