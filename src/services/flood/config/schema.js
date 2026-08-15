@@ -73,14 +73,6 @@ const eventSchema = Joi.object({
     }, 'event-window-consistency')
     .unknown(false);
 
-// ── M2 (HAND scenario) ───────────────────────────────────────────────────────
-const handSchema = Joi.object({
-    mode: modeSchema,
-    // Scenario inundation level (m) — defaults to Flood_D:227 = 5.
-    levelM: Joi.number().min(0).max(50).default(5),
-    maximumSlope: Joi.number().min(0).max(45).default(12),
-}).unknown(false);
-
 // ── M3 (Rain-based Risk Index) ───────────────────────────────────────────────
 const rainSchema = Joi.object({
     mode: modeSchema,
@@ -112,7 +104,7 @@ const rainSchema = Joi.object({
 // ── M4 (Impact) ──────────────────────────────────────────────────────────────
 const impactSchema = Joi.object({
     mode: modeSchema,
-    impactSource: Joi.string().valid('M1', 'M2', 'M3').default('M1'),
+    impactSource: Joi.string().valid('M1', 'M3').default('M1'),
     impactUseNonTidal: Joi.boolean().default(true),
     // Optional — otherwise the orchestrator picks the caller's default AOI.
     sourceRunId: Joi.number().integer().positive(),
@@ -178,14 +170,13 @@ const trendSchema = Joi.object({
 
 const SCHEMAS = Object.freeze({
     event: eventSchema,
-    hand: handSchema,
     rain: rainSchema,
     impact: impactSchema,
     trend: trendSchema,
 });
 
 /**
- * @param {'event'|'hand'|'rain'|'impact'|'trend'} module
+ * @param {'event'|'rain'|'impact'|'trend'} module
  * @param {object} payload
  * @returns {object} — normalised value with defaults applied
  * @throws  {Error} with .details listing every rejected key

@@ -30,11 +30,6 @@ describe('defaults.js — thresholds locked from Flood_D_final.js', () => {
         expect(defaults.S1_DEFAULTS.thresholdMode).toBe('fixed');
     });
 
-    test('HAND_DEFAULTS.levelM = 5 (Flood_D:227)', () => {
-        expect(defaults.HAND_DEFAULTS.levelM).toBe(5);
-        expect(defaults.HAND_DEFAULTS.maximumSlope).toBe(12);
-    });
-
     test('RAIN_RISK_DEFAULTS threshold = 0.60 with PROBABILITY_CALIBRATED=false', () => {
         expect(defaults.RAIN_RISK_DEFAULTS.threshold).toBe(0.6);
         // §16 non-negotiable — this MUST remain false unless probabilistic
@@ -64,7 +59,6 @@ describe('defaults.js — thresholds locked from Flood_D_final.js', () => {
         for (const key of [
             'S1_THRESHOLDS',
             'S1_DEFAULTS',
-            'HAND_DEFAULTS',
             'RAIN_RISK_DEFAULTS',
             'IMPACT_DEFAULTS',
             'TREND_DEFAULTS',
@@ -81,7 +75,6 @@ describe('defaults.js — thresholds locked from Flood_D_final.js', () => {
 describe('versions.js', () => {
     test('pipelineVersionFor maps every module to a V1 constant', () => {
         expect(versions.pipelineVersionFor('event')).toBe('FLOOD_EVENT_V1');
-        expect(versions.pipelineVersionFor('hand')).toBe('HAND_V1');
         expect(versions.pipelineVersionFor('rain')).toBe('RAIN_RISK_V1');
         expect(versions.pipelineVersionFor('impact')).toBe('IMPACT_V1');
         expect(versions.pipelineVersionFor('trend')).toBe('TREND_V1');
@@ -162,42 +155,13 @@ describe('schema.js validateRunConfig', () => {
         });
     });
 
-    describe('hand (M2)', () => {
-        test('accepts an empty body and applies default levelM=5, maximumSlope=12', () => {
-            const cfg = validateRunConfig('hand', {});
-            expect(cfg.levelM).toBe(5);
-            expect(cfg.maximumSlope).toBe(12);
-        });
-        test('rejects negative levelM', () => {
-            expect(() => validateRunConfig('hand', { levelM: -1 })).toThrow();
-        });
-    });
-
-    describe('rain (M3)', () => {
-        test('IMERG source requires eventTime', () => {
-            expect(() => validateRunConfig('rain', { source: 'IMERG' })).toThrow(
-                /eventTime is required/,
-            );
-        });
-        test('MANUAL source requires a rainfall object', () => {
-            expect(() => validateRunConfig('rain', { source: 'MANUAL' })).toThrow(/rainfall/);
-        });
-        test('threshold defaults to 0.6', () => {
-            const cfg = validateRunConfig('rain', {
-                source: 'IMERG',
-                eventTime: '2024-08-11T00:00:00Z',
-            });
-            expect(cfg.threshold).toBe(0.6);
-        });
-    });
-
     describe('impact (M4)', () => {
         test('accepts an empty body and applies defaults', () => {
             const cfg = validateRunConfig('impact', {});
             expect(cfg.impactSource).toBe('M1');
             expect(cfg.impactUseNonTidal).toBe(true);
         });
-        test('rejects an impactSource not in M1/M2/M3', () => {
+        test('rejects an impactSource not in M1/M3', () => {
             expect(() => validateRunConfig('impact', { impactSource: 'M99' })).toThrow();
         });
     });
@@ -230,6 +194,6 @@ describe('schema.js validateRunConfig', () => {
     });
 
     test('SCHEMAS keys match the migration module CHECK enum', () => {
-        expect(Object.keys(SCHEMAS)).toEqual(['event', 'hand', 'rain', 'impact', 'trend']);
+        expect(Object.keys(SCHEMAS)).toEqual(['event', 'rain', 'impact', 'trend']);
     });
 });

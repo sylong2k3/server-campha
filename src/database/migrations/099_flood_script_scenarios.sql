@@ -20,7 +20,7 @@ INSERT INTO gis.layers (
 VALUES
 (
     'script_scenario_1',
-    'Kịch bản 1',
+    'Kịch bản 1: Ngập lụt nhẹ (Mô phỏng 2015)',
     'script',
     'Kịch bản ngập úng',
     'POLYGON',
@@ -37,7 +37,7 @@ VALUES
 ),
 (
     'script_scenario_2',
-    'Kịch bản 2',
+    'Kịch bản 2: Ngập lụt trung bình (Mô phỏng 2018)',
     'script',
     'Kịch bản ngập úng',
     'POLYGON',
@@ -54,7 +54,7 @@ VALUES
 ),
 (
     'script_scenario_3',
-    'Kịch bản 3',
+    'Kịch bản 3: Ngập lụt cao (Mô phỏng 2020)',
     'script',
     'Kịch bản ngập úng',
     'POLYGON',
@@ -71,7 +71,7 @@ VALUES
 ),
 (
     'script_scenario_4',
-    'Kịch bản 4',
+    'Kịch bản 4: Ngập lụt nghiêm trọng (Mô phỏng 2022)',
     'script',
     'Kịch bản ngập úng',
     'POLYGON',
@@ -88,7 +88,7 @@ VALUES
 ),
 (
     'script_scenario_5',
-    'Kịch bản 5',
+    'Kịch bản 5: Ngập lụt cực đoan (Mô phỏng 2024)',
     'script',
     'Kịch bản ngập úng',
     'POLYGON',
