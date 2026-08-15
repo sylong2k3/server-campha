@@ -116,12 +116,51 @@ const parseOnlyMigrationNames = (argv = process.argv) => {
     return [...new Set(names)];
 };
 
-const prepareMigrationState = async (db, { only = [] } = {}) => {
+const parseRepairChecksumNames = (argv = process.argv) => {
+    const option = argv.find((arg) => arg.startsWith('--repair-checksum='));
+    if (!option) return [];
+    const names = option
+        .slice('--repair-checksum='.length)
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean);
+    if (!names.length || names.some((name) => !/^\d{3}_[a-z0-9_-]+\.sql$/i.test(name))) {
+        throw new Error('Use --repair-checksum=NNN_migration_name.sql[,NNN_other_migration.sql]');
+    }
+    return [...new Set(names)];
+};
+
+// Updates the stored checksum for already-applied idempotent migrations whose
+// file content changed after they were first run. Only call this when you are
+// certain the migration is safe to re-apply (or that only comments changed).
+const repairChecksums = async (db, executed, allFiles, repair) => {
+    const filesByName = new Map(allFiles.map((f) => [f.filename, f]));
+    for (const filename of repair) {
+        const file = filesByName.get(filename);
+        if (!file) throw new Error(`Unknown migration file for --repair-checksum: ${filename}`);
+        const record = executed.get(filename);
+        if (!record) {
+            console.warn(`warn  ${filename}: not yet applied — skipping checksum repair`);
+            continue;
+        }
+        await db.query(
+            'UPDATE core.schema_migrations SET checksum = $2 WHERE filename = $1',
+            [filename, file.checksum],
+        );
+        record.checksum = file.checksum;
+        console.log(`fixed ${filename} checksum`);
+    }
+};
+
+const prepareMigrationState = async (db, { only = [], repair = [] } = {}) => {
     await ensureMigrationsTable(db);
     const allFiles = getMigrationFiles();
     const files = selectMigrationFiles(allFiles, only);
     const executed = await getExecutedMigrations(db);
-    await backfillLegacyChecksums(db, executed, files);
+    await backfillLegacyChecksums(db, executed, allFiles);
+    if (repair.length) {
+        await repairChecksums(db, executed, allFiles, repair);
+    }
     // Recovery mode is deliberately narrow: it validates the selected files
     // only. This lets an operator apply a newly-required, unapplied migration
     // to a historic database whose unrelated migration checksum is already
@@ -148,7 +187,7 @@ const showStatus = async ({ only = [] } = {}) => {
     });
 };
 
-const runMigrations = async ({ only = [] } = {}) => {
+const runMigrations = async ({ only = [], repair = [] } = {}) => {
     const client = await pool.connect();
     let lockAcquired = false;
 
@@ -161,7 +200,13 @@ const runMigrations = async ({ only = [] } = {}) => {
                     'Unrelated historical checksums are not verified in this recovery mode.',
             );
         }
-        const { files, executed } = await prepareMigrationState(client, { only });
+        if (repair.length) {
+            console.warn(
+                `Repairing checksums for: ${repair.join(', ')}. ` +
+                    'Ensure these migrations are idempotent before proceeding.',
+            );
+        }
+        const { files, executed } = await prepareMigrationState(client, { only, repair });
 
         for (const file of files) {
             if (executed.has(file.filename)) {
@@ -195,10 +240,11 @@ const runMigrations = async ({ only = [] } = {}) => {
 const main = async () => {
     try {
         const only = parseOnlyMigrationNames();
+        const repair = parseRepairChecksumNames();
         if (process.argv.includes('--status')) {
             await showStatus({ only });
         } else {
-            await runMigrations({ only });
+            await runMigrations({ only, repair });
         }
     } finally {
         await pool.end();
@@ -219,6 +265,8 @@ module.exports = {
     ensureMigrationsTable,
     getMigrationFiles,
     parseOnlyMigrationNames,
+    parseRepairChecksumNames,
+    repairChecksums,
     selectMigrationFiles,
     runMigrations,
     showStatus,
