@@ -49,7 +49,6 @@ async function waitForIngestJob(jobId) {
 
 const MODULE_RUNNERS = Object.freeze({
     event: { module: './event', fn: 'runSentinel1Flood' },
-    hand: { module: './hand', fn: 'runHandScenario' },
     rain: { module: './rain', fn: 'runRainRisk' },
     trend: { module: './trend', fn: 'runTrendAnalysis' },
 });
@@ -130,7 +129,7 @@ async function runScientificModule(run) {
 async function runImpactWithReconstructedSource(run) {
     const impact = require('./impact');
     const sourceType = run.params_snapshot.impactSource || 'M1';
-    const moduleBySource = { M1: 'event', M2: 'hand', M3: 'rain' };
+    const moduleBySource = { M1: 'event', M3: 'rain' };
     const sourceModule = moduleBySource[sourceType];
     const sourceRun = run.params_snapshot.sourceRunId
         ? await runRepo.findById(run.params_snapshot.sourceRunId)
@@ -158,9 +157,6 @@ async function runImpactWithReconstructedSource(run) {
     let sourceFloodMask;
     if (sourceType === 'M1') {
         sourceFloodMask = source.artifacts.main_flood_non_tidal;
-    }
-    if (sourceType === 'M2') {
-        sourceFloodMask = source.artifacts.hand_scenario;
     }
     if (sourceType === 'M3') {
         sourceFloodMask = source.artifacts.rain_risk_score

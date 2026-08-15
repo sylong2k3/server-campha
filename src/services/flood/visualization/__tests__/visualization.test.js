@@ -13,8 +13,6 @@ describe('layer-definitions.js', () => {
             'tidal_candidate',
             'mining_candidate',
             'urban_double_bounce',
-            'hand_scenario',
-            'hand_depth',
             'rain_risk_score',
             'rain_risk_class',
             'affected_population',
@@ -108,13 +106,6 @@ describe('legends.js', () => {
         expect(legend.entries.length).toBeGreaterThan(1);
         expect(legend.entries[0].value).toBe(0);
         expect(legend.entries[legend.entries.length - 1].value).toBe(1);
-    });
-
-    test('hand_depth continuous legend spans 0..5 m', () => {
-        const legend = legends.buildLegend('hand_depth');
-        expect(legend.kind).toBe('continuous');
-        expect(legend.min).toBe(0);
-        expect(legend.max).toBe(5);
     });
 
     test('buildAllLegends returns one entry per known artifact code', () => {

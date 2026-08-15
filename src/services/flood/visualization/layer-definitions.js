@@ -54,25 +54,6 @@ const M1_LAYERS = Object.freeze({
     },
 });
 
-const M2_LAYERS = Object.freeze({
-    hand_scenario: {
-        palette: ['08519C'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Kịch bản HAND', en: 'HAND scenario' },
-    },
-    hand_depth: {
-        // Blue gradient — light shallow → deep dark.
-        palette: ['deebf7', '9ecae1', '4292c6', '08519c', '08306b'],
-        min: 0,
-        max: 5,
-        label: {
-            vi: 'Độ sâu ngập kịch bản HAND (m)',
-            en: 'HAND scenario depth (m)',
-        },
-    },
-});
-
 const M3_LAYERS = Object.freeze({
     // Continuous 0..1 risk score — sequential yellow → red palette.
     rain_risk_score: {
@@ -180,7 +161,6 @@ const M5_LAYERS = Object.freeze({
 
 const ARTIFACT_LAYER_DEFINITIONS = Object.freeze({
     ...M1_LAYERS,
-    ...M2_LAYERS,
     ...M3_LAYERS,
     ...M4_LAYERS,
     ...M5_LAYERS,
@@ -205,7 +185,6 @@ function getLayerDefinition(artifactCode) {
 function listArtifactCodes() {
     return Object.freeze([
         ...Object.keys(M1_LAYERS),
-        ...Object.keys(M2_LAYERS),
         ...Object.keys(M3_LAYERS),
         ...Object.keys(M4_LAYERS),
         ...Object.keys(M5_LAYERS),
@@ -215,7 +194,6 @@ function listArtifactCodes() {
 module.exports = {
     ARTIFACT_LAYER_DEFINITIONS,
     M1_LAYERS,
-    M2_LAYERS,
     M3_LAYERS,
     M4_LAYERS,
     M5_LAYERS,

@@ -331,7 +331,7 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'hand', 'rain', 'impact', 'trend'];
+    const modules = ['event', 'rain', 'impact', 'trend'];
     const latest = await Promise.all(
         modules.map((module) =>
             runRepo.findLatestByModule(module, {
@@ -367,7 +367,6 @@ function getConfig() {
     return {
         defaults: {
             event: defaults.S1_DEFAULTS,
-            hand: defaults.HAND_DEFAULTS,
             rain: defaults.RAIN_RISK_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
