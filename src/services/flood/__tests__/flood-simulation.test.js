@@ -1,6 +1,7 @@
 'use strict';
 
 const analysisService = require('../analysis.service');
+const floodScenarioRepo = require('../../../repositories/flood-scenario.repository');
 const layerRepo = require('../../../repositories/layer.repository');
 const { simulationSchema } = require('../../../validators/flood.validator');
 
@@ -38,14 +39,14 @@ describe('Flood Simulation Service & Validator', () => {
         beforeEach(() => {
             mockLayer = {
                 id: 101,
-                code: 'script_scenario_3',
-                name_vi: 'Kịch bản 3',
-                category: 'script',
-                category_name: 'Kịch bản ngập úng',
+                code: 'lop_phu_sau_ngap_2020',
+                name_vi: 'Lớp phủ sau ngập Cẩm Phả năm 2020',
+                category: 'lop-phu-ngap',
+                category_name: 'Lớp phủ ngập',
                 geometry_type: 'POLYGON',
                 storage_kind: 'postgis',
                 srid: 4326,
-                geoserver_layer: 'campha:script_scenario_3',
+                geoserver_layer: 'campha:lop_phu_sau_ngap_2020',
                 style_name: 'forecast_flood_mask',
                 min_zoom: 0,
                 max_zoom: 24,
@@ -56,7 +57,7 @@ describe('Flood Simulation Service & Validator', () => {
             jest.spyOn(layerRepo, 'findByCode').mockImplementation(async (code) => ({
                 ...mockLayer,
                 code,
-                name_vi: `Kịch bản ${code.slice(-1)}`,
+                name_vi: `Lớp phủ sau ngập Cẩm Phả năm ${code.slice(-4)}`,
                 geoserver_layer: `campha:${code}`,
             }));
         });
@@ -65,67 +66,53 @@ describe('Flood Simulation Service & Validator', () => {
             jest.restoreAllMocks();
         });
 
-        test('maps low rainfall (<50mm) without high tide to Scenario 1', async () => {
+        test('maps rainfall via matched scenario from DB repo', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue({
+                id: 1,
+                code: 'scenario_light',
+                name_vi: 'Kịch bản ngập nhẹ',
+                layer_code: 'lop_phu_sau_ngap_2015',
+            });
+
             const result = await analysisService.simulateFlood({ rainfall: 30, tide: 1.0 });
-            expect(result.code).toBe('script_scenario_1');
+            expect(result.code).toBe('lop_phu_sau_ngap_2015');
             expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.scenarioIndex).toBe(1);
+            expect(result.simulationParams.scenarioCode).toBe('scenario_light');
         });
 
-        test('promotes Scenario 1 to Scenario 2 when tide >= 2.0m', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 30, tide: 2.5 });
-            expect(result.code).toBe('script_scenario_2');
-            expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.scenarioIndex).toBe(2);
-        });
+        test('falls back to hardcoded thresholds if DB returns no scenario', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue(null);
 
-        test('maps moderate rainfall (50-99mm) to Scenario 2', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 80 });
-            expect(result.code).toBe('script_scenario_2');
-            expect(result.isEnableDefault).toBe(true);
-        });
-
-        test('maps heavy rainfall (100-199mm) to Scenario 3', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 150 });
-            expect(result.code).toBe('script_scenario_3');
-            expect(result.isEnableDefault).toBe(true);
-        });
-
-        test('maps heavy rainfall (100-199mm) + high tide to Scenario 4', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 150, tide: 2.2 });
-            expect(result.code).toBe('script_scenario_4');
-            expect(result.isEnableDefault).toBe(true);
-        });
-
-        test('maps very heavy rainfall (200-299mm) to Scenario 4', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 250 });
-            expect(result.code).toBe('script_scenario_4');
-            expect(result.isEnableDefault).toBe(true);
-        });
-
-        test('maps extreme rainfall (>=300mm) capped at Scenario 5', async () => {
             const result = await analysisService.simulateFlood({ rainfall: 350, tide: 3.0 });
-            expect(result.code).toBe('script_scenario_5');
+            expect(result.code).toBe('lop_phu_sau_ngap_2024');
             expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.scenarioIndex).toBe(5);
+            expect(result.simulationParams.matchedLayerCode).toBe('lop_phu_sau_ngap_2024');
         });
 
         test('returns layer map structure with isEnableDefault = true', async () => {
-            const result = await analysisService.simulateFlood({ rainfall: 120, tide: 2.5 });
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue({
+                id: 4,
+                code: 'scenario_severe',
+                name_vi: 'Kịch bản ngập nghiêm trọng',
+                layer_code: 'lop_phu_sau_ngap_2022',
+            });
+
+            const result = await analysisService.simulateFlood({ rainfall: 250, tide: 2.5 });
             expect(result).toMatchObject({
                 id: expect.any(Number),
-                code: 'script_scenario_4',
-                nameVi: 'Kịch bản 4',
-                category: 'script',
-                categoryName: 'Kịch bản ngập úng',
-                geoserverLayer: 'campha:script_scenario_4',
+                code: 'lop_phu_sau_ngap_2022',
+                nameVi: 'Lớp phủ sau ngập Cẩm Phả năm 2022',
+                category: 'lop-phu-ngap',
+                categoryName: 'Lớp phủ ngập',
+                geoserverLayer: 'campha:lop_phu_sau_ngap_2022',
                 isEnableDefault: true,
                 simulationParams: {
-                    rainfall: 120,
+                    rainfall: 250,
                     tide: 2.5,
-                    scenarioIndex: 4,
-                    scenarioCode: 'script_scenario_4',
-                    scenarioName: 'Kịch bản 4',
+                    scenarioId: 4,
+                    scenarioCode: 'scenario_severe',
+                    scenarioName: 'Kịch bản ngập nghiêm trọng',
+                    matchedLayerCode: 'lop_phu_sau_ngap_2022',
                 },
             });
         });
