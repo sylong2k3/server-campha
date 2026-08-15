@@ -31,50 +31,14 @@ publicRouter.get(
     strict(validator.simulationSchema, 'query'),
     asyncHandler(controller.simulation),
 );
-publicRouter.get(
-    '/scenarios',
-    strict(validator.queryScenarioSchema, 'query'),
-    asyncHandler(controller.listScenarios),
-);
-publicRouter.get(
-    '/scenarios/:id',
-    strict(validator.idParamsSchema, 'params'),
-    asyncHandler(controller.getScenario),
+publicRouter.post(
+    '/simulation',
+    strict(validator.simulationSchema, 'body'),
+    asyncHandler(controller.simulation),
 );
 
 const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);
-adminRouter.get(
-    '/scenarios',
-    requirePermission('flood', 'read'),
-    strict(validator.queryScenarioSchema, 'query'),
-    asyncHandler(controller.listScenarios),
-);
-adminRouter.get(
-    '/scenarios/:id',
-    requirePermission('flood', 'read'),
-    strict(validator.idParamsSchema, 'params'),
-    asyncHandler(controller.getScenario),
-);
-adminRouter.post(
-    '/scenarios',
-    requirePermission('flood', 'run'),
-    strict(validator.createScenarioSchema, 'body'),
-    asyncHandler(controller.createScenario),
-);
-adminRouter.put(
-    '/scenarios/:id',
-    requirePermission('flood', 'run'),
-    strict(validator.idParamsSchema, 'params'),
-    strict(validator.updateScenarioSchema, 'body'),
-    asyncHandler(controller.updateScenario),
-);
-adminRouter.delete(
-    '/scenarios/:id',
-    requirePermission('flood', 'run'),
-    strict(validator.idParamsSchema, 'params'),
-    asyncHandler(controller.deleteScenario),
-);
 adminRouter.get(
     '/dashboard',
     requirePermission('flood', 'read'),

@@ -56,54 +56,5 @@ const simulationSchema = Joi.object({
     }),
 }).unknown(true);
 
-const createScenarioSchema = Joi.object({
-    code: Joi.string().trim().max(100).required().messages({
-        'any.required': 'Mã kịch bản là bắt buộc',
-        'string.empty': 'Mã kịch bản không được để trống',
-    }),
-    nameVi: Joi.string().trim().max(255).required().messages({
-        'any.required': 'Tên kịch bản là bắt buộc',
-        'string.empty': 'Tên kịch bản không được để trống',
-    }),
-    minRainfall: Joi.number().min(0).default(0.0),
-    maxRainfall: Joi.number().min(0).allow(null),
-    minTide: Joi.number().allow(null),
-    maxTide: Joi.number().allow(null),
-    layerCode: Joi.string().trim().max(120).required().messages({
-        'any.required': 'Mã lớp bản đồ liên kết là bắt buộc',
-        'string.empty': 'Mã lớp bản đồ liên kết không được để trống',
-    }),
-    description: Joi.string().allow(null, '').default(null),
-    isActive: Joi.boolean().default(true),
-}).unknown(false);
-
-const updateScenarioSchema = Joi.object({
-    code: Joi.string().trim().max(100),
-    nameVi: Joi.string().trim().max(255),
-    minRainfall: Joi.number().min(0),
-    maxRainfall: Joi.number().min(0).allow(null),
-    minTide: Joi.number().allow(null),
-    maxTide: Joi.number().allow(null),
-    layerCode: Joi.string().trim().max(120),
-    description: Joi.string().allow(null, ''),
-    isActive: Joi.boolean(),
-}).unknown(false);
-
-const queryScenarioSchema = Joi.object({
-    page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
-    activeOnly: Joi.boolean().default(false),
-    search: Joi.string().allow('', null),
-}).unknown(false);
-
-module.exports = {
-    listSchema,
-    publicListSchema,
-    submitSchema,
-    idParamsSchema,
-    simulationSchema,
-    createScenarioSchema,
-    updateScenarioSchema,
-    queryScenarioSchema,
-};
+module.exports = { listSchema, publicListSchema, submitSchema, idParamsSchema, simulationSchema };
 

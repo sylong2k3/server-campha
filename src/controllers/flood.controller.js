@@ -120,35 +120,6 @@ const simulation = async (req, res) => {
     return OK(res, 'Mô phỏng ngập lụt thành công', result);
 };
 
-const listScenarios = async (req, res) => {
-    const result = await service.listScenarios(req.query);
-    return OK_LIST(res, 'Danh sách kịch bản ngập úng', result.items, {
-        page: result.pagination.page,
-        limit: result.pagination.limit,
-        total: result.pagination.total,
-    });
-};
-
-const getScenario = async (req, res) => {
-    const scenario = await service.getScenario(Number(req.params.id));
-    return OK(res, 'Chi tiết kịch bản ngập úng', scenario);
-};
-
-const createScenario = async (req, res) => {
-    const scenario = await service.createScenario(req.body);
-    return CREATED(res, 'Tạo kịch bản ngập úng thành công', scenario);
-};
-
-const updateScenario = async (req, res) => {
-    const scenario = await service.updateScenario(Number(req.params.id), req.body);
-    return OK(res, 'Cập nhật kịch bản ngập úng thành công', scenario);
-};
-
-const deleteScenario = async (req, res) => {
-    await service.deleteScenario(Number(req.params.id));
-    return OK(res, 'Xóa kịch bản ngập úng thành công');
-};
-
 module.exports = {
     overview,
     legends,
@@ -167,10 +138,5 @@ module.exports = {
     currentWeather,
     triggerDaily,
     simulation,
-    listScenarios,
-    getScenario,
-    createScenario,
-    updateScenario,
-    deleteScenario,
 };
 

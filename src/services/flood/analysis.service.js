@@ -5,7 +5,6 @@ const runRepo = require('../../repositories/flood-analysis-run.repository');
 const artifactRepo = require('../../repositories/flood-artifact.repository');
 const ingestRepo = require('../../repositories/raster-ingest.repository');
 const layerRepo = require('../../repositories/layer.repository');
-const floodScenarioRepo = require('../../repositories/flood-scenario.repository');
 const webMapService = require('../web-map.service');
 const orchestrator = require('./orchestrator.service');
 const geeAdapter = require('../gee-earth-engine.adapter');
@@ -368,6 +367,7 @@ function getConfig() {
     return {
         defaults: {
             event: defaults.S1_DEFAULTS,
+            hand: defaults.HAND_DEFAULTS,
             rain: defaults.RAIN_RISK_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
@@ -378,96 +378,35 @@ function getConfig() {
     };
 }
 
-async function listScenarios(query = {}) {
-    return floodScenarioRepo.listAll(query);
-}
-
-async function getScenario(id) {
-    const scenario = await floodScenarioRepo.findById(id);
-    if (!scenario) {
-        throw new Api404Error('Không tìm thấy kịch bản ngập úng', ['SCENARIO_NOT_FOUND']);
-    }
-    return scenario;
-}
-
-async function createScenario(data) {
-    const existing = await floodScenarioRepo.findByCode(data.code);
-    if (existing) {
-        throw new Api409Error(`Mã kịch bản '${data.code}' đã tồn tại`, ['DUPLICATE_SCENARIO_CODE']);
-    }
-
-    const layer = await layerRepo.findByCode(data.layerCode);
-    if (!layer) {
-        throw new Api404Error(`Không tìm thấy lớp bản đồ liên kết '${data.layerCode}'`, ['LAYER_NOT_FOUND']);
-    }
-
-    return floodScenarioRepo.create(data);
-}
-
-async function updateScenario(id, data) {
-    const scenario = await floodScenarioRepo.findById(id);
-    if (!scenario) {
-        throw new Api404Error('Không tìm thấy kịch bản ngập úng', ['SCENARIO_NOT_FOUND']);
-    }
-
-    if (data.code && data.code !== scenario.code) {
-        const existing = await floodScenarioRepo.findByCode(data.code);
-        if (existing) {
-            throw new Api409Error(`Mã kịch bản '${data.code}' đã tồn tại`, ['DUPLICATE_SCENARIO_CODE']);
-        }
-    }
-
-    if (data.layerCode) {
-        const layer = await layerRepo.findByCode(data.layerCode);
-        if (!layer) {
-            throw new Api404Error(`Không tìm thấy lớp bản đồ liên kết '${data.layerCode}'`, ['LAYER_NOT_FOUND']);
-        }
-    }
-
-    return floodScenarioRepo.update(id, data);
-}
-
-async function deleteScenario(id) {
-    const scenario = await floodScenarioRepo.findById(id);
-    if (!scenario) {
-        throw new Api404Error('Không tìm thấy kịch bản ngập úng', ['SCENARIO_NOT_FOUND']);
-    }
-    return floodScenarioRepo.deleteScenario(id);
-}
-
 async function simulateFlood({ rainfall, tide }, actor) {
     const rainVal = Number(rainfall);
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
 
-    let matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal);
-    let targetLayerCode = matchedScenario?.layer_code;
-
-    // Hardcoded fallback logic if no scenario DB match
-    if (!targetLayerCode) {
-        const SCENARIO_YEARS = [2015, 2018, 2020, 2022, 2024];
-        let scenarioIndex = 0;
-        if (rainVal >= 300) {
-            scenarioIndex = 4;
-        } else if (rainVal >= 200) {
-            scenarioIndex = 3;
-        } else if (rainVal >= 100) {
-            scenarioIndex = 2;
-        } else if (rainVal >= 50) {
-            scenarioIndex = 1;
-        } else {
-            scenarioIndex = 0;
-        }
-
-        if (tideVal !== null && tideVal >= 2.0) {
-            scenarioIndex = Math.min(SCENARIO_YEARS.length - 1, scenarioIndex + 1);
-        }
-
-        targetLayerCode = `lop_phu_sau_ngap_${SCENARIO_YEARS[scenarioIndex]}`;
+    // Mức mưa càng lớn thì bản đồ lớp phủ sau ngập tham chiếu càng gần hiện tại
+    // (dữ liệu quan trắc thực tế duy nhất hiện có: 2015, 2018, 2020, 2022, 2024).
+    const SCENARIO_YEARS = [2015, 2018, 2020, 2022, 2024];
+    let scenarioIndex = 0;
+    if (rainVal >= 300) {
+        scenarioIndex = 4;
+    } else if (rainVal >= 200) {
+        scenarioIndex = 3;
+    } else if (rainVal >= 100) {
+        scenarioIndex = 2;
+    } else if (rainVal >= 50) {
+        scenarioIndex = 1;
+    } else {
+        scenarioIndex = 0;
     }
 
-    const layer = await layerRepo.findByCode(targetLayerCode);
+    if (tideVal !== null && tideVal >= 2.0) {
+        scenarioIndex = Math.min(SCENARIO_YEARS.length - 1, scenarioIndex + 1);
+    }
+
+    const scenarioYear = SCENARIO_YEARS[scenarioIndex];
+    const scenarioCode = `lop_phu_sau_ngap_${scenarioYear}`;
+    const layer = await layerRepo.findByCode(scenarioCode);
     if (!layer) {
-        throw new Api404Error(`Không tìm thấy lớp dữ liệu cho kịch bản ${targetLayerCode}`, [
+        throw new Api404Error(`Không tìm thấy lớp dữ liệu cho kịch bản ${scenarioCode}`, [
             'SCENARIO_LAYER_NOT_FOUND',
         ]);
     }
@@ -480,10 +419,9 @@ async function simulateFlood({ rainfall, tide }, actor) {
         simulationParams: {
             rainfall: rainVal,
             tide: tideVal,
-            scenarioId: matchedScenario?.id || null,
-            scenarioCode: matchedScenario?.code || layer.code,
-            scenarioName: matchedScenario?.name_vi || layer.name_vi,
-            matchedLayerCode: layer.code,
+            scenarioYear,
+            scenarioCode: layer.code,
+            scenarioName: layer.name_vi,
         },
     };
 }
@@ -503,11 +441,6 @@ module.exports = {
     overview,
     getConfig,
     simulateFlood,
-    listScenarios,
-    getScenario,
-    createScenario,
-    updateScenario,
-    deleteScenario,
     getLegends: buildAllLegends,
     getQueueState: orchestrator.getQueueState,
 };

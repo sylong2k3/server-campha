@@ -194,6 +194,6 @@ describe('schema.js validateRunConfig', () => {
     });
 
     test('SCHEMAS keys match the migration module CHECK enum', () => {
-        expect(Object.keys(SCHEMAS)).toEqual(['event', 'rain', 'impact', 'trend']);
+        expect(Object.keys(SCHEMAS)).toEqual(['event', 'hand', 'rain', 'impact', 'trend']);
     });
 });

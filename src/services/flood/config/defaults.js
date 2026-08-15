@@ -95,6 +95,14 @@ const S1_DEFAULTS = Object.freeze({
     urbanMaximumHAND: 15,
 });
 
+// ── HAND scenario (M2) — Flood_D lines 227–228 ──────────────────────────────
+const HAND_DEFAULTS = Object.freeze({
+    // Flood_D:227 — scenario inundation level (m).
+    levelM: 5,
+    // Flood_D:228 — max slope for M2 scenario eligibility (deg).
+    maximumSlope: 12,
+});
+
 // ── Rain-based Risk Index (M3) — Flood_D lines 232–235 ──────────────────────
 // Terminology (§16): this is a Risk Index (0..1), NOT a calibrated probability.
 const RAIN_RISK_DEFAULTS = Object.freeze({
@@ -184,6 +192,7 @@ module.exports = {
     FABDEM_ASSET_ID,
     MINING_POLYGON_ASSET_ID,
     S1_DEFAULTS,
+    HAND_DEFAULTS,
     RAIN_RISK_DEFAULTS,
     IMPACT_DEFAULTS,
     TREND_DEFAULTS,
