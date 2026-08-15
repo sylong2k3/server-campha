@@ -150,9 +150,13 @@ const deleteNews = async (id, expectedUpdatedAt) => {
     return row || null;
 };
 
-const listComments = async (newsId, filter, publicOnly) => {
-    const params = [newsId];
-    const conditions = ['c.news_id=$1'];
+const listComments = async (newsId, filter = {}, publicOnly = false) => {
+    const params = [];
+    const conditions = [];
+    if (newsId > 0) {
+        params.push(newsId);
+        conditions.push(`c.news_id=$${params.length}`);
+    }
     if (publicOnly) {
         conditions.push(
             "c.status='approved'",
@@ -160,16 +164,20 @@ const listComments = async (newsId, filter, publicOnly) => {
             "n.visibility='public'",
             'n.deleted_at IS NULL',
         );
-    } else if (filter.status) {
-        params.push(filter.status);
-        conditions.push(`c.status=$${params.length}`);
+    } else {
+        conditions.push('n.deleted_at IS NULL');
+        if (filter.status && String(filter.status).trim().toLowerCase() !== 'all') {
+            params.push(String(filter.status).trim().toLowerCase());
+            conditions.push(`LOWER(c.status)=$${params.length}`);
+        }
     }
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const paging = paginate(params, filter.page, filter.limit);
     const { rows } = await db.query(
         `SELECT c.id,c.news_id,c.user_id,u.full_name,c.content,c.status,c.moderated_by,c.moderated_at,c.created_at,
                 COUNT(*) OVER()::int total_count
          FROM cms.news_comments c JOIN cms.news n ON n.id=c.news_id JOIN auth.users u ON u.id=c.user_id
-         WHERE ${conditions.join(' AND ')} ORDER BY c.created_at,c.id ${paging}`,
+         ${whereClause} ORDER BY c.created_at DESC,c.id DESC ${paging}`,
         params,
     );
     return pageResult(rows);

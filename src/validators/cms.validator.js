@@ -48,7 +48,11 @@ const commentCreateSchema = Joi.object({ content: plain(2000).required() });
 const commentListSchema = Joi.object({
     page: pagination.page,
     limit: pagination.limit,
-    status: Joi.string().valid('pending', 'approved', 'rejected').optional(),
+    status: Joi.string()
+        .valid('pending', 'approved', 'rejected', 'all', 'PENDING', 'APPROVED', 'REJECTED', 'ALL')
+        .insensitive()
+        .optional()
+        .allow('', null),
 });
 const commentModerateSchema = Joi.object({
     status: Joi.string().valid('approved', 'rejected').required(),
