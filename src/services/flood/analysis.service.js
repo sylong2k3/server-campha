@@ -379,19 +379,35 @@ function getConfig() {
     };
 }
 
-async function listScenarios(query = {}) {
-    return floodScenarioRepo.listAll(query);
-}
-
-async function getScenario(id) {
-    const scenario = await floodScenarioRepo.findById(id);
-    if (!scenario) {
-        throw new Api404Error('Không tìm thấy kịch bản ngập úng', ['SCENARIO_NOT_FOUND']);
+async function attachLayerToScenario(scenario, actor) {
+    if (!scenario) return null;
+    if (scenario.layer_code) {
+        const layer = await layerRepo.findByCode(scenario.layer_code);
+        if (layer) {
+            scenario.layer = webMapService.serializeLayer(layer, actor);
+            scenario.layer.isEnableDefault = true;
+        } else {
+            scenario.layer = null;
+        }
     }
     return scenario;
 }
 
-async function createScenario(data) {
+async function listScenarios(query = {}, actor = null) {
+    const result = await floodScenarioRepo.listAll(query);
+    result.items = await Promise.all(result.items.map((item) => attachLayerToScenario(item, actor)));
+    return result;
+}
+
+async function getScenario(id, actor = null) {
+    const scenario = await floodScenarioRepo.findById(id);
+    if (!scenario) {
+        throw new Api404Error('Không tìm thấy kịch bản ngập úng', ['SCENARIO_NOT_FOUND']);
+    }
+    return attachLayerToScenario(scenario, actor);
+}
+
+async function createScenario(data, actor = null) {
     const existing = await floodScenarioRepo.findByCode(data.code);
     if (existing) {
         throw new Api409Error(`Mã kịch bản '${data.code}' đã tồn tại`, ['DUPLICATE_SCENARIO_CODE']);
@@ -402,10 +418,11 @@ async function createScenario(data) {
         throw new Api404Error(`Không tìm thấy lớp bản đồ liên kết '${data.layerCode}'`, ['LAYER_NOT_FOUND']);
     }
 
-    return floodScenarioRepo.create(data);
+    const created = await floodScenarioRepo.create(data);
+    return attachLayerToScenario(created, actor);
 }
 
-async function updateScenario(id, data) {
+async function updateScenario(id, data, actor = null) {
     const scenario = await floodScenarioRepo.findById(id);
     if (!scenario) {
         throw new Api404Error('Không tìm thấy kịch bản ngập úng', ['SCENARIO_NOT_FOUND']);
@@ -425,7 +442,8 @@ async function updateScenario(id, data) {
         }
     }
 
-    return floodScenarioRepo.update(id, data);
+    const updated = await floodScenarioRepo.update(id, data);
+    return attachLayerToScenario(updated, actor);
 }
 
 async function deleteScenario(id) {

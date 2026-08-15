@@ -121,7 +121,7 @@ const simulation = async (req, res) => {
 };
 
 const listScenarios = async (req, res) => {
-    const result = await service.listScenarios(req.query);
+    const result = await service.listScenarios(req.query, buildActor(req));
     return OK_LIST(res, 'Danh sách kịch bản ngập úng', result.items, {
         page: result.pagination.page,
         limit: result.pagination.limit,
@@ -130,17 +130,17 @@ const listScenarios = async (req, res) => {
 };
 
 const getScenario = async (req, res) => {
-    const scenario = await service.getScenario(Number(req.params.id));
+    const scenario = await service.getScenario(Number(req.params.id), buildActor(req));
     return OK(res, 'Chi tiết kịch bản ngập úng', scenario);
 };
 
 const createScenario = async (req, res) => {
-    const scenario = await service.createScenario(req.body);
+    const scenario = await service.createScenario(req.body, buildActor(req));
     return CREATED(res, 'Tạo kịch bản ngập úng thành công', scenario);
 };
 
 const updateScenario = async (req, res) => {
-    const scenario = await service.updateScenario(Number(req.params.id), req.body);
+    const scenario = await service.updateScenario(Number(req.params.id), req.body, buildActor(req));
     return OK(res, 'Cập nhật kịch bản ngập úng thành công', scenario);
 };
 
