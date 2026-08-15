@@ -17,8 +17,14 @@ const ANALYSIS_CRS = 'EPSG:32648';
 /** Working scale in metres. 30 m matches the ~30 m of Sentinel-1 GRD IW when downsampled */
 const ANALYSIS_SCALE_M = 30;
 
-/** M5 (Trend) uses a finer scale to preserve small features across many periods. */
-const TREND_ANALYSIS_SCALE_M = 10;
+/**
+ * M5 (Trend) scale for the DOWNLOAD path. Kept at 30 m to stay well under
+ * GEE's `getDownloadURL` compute quota (~256 MB per request). Trend outputs
+ * are counts / class rasters that don't benefit from sub-Sentinel-1 resolution.
+ * Reference project used 10 m but exported via Cloud Storage batch, which has
+ * no such quota — we no longer use GCS (see run-executor).
+ */
+const TREND_ANALYSIS_SCALE_M = 30;
 
 /**
  * Client-facing basemap CRS. Included so publish-side reprojection has a

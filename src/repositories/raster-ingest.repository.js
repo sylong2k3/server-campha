@@ -230,7 +230,7 @@ const claimPending = async ({ batchSize = 1, maxRetries = 3 } = {}) => {
                FROM gis.raster_ingest_jobs
               WHERE status = 'pending'
                 AND (next_attempt_at IS NULL OR next_attempt_at <= NOW())
-                AND retry_count < $2
+                AND retry_count <= $2
               ORDER BY id
               LIMIT $1
               FOR UPDATE SKIP LOCKED`,

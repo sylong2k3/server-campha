@@ -59,4 +59,18 @@ describe('forest-classification.repository listRuns', () => {
         expect(sql).toMatch(/ORDER BY attempt DESC, id DESC/);
         expect(params).toEqual([2026, 7]);
     });
+
+    test('lists live snapshots for startup recovery', async () => {
+        db.query.mockResolvedValue({
+            rows: [{ id: 13, status: 'exporting' }],
+        });
+
+        await expect(repository.listActiveRuns()).resolves.toEqual([
+            { id: 13, status: 'exporting' },
+        ]);
+
+        const [sql] = db.query.mock.calls[0];
+        expect(sql).toMatch(/status IN \('pending', 'computing', 'exporting'\)/);
+        expect(sql).toMatch(/ORDER BY id ASC/);
+    });
 });

@@ -252,12 +252,19 @@ async function exportAndHarvest(run, science, aoi) {
         await ensureNotCancelled(run.id);
         const fileBase = `campha_${run.module}_${definition.code}_r${run.id}`.slice(0, 100);
         const downloadUrlStart = Date.now();
+        // Pin the pyramid to `scaleM` before download so GEE doesn't try to
+        // materialise at a finer native resolution (e.g. S1 IW 10 m for M5).
+        // This is what keeps `getDownloadURL` under its ~256 MB compute quota
+        // — omitting it caused "User memory limit exceeded" 400s on M5 trend.
+        const imageForDownload = image
+            .clip(aoi)
+            .reproject({ crs: ANALYSIS_CRS, scale: scaleM });
         const downloadUrl = await executeStage(
             run,
             `export:${definition.code}`,
             'EXPORTING',
             () =>
-                geeAdapter.getDownloadUrl(image.clip(aoi), {
+                geeAdapter.getDownloadUrl(imageForDownload, {
                     name: fileBase,
                     scale: scaleM,
                     region: aoi,

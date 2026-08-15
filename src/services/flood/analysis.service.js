@@ -214,6 +214,8 @@ function publicArtifact(artifact) {
         crs: artifact.crs,
         bbox: artifact.bbox,
         resolutionM: artifact.resolution_m,
+        registryLayerId: artifact.registry_layer_id,
+        isPublic: artifact.registry_is_public === true,
         workspace: artifact.workspace,
         layerName: artifact.layer_name,
         styleName: artifact.style_name,

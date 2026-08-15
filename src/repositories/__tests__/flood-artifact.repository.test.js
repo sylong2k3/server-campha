@@ -50,7 +50,9 @@ describe('flood-artifact.repository', () => {
             db.__rootQuery.mockResolvedValueOnce({ rows: [makeRow()] });
             await repo.listByRunId(100);
             const [sql, params] = db.__rootQuery.mock.calls[0];
-            expect(sql).toMatch(/ORDER BY id ASC/);
+            expect(sql).toMatch(/ingest\.layer_id AS registry_layer_id/);
+            expect(sql).toMatch(/LEFT JOIN gis\.layers layer/);
+            expect(sql).toMatch(/ORDER BY fa\.id ASC/);
             expect(params).toEqual([100]);
         });
         test('findByLayerName restricts to publish_status=published', async () => {
@@ -82,7 +84,10 @@ describe('flood-artifact.repository', () => {
             expect(r.total).toBe(4);
             expect(r.items).toHaveLength(2);
             expect(r.items[0]).not.toHaveProperty('total_count');
-            const [, params] = db.__rootQuery.mock.calls[0];
+            const [sql, params] = db.__rootQuery.mock.calls[0];
+            expect(sql).toMatch(/ingest\.layer_id AS registry_layer_id/);
+            expect(sql).toMatch(/LEFT JOIN gis\.raster_ingest_jobs ingest/);
+            expect(sql).toMatch(/LEFT JOIN gis\.layers layer/);
             // Limit clamped to 100
             expect(params[params.length - 2]).toBe(100);
             expect(params[params.length - 1]).toBe(5);

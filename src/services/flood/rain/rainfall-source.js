@@ -43,7 +43,7 @@ function accumulateIMERG(ee, { startDate, endDate, aoi } = {}) {
         .ImageCollection(ASSETS.IMERG_V07)
         .filterBounds(aoi)
         .filterDate(startDate, endDate)
-        .select('precipitationCal')
+        .select('precipitation')
         .sum()
         .multiply(IMERG_MM_PER_SCENE_FACTOR)
         .rename('imerg_total_mm');
@@ -65,7 +65,7 @@ function maximumIMERGIntensity(ee, { startDate, endDate, aoi } = {}) {
         .ImageCollection(ASSETS.IMERG_V07)
         .filterBounds(aoi)
         .filterDate(startDate, endDate)
-        .select('precipitationCal')
+        .select('precipitation')
         .max()
         .rename('imerg_max_intensity_mm_per_hr');
 }

@@ -226,6 +226,7 @@ describe('raster-ingest.repository', () => {
             expect(claimed).toHaveLength(2);
             const queries = db.__client.query.mock.calls.map((c) => c[0]);
             expect(queries.some((q) => /FOR UPDATE SKIP LOCKED/.test(q))).toBe(true);
+            expect(queries.some((q) => /retry_count <= \$2/.test(q))).toBe(true);
             expect(queries.some((q) => /status = 'downloading'/.test(q))).toBe(true);
             expect(db.__client.release).toHaveBeenCalled();
         });

@@ -54,9 +54,9 @@ describe('projection.js', () => {
     test('analysis CRS is EPSG:32648 (UTM 48N, Cẩm Phả zone)', () => {
         expect(projection.ANALYSIS_CRS).toBe('EPSG:32648');
     });
-    test('analysis scale defaults to 30 m (M1–M4) / 10 m (M5)', () => {
+    test('analysis scale defaults to 30 m for M1–M5 (M5 kept at 30 m to stay under GEE getDownloadURL quota)', () => {
         expect(projection.ANALYSIS_SCALE_M).toBe(30);
-        expect(projection.TREND_ANALYSIS_SCALE_M).toBe(10);
+        expect(projection.TREND_ANALYSIS_SCALE_M).toBe(30);
     });
     test('CLIENT_BASEMAP_CRS is WGS84', () => {
         expect(projection.CLIENT_BASEMAP_CRS).toBe('EPSG:4326');

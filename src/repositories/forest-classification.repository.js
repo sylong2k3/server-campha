@@ -47,6 +47,16 @@ const getLatestSuccessfulByPeriod = async (year, month) => {
     return rows[0] || null;
 };
 
+const listActiveRuns = async () => {
+    const { rows } = await db.query(
+        `SELECT *
+           FROM forest.forest_snapshots
+          WHERE status IN ('pending', 'computing', 'exporting')
+          ORDER BY id ASC`,
+    );
+    return rows;
+};
+
 const createRun = async ({ year, month, trigger, requestedBy }) => {
     const client = await db.pool.connect();
     try {
@@ -139,6 +149,7 @@ module.exports = {
     getLatestCompleted,
     getByPeriod,
     getLatestSuccessfulByPeriod,
+    listActiveRuns,
     createRun,
     updateRun,
     listRuns,

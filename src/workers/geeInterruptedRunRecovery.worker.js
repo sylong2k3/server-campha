@@ -30,6 +30,8 @@
 function defaultRepoLoader() {
     let floodRepo = null;
     let ingestRepo;
+    let forestRepo;
+    let rasterPublisher;
     let floodRepoLoadError = null;
     try {
         floodRepo = require('../repositories/flood-analysis-run.repository');
@@ -41,7 +43,128 @@ function defaultRepoLoader() {
     } catch {
         ingestRepo = null;
     }
-    return { floodRepo, ingestRepo, floodRepoLoadError };
+    try {
+        forestRepo = require('../repositories/forest-classification.repository');
+        rasterPublisher = require('../services/raster-ingest.publish');
+    } catch {
+        forestRepo = null;
+        rasterPublisher = null;
+    }
+    return { floodRepo, ingestRepo, forestRepo, rasterPublisher, floodRepoLoadError };
+}
+
+const ACTIVE_INGEST_STATES = new Set([
+    'pending',
+    'downloading',
+    'validating',
+    'uploading',
+    'publishing',
+]);
+
+function rasterIngestJobId(snapshot) {
+    let summary = snapshot?.province_summary;
+    if (typeof summary === 'string') {
+        try {
+            summary = JSON.parse(summary);
+        } catch {
+            return null;
+        }
+    }
+    const id = Number(summary?.rasterIngestJobId);
+    return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+async function failForestSnapshot(forestRepo, snapshot, reason) {
+    await forestRepo.updateRun(snapshot.id, {
+        status: 'failed',
+        errorMessage: String(reason).slice(0, 1000),
+    });
+}
+
+async function recoverForestSnapshots({ forestRepo, ingestRepo, rasterPublisher }) {
+    if (!forestRepo || typeof forestRepo.listActiveRuns !== 'function') {
+        return 0;
+    }
+
+    const snapshots = await forestRepo.listActiveRuns();
+    let recovered = 0;
+    for (const snapshot of snapshots) {
+        try {
+            if (snapshot.status !== 'exporting') {
+                await failForestSnapshot(
+                    forestRepo,
+                    snapshot,
+                    'Forest classification was interrupted by a server restart. Run this period again.',
+                );
+                recovered += 1;
+                continue;
+            }
+
+            const jobId = rasterIngestJobId(snapshot);
+            if (!jobId) {
+                await failForestSnapshot(
+                    forestRepo,
+                    snapshot,
+                    'Forest raster publication was interrupted and has no linked ingest job. Run this period again.',
+                );
+                recovered += 1;
+                continue;
+            }
+
+            if (!ingestRepo || typeof ingestRepo.findById !== 'function') {
+                console.warn(
+                    `[GEE-RECOVERY] Cannot inspect raster-ingest job ${jobId} for forest snapshot ${snapshot.id}.`,
+                );
+                continue;
+            }
+
+            const job = await ingestRepo.findById(jobId);
+            if (job && ACTIVE_INGEST_STATES.has(job.status)) {
+                // The ingest recovery above has either left a pending job alone
+                // or rewound a mid-pipeline job. Its worker will finish the backlink.
+                continue;
+            }
+
+            if (
+                job?.status === 'completed' &&
+                job.geoserver_layer &&
+                rasterPublisher &&
+                typeof rasterPublisher.backLinkResource === 'function'
+            ) {
+                const linked = await rasterPublisher.backLinkResource(
+                    { type: 'forest_snapshot', id: snapshot.id },
+                    {
+                        geoserverLayer: job.geoserver_layer,
+                        geoserverStore: job.geoserver_store,
+                        minioCategory: job.minio_category,
+                        minioKey: job.minio_key,
+                        rasterIngestJobId: job.id,
+                        published: true,
+                    },
+                );
+                if (linked?.rowCount !== 1) {
+                    throw new Error(`forest snapshot ${snapshot.id} was not back-linked`);
+                }
+                recovered += 1;
+                continue;
+            }
+
+            const jobState = job
+                ? `linked ingest job ${job.id} is ${job.status}`
+                : 'linked ingest job is missing';
+            await failForestSnapshot(
+                forestRepo,
+                snapshot,
+                `Forest raster publication was interrupted; ${jobState}. Run this period again.`,
+            );
+            recovered += 1;
+        } catch (error) {
+            console.error(
+                `[GEE-RECOVERY] forest snapshot ${snapshot.id} recovery error: ${error.message}`,
+            );
+        }
+    }
+    return recovered;
 }
 
 /**
@@ -53,32 +176,33 @@ function defaultRepoLoader() {
  * fails; unrecoverable state surfaces to admins via the system log.
  *
  * @param {object} [opts]
- * @param {() => {floodRepo, ingestRepo, floodRepoLoadError}} [opts.repoLoader]
- * @returns {Promise<{runs: number, ingestJobs: number}>}
+ * @param {() => {floodRepo, ingestRepo, forestRepo, rasterPublisher, floodRepoLoadError}} [opts.repoLoader]
+ * @returns {Promise<{runs: number, ingestJobs: number, forestSnapshots: number}>}
  */
 async function recoverInterruptedRuns({ repoLoader = defaultRepoLoader } = {}) {
-    const { floodRepo, ingestRepo, floodRepoLoadError } = repoLoader();
+    const { floodRepo, ingestRepo, forestRepo, rasterPublisher, floodRepoLoadError } = repoLoader();
     if (!floodRepo) {
         const detail = floodRepoLoadError?.code || floodRepoLoadError?.message || 'not installed';
         console.info(
             `[GEE-RECOVERY] flood_analysis_run repository not present yet (${detail}); skipping run recovery.`,
         );
-        return { runs: 0, ingestJobs: 0 };
     }
-    const repo = floodRepo;
 
     let orphanedRuns = [];
     let orphanedIngestJobs = 0;
-    try {
-        // Repository is expected to expose:
-        //   failInterruptedActiveRuns() → Array<{id, module, analysis_key, attempt_no, params_snapshot}>
-        // The repo does the UPDATE inside a transaction and returns the rows
-        // it actually mutated, so the return value is authoritative.
-        orphanedRuns = await repo.failInterruptedActiveRuns({
-            errorCode: 'INTERRUPTED_ON_RESTART',
-        });
-    } catch (error) {
-        console.error(`[GEE-RECOVERY] failInterruptedActiveRuns error: ${error.message}`);
+    let recoveredForestSnapshots = 0;
+    if (floodRepo) {
+        try {
+            // Repository is expected to expose:
+            //   failInterruptedActiveRuns() → Array<{id, module, analysis_key, attempt_no, params_snapshot}>
+            // The repo does the UPDATE inside a transaction and returns the rows
+            // it actually mutated, so the return value is authoritative.
+            orphanedRuns = await floodRepo.failInterruptedActiveRuns({
+                errorCode: 'INTERRUPTED_ON_RESTART',
+            });
+        } catch (error) {
+            console.error(`[GEE-RECOVERY] failInterruptedActiveRuns error: ${error.message}`);
+        }
     }
 
     if (ingestRepo) {
@@ -95,18 +219,33 @@ async function recoverInterruptedRuns({ repoLoader = defaultRepoLoader } = {}) {
         }
     }
 
-    if (orphanedRuns.length === 0 && orphanedIngestJobs === 0) {
-        console.info('[GEE-RECOVERY] No interrupted flood runs or ingest jobs found.');
-        return { runs: 0, ingestJobs: 0 };
+    try {
+        recoveredForestSnapshots = await recoverForestSnapshots({
+            forestRepo,
+            ingestRepo,
+            rasterPublisher,
+        });
+    } catch (error) {
+        console.error(`[GEE-RECOVERY] recoverForestSnapshots error: ${error.message}`);
+    }
+
+    if (orphanedRuns.length === 0 && orphanedIngestJobs === 0 && recoveredForestSnapshots === 0) {
+        console.info('[GEE-RECOVERY] No interrupted flood, forest, or ingest jobs found.');
+        return { runs: 0, ingestJobs: 0, forestSnapshots: 0 };
     }
 
     console.warn(
         `[GEE-RECOVERY] Marked ${orphanedRuns.length} orphan flood analysis runs and ` +
-            `${orphanedIngestJobs} orphan raster-ingest jobs as FAILED / requeued. ` +
+            `${orphanedIngestJobs} orphan raster-ingest jobs as FAILED / requeued; ` +
+            `recovered ${recoveredForestSnapshots} forest snapshots. ` +
             'Admin can review under /admin/flood/history.',
     );
 
-    return { runs: orphanedRuns.length, ingestJobs: orphanedIngestJobs };
+    return {
+        runs: orphanedRuns.length,
+        ingestJobs: orphanedIngestJobs,
+        forestSnapshots: recoveredForestSnapshots,
+    };
 }
 
 module.exports = { recoverInterruptedRuns };

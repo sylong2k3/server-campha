@@ -26,10 +26,15 @@ const findById = async (id, client = db) => {
 
 const listByRunId = async (analysisRunId, client = db) => {
     const { rows } = await client.query(
-        `SELECT *
-           FROM gis.flood_artifacts
-          WHERE analysis_run_id = $1
-          ORDER BY id ASC`,
+        `SELECT fa.*,
+                ingest.layer_id AS registry_layer_id,
+                layer.is_public AS registry_is_public
+           FROM gis.flood_artifacts fa
+           LEFT JOIN gis.raster_ingest_jobs ingest ON ingest.id = fa.ingest_job_id
+           LEFT JOIN gis.layers layer
+             ON layer.id = ingest.layer_id AND layer.deleted_at IS NULL
+          WHERE fa.analysis_run_id = $1
+          ORDER BY fa.id ASC`,
         [analysisRunId],
     );
     return rows;
@@ -53,27 +58,33 @@ const findByLayerName = async (workspace, layerName, client = db) => {
 };
 
 const listPublished = async ({ module, from, to, limit = 20, offset = 0 } = {}) => {
-    const where = ["publish_status = 'published'"];
+    const where = ["fa.publish_status = 'published'"];
     const params = [];
     if (module) {
         params.push(module);
-        where.push(`module = $${params.length}`);
+        where.push(`fa.module = $${params.length}`);
     }
     if (from) {
         params.push(from);
-        where.push(`published_at >= $${params.length}`);
+        where.push(`fa.published_at >= $${params.length}`);
     }
     if (to) {
         params.push(to);
-        where.push(`published_at < $${params.length}`);
+        where.push(`fa.published_at < $${params.length}`);
     }
     params.push(Math.max(1, Math.min(100, limit)));
     params.push(Math.max(0, offset));
     const { rows } = await db.query(
-        `SELECT *, COUNT(*) OVER()::int AS total_count
-           FROM gis.flood_artifacts
+        `SELECT fa.*,
+                ingest.layer_id AS registry_layer_id,
+                layer.is_public AS registry_is_public,
+                COUNT(*) OVER()::int AS total_count
+           FROM gis.flood_artifacts fa
+           LEFT JOIN gis.raster_ingest_jobs ingest ON ingest.id = fa.ingest_job_id
+           LEFT JOIN gis.layers layer
+             ON layer.id = ingest.layer_id AND layer.deleted_at IS NULL
           WHERE ${where.join(' AND ')}
-          ORDER BY published_at DESC NULLS LAST, id DESC
+          ORDER BY fa.published_at DESC NULLS LAST, fa.id DESC
           LIMIT $${params.length - 1} OFFSET $${params.length}`,
         params,
     );
