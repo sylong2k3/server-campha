@@ -196,6 +196,29 @@ const moderateComment = async (commentId, status, actorId) => {
     );
     return row || null;
 };
+const findComment = async (commentId, publicOnly = false) => {
+    const conditions = ['c.id = $1'];
+    if (publicOnly) {
+        conditions.push(
+            "c.status = 'approved'",
+            "n.status = 'published'",
+            "n.visibility = 'public'",
+            'n.deleted_at IS NULL',
+        );
+    }
+    const {
+        rows: [row],
+    } = await db.query(
+        `SELECT c.id, c.news_id, c.user_id, u.full_name, c.content, c.status, c.moderated_by, c.moderated_at, c.created_at,
+                n.title AS news_title
+         FROM cms.news_comments c
+         JOIN cms.news n ON n.id = c.news_id
+         JOIN auth.users u ON u.id = c.user_id
+         WHERE ${conditions.join(' AND ')}`,
+        [commentId],
+    );
+    return row || null;
+};
 
 const contentAccess = (mode, alias = 'x') =>
     mode === 'public' ? `${alias}.visibility='public'` : 'TRUE';
@@ -483,6 +506,7 @@ module.exports = {
     updateNews,
     deleteNews,
     listComments,
+    findComment,
     createComment,
     moderateComment,
     listDocuments,

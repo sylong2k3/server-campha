@@ -121,6 +121,21 @@ const moderateComment = async (commentId, status, actor) => {
     audit('news_comment_moderated', actor, { commentId, status });
     return row;
 };
+const getPublicComment = async (commentId) => {
+    const comment = await repository.findComment(commentId, true);
+    if (!comment) {
+        throw new Api404Error('Không tìm thấy bình luận');
+    }
+    return comment;
+};
+const getAdminComment = async (commentId, actor) => {
+    requirePermission(actor, 'news', 'read');
+    const comment = await repository.findComment(commentId, false);
+    if (!comment) {
+        throw new Api404Error('Không tìm thấy bình luận');
+    }
+    return comment;
+};
 
 const modeForDocuments = (actor) => {
     if (!actor) {
@@ -270,7 +285,9 @@ module.exports = {
     updateNews,
     deleteNews,
     listPublicComments,
+    getPublicComment,
     listAdminComments,
+    getAdminComment,
     createComment,
     moderateComment,
     listDocuments,

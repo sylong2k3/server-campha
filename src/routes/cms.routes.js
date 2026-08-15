@@ -47,6 +47,16 @@ publicRouter.post(
     asyncHandler(controller.createComment),
 );
 publicRouter.get(
+    '/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.getPublicComment),
+);
+publicRouter.get(
+    '/news/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.getPublicComment),
+);
+publicRouter.get(
     '/documents',
     strict(v.documentListSchema, 'query'),
     asyncHandler(controller.listDocuments),
@@ -109,6 +119,11 @@ adminRouter.get(
     strict(v.idParamsSchema, 'params'),
     strict(v.commentListSchema, 'query'),
     asyncHandler(controller.listAdminComments),
+);
+adminRouter.get(
+    '/news/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.getAdminComment),
 );
 adminRouter.patch(
     '/news/comments/:commentId',

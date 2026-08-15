@@ -45,4 +45,16 @@ const idParamsSchema = Joi.object({
     id: Joi.number().integer().positive().required(),
 }).unknown(false);
 
-module.exports = { listSchema, publicListSchema, submitSchema, idParamsSchema };
+const simulationSchema = Joi.object({
+    rainfall: Joi.number().required().min(0).messages({
+        'any.required': 'Lượng mưa là thông số bắt buộc',
+        'number.base': 'Lượng mưa phải là một số',
+        'number.min': 'Lượng mưa không được âm',
+    }),
+    tide: Joi.number().optional().allow(null, '').default(null).messages({
+        'number.base': 'Mực nước thủy triều phải là một số',
+    }),
+}).unknown(true);
+
+module.exports = { listSchema, publicListSchema, submitSchema, idParamsSchema, simulationSchema };
+

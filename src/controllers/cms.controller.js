@@ -72,6 +72,14 @@ const moderateComment = async (req, res) =>
             buildActor(req),
         ),
     );
+const getPublicComment = async (req, res) =>
+    OK(res, 'Chi tiết bình luận', await service.getPublicComment(Number(req.params.commentId)));
+const getAdminComment = async (req, res) =>
+    OK(
+        res,
+        'Chi tiết bình luận quản trị',
+        await service.getAdminComment(Number(req.params.commentId), buildActor(req)),
+    );
 const listDocuments = async (req, res) =>
     list(
         res,
@@ -184,7 +192,9 @@ module.exports = {
     updateNews,
     deleteNews,
     listPublicComments,
+    getPublicComment,
     listAdminComments,
+    getAdminComment,
     createComment,
     moderateComment,
     listDocuments,
