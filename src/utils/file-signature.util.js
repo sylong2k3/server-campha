@@ -68,6 +68,9 @@ const CATEGORY_EXTENSIONS = Object.freeze({
         '.txt',
         '.csv',
         '.zip',
+        '.jpg',
+        '.jpeg',
+        '.png',
     ]),
     'field-photos': new Set(['.png', '.webp']),
 });

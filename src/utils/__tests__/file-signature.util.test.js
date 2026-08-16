@@ -45,6 +45,22 @@ describe('file signature validation', () => {
             }),
         ).toBeNull();
     });
+    test('accepts JPEG/PNG signatures for documents category', () => {
+        expect(
+            detectFileType({
+                originalName: 'photo.jpg',
+                category: 'documents',
+                head: Buffer.from('ffd8ffe000104a464946', 'hex'),
+            }),
+        ).toBe('image/jpeg');
+        expect(
+            detectFileType({
+                originalName: 'photo.png',
+                category: 'documents',
+                head: Buffer.from('89504e470d0a1a0a', 'hex'),
+            }),
+        ).toBe('image/png');
+    });
     test('checks structural GeoJSON prefix without parsing truncated large content', () => {
         expect(
             detectFileType({
