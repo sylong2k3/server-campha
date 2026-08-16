@@ -106,7 +106,9 @@ const legendQuerySchema = Joi.object({
 }).unknown(false);
 
 const legendCodeParamsSchema = Joi.object({
-    code: Joi.string().alphanum().max(100).required(),
+    code: Joi.string().pattern(/^[a-z0-9_]+$/).max(100).required().messages({
+        'string.pattern.base': '"code" chỉ được chứa chữ thường, chữ số và dấu gạch dưới',
+    }),
 }).unknown(false);
 
 const legendLabel = Joi.object({

@@ -5,6 +5,7 @@ const eventDaily = require('../services/flood/event-daily.service');
 const eventDailyJob = require('../jobs/flood-event-daily.job');
 const { OK, CREATED, OK_LIST } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
+const { logActivity } = require('../utils/activityLogger.util');
 const debug = require('../services/flood/debug.util');
 
 const listResponse = (res, result, query, message) =>
@@ -22,12 +23,28 @@ const adminLegends = async (req, res) =>
     OK(res, 'Đã tải chú giải ngập lụt (admin)', service.getAdminLegends(req.query.module));
 
 const updateLegend = async (req, res) => {
+    const actor = buildActor(req);
     const updated = service.updateLegend(req.params.code, req.body);
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: `flood:legend:update:${req.params.code}`,
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { code: req.params.code, patch: req.body },
+    });
     return OK(res, 'Đã cập nhật chú giải', updated);
 };
 
 const resetLegend = async (req, res) => {
+    const actor = buildActor(req);
     service.resetLegend(req.params.code);
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: `flood:legend:reset:${req.params.code}`,
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { code: req.params.code },
+    });
     return OK(res, 'Đã khôi phục chú giải về mặc định');
 };
 const layers = async (req, res) =>
