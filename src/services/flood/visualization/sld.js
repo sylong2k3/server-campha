@@ -29,10 +29,20 @@ function buildColorMap(def) {
     const isBinary = def.min === 1 && def.max === 1;
 
     if (isBinary || palette.length === 1) {
-        // Only value=1 gets a color; all other values (nodata, 0) render transparent.
+        // Robust binary ramp: covers all common raster value ranges.
+        // - Very negative values (nodata like -9999, -32768) → transparent
+        // - 0 (background / no-data stored as zero) → transparent
+        // - Any positive value (0.5 catches float-32 precision near 1.0;
+        //   255 covers UInt8 rasters where flood=255) → fully opaque with the
+        //   flood colour.  Using type="ramp" lets GeoServer interpolate linearly
+        //   between entries, so all positive pixel values resolve to opacity=1.
+        const hex = palette[0];
         return (
-            `<ColorMap type="values">` +
-            `<ColorMapEntry color="#${palette[0]}" quantity="1" opacity="1"/>` +
+            `<ColorMap type="ramp">` +
+            `<ColorMapEntry color="#${hex}" quantity="-999999" opacity="0"/>` +
+            `<ColorMapEntry color="#${hex}" quantity="0" opacity="0"/>` +
+            `<ColorMapEntry color="#${hex}" quantity="0.5" opacity="1"/>` +
+            `<ColorMapEntry color="#${hex}" quantity="255" opacity="1"/>` +
             `</ColorMap>`
         );
     }
@@ -108,4 +118,17 @@ function isKnownArtifactCode(code) {
     return typeof code === 'string' && code.trim() !== '' && code.trim() in ARTIFACT_LAYER_DEFINITIONS;
 }
 
-module.exports = { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode };
+/**
+ * Resolve a style_name / artifact code to the canonical key in
+ * ARTIFACT_LAYER_DEFINITIONS (checking aliases). Returns the resolved code
+ * string, or null when unrecognised.
+ */
+function resolveKnownArtifactCode(code) {
+    const trimmed = typeof code === 'string' ? code.trim() : '';
+    if (!trimmed) return null;
+    if (trimmed in ARTIFACT_LAYER_DEFINITIONS) return trimmed;
+    const aliased = ARTIFACT_CODE_ALIASES[trimmed];
+    return aliased && aliased in ARTIFACT_LAYER_DEFINITIONS ? aliased : null;
+}
+
+module.exports = { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode, resolveKnownArtifactCode };
