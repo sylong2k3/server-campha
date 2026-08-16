@@ -20,6 +20,10 @@ const catchupDelayMs = () => Math.max(0, Number(process.env.FC_CATCHUP_DELAY_MS)
 // (e.g. GEE asset went 404). Manual refresh still works.
 const maxFailedAttempts = () => Math.max(1, Number(process.env.FC_MAX_FAILED_ATTEMPTS) || 3);
 
+// Tháng 5-10 là mùa mưa tại Cẩm Phả (Quảng Ninh) — ảnh Sentinel-2 thường có
+// mây > 50%; dùng ngưỡng 80% để đủ ảnh hợp lệ. Mùa khô (11-4) giữ 50%.
+const seasonalCloudCover = (month) => (month >= 5 && month <= 10 ? 80 : 50);
+
 // Statuses that count as "period already handled" — cron leaves them alone.
 // `failed` is intentionally excluded so a broken asset fix takes effect on
 // the next tick without an operator having to click refresh manually.
@@ -76,7 +80,8 @@ async function queueMissingPeriod({ now = new Date(), deps = {} } = {}) {
             previousAttempt: attemptCount,
         });
     }
-    const run = await service.requestRun({ ...period, trigger: 'cron', requestedBy: null });
+    const cloudCover = seasonalCloudCover(period.month);
+    const run = await service.requestRun({ ...period, trigger: 'cron', requestedBy: null, cloudCover });
     debug.log('job.queueMissingPeriod queued', {
         period,
         snapshotId: run?.snapshot?.id,

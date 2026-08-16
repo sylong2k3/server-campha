@@ -1,9 +1,19 @@
 'use strict';
 
+// Seasonal representative months and their 3-month window:
+//   3  → Xuân: Jan–Mar  (startMonth=1)
+//   6  → Hạ:  Apr–Jun  (startMonth=4)
+//   9  → Thu: Jul–Sep  (startMonth=7)
+//   12 → Đông: Oct–Dec (startMonth=10)
+const SEASON_START_MONTH = { 3: 1, 6: 4, 9: 7, 12: 10 };
+
 const periodDates = (year, month) => {
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-    const end = new Date(Date.UTC(year, month, 0));
-    return { startDate, endDate: end.toISOString().slice(0, 10) };
+    const startMonth = SEASON_START_MONTH[month] ?? month;
+    const startDate = `${year}-${String(startMonth).padStart(2, '0')}-01`;
+    // GEE filterDate is end-exclusive: use first day of the month AFTER the season end
+    // e.g. season ending March → endDate = April 1 so March 31 is included
+    const endExclusive = new Date(Date.UTC(year, month, 1));
+    return { startDate, endDate: endExclusive.toISOString().slice(0, 10) };
 };
 
 const previousCompletedPeriod = (now = new Date(), timezone = 'Asia/Ho_Chi_Minh') => {
