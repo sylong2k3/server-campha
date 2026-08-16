@@ -15,7 +15,21 @@ const listResponse = (res, result, query, message) =>
     });
 
 const overview = async (_req, res) => OK(res, 'Đã tải tổng quan ngập lụt', await service.overview());
-const legends = async (_req, res) => OK(res, 'Đã tải chú giải ngập lụt', service.getLegends());
+const legends = async (req, res) =>
+    OK(res, 'Đã tải chú giải ngập lụt', service.getLegends(req.query.module));
+
+const adminLegends = async (req, res) =>
+    OK(res, 'Đã tải chú giải ngập lụt (admin)', service.getAdminLegends(req.query.module));
+
+const updateLegend = async (req, res) => {
+    const updated = service.updateLegend(req.params.code, req.body);
+    return OK(res, 'Đã cập nhật chú giải', updated);
+};
+
+const resetLegend = async (req, res) => {
+    service.resetLegend(req.params.code);
+    return OK(res, 'Đã khôi phục chú giải về mặc định');
+};
 const layers = async (req, res) =>
     listResponse(
         res,
@@ -133,6 +147,9 @@ const deleteScenario = async (req, res) => {
 module.exports = {
     overview,
     legends,
+    adminLegends,
+    updateLegend,
+    resetLegend,
     layers,
     publicRuns,
     dashboard,

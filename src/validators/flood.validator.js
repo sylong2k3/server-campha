@@ -99,6 +99,28 @@ const queryScenarioSchema = Joi.object({
     search: Joi.string().allow('', null),
 }).unknown(false);
 
+const legendModuleName = Joi.string().valid('event', 'hand', 'rain', 'impact', 'trend');
+
+const legendQuerySchema = Joi.object({
+    module: legendModuleName,
+}).unknown(false);
+
+const legendCodeParamsSchema = Joi.object({
+    code: Joi.string().alphanum().max(100).required(),
+}).unknown(false);
+
+const legendLabel = Joi.object({
+    vi: Joi.string().max(255),
+    en: Joi.string().max(255),
+}).unknown(false);
+
+const updateLegendSchema = Joi.object({
+    label: legendLabel,
+    palette: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{3,6}$/).required()).min(1).max(20),
+    min: Joi.number(),
+    max: Joi.number(),
+}).unknown(false).min(1);
+
 module.exports = {
     listSchema,
     publicListSchema,
@@ -108,5 +130,8 @@ module.exports = {
     createScenarioSchema,
     updateScenarioSchema,
     queryScenarioSchema,
+    legendQuerySchema,
+    legendCodeParamsSchema,
+    updateLegendSchema,
 };
 

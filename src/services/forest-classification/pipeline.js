@@ -5,38 +5,34 @@
  *
  * This is intentionally separate from the generic satellite builders: it needs
  * red-edge/SWIR bands and regional auxiliary datasets which RGB and NDVI do not.
- * It implements the supplied 12-class rule set and clips every output to cp_rg.
+ * It implements the 8-class rule set and clips every output to cp_rg.
  */
 
 const { ee } = require('../../configs/gge');
 const { Api400Error } = require('../../core/error.response');
 
 const CLASS_DEFINITIONS = Object.freeze([
-    { value: 0, label: 'Nước mặt', nameEn: 'Surface water', color: '#1A73E8' },
-    { value: 1, label: 'Rừng tự nhiên', nameEn: 'Natural forest', color: '#2D7B2E' },
-    { value: 2, label: 'Rừng trồng', nameEn: 'Planted forest', color: '#85C946' },
-    { value: 3, label: 'Cây bụi / trảng cỏ', nameEn: 'Shrub / grassland', color: '#BFD760' },
-    { value: 4, label: 'Cây hàng năm', nameEn: 'Annual crop', color: '#F5E642' },
-    { value: 5, label: 'Cây lâu năm', nameEn: 'Perennial crop', color: '#F9A825' },
-    { value: 6, label: 'Khu dân cư', nameEn: 'Residential', color: '#E91E63' },
-    { value: 7, label: 'Công trình - hạ tầng', nameEn: 'Infrastructure', color: '#B71C1C' },
-    { value: 8, label: 'Đất trống', nameEn: 'Bare ground', color: '#D7CCC8' },
-    { value: 9, label: 'Khai trường mỏ', nameEn: 'Open-pit mine', color: '#000000' },
-    { value: 10, label: 'Bãi thải mỏ', nameEn: 'Mine waste dump', color: '#795548' },
-    { value: 11, label: 'Đất ngập nước / ven biển', nameEn: 'Wetlands / coastal', color: '#00BCD4' },
+    { value: 0, label: 'Mặt nước', nameEn: 'Surface water', color: '#0886FB' },
+    { value: 1, label: 'Rừng LRTX có độ che phủ thưa', nameEn: 'Sparse evergreen broadleaf forest', color: '#036403' },
+    { value: 2, label: 'Dân cư đô thị', nameEn: 'Urban / built-up', color: '#FA9497' },
+    { value: 3, label: 'Đất trống khô', nameEn: 'Dry bare land', color: '#FDFE98' },
+    { value: 4, label: 'Bãi khai thác than', nameEn: 'Coal mining area', color: '#8C5C07' },
+    { value: 5, label: 'Cây bụi', nameEn: 'Shrubland', color: '#318A07' },
+    { value: 6, label: 'Đất trống trảng cỏ', nameEn: 'Grassland / sparse vegetation', color: '#CFFC15' },
+    { value: 7, label: 'Đất nông nghiệp', nameEn: 'Agricultural land', color: '#FBC695' },
 ]);
 
 const CLASSIFIED_VIZ = Object.freeze({
     min: 0,
-    max: 11,
+    max: 7,
     palette: CLASS_DEFINITIONS.map(({ color }) => color),
 });
 
 // Class-id groupings for the two aggregated indicators Cẩm Phả reports on the
 // dashboard (forest coverage and mining footprint). See
 // docs/FOREST_CLASSIFICATION_TAXONOMY.md §3.
-const FOREST_CLASS_IDS = Object.freeze([1, 2]); // natural + planted forest
-const MINE_CLASS_IDS = Object.freeze([9, 10]); // pit + waste dump
+const FOREST_CLASS_IDS = Object.freeze([1]); // rừng LRTX
+const MINE_CLASS_IDS = Object.freeze([4]); // bãi khai thác than
 
 const roundHa = (value) => Number(Number(value || 0).toFixed(2));
 const roundPercent = (value) => Number(Number(value || 0).toFixed(2));
@@ -313,19 +309,22 @@ const classifyLandCover = (composite, auxiliary, region) => {
         .and(perennialCrops.not())
         .and(shrubGrass.not());
 
+    // 8-class output: 0=Mặt nước, 1=Rừng LRTX, 2=Dân cư đô thị, 3=Đất trống khô,
+    // 4=Bãi khai thác than, 5=Cây bụi, 6=Đất trống trảng cỏ, 7=Đất nông nghiệp
+    // Default background: 6 (đất trống trảng cỏ / sparse grass)
     return ee
-        .Image(3)
-        .where(perennialCrops, 5)
-        .where(annualCrops, 4)
-        .where(shrubGrass, 3)
-        .where(plantedForest, 2)
+        .Image(6)
+        .where(perennialCrops, 7)
+        .where(annualCrops, 7)
+        .where(shrubGrass.and(ndvi.gte(0.3)), 5)
+        .where(plantedForest, 1)
         .where(naturalForest, 1)
-        .where(barren, 8)
-        .where(residential, 6)
-        .where(infrastructure, 7)
-        .where(mineDump, 10)
-        .where(coalMine, 9)
-        .where(tidal, 11)
+        .where(barren, 3)
+        .where(residential, 2)
+        .where(infrastructure, 2)
+        .where(mineDump, 4)
+        .where(coalMine, 4)
+        .where(tidal, 0)
         .where(water, 0)
         .updateMask(composite.select('B2').mask())
         .rename('class')

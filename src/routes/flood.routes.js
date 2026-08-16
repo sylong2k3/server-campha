@@ -15,7 +15,11 @@ const strict = (schema, source = 'body') => validate(schema, source, { stripUnkn
 
 const publicRouter = Router();
 publicRouter.get('/overview', asyncHandler(controller.overview));
-publicRouter.get('/legends', asyncHandler(controller.legends));
+publicRouter.get(
+    '/legends',
+    strict(validator.legendQuerySchema, 'query'),
+    asyncHandler(controller.legends),
+);
 publicRouter.get(
     '/layers',
     strict(validator.publicListSchema, 'query'),
@@ -129,6 +133,26 @@ adminRouter.post(
     strict(validator.idParamsSchema, 'params'),
     asyncHandler(controller.unpublishArtifact),
 );
+adminRouter.get(
+    '/legends',
+    requirePermission('flood', 'read'),
+    strict(validator.legendQuerySchema, 'query'),
+    asyncHandler(controller.adminLegends),
+);
+adminRouter.put(
+    '/legends/:code',
+    requirePermission('flood', 'publish'),
+    strict(validator.legendCodeParamsSchema, 'params'),
+    strict(validator.updateLegendSchema),
+    asyncHandler(controller.updateLegend),
+);
+adminRouter.delete(
+    '/legends/:code',
+    requirePermission('flood', 'publish'),
+    strict(validator.legendCodeParamsSchema, 'params'),
+    asyncHandler(controller.resetLegend),
+);
+
 // Manual "fire the daily cron now" — same guard as run submit.
 adminRouter.post(
     '/daily/trigger',

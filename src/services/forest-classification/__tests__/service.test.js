@@ -34,7 +34,7 @@ describe('forest-classification service', () => {
                 status: 'exporting',
                 provinceSummary: expect.objectContaining({
                     rasterIngestJobId: 22,
-                    classSchema: 'campha_landcover_12',
+                    classSchema: 'campha_landcover_8',
                 }),
             }),
         );

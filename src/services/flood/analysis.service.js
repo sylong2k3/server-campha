@@ -16,7 +16,9 @@ const { canManuallyPublish } = require('./config/product-vs-calibration');
 const { validateRunConfig } = require('./config/schema');
 const defaults = require('./config/defaults');
 const versions = require('./config/versions');
-const { buildAllLegends } = require('./visualization/legends');
+const { buildAllLegends, buildAllAdminLegends } = require('./visualization/legends');
+const legendStore = require('./visualization/legend-store');
+const { ARTIFACT_LAYER_DEFINITIONS } = require('./visualization/layer-definitions');
 const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
 const debug = require('./debug.util');
 
@@ -548,6 +550,18 @@ module.exports = {
     updateScenario,
     deleteScenario,
     getLegends: buildAllLegends,
+    getAdminLegends: buildAllAdminLegends,
+    updateLegend(artifactCode, patch) {
+        if (!ARTIFACT_LAYER_DEFINITIONS[artifactCode]) {
+            throw new Error(`Không tìm thấy artifact '${artifactCode}'`);
+        }
+        legendStore.upsertOverride(artifactCode, patch);
+        const { buildAdminLegend } = require('./visualization/legends');
+        return buildAdminLegend(artifactCode);
+    },
+    resetLegend(artifactCode) {
+        legendStore.deleteOverride(artifactCode);
+    },
     getQueueState: orchestrator.getQueueState,
 };
 

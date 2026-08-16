@@ -11,7 +11,7 @@ const debug = require('../services/forest-classification/debug.util');
 const { buildPeriodLayerCode } = require('../services/forest-classification/archive');
 
 const CLASS_MIN = 0;
-const CLASS_MAX = 11;
+const CLASS_MAX = 7;
 
 const positiveInteger = (value, fallback, max = 100) => {
     const parsed = Number.parseInt(value, 10);
@@ -292,7 +292,7 @@ const parseGtQuery = (query, limitDefault) => ({
 const validateClass = (classId) => {
     const value = Number(classId);
     if (!Number.isInteger(value) || value < CLASS_MIN || value > CLASS_MAX) {
-        throw new Api400Error('classId phải là số nguyên từ 0 đến 11.', ['INVALID_CLASS_ID']);
+        throw new Api400Error('classId phải là số nguyên từ 0 đến 7.', ['INVALID_CLASS_ID']);
     }
     return value;
 };

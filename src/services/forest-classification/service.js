@@ -19,7 +19,7 @@ const summaryFromResult = (result, archiveJob = null) => {
         totalHa: totalHa || null,
         ...coverage,
         legend: buildLegend(areaByClass, totalHa),
-        classSchema: 'campha_landcover_12',
+        classSchema: 'campha_landcover_8',
         source: 'campha-sentinel2-rule-based-v1',
         rasterIngestJobId: archiveJob?.job?.id || null,
     };
