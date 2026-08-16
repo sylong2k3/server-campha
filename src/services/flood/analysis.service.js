@@ -247,7 +247,6 @@ function extractRunPeriod(run) {
     const m = run.result_metadata || {};
     switch (run.module) {
         case 'event':
-        case 'rain':
         case 'impact':
             return m.postStart ? { start: m.postStart, end: m.postEnd || null } : null;
         case 'hand':
@@ -355,7 +354,7 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'rain', 'impact', 'trend'];
+    const modules = ['event', 'impact', 'trend'];
     const latest = await Promise.all(
         modules.map((module) =>
             runRepo.findLatestByModule(module, {
@@ -392,13 +391,11 @@ function getConfig() {
         defaults: {
             event: defaults.S1_DEFAULTS,
             hand: defaults.HAND_DEFAULTS,
-            rain: defaults.RAIN_RISK_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
         },
         versions: versions.MODULE_TO_PIPELINE_VERSION,
         configVersion: versions.CONFIG_VERSION,
-        probabilityCalibrated: false,
     };
 }
 

@@ -2,7 +2,7 @@
 
 const Joi = require('joi');
 
-const moduleName = Joi.string().valid('event', 'hand', 'rain', 'impact', 'trend');
+const moduleName = Joi.string().valid('event', 'hand', 'impact', 'trend');
 const status = Joi.string().valid(
     'QUEUED',
     'COMPUTING',

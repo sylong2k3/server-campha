@@ -129,12 +129,6 @@ adminRouter.post(
     strict(validator.idParamsSchema, 'params'),
     asyncHandler(controller.unpublishArtifact),
 );
-// Auto-fill for the M3 rainfall form.
-adminRouter.get(
-    '/weather/current',
-    requirePermission('flood', 'read'),
-    asyncHandler(controller.currentWeather),
-);
 // Manual "fire the daily cron now" — same guard as run submit.
 adminRouter.post(
     '/daily/trigger',

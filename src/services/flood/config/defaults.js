@@ -103,17 +103,6 @@ const HAND_DEFAULTS = Object.freeze({
     maximumSlope: 12,
 });
 
-// ── Rain-based Risk Index (M3) — Flood_D lines 232–235 ──────────────────────
-// Terminology (§16): this is a Risk Index (0..1), NOT a calibrated probability.
-const RAIN_RISK_DEFAULTS = Object.freeze({
-    // Flood_D:232 — 'IMERG' (event) or 'MANUAL' (scenario). CHIRPS = antecedent.
-    source: 'IMERG',
-    // Flood_D:235 — risk index cutoff (0..1) above which pixels are flagged high-risk.
-    threshold: 0.6,
-    // §16 provenance flag. If this ever flips true, add calibration evidence + reviewers.
-    PROBABILITY_CALIBRATED: false,
-});
-
 // ── Impact (M4) — Flood_D lines 238–242 ─────────────────────────────────────
 const IMPACT_DEFAULTS = Object.freeze({
     // Flood_D:238 — 'M1' | 'M2' | 'M3' source selector.
@@ -167,8 +156,6 @@ const DEFAULT_RUN_MODE = 'product';
 const RUN_CONFIG_TOGGLES = Object.freeze({
     // Flood_D:141
     autoRunM1: true,
-    // Flood_D:143
-    runRainRisk: false,
     // Flood_D:144
     runImpactAfterM1: true,
 });
@@ -193,7 +180,6 @@ module.exports = {
     MINING_POLYGON_ASSET_ID,
     S1_DEFAULTS,
     HAND_DEFAULTS,
-    RAIN_RISK_DEFAULTS,
     IMPACT_DEFAULTS,
     TREND_DEFAULTS,
     RUN_MODES,
