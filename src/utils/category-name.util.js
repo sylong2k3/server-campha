@@ -2,7 +2,7 @@
 
 const CATEGORY_MAP_VI = {
     flood: 'Ngập lụt',
-    forest: 'Phân loại rừng',
+    forest: 'Phân loại đối tượng',
     'lop-phu-ngap': 'Lớp phủ ngập',
     'ranh gioi': 'Ranh giới',
     ranh_gioi: 'Ranh giới',

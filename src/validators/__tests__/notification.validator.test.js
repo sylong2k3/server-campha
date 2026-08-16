@@ -9,7 +9,7 @@ describe('notification send validator', () => {
             userId: 7,
             channel: 'forest',
             type: 'forest_classification_published',
-            title: 'Kết quả phân loại rừng mới',
+            title: 'Kết quả Phân loại đối tượng mới',
             body: 'Kỳ dữ liệu mới đã được công bố.',
         },
         {

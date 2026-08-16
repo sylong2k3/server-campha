@@ -186,6 +186,15 @@ const ARTIFACT_LAYER_DEFINITIONS = Object.freeze({
     ...M5_LAYERS,
 });
 
+// Maps each artifact_code to its module name.
+const ARTIFACT_MODULE_MAP = Object.freeze({
+    ...Object.fromEntries(Object.keys(M1_LAYERS).map(k => [k, 'event'])),
+    ...Object.fromEntries(Object.keys(M2_LAYERS).map(k => [k, 'hand'])),
+    ...Object.fromEntries(Object.keys(M3_LAYERS).map(k => [k, 'rain'])),
+    ...Object.fromEntries(Object.keys(M4_LAYERS).map(k => [k, 'impact'])),
+    ...Object.fromEntries(Object.keys(M5_LAYERS).map(k => [k, 'trend'])),
+});
+
 /**
  * Get the layer definition for an artifact code — throws for unknown codes so
  * a typo doesn't silently render as a blank layer.
@@ -214,6 +223,7 @@ function listArtifactCodes() {
 
 module.exports = {
     ARTIFACT_LAYER_DEFINITIONS,
+    ARTIFACT_MODULE_MAP,
     M1_LAYERS,
     M2_LAYERS,
     M3_LAYERS,

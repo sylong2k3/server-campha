@@ -2,7 +2,7 @@
 
 const Joi = require('joi');
 
-const moduleName = Joi.string().valid('event', 'hand', 'rain', 'impact', 'trend');
+const moduleName = Joi.string().valid('event', 'hand', 'impact', 'trend');
 const status = Joi.string().valid(
     'QUEUED',
     'COMPUTING',
@@ -29,6 +29,9 @@ const listSchema = Joi.object({
 
 const publicListSchema = Joi.object({
     module: moduleName,
+    // mode is always 'product' on the public endpoint; the service enforces this
+    // regardless, but accepting the param lets clients be explicit.
+    mode: Joi.string().valid('product').default('product'),
     from: Joi.date().iso(),
     to: Joi.date().iso(),
     page: Joi.number().integer().min(1).default(1),
@@ -96,6 +99,30 @@ const queryScenarioSchema = Joi.object({
     search: Joi.string().allow('', null),
 }).unknown(false);
 
+const legendModuleName = Joi.string().valid('event', 'hand', 'rain', 'impact', 'trend');
+
+const legendQuerySchema = Joi.object({
+    module: legendModuleName,
+}).unknown(false);
+
+const legendCodeParamsSchema = Joi.object({
+    code: Joi.string().pattern(/^[a-z0-9_]+$/).max(100).required().messages({
+        'string.pattern.base': '"code" chỉ được chứa chữ thường, chữ số và dấu gạch dưới',
+    }),
+}).unknown(false);
+
+const legendLabel = Joi.object({
+    vi: Joi.string().max(255),
+    en: Joi.string().max(255),
+}).unknown(false);
+
+const updateLegendSchema = Joi.object({
+    label: legendLabel,
+    palette: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{3,6}$/).required()).min(1).max(20),
+    min: Joi.number(),
+    max: Joi.number(),
+}).unknown(false).min(1);
+
 module.exports = {
     listSchema,
     publicListSchema,
@@ -105,5 +132,8 @@ module.exports = {
     createScenarioSchema,
     updateScenarioSchema,
     queryScenarioSchema,
+    legendQuerySchema,
+    legendCodeParamsSchema,
+    updateLegendSchema,
 };
 

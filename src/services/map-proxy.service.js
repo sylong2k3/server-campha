@@ -2,7 +2,7 @@
 const { requestGeoserver } = require('../utils/geoserver.client');
 const { signTileTicket } = require('../utils/map-tile-ticket.util');
 const { Api404Error, Api413Error } = require('../core/error.response');
-const { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode } = require('./flood/visualization/sld');
+const { buildSld, artifactCodeFromLayerCode, resolveKnownArtifactCode } = require('./flood/visualization/sld');
 const MAX_RESPONSE_BYTES = Number(process.env.MAP_PROXY_MAX_RESPONSE_MB || 500) * 1024 * 1024;
 const assertLayer = (layer) => {
     if (!layer?.geoserver_layer) {
@@ -46,12 +46,12 @@ const proxyWms = async (layer, query) => {
     //
     // Resolve artifact code via two methods (in priority order):
     // 1. Parse layer.code for the fl_{module}_{artifact_code}_{id} pattern
-    // 2. Use layer.style_name directly if it is a known artifact code
-    //    (style_name = artifact_code is set by the ingest pipeline and works
-    //     even when layer.category is NULL in older DB rows)
+    //    (also resolves legacy code aliases, e.g. flood_main → main_flood_non_tidal)
+    // 2. Use layer.style_name if it maps to a known artifact code or alias
+    //    (works even when layer.category is NULL in older DB rows)
     const artifactCode =
         artifactCodeFromLayerCode(layer.code) ||
-        (isKnownArtifactCode(layer.style_name) ? layer.style_name.trim() : null);
+        resolveKnownArtifactCode(layer.style_name);
     const sldBody = artifactCode ? buildSld(layerName, artifactCode) : null;
 
     const params = new URLSearchParams({

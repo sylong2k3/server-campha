@@ -81,34 +81,6 @@ const handSchema = Joi.object({
     maximumSlope: Joi.number().min(0).max(45).default(12),
 }).unknown(false);
 
-// ── M3 (Rain-based Risk Index) ───────────────────────────────────────────────
-const rainSchema = Joi.object({
-    mode: modeSchema,
-    // 'IMERG' fetches from the IMERG collection; 'MANUAL' uses supplied rainfall.
-    source: Joi.string().valid('IMERG', 'MANUAL').default('IMERG'),
-    eventTime: Joi.string().isoDate(),
-    // Only used when source='MANUAL'. Millimetres.
-    rainfall: Joi.object({
-        amount3h: Joi.number().min(0),
-        amount6h: Joi.number().min(0),
-        amount24h: Joi.number().min(0),
-        amount72h: Joi.number().min(0),
-        amount7d: Joi.number().min(0),
-        amount30d: Joi.number().min(0),
-    }),
-    threshold: Joi.number().min(0).max(1).default(0.6),
-})
-    .custom((value, helpers) => {
-        if (value.source === 'IMERG' && !value.eventTime) {
-            return helpers.message('eventTime is required when source=IMERG');
-        }
-        if (value.source === 'MANUAL' && !value.rainfall) {
-            return helpers.message('rainfall object is required when source=MANUAL');
-        }
-        return value;
-    }, 'rain-source-consistency')
-    .unknown(false);
-
 // ── M4 (Impact) ──────────────────────────────────────────────────────────────
 const impactSchema = Joi.object({
     mode: modeSchema,
@@ -179,13 +151,12 @@ const trendSchema = Joi.object({
 const SCHEMAS = Object.freeze({
     event: eventSchema,
     hand: handSchema,
-    rain: rainSchema,
     impact: impactSchema,
     trend: trendSchema,
 });
 
 /**
- * @param {'event'|'hand'|'rain'|'impact'|'trend'} module
+ * @param {'event'|'hand'|'impact'|'trend'} module
  * @param {object} payload
  * @returns {object} — normalised value with defaults applied
  * @throws  {Error} with .details listing every rejected key

@@ -237,6 +237,11 @@ async function runTrendAnalysis({
             floodRatioThresholdVH: config.floodRatioThresholdVH,
             frequencyAlertPercent: config.frequencyAlertPercent,
             assessment: assessmentResult,
+            // Kỳ nền (dry/baseline) and Kỳ phân tích (wet/analysis periods).
+            // Stored here so clients can display the analysis window per run
+            // without needing access to the full params_snapshot.
+            baselinePeriod: { start: config.dryStart, end: config.dryEnd },
+            analysisPeriods: config.periods.map((p) => ({ start: p.start, end: p.end })),
             warnings,
         },
         diagnostics: shouldEnableDiagnostics({ mode: runMode })

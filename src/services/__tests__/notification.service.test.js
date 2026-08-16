@@ -139,7 +139,7 @@ describe('notification.service', () => {
                     userId: 7,
                     channel: 'forest',
                     type: 'forest_classification_published',
-                    title: 'Kết quả phân loại rừng mới',
+                    title: 'Kết quả Phân loại đối tượng mới',
                     body: 'Kỳ tháng 8 đã được công bố.',
                 },
                 { id: 99 },

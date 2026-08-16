@@ -13,7 +13,7 @@ SET category_name = CASE category
     WHEN 'flood_risk' THEN 'Chỉ số nguy cơ ngập'
     WHEN 'flood_impact' THEN 'Tác động ngập lụt'
     WHEN 'flood_trend' THEN 'Xu thế ngập lụt'
-    WHEN 'forest_district' THEN 'Phân loại rừng theo huyện'
+    WHEN 'forest_district' THEN 'Phân loại đối tượng theo huyện'
     WHEN 'administrative' THEN 'Ranh giới hành chính'
     WHEN 'hanh_chinh' THEN 'Hành chính'
     WHEN 'hydrology' THEN 'Thủy văn'

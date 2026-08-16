@@ -5,6 +5,8 @@ const minioService = require('./minio.service');
 const { Api403Error, Api404Error, Api422Error } = require('../core/error.response');
 const { t } = require('../utils/i18n.util');
 
+const BLOCKED_CATEGORIES = new Set(['flood', 'forest']);
+
 const canMap = (actor, action) => !actor || actor.permissions?.map?.[action] === true;
 const assertMap = (actor, action) => {
     if (!canMap(actor, action)) {
@@ -76,7 +78,10 @@ const serializeLayer = (layer, actor) => {
 };
 const listLayers = async (category, actor) => {
     assertMap(actor, 'view');
-    return (await repository.catalog(actor, category)).map((layer) => serializeLayer(layer, actor));
+    const isAdmin = actor?.role === 'system_admin';
+    const layers = await repository.catalog(actor, category);
+    const visible = isAdmin ? layers : layers.filter((l) => !BLOCKED_CATEGORIES.has(l.category));
+    return visible.map((layer) => serializeLayer(layer, actor));
 };
 const getFeature = async (layerId, featureId, includeGeometry, actor) => {
     assertMap(actor, 'view_attributes');

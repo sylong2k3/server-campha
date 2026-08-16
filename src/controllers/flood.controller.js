@@ -1,12 +1,11 @@
 'use strict';
 
 const service = require('../services/flood/analysis.service');
-const weatherService = require('../services/flood/weather.service');
 const eventDaily = require('../services/flood/event-daily.service');
 const eventDailyJob = require('../jobs/flood-event-daily.job');
 const { OK, CREATED, OK_LIST } = require('../core/success.response');
-const { Api503Error } = require('../core/error.response');
 const { buildActor } = require('../utils/actor.util');
+const { logActivity } = require('../utils/activityLogger.util');
 const debug = require('../services/flood/debug.util');
 
 const listResponse = (res, result, query, message) =>
@@ -17,7 +16,37 @@ const listResponse = (res, result, query, message) =>
     });
 
 const overview = async (_req, res) => OK(res, 'Đã tải tổng quan ngập lụt', await service.overview());
-const legends = async (_req, res) => OK(res, 'Đã tải chú giải ngập lụt', service.getLegends());
+const legends = async (req, res) =>
+    OK(res, 'Đã tải chú giải ngập lụt', service.getLegends(req.query.module));
+
+const adminLegends = async (req, res) =>
+    OK(res, 'Đã tải chú giải ngập lụt (admin)', service.getAdminLegends(req.query.module));
+
+const updateLegend = async (req, res) => {
+    const actor = buildActor(req);
+    const updated = service.updateLegend(req.params.code, req.body);
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: `flood:legend:update:${req.params.code}`,
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { code: req.params.code, patch: req.body },
+    });
+    return OK(res, 'Đã cập nhật chú giải', updated);
+};
+
+const resetLegend = async (req, res) => {
+    const actor = buildActor(req);
+    service.resetLegend(req.params.code);
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: `flood:legend:reset:${req.params.code}`,
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { code: req.params.code },
+    });
+    return OK(res, 'Đã khôi phục chú giải về mặc định');
+};
 const layers = async (req, res) =>
     listResponse(
         res,
@@ -74,23 +103,6 @@ const unpublishArtifact = async (req, res) => {
     const unpublished = await service.unpublishArtifact(Number(req.params.id), buildActor(req));
     debug.log('controller.unpublishArtifact response', { artifactId: unpublished?.id });
     return OK(res, 'Đã thu hồi công bố artifact', unpublished);
-};
-
-// Auto-fill button for the M3 rainfall form. Returns the OpenWeather nowcast
-// at the Cẩm Phả center reshaped to match the run-form field names.
-const currentWeather = async (_req, res) => {
-    try {
-        const bundle = await weatherService.getCurrentRainfallBundle();
-        return OK(res, 'Đã lấy dữ liệu thời tiết hiện tại.', bundle);
-    } catch (error) {
-        if (error?.code === 'OPENWEATHER_NOT_CONFIGURED') {
-            throw new Api503Error(
-                'Chưa cấu hình khóa OpenWeather trên máy chủ.',
-                ['OPENWEATHER_NOT_CONFIGURED'],
-            );
-        }
-        throw error;
-    }
 };
 
 // Manual "fire the daily cron now" for ops/testing. Returns the same
@@ -152,6 +164,9 @@ const deleteScenario = async (req, res) => {
 module.exports = {
     overview,
     legends,
+    adminLegends,
+    updateLegend,
+    resetLegend,
     layers,
     publicRuns,
     dashboard,
@@ -164,7 +179,6 @@ module.exports = {
     cancel,
     publishArtifact,
     unpublishArtifact,
-    currentWeather,
     triggerDaily,
     simulation,
     listScenarios,

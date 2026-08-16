@@ -3,7 +3,7 @@
 UPDATE gis.layers
 SET category_name = CASE
     WHEN LOWER(TRIM(COALESCE(category, ''))) = 'flood' OR LOWER(TRIM(COALESCE(category_name, ''))) = 'flood' THEN 'Ngập lụt'
-    WHEN LOWER(TRIM(COALESCE(category, ''))) = 'forest' OR LOWER(TRIM(COALESCE(category_name, ''))) = 'forest' THEN 'Phân loại rừng'
+    WHEN LOWER(TRIM(COALESCE(category, ''))) = 'forest' OR LOWER(TRIM(COALESCE(category_name, ''))) = 'forest' THEN 'Phân loại đối tượng'
     WHEN LOWER(TRIM(COALESCE(category, ''))) = 'lop-phu-ngap' OR LOWER(TRIM(COALESCE(category_name, ''))) = 'lop-phu-ngap' THEN 'Lớp phủ ngập'
     WHEN LOWER(TRIM(COALESCE(category, ''))) IN ('ranh gioi', 'ranh_gioi', 'boundary', 'administrative')
       OR LOWER(TRIM(COALESCE(category_name, ''))) IN ('ranh gioi', 'ranh_gioi', 'boundary', 'administrative') THEN 'Ranh giới'

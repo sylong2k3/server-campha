@@ -6,11 +6,31 @@
  * These are derived from `layer-definitions.js` but shaped for the client's
  * legend widget (label + colour swatches, optional numeric ticks).
  *
+ * Overrides stored in `legend-store.js` (JSON file) take precedence over the
+ * compiled defaults, allowing admin-side edits without a redeploy.
+ *
  * @rule architecture doc §43 — visually distinguish QA layers from confirmed
  *       products (see the "QA" note on shallow/tidal/mining/urban entries).
  */
 
-const { ARTIFACT_LAYER_DEFINITIONS, listArtifactCodes } = require('./layer-definitions');
+const { ARTIFACT_LAYER_DEFINITIONS, ARTIFACT_MODULE_MAP, listArtifactCodes } = require('./layer-definitions');
+const legendStore = require('./legend-store');
+
+/**
+ * Merge compiled defaults with any persisted admin override for an artifact.
+ */
+function _resolveDefinition(artifactCode) {
+    const base = ARTIFACT_LAYER_DEFINITIONS[artifactCode];
+    if (!base) throw new Error(`visualization.buildLegend: no definition for '${artifactCode}'`);
+    const override = legendStore.getOverride(artifactCode);
+    if (!override) return base;
+    return {
+        palette: override.palette ?? base.palette,
+        min: override.min ?? base.min,
+        max: override.max ?? base.max,
+        label: override.label ?? base.label,
+    };
+}
 
 /**
  * Build a legend for a single artifact.
@@ -18,6 +38,7 @@ const { ARTIFACT_LAYER_DEFINITIONS, listArtifactCodes } = require('./layer-defin
  * Shape returned:
  *   {
  *     code: string,
+ *     module: string,
  *     label: { vi, en },
  *     kind: 'binary' | 'continuous' | 'class',
  *     entries: [{ color, label?, value? }],
@@ -26,16 +47,14 @@ const { ARTIFACT_LAYER_DEFINITIONS, listArtifactCodes } = require('./layer-defin
  *   }
  */
 function buildLegend(artifactCode) {
-    const def = ARTIFACT_LAYER_DEFINITIONS[artifactCode];
-    if (!def) {
-        throw new Error(`visualization.buildLegend: no definition for '${artifactCode}'`);
-    }
+    const def = _resolveDefinition(artifactCode);
     const palette = def.palette || [];
     const isBinary = def.min === 1 && def.max === 1;
     const isSingleColor = palette.length === 1;
     if (isBinary || isSingleColor) {
         return {
             code: artifactCode,
+            module: ARTIFACT_MODULE_MAP[artifactCode] ?? null,
             label: def.label,
             kind: 'binary',
             entries: [{ color: `#${palette[0]}`, label: def.label }],
@@ -43,9 +62,6 @@ function buildLegend(artifactCode) {
             max: def.max,
         };
     }
-    // Class band — integer range where the palette has exactly one entry
-    // per class (e.g. rain_risk_class 1..3 with 3 palette hexes). Rules out
-    // continuous 0..1 gradients that happen to fit inside a small range.
     const expectedClassEntries = def.max - def.min + 1;
     const isClassBand =
         Number.isInteger(def.min) &&
@@ -61,6 +77,7 @@ function buildLegend(artifactCode) {
         }));
         return {
             code: artifactCode,
+            module: ARTIFACT_MODULE_MAP[artifactCode] ?? null,
             label: def.label,
             kind: 'class',
             entries,
@@ -68,7 +85,6 @@ function buildLegend(artifactCode) {
             max: def.max,
         };
     }
-    // Continuous gradient — publish evenly-spaced ticks between min and max.
     const entries = palette.map((hex, idx) => {
         const t = palette.length === 1 ? 0 : idx / (palette.length - 1);
         const value = def.min + (def.max - def.min) * t;
@@ -76,6 +92,7 @@ function buildLegend(artifactCode) {
     });
     return {
         code: artifactCode,
+        module: ARTIFACT_MODULE_MAP[artifactCode] ?? null,
         label: def.label,
         kind: 'continuous',
         entries,
@@ -87,9 +104,27 @@ function buildLegend(artifactCode) {
 /**
  * Build legends for every artifact this domain knows about. Used by the
  * client's legend-preload flow so a single fetch returns everything.
+ * @param {string} [module] Optional module filter ('event'|'hand'|'rain'|'impact'|'trend').
  */
-function buildAllLegends() {
-    return listArtifactCodes().map(buildLegend);
+function buildAllLegends(module) {
+    const codes = listArtifactCodes();
+    const filtered = module ? codes.filter(c => ARTIFACT_MODULE_MAP[c] === module) : codes;
+    return filtered.map(buildLegend);
 }
 
-module.exports = { buildLegend, buildAllLegends };
+/**
+ * Build a legend entry annotated with current override metadata for admin display.
+ */
+function buildAdminLegend(artifactCode) {
+    const legend = buildLegend(artifactCode);
+    const override = legendStore.getOverride(artifactCode);
+    return { ...legend, hasOverride: override !== null };
+}
+
+function buildAllAdminLegends(module) {
+    const codes = listArtifactCodes();
+    const filtered = module ? codes.filter(c => ARTIFACT_MODULE_MAP[c] === module) : codes;
+    return filtered.map(buildAdminLegend);
+}
+
+module.exports = { buildLegend, buildAllLegends, buildAdminLegend, buildAllAdminLegends };

@@ -16,7 +16,9 @@ const { canManuallyPublish } = require('./config/product-vs-calibration');
 const { validateRunConfig } = require('./config/schema');
 const defaults = require('./config/defaults');
 const versions = require('./config/versions');
-const { buildAllLegends } = require('./visualization/legends');
+const { buildAllLegends, buildAllAdminLegends } = require('./visualization/legends');
+const legendStore = require('./visualization/legend-store');
+const { ARTIFACT_LAYER_DEFINITIONS } = require('./visualization/layer-definitions');
 const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
 const debug = require('./debug.util');
 
@@ -239,6 +241,27 @@ async function listPublished(query = {}) {
     return { ...result, items: result.items.map(publicArtifact) };
 }
 
+/**
+ * Extract a concise period summary from result_metadata so clients can display
+ * the analysis window without accessing the full params_snapshot.
+ */
+function extractRunPeriod(run) {
+    const m = run.result_metadata || {};
+    switch (run.module) {
+        case 'event':
+        case 'impact':
+            return m.postStart ? { start: m.postStart, end: m.postEnd || null } : null;
+        case 'hand':
+            return m.levelM != null ? { levelM: m.levelM } : null;
+        case 'trend':
+            return m.baselinePeriod || m.analysisPeriods
+                ? { baseline: m.baselinePeriod || null, analysis: m.analysisPeriods || null }
+                : null;
+        default:
+            return null;
+    }
+}
+
 async function listPublicRuns(query = {}) {
     const result = await listRuns({ ...query, mode: 'product', status: 'SUCCEEDED' });
     return {
@@ -250,6 +273,7 @@ async function listPublicRuns(query = {}) {
             status: run.status,
             pipelineVersion: run.pipeline_version,
             resultMetadata: run.result_metadata,
+            period: extractRunPeriod(run),
             warnings: run.warnings,
             finishedAt: run.finished_at,
         })),
@@ -332,7 +356,7 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'rain', 'impact', 'trend'];
+    const modules = ['event', 'impact', 'trend'];
     const latest = await Promise.all(
         modules.map((module) =>
             runRepo.findLatestByModule(module, {
@@ -369,13 +393,11 @@ function getConfig() {
         defaults: {
             event: defaults.S1_DEFAULTS,
             hand: defaults.HAND_DEFAULTS,
-            rain: defaults.RAIN_RISK_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
         },
         versions: versions.MODULE_TO_PIPELINE_VERSION,
         configVersion: versions.CONFIG_VERSION,
-        probabilityCalibrated: false,
     };
 }
 
@@ -528,6 +550,18 @@ module.exports = {
     updateScenario,
     deleteScenario,
     getLegends: buildAllLegends,
+    getAdminLegends: buildAllAdminLegends,
+    updateLegend(artifactCode, patch) {
+        if (!ARTIFACT_LAYER_DEFINITIONS[artifactCode]) {
+            throw new Error(`Không tìm thấy artifact '${artifactCode}'`);
+        }
+        legendStore.upsertOverride(artifactCode, patch);
+        const { buildAdminLegend } = require('./visualization/legends');
+        return buildAdminLegend(artifactCode);
+    },
+    resetLegend(artifactCode) {
+        legendStore.deleteOverride(artifactCode);
+    },
     getQueueState: orchestrator.getQueueState,
 };
 
