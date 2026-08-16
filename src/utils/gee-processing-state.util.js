@@ -3,7 +3,7 @@
 const geeQueue = require('../queues/gee-task.queue');
 
 const PIPELINE_LABELS = Object.freeze({
-    'forest-classification': 'Phân loại lớp phủ rừng',
+    'forest-classification': 'Phân loại lớp phủ đối tượng',
     flood: 'Mô phỏng ngập lụt',
 });
 
