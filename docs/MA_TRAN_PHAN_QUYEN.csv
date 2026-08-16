@@ -4,9 +4,9 @@ A.1-11,Chạy sản phẩm M1-M5 và chạy lại hoặc hủy job,flood,run,0,0
 A.1-11,Chạy chế độ hiệu chỉnh Flood,flood,calibrate,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; artifact calibration không được công bố trực tiếp
 A.1-11,Công bố hoặc gỡ công bố artifact Flood,flood,publish,0,0,0,1,0,1,Chỉ product artifact đã archive MinIO và qua kiểm tra raster
 A.1-11,Cấu hình tham số vận hành Flood,flood,configure,0,0,0,1,0,1,Quyền dự phòng cho API cấu hình; bản chạy luôn lưu params_snapshot bất biến
-A.1-12,Xem kết quả Phân loại rừng đã công bố,forest_classification,read,1,1,1,1,1,1,KH qua API public; các vai trò đăng nhập có quyền read rõ ràng
-A.1-12,Chạy làm mới và công bố raster Phân loại rừng,forest_classification,manage,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; snapshot chỉ published khi đủ district set ổn định
-A.1-12,Quản lý vùng và điểm ground truth Phân loại rừng,forest_classification,ground_truth,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; class_id bị giới hạn 0-11
+A.1-12,Xem kết quả Phân loại đối tượng đã công bố,forest_classification,read,1,1,1,1,1,1,KH qua API public; các vai trò đăng nhập có quyền read rõ ràng
+A.1-12,Chạy làm mới và công bố raster Phân loại đối tượng,forest_classification,manage,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; snapshot chỉ published khi đủ district set ổn định
+A.1-12,Quản lý vùng và điểm ground truth Phân loại đối tượng,forest_classification,ground_truth,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; class_id bị giới hạn 0-11
 A.1-1,Thêm mới ảnh vệ tinh,raster,create,0,0,1,1,1,1,CONFIRMED — mục 2.1 Nhóm chức năng quản trị
 A.1-1,Xóa ảnh vệ tinh,raster,delete,0,0,1,1,1,1,CONFIRMED — mục 2.1 Nhóm chức năng quản trị
 A.1-1,Phân loại ảnh theo nhóm,raster,categorize,0,0,1,1,1,1,CONFIRMED — mục 2.1 Nhóm chức năng quản trị

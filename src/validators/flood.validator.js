@@ -29,6 +29,9 @@ const listSchema = Joi.object({
 
 const publicListSchema = Joi.object({
     module: moduleName,
+    // mode is always 'product' on the public endpoint; the service enforces this
+    // regardless, but accepting the param lets clients be explicit.
+    mode: Joi.string().valid('product').default('product'),
     from: Joi.date().iso(),
     to: Joi.date().iso(),
     page: Joi.number().integer().min(1).default(1),

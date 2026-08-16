@@ -239,6 +239,28 @@ async function listPublished(query = {}) {
     return { ...result, items: result.items.map(publicArtifact) };
 }
 
+/**
+ * Extract a concise period summary from result_metadata so clients can display
+ * the analysis window without accessing the full params_snapshot.
+ */
+function extractRunPeriod(run) {
+    const m = run.result_metadata || {};
+    switch (run.module) {
+        case 'event':
+        case 'rain':
+        case 'impact':
+            return m.postStart ? { start: m.postStart, end: m.postEnd || null } : null;
+        case 'hand':
+            return m.levelM != null ? { levelM: m.levelM } : null;
+        case 'trend':
+            return m.baselinePeriod || m.analysisPeriods
+                ? { baseline: m.baselinePeriod || null, analysis: m.analysisPeriods || null }
+                : null;
+        default:
+            return null;
+    }
+}
+
 async function listPublicRuns(query = {}) {
     const result = await listRuns({ ...query, mode: 'product', status: 'SUCCEEDED' });
     return {
@@ -250,6 +272,7 @@ async function listPublicRuns(query = {}) {
             status: run.status,
             pipelineVersion: run.pipeline_version,
             resultMetadata: run.result_metadata,
+            period: extractRunPeriod(run),
             warnings: run.warnings,
             finishedAt: run.finished_at,
         })),

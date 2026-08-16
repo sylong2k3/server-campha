@@ -27,7 +27,7 @@ const queueSnapshotArchive = async (snapshot, result, deps = {}) => {
     const queued = await rasterIngest.enqueue({
         sourceUrl: result.downloadUrl,
         layerCode,
-        nameVi: `Phân loại rừng ${snapshot.year}-${String(snapshot.month).padStart(2, '0')}`,
+        nameVi: `Phân loại đối tượng ${snapshot.year}-${String(snapshot.month).padStart(2, '0')}`,
         category: 'forest',
         isPublic: true,
         requestParams: {

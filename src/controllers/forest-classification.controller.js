@@ -68,7 +68,7 @@ const processing = (snapshot, taskKey = null) =>
 
 const getLatest = async (req, res) => {
     const data = await forest.getLatest();
-    OK(res, 'Lấy kết quả phân loại rừng thành công.', {
+    OK(res, 'Lấy kết quả Phân loại đối tượng thành công.', {
         snapshot: formatSnapshot(data.snapshot),
         comparison: data.comparison,
         stale: data.stale,
@@ -81,7 +81,7 @@ const getHistory = async (req, res) => {
     const page = positiveInteger(req.query.page, 1);
     const limit = positiveInteger(req.query.limit, 24);
     const { items, total } = await forest.listRuns({ page, limit });
-    OK_LIST(res, 'Danh sách kỳ phân loại rừng.', items, { page, limit, total });
+    OK_LIST(res, 'Danh sách kỳ Phân loại đối tượng.', items, { page, limit, total });
 };
 
 const getPublishedHistory = async (req, res) => {
@@ -135,7 +135,7 @@ const refresh = async (req, res) => {
     return res.status(202).json({
         message: run.deduplicated
             ? 'Kỳ phân loại này đang được xử lý.'
-            : 'Đã tiếp nhận yêu cầu phân loại rừng.',
+            : 'Đã tiếp nhận yêu cầu Phân loại đối tượng.',
         status: 202,
         data: {
             run: {
@@ -166,7 +166,7 @@ const queryPeriod = async (req, res) => {
         cached: data?.cached,
         computing: data?.computing,
     });
-    OK(res, data.cached ? 'Lấy kết quả phân loại rừng thành công.' : 'Đang xử lý phân loại rừng.', {
+    OK(res, data.cached ? 'Lấy kết quả Phân loại đối tượng thành công.' : 'Đang xử lý Phân loại đối tượng.', {
         snapshot: formatSnapshot(data.snapshot),
         comparison: data.comparison,
         cached: data.cached,
@@ -182,11 +182,11 @@ const getSnapshot = async (req, res) => {
     }
     const data = await forest.getSnapshot(id);
     if (!data) {
-        throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [
+        throw new Api404Error('Không tìm thấy kết quả Phân loại đối tượng.', [
             'FOREST_SNAPSHOT_NOT_FOUND',
         ]);
     }
-    OK(res, 'Lấy kết quả phân loại rừng thành công.', {
+    OK(res, 'Lấy kết quả Phân loại đối tượng thành công.', {
         snapshot: formatSnapshot(data.snapshot),
         comparison: data.comparison,
         computing: forest.activeStatuses.has(data.snapshot.status),
@@ -206,7 +206,7 @@ const publishRaster = async (req, res) => {
     });
     const snapshot = await snapshots.getById(id);
     if (!snapshot) {
-        throw new Api404Error('Không tìm thấy kết quả phân loại rừng.', [
+        throw new Api404Error('Không tìm thấy kết quả Phân loại đối tượng.', [
             'FOREST_SNAPSHOT_NOT_FOUND',
         ]);
     }
@@ -254,7 +254,7 @@ const publishRaster = async (req, res) => {
     const { job, deduplicated } = await ingest.enqueue({
         sourceUrl: snapshot.gee_download_url,
         layerCode,
-        nameVi: `Phân loại rừng ${snapshot.year}-${snapshot.month}`,
+        nameVi: `Phân loại đối tượng ${snapshot.year}-${snapshot.month}`,
         category: 'forest',
         isPublic: true,
         requestParams: {

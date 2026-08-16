@@ -178,8 +178,47 @@ async function runImpactWithReconstructedSource(run) {
     });
 }
 
+/**
+ * Extract a human-readable period tag from the run's params_snapshot.
+ * Used as the trailing segment of the layer code so operators can read the
+ * naming without cross-referencing the run ID.
+ *
+ * Returns null for modules whose period cannot be derived from params_snapshot
+ * alone (e.g. impact, which inherits the source run's period).
+ */
+function periodTagFromRun(run) {
+    const p = run.params_snapshot || {};
+    switch (run.module) {
+        case 'event':
+        case 'rain':
+            // Kỳ phân tích = post-event window, represented as YYYY_MM.
+            return p.postStart ? p.postStart.slice(0, 7).replace('-', '_') : null;
+        case 'hand': {
+            // No temporal period — tag by scenario depth (e.g. "5m").
+            const depth = p.levelM != null ? `${p.levelM}m` : null;
+            const month = run.created_at
+                ? new Date(run.created_at).toISOString().slice(0, 7).replace('-', '_')
+                : null;
+            return [depth, month].filter(Boolean).join('_') || null;
+        }
+        case 'trend': {
+            // Kỳ nền year → last analysis period year, e.g. "2023_2024".
+            const baseYear = p.dryStart ? p.dryStart.slice(0, 4) : null;
+            const periods = Array.isArray(p.periods) && p.periods.length > 0 ? p.periods : null;
+            const lastYear = periods ? periods[periods.length - 1].end.slice(0, 4) : null;
+            return baseYear && lastYear ? `${baseYear}_${lastYear}` : (baseYear || null);
+        }
+        default:
+            return null;
+    }
+}
+
 function layerCode(run, artifactCode) {
-    const raw = `fl_${run.module}_${artifactCode}_r${run.id}`
+    const tag = periodTagFromRun(run);
+    // Fall back to run ID when no period tag can be derived (e.g. impact module).
+    const raw = (tag
+        ? `fl_${run.module}_${artifactCode}_${tag}`
+        : `fl_${run.module}_${artifactCode}_r${run.id}`)
         .toLowerCase()
         .replace(/[^a-z0-9_]/g, '_');
     if (raw.length <= 58) {
@@ -187,6 +226,42 @@ function layerCode(run, artifactCode) {
     }
     const suffix = crypto.createHash('sha1').update(raw).digest('hex').slice(0, 8);
     return `${raw.slice(0, 49)}_${suffix}`;
+}
+
+/**
+ * Build a localised display name for a layer that includes its analysis period,
+ * so operators can distinguish re-runs of the same module at a glance.
+ */
+function buildLayerLabel(definition, run, lang) {
+    const base = definition.label?.[lang] || definition.code;
+    const p = run.params_snapshot || {};
+    switch (run.module) {
+        case 'event':
+        case 'rain': {
+            if (!p.postStart) return base;
+            const d = new Date(p.postStart);
+            const tag =
+                lang === 'vi'
+                    ? `${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
+                    : `${d.toLocaleString('en', { month: 'short', timeZone: 'UTC' })} ${d.getUTCFullYear()}`;
+            return `${base} (${tag})`;
+        }
+        case 'hand':
+            return p.levelM != null ? `${base} (${p.levelM}m)` : base;
+        case 'trend': {
+            const periods = Array.isArray(p.periods) && p.periods.length > 0 ? p.periods : null;
+            if (!p.dryStart || !periods) return base;
+            const baseYear = p.dryStart.slice(0, 4);
+            const lastYear = periods[periods.length - 1].end.slice(0, 4);
+            return `${base} (${baseYear}–${lastYear})`;
+        }
+        case 'impact': {
+            const src = p.impactSource || 'M1';
+            return lang === 'vi' ? `${base} (nguồn ${src})` : `${base} (source ${src})`;
+        }
+        default:
+            return base;
+    }
 }
 
 async function ensureNotCancelled(runId) {
@@ -294,8 +369,8 @@ async function exportAndHarvest(run, science, aoi) {
                 sourceUrl: downloadUrl,
                 sourceKind: 'gee_download_url',
                 layerCode: layerCode(run, definition.code),
-                nameVi: definition.label?.vi || definition.code,
-                nameEn: definition.label?.en || definition.code,
+                nameVi: buildLayerLabel(definition, run, 'vi'),
+                nameEn: buildLayerLabel(definition, run, 'en'),
                 isPublic: publish,
                 category: 'flood',
                 user: { id: run.started_by },
@@ -401,5 +476,7 @@ module.exports = {
     executePersistedRun,
     runScientificModule,
     layerCode,
+    periodTagFromRun,
+    buildLayerLabel,
     safeMessage,
 };
