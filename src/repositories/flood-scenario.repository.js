@@ -179,12 +179,12 @@ async function listAll({ page = 1, limit = 20, activeOnly = false, search = null
 }
 
 async function findMatchingScenario(rainfall, tide = null, client = db) {
+    // Match by rainfall + tide (no is_active filter — simulation finds the best scenario regardless)
     const res = await client.query(
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                layer_code, description
+                layer_code, description, is_active
          FROM gis.flood_scenarios
-         WHERE is_active = true
-           AND $1 >= min_rainfall
+         WHERE $1 >= min_rainfall
            AND (max_rainfall IS NULL OR $1 <= max_rainfall)
            AND (
              $2::numeric IS NULL OR
@@ -203,10 +203,9 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
     // Fallback: match by rainfall range only
     const fallbackRes = await client.query(
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                layer_code, description
+                layer_code, description, is_active
          FROM gis.flood_scenarios
-         WHERE is_active = true
-           AND $1 >= min_rainfall
+         WHERE $1 >= min_rainfall
            AND (max_rainfall IS NULL OR $1 <= max_rainfall)
          ORDER BY min_rainfall DESC
          LIMIT 1`,
@@ -217,12 +216,11 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
         return fallbackRes.rows[0];
     }
 
-    // Final fallback: return lowest active scenario
+    // Final fallback: return scenario with lowest rainfall threshold
     const lowestRes = await client.query(
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                layer_code, description
+                layer_code, description, is_active
          FROM gis.flood_scenarios
-         WHERE is_active = true
          ORDER BY min_rainfall ASC
          LIMIT 1`,
     );
