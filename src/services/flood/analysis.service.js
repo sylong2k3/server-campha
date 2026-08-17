@@ -18,6 +18,7 @@ const defaults = require('./config/defaults');
 const versions = require('./config/versions');
 const { buildAllLegends, buildAllAdminLegends } = require('./visualization/legends');
 const legendStore = require('./visualization/legend-store');
+const configStore = require('./config/config-store');
 const { ARTIFACT_LAYER_DEFINITIONS } = require('./visualization/layer-definitions');
 const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
 const debug = require('./debug.util');
@@ -96,9 +97,14 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
     const schemaKey = module === 'trend' && config?.analysisYear !== undefined
         ? 'trendFinal'
         : module;
+    // Merge stored config overrides beneath user-provided values so the admin
+    // can adjust algorithm defaults without touching every submit form call.
+    const baseConfig = schemaKey === 'trendFinal'
+        ? { ...configStore.getOverrides(), ...config }
+        : config;
     let normalized;
     try {
-        normalized = validateRunConfig(schemaKey, { ...config, mode });
+        normalized = validateRunConfig(schemaKey, { ...baseConfig, mode });
     } catch (error) {
         debug.logError('analysis.submit validation failed', error, { module, schemaKey });
         throw new Api400Error(error.message, ['INVALID_FLOOD_CONFIG']);
@@ -396,8 +402,12 @@ async function overview({ mode = 'product', onlySucceeded = true } = {}) {
 
 function getTrendConfig() {
     const d = defaults.TREND_FINAL_DEFAULTS;
+    const overrides = configStore.getOverrides();
+    const effective = { ...d, ...overrides };
     return {
         defaults: d,
+        overrides,
+        effective,
         fields: [
             // ── Basic ────────────────────────────────────────────────────────────
             {
@@ -590,8 +600,49 @@ function getTrendConfig() {
             { key: 'mineLikeOccMax', category: 'system', default: d.mineLikeOccMax },
             { key: 'ephemeralOccMin', category: 'system', default: d.ephemeralOccMin },
             { key: 'ephemeralOccMax', category: 'system', default: d.ephemeralOccMax },
-        ].filter((f) => f.category !== 'system'),
+        ].filter((f) => f.category !== 'system')
+         .map((f) => ({
+             ...f,
+             default: f.default ?? d[f.key],
+             current: effective[f.key] ?? f.default ?? d[f.key],
+             hasOverride: Object.prototype.hasOwnProperty.call(overrides, f.key),
+         })),
     };
+}
+
+const TREND_CONFIG_EDITABLE_KEYS = new Set([
+    'handThresh', 'slopeThresh', 'freqAlertMin', 'floodRatioThresh',
+    'ephemeralWaterMode', 'useUrbanFloodLogic', 'elevLowland',
+    'lcYearOld', 'lcYearNew', 'useOtsu', 'otsuRatioMin', 'otsuRatioMax',
+    'urbanDeltaUpDb', 'periodPadDays', 'orbitPass',
+]);
+
+function updateTrendConfig(patch) {
+    const unknown = Object.keys(patch).filter((k) => !TREND_CONFIG_EDITABLE_KEYS.has(k));
+    if (unknown.length) {
+        throw new Api400Error(
+            `Không cho phép cập nhật trường: ${unknown.join(', ')}`,
+            ['INVALID_CONFIG_KEY'],
+        );
+    }
+    const d = defaults.TREND_FINAL_DEFAULTS;
+    const schema = require('./config/schema').SCHEMAS.trendFinal;
+    const cleaned = {};
+    for (const [k, v] of Object.entries(patch)) {
+        if (!(k in d)) throw new Api400Error(`Trường '${k}' không tồn tại trong cấu hình`, ['UNKNOWN_CONFIG_KEY']);
+        cleaned[k] = v;
+    }
+    // Lightweight validation: validate merged config through Joi
+    const merged = { ...d, ...configStore.getOverrides(), ...cleaned };
+    const { error } = schema.validate(merged, { allowUnknown: true, abortEarly: false });
+    if (error) throw new Api400Error(error.message, ['INVALID_CONFIG_VALUE']);
+    configStore.upsertOverrides(cleaned);
+    return getTrendConfig();
+}
+
+function resetTrendConfig(key) {
+    configStore.deleteOverride(key ?? null);
+    return getTrendConfig();
 }
 
 function getConfig() {
@@ -749,6 +800,8 @@ module.exports = {
     overview,
     getConfig,
     getTrendConfig,
+    updateTrendConfig,
+    resetTrendConfig,
     simulateFlood,
     listScenarios,
     getScenario,
