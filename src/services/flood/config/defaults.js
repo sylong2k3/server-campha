@@ -149,6 +149,72 @@ const TREND_DEFAULTS = Object.freeze({
     waterVHDbFallback: -22,
 });
 
+// ── FINAL M5 trend (year-based, VH-only, 3-stratum Otsu) ────────────────────
+const TREND_FINAL_DEFAULTS = Object.freeze({
+    // analysisYear is REQUIRED — no default; caller must supply it
+    orbitPass: 'ASCENDING',
+    polarization: 'VH',
+
+    // Reference (dry season) is built automatically from analysisYear
+    // dryStart/dryEnd are set in runTrendAnalysisFinal via buildDryWindow()
+
+    // Period padding
+    periodPadDays: 10,
+
+    // Otsu dynamic thresholding on log10(ratio)
+    useOtsu: true,
+    floodRatioThresh: 1.25,    // fallback when Otsu out of range
+    otsuScale: 30,
+    otsuMaxBuckets: 256,
+    otsuLogMin: -1.0,
+    otsuLogMax: 1.30,
+    otsuRatioMin: 1.20,
+    otsuRatioMax: 2.50,
+
+    // Terrain filters
+    slopeThresh: 5,            // degrees
+    useHand: true,
+    handThresh: 15,            // metres (MERIT Hydro)
+
+    // Water masks
+    permWaterMonths: 8,        // JRC seasonality threshold
+
+    // Connectivity filter
+    connMin: 8,
+    connMax: 100,
+
+    // Frequency classification
+    freqAlertMin: 2,           // seasons count (not percent)
+
+    // Lowland classification
+    elevLowland: 5,            // metres
+
+    // Land-cover change detection (ESRI LULC years)
+    lcYearOld: 2018,
+    lcYearNew: 2023,
+
+    // Stratification
+    useStratification: true,
+    stratSource: 'WORLDCOVER',  // 'WORLDCOVER' | 'ESRI'
+    minePolygonAsset: '',       // '' = no authoritative polygon
+
+    // Mine stratum
+    mineFromBareGround: true,
+    excludeMineStratumFromProduct: true,
+    useMineLikeSAR: true,
+    mineLikeDbMax: -17,         // VH dB (dry) below = mine-like
+    mineLikeOccMax: 5,          // JRC occurrence % below = not water
+
+    // Ephemeral water
+    ephemeralWaterMode: 'flag', // 'flag' | 'exclude'
+    ephemeralOccMin: 5,
+    ephemeralOccMax: 75,
+
+    // Urban flood (double-bounce)
+    useUrbanFloodLogic: true,
+    urbanDeltaUpDb: 3.0,        // VH increase threshold (dB)
+});
+
 // ── Run orchestrator toggles — Flood_D lines 136–144 ────────────────────────
 const RUN_MODES = Object.freeze(['product', 'calibration']);
 const DEFAULT_RUN_MODE = 'product';
@@ -182,6 +248,7 @@ module.exports = {
     HAND_DEFAULTS,
     IMPACT_DEFAULTS,
     TREND_DEFAULTS,
+    TREND_FINAL_DEFAULTS,
     RUN_MODES,
     DEFAULT_RUN_MODE,
     RUN_CONFIG_TOGGLES,

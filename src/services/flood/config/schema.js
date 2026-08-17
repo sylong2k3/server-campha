@@ -148,15 +148,47 @@ const trendSchema = Joi.object({
     }, 'trend-consistency')
     .unknown(false);
 
+const trendFinalSchema = Joi.object({
+    mode: modeSchema,
+    analysisYear: Joi.number().integer().min(2015).max(2100).required(),
+    orbitPass: Joi.string().valid('AUTO', 'ASCENDING', 'DESCENDING').default('ASCENDING'),
+    useOtsu: Joi.boolean().default(true),
+    floodRatioThresh: Joi.number().greater(1).max(5).default(1.25),
+    otsuRatioMin: Joi.number().greater(1).max(5).default(1.20),
+    otsuRatioMax: Joi.number().greater(1).max(5).default(2.50),
+    periodPadDays: Joi.number().integer().min(0).max(30).default(10),
+    slopeThresh: Joi.number().min(0).max(45).default(5),
+    handThresh: Joi.number().min(0).max(100).default(15),
+    freqAlertMin: Joi.number().integer().min(1).max(4).default(2),
+    elevLowland: Joi.number().min(0).max(50).default(5),
+    lcYearOld: Joi.number().integer().min(2015).max(2100).default(2018),
+    lcYearNew: Joi.number().integer().min(2015).max(2100).default(2023),
+    minePolygonAsset: Joi.string().allow('').default(''),
+    mineFromBareGround: Joi.boolean().default(true),
+    excludeMineStratumFromProduct: Joi.boolean().default(true),
+    useMineLikeSAR: Joi.boolean().default(true),
+    useUrbanFloodLogic: Joi.boolean().default(true),
+    urbanDeltaUpDb: Joi.number().min(0).max(10).default(3.0),
+    ephemeralWaterMode: Joi.string().valid('flag', 'exclude').default('flag'),
+})
+    .custom((value, helpers) => {
+        if (value.lcYearOld >= value.lcYearNew) {
+            return helpers.message('lcYearOld must be < lcYearNew');
+        }
+        return value;
+    }, 'trendFinal-consistency')
+    .unknown(false);
+
 const SCHEMAS = Object.freeze({
     event: eventSchema,
     hand: handSchema,
     impact: impactSchema,
     trend: trendSchema,
+    trendFinal: trendFinalSchema,
 });
 
 /**
- * @param {'event'|'hand'|'impact'|'trend'} module
+ * @param {'event'|'hand'|'impact'|'trend'|'trendFinal'} module
  * @param {object} payload
  * @returns {object} — normalised value with defaults applied
  * @throws  {Error} with .details listing every rejected key

@@ -50,6 +50,12 @@ const ASSETS = Object.freeze({
 
     // UCSB CHIRPS Daily RNL v3 (M3 antecedent rainfall) — §12.
     CHIRPS_DAILY_RNL: 'UCSB-CHC/CHIRPS/V3/DAILY_RNL',
+
+    // WorldPop population grid VNM 2020 (FINAL M5 impact) — 100 m.
+    WORLDPOP_VNM_2020: 'WorldPop/GP/100m/pop/VNM_2020',
+
+    // ESRI Global LULC 10 m Time Series (FINAL M5 land-change detection).
+    ESRI_LULC_TS: 'projects/sat-io/open-datasets/landcover/ESRI_Global-LULC_10m_TS',
 });
 
 /**
@@ -69,6 +75,8 @@ const ATTRIBUTIONS = Object.freeze([
     'NASA GPM IMERG V07 (Huffman et al. 2019)',
     'UCSB CHIRPS Daily RNL v3 (Funk et al. 2015)',
     'FAO GAUL 2015',
+    'WorldPop Population Grid VNM 2020 / University of Southampton',
+    'ESRI Global LULC 10m TS (Karra et al. 2021)',
 ]);
 
 /**

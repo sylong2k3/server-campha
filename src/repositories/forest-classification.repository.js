@@ -106,6 +106,7 @@ const updateRun = async (id, patch = {}) => {
         gee_tile_generated_at: patch.geeTileUrl ? new Date() : undefined,
         gee_download_url: patch.geeDownloadUrl,
         s2_image_count: patch.s2ImageCount,
+        ls_image_count: patch.lsImageCount,
         duration_ms: patch.durationMs,
         error_message: patch.errorMessage,
         computed_at: patch.computedAt,

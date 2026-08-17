@@ -178,12 +178,65 @@ const M5_LAYERS = Object.freeze({
     },
 });
 
+// ── M5 FINAL (TREND_FINAL pipeline) ──────────────────────────────────────────
+const M5_FINAL_LAYERS = Object.freeze({
+    flood_extent: {
+        palette: ['1f78b4'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Phạm vi ngập (FINAL)', en: 'Flood extent (FINAL)' },
+    },
+    flood_frequency: {
+        palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494'],
+        min: 0,
+        max: 4,
+        label: { vi: 'Tần suất ngập (số mùa)', en: 'Flood frequency (season count)' },
+    },
+    frequent_flood: {
+        palette: ['08519C'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Ngập tái diễn (FINAL)', en: 'Frequent flood (FINAL)' },
+    },
+    new_flood: {
+        palette: ['E31A1C'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Ngập mới (FINAL)', en: 'New flood (FINAL)' },
+    },
+    pop_affected: {
+        palette: ['FFFFB2', 'FED976', 'FEB24C', 'FD8D3C', 'F03B20', 'BD0026'],
+        min: 0,
+        max: 50,
+        label: { vi: 'Dân cư bị ảnh hưởng (FINAL)', en: 'Population affected (FINAL)' },
+    },
+    crop_affected: {
+        palette: ['33a02c'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Đất nông nghiệp bị ảnh hưởng (FINAL)', en: 'Cropland affected (FINAL)' },
+    },
+    built_affected: {
+        palette: ['C2185B'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Khu vực đô thị bị ảnh hưởng (FINAL)', en: 'Built-up affected (FINAL)' },
+    },
+    stratum: {
+        palette: ['b2df8a', 'fb9a99', 'cab2d6'],
+        min: 1,
+        max: 3,
+        label: { vi: 'Lớp phân vùng (QA)', en: 'Stratum layer (QA)' },
+    },
+});
+
 const ARTIFACT_LAYER_DEFINITIONS = Object.freeze({
     ...M1_LAYERS,
     ...M2_LAYERS,
     ...M3_LAYERS,
     ...M4_LAYERS,
     ...M5_LAYERS,
+    ...M5_FINAL_LAYERS,
 });
 
 // Maps each artifact_code to its module name.
@@ -193,6 +246,7 @@ const ARTIFACT_MODULE_MAP = Object.freeze({
     ...Object.fromEntries(Object.keys(M3_LAYERS).map(k => [k, 'rain'])),
     ...Object.fromEntries(Object.keys(M4_LAYERS).map(k => [k, 'impact'])),
     ...Object.fromEntries(Object.keys(M5_LAYERS).map(k => [k, 'trend'])),
+    ...Object.fromEntries(Object.keys(M5_FINAL_LAYERS).map(k => [k, 'trend'])),
 });
 
 /**
@@ -218,6 +272,7 @@ function listArtifactCodes() {
         ...Object.keys(M3_LAYERS),
         ...Object.keys(M4_LAYERS),
         ...Object.keys(M5_LAYERS),
+        ...Object.keys(M5_FINAL_LAYERS),
     ]);
 }
 
@@ -229,6 +284,7 @@ module.exports = {
     M3_LAYERS,
     M4_LAYERS,
     M5_LAYERS,
+    M5_FINAL_LAYERS,
     getLayerDefinition,
     listArtifactCodes,
 };

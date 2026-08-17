@@ -13,6 +13,7 @@ const PIPELINE_VERSIONS = Object.freeze({
     HAND: 'HAND_V1',
     IMPACT: 'IMPACT_V1',
     TREND: 'TREND_V1',
+    TREND_FINAL: 'TREND_FINAL',
 });
 
 const CONFIG_VERSION = 'V1';
@@ -22,6 +23,7 @@ const MODULE_TO_PIPELINE_VERSION = Object.freeze({
     hand: PIPELINE_VERSIONS.HAND,
     impact: PIPELINE_VERSIONS.IMPACT,
     trend: PIPELINE_VERSIONS.TREND,
+    trendFinal: PIPELINE_VERSIONS.TREND_FINAL,
 });
 
 const pipelineVersionFor = (module) => {

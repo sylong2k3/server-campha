@@ -90,22 +90,28 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
             'FLOOD_CALIBRATION_FORBIDDEN',
         ]);
     }
+    // When module is 'trend' and analysisYear is present, validate against the
+    // FINAL schema and stamp TREND_FINAL pipeline version. V1 trend (periods-based)
+    // continues to use the 'trend' schema key unchanged.
+    const schemaKey = module === 'trend' && config?.analysisYear !== undefined
+        ? 'trendFinal'
+        : module;
     let normalized;
     try {
-        normalized = validateRunConfig(module, { ...config, mode });
+        normalized = validateRunConfig(schemaKey, { ...config, mode });
     } catch (error) {
-        debug.logError('analysis.submit validation failed', error, { module });
+        debug.logError('analysis.submit validation failed', error, { module, schemaKey });
         throw new Api400Error(error.message, ['INVALID_FLOOD_CONFIG']);
     }
     const key = analysisKey(module, normalized);
-    debug.log('analysis.submit config validated', { module, analysisKey: key });
+    debug.log('analysis.submit config validated', { module, schemaKey, analysisKey: key });
     await ensureRunAdmissible(key);
     const run = await createRun({
         analysisKey: key,
         attemptNo: await runRepo.nextAttemptNo(key),
         module,
         mode: normalized.mode,
-        pipelineVersion: versions.pipelineVersionFor(module),
+        pipelineVersion: versions.pipelineVersionFor(schemaKey),
         configVersion: versions.CONFIG_VERSION,
         paramsSnapshot: normalized,
         aoiSource: 'REFERENCE_GAUL',
@@ -395,6 +401,7 @@ function getConfig() {
             hand: defaults.HAND_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_DEFAULTS,
+            trendFinal: defaults.TREND_FINAL_DEFAULTS,
         },
         versions: versions.MODULE_TO_PIPELINE_VERSION,
         configVersion: versions.CONFIG_VERSION,

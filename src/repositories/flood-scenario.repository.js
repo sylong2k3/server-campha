@@ -2,10 +2,14 @@
 
 const db = require('../configs/database');
 
+const SCENARIO_COLUMNS = `id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
+                layer_code, description, is_active,
+                current_rainfall, rainfall_source, current_tide, tide_source,
+                created_at, updated_at`;
+
 async function findById(id, client = db) {
     const res = await client.query(
-        `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                layer_code, description, is_active, created_at, updated_at
+        `SELECT ${SCENARIO_COLUMNS}
          FROM gis.flood_scenarios
          WHERE id = $1`,
         [id],
@@ -15,8 +19,7 @@ async function findById(id, client = db) {
 
 async function findByCode(code, client = db) {
     const res = await client.query(
-        `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                layer_code, description, is_active, created_at, updated_at
+        `SELECT ${SCENARIO_COLUMNS}
          FROM gis.flood_scenarios
          WHERE code = $1`,
         [code],
@@ -28,10 +31,10 @@ async function create(data, client = db) {
     const res = await client.query(
         `INSERT INTO gis.flood_scenarios (
             code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-            layer_code, description, is_active
-         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-         RETURNING id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                   layer_code, description, is_active, created_at, updated_at`,
+            layer_code, description, is_active,
+            current_rainfall, rainfall_source, current_tide, tide_source
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         RETURNING ${SCENARIO_COLUMNS}`,
         [
             data.code,
             data.nameVi,
@@ -42,6 +45,10 @@ async function create(data, client = db) {
             data.layerCode,
             data.description ?? null,
             data.isActive ?? true,
+            data.currentRainfall ?? null,
+            data.rainfallSource ?? 'MANUAL',
+            data.currentTide ?? null,
+            data.tideSource ?? 'MANUAL',
         ],
     );
     return res.rows[0];
@@ -88,6 +95,22 @@ async function update(id, data, client = db) {
         fields.push(`is_active = $${idx++}`);
         values.push(data.isActive);
     }
+    if (data.currentRainfall !== undefined) {
+        fields.push(`current_rainfall = $${idx++}`);
+        values.push(data.currentRainfall);
+    }
+    if (data.rainfallSource !== undefined) {
+        fields.push(`rainfall_source = $${idx++}`);
+        values.push(data.rainfallSource);
+    }
+    if (data.currentTide !== undefined) {
+        fields.push(`current_tide = $${idx++}`);
+        values.push(data.currentTide);
+    }
+    if (data.tideSource !== undefined) {
+        fields.push(`tide_source = $${idx++}`);
+        values.push(data.tideSource);
+    }
 
     fields.push(`updated_at = NOW()`);
     values.push(id);
@@ -96,8 +119,7 @@ async function update(id, data, client = db) {
         `UPDATE gis.flood_scenarios
          SET ${fields.join(', ')}
          WHERE id = $${idx}
-         RETURNING id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                   layer_code, description, is_active, created_at, updated_at`,
+         RETURNING ${SCENARIO_COLUMNS}`,
         values,
     );
     return res.rows[0] || null;
@@ -137,8 +159,7 @@ async function listAll({ page = 1, limit = 20, activeOnly = false, search = null
 
     params.push(limit, offset);
     const dataRes = await client.query(
-        `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
-                layer_code, description, is_active, created_at, updated_at
+        `SELECT ${SCENARIO_COLUMNS}
          FROM gis.flood_scenarios
          ${whereClause}
          ORDER BY min_rainfall ASC, id ASC
