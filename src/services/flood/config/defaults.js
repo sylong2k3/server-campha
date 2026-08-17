@@ -111,14 +111,16 @@ const IMPACT_DEFAULTS = Object.freeze({
     impactUseNonTidal: true,
 });
 
-// ── FINAL M5 trend (year-based, VH-only, 3-stratum Otsu) ────────────────────
+// ── MONITORING M5 trend (monitorStart/End-based, VH-only, 3-stratum Otsu) ────
 const TREND_FINAL_DEFAULTS = Object.freeze({
-    // analysisYear is REQUIRED — no default; caller must supply it
+    // monitorStart/monitorEnd are REQUIRED — no defaults; caller must supply them.
+    // Dry-season reference window is derived automatically via computeDrySeason().
     orbitPass: 'ASCENDING',
     polarization: 'VH',
 
-    // Reference (dry season) is built automatically from analysisYear
-    // dryStart/dryEnd are set in runTrendAnalysisFinal via buildDryWindow()
+    // Dry-season window derivation (months, inclusive, within-year)
+    dryMonthStart: 1,   // January
+    dryMonthEnd:   4,   // April (last day computed dynamically)
 
     // Period padding
     periodPadDays: 10,
@@ -145,8 +147,9 @@ const TREND_FINAL_DEFAULTS = Object.freeze({
     connMin: 8,
     connMax: 100,
 
-    // Frequency classification
-    freqAlertMin: 2,           // seasons count (not percent)
+    // Frequency threshold — single monitoring period always yields 0 or 1,
+    // so freqAlertMin=1 means "any detected flood pixel = flood zone".
+    freqAlertMin: 1,
 
     // Lowland classification
     elevLowland: 5,            // metres

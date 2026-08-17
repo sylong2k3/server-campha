@@ -1,75 +1,50 @@
 'use strict';
 
 /**
- * FINAL M5 artifact catalog.
+ * M5 monitoring artifact catalog.
  *
- * Expanded from V1 to include:
- *   - flood_extent     (primary flood product)
- *   - flood_frequency  (count per season, 0–4)
- *   - frequent_flood
- *   - new_flood
- *   - pop_affected     (WorldPop within flood extent)
- *   - crop_affected    (WorldCover cropland within flood extent)
- *   - built_affected   (WorldCover built-up within flood extent)
- *   - pond_to_built
- *   - drainage_sensitive
- *   - encroachment_alert
- *   - stratum          (QA: stratification layer)
+ * Artifacts match the products produced by the single-period monitoring model
+ * (new_code.js). Removed vs the annual FINAL model:
+ *   - new_flood (requires two valid periods to compare; not computable here)
  *
- * Removed vs V1: trend_tidal_candidate (no tidal splitting in FINAL).
+ * flood_frequency is retained as a QA layer: in the single-period model it is
+ * always 0 or 1, so it is technically redundant with flood_extent but is kept
+ * to support calibration workflows that inspect the raw count image.
  */
 
 const FINAL_ARTIFACTS = Object.freeze([
-  // ── Primary products ──────────────────────────────────────────────────
+  // ── Primary flood product ─────────────────────────────────────────────
   {
     code: 'flood_extent',
     role: 'PRODUCT',
     style: 'flood_extent',
-    label: { vi: 'Vùng ngập', en: 'Flood extent' },
-  },
-  {
-    code: 'flood_frequency',
-    role: 'PRODUCT',
-    style: 'flood_frequency',
-    label: { vi: 'Tần suất ngập (số mùa)', en: 'Flood frequency (seasons)' },
-  },
-  {
-    code: 'frequent_flood',
-    role: 'PRODUCT',
-    style: 'frequent_flood',
-    label: { vi: 'Vùng ngập tái diễn', en: 'Frequent flood zone' },
-  },
-  {
-    code: 'new_flood',
-    role: 'PRODUCT',
-    style: 'new_flood',
-    label: { vi: 'Vùng ngập mới', en: 'New flood' },
+    label: { vi: 'Vùng ghi nhận ngập', en: 'Detected flood extent' },
   },
   // ── Impact products ────────────────────────────────────────────────────
   {
     code: 'pop_affected',
     role: 'PRODUCT',
     style: 'pop_affected',
-    label: { vi: 'Dân số bị ảnh hưởng', en: 'Affected population' },
+    label: { vi: 'Dân số trong vùng ảnh hưởng', en: 'Affected population' },
   },
   {
     code: 'crop_affected',
     role: 'PRODUCT',
     style: 'crop_affected',
-    label: { vi: 'Cây trồng bị ảnh hưởng', en: 'Affected cropland' },
+    label: { vi: 'Cây trồng trong vùng ảnh hưởng', en: 'Affected cropland' },
   },
   {
     code: 'built_affected',
     role: 'PRODUCT',
     style: 'built_affected',
-    label: { vi: 'Đất xây dựng bị ảnh hưởng', en: 'Affected built-up' },
+    label: { vi: 'Khu xây dựng trong vùng ảnh hưởng', en: 'Affected built-up' },
   },
   // ── Risk / alert products ─────────────────────────────────────────────
   {
     code: 'pond_to_built',
     role: 'PRODUCT',
     style: 'pond_to_built',
-    label: { vi: 'Ao/mặt nước chuyển sang xây dựng', en: 'Pond-to-built' },
+    label: { vi: 'Ao/mặt nước chuyển thành khu xây dựng', en: 'Pond-to-built' },
   },
   {
     code: 'drainage_sensitive',
@@ -81,14 +56,26 @@ const FINAL_ARTIFACTS = Object.freeze([
     code: 'encroachment_alert',
     role: 'PRODUCT',
     style: 'encroachment_alert',
-    label: { vi: 'Cảnh báo lấn chiếm tiêu thoát', en: 'Drainage encroachment alert' },
+    label: { vi: 'Cảnh báo tiêu thoát', en: 'Drainage encroachment alert' },
   },
   // ── QA ────────────────────────────────────────────────────────────────
+  {
+    code: 'frequent_flood',
+    role: 'QA',
+    style: 'frequent_flood',
+    label: { vi: 'Phát hiện ngập (QA)', en: 'Flood detection flag (QA)' },
+  },
+  {
+    code: 'flood_frequency',
+    role: 'QA',
+    style: 'flood_frequency',
+    label: { vi: 'Tần số phát hiện ngập (QA)', en: 'Flood frequency count (QA)' },
+  },
   {
     code: 'stratum',
     role: 'QA',
     style: 'stratum',
-    label: { vi: 'Phân tầng giám sát (QA)', en: 'Monitoring stratum (QA)' },
+    label: { vi: 'Phân tầng khu vực (QA)', en: 'Monitoring stratum (QA)' },
   },
 ]);
 

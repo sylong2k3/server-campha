@@ -91,10 +91,9 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
             'FLOOD_CALIBRATION_FORBIDDEN',
         ]);
     }
-    // When module is 'trend' and analysisYear is present, validate against the
-    // FINAL schema and stamp TREND_FINAL pipeline version. V1 trend (periods-based)
-    // continues to use the 'trend' schema key unchanged.
-    const schemaKey = module === 'trend' && config?.analysisYear !== undefined
+    // When module is 'trend' and monitorStart is present, validate against the
+    // monitoring schema (trendFinal key, same Joi schema).
+    const schemaKey = module === 'trend' && config?.monitorStart !== undefined
         ? 'trendFinal'
         : module;
     // Merge stored config overrides beneath user-provided values so the admin
@@ -390,6 +389,7 @@ async function overview({ mode = 'product', onlySucceeded = true } = {}) {
                               status: run.status,
                               finishedAt: run.finished_at,
                               metadata: run.result_metadata,
+                              params: run.params_snapshot,
                               warnings: run.warnings,
                           }
                         : null,
@@ -410,29 +410,7 @@ function getTrendConfig() {
         effective,
         fields: [
             // ── Basic ────────────────────────────────────────────────────────────
-            {
-                key: 'analysisYear',
-                category: 'basic',
-                type: 'integer',
-                label: 'Năm phân tích',
-                description: 'Năm dương lịch cần phân tích xu thế ngập. Hệ thống sẽ tự động chia thành 4 mùa.',
-                min: 2015,
-                max: 2100,
-                required: true,
-            },
-            {
-                key: 'orbitPass',
-                category: 'basic',
-                type: 'select',
-                label: 'Quỹ đạo vệ tinh',
-                description: 'Chọn hướng bay của vệ tinh Sentinel-1. Tự động sẽ chọn hướng có nhiều ảnh nhất.',
-                default: 'AUTO',
-                options: [
-                    { value: 'AUTO', label: 'Tự động' },
-                    { value: 'ASCENDING', label: 'Quỹ đạo đi lên' },
-                    { value: 'DESCENDING', label: 'Quỹ đạo đi xuống' },
-                ],
-            },
+            // Note: monitorStart, monitorEnd, and orbitPass are per-run inputs, not stored config.
             // ── Advanced ─────────────────────────────────────────────────────────
             {
                 key: 'handThresh',
@@ -460,9 +438,9 @@ function getTrendConfig() {
                 key: 'freqAlertMin',
                 category: 'advanced',
                 type: 'integer',
-                label: 'Ngưỡng ngập tái diễn',
-                description: 'Khu vực xuất hiện ngập từ bao nhiêu mùa trở lên được xem là ngập tái diễn (thường xuyên).',
-                unit: 'mùa',
+                label: 'Ngưỡng xác nhận ngập',
+                description: 'Ngưỡng tối thiểu để xác nhận một pixel là ngập trong kỳ giám sát. Giá trị 1 = phát hiện bất kỳ pixel nào có tín hiệu ngập.',
+                unit: 'kỳ',
                 default: d.freqAlertMin,
                 min: 1,
                 max: 4,
@@ -614,7 +592,7 @@ const TREND_CONFIG_EDITABLE_KEYS = new Set([
     'handThresh', 'slopeThresh', 'freqAlertMin', 'floodRatioThresh',
     'ephemeralWaterMode', 'useUrbanFloodLogic', 'elevLowland',
     'lcYearOld', 'lcYearNew', 'useOtsu', 'otsuRatioMin', 'otsuRatioMax',
-    'urbanDeltaUpDb', 'periodPadDays', 'orbitPass',
+    'urbanDeltaUpDb', 'periodPadDays',
 ]);
 
 function updateTrendConfig(patch) {
@@ -626,16 +604,18 @@ function updateTrendConfig(patch) {
         );
     }
     const d = defaults.TREND_FINAL_DEFAULTS;
-    const schema = require('./config/schema').SCHEMAS.trendFinal;
     const cleaned = {};
     for (const [k, v] of Object.entries(patch)) {
         if (!(k in d)) throw new Api400Error(`Trường '${k}' không tồn tại trong cấu hình`, ['UNKNOWN_CONFIG_KEY']);
+        const expected = typeof d[k];
+        if (typeof v !== expected) {
+            throw new Api400Error(
+                `Trường '${k}' phải là ${expected}, nhận được ${typeof v}`,
+                ['INVALID_CONFIG_VALUE'],
+            );
+        }
         cleaned[k] = v;
     }
-    // Lightweight validation: validate merged config through Joi
-    const merged = { ...d, ...configStore.getOverrides(), ...cleaned };
-    const { error } = schema.validate(merged, { allowUnknown: true, abortEarly: false });
-    if (error) throw new Api400Error(error.message, ['INVALID_CONFIG_VALUE']);
     configStore.upsertOverrides(cleaned);
     return getTrendConfig();
 }

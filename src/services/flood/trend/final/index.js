@@ -1,16 +1,18 @@
 'use strict';
 
 /**
- * FINAL M5 orchestrator: analysis-year-based seasonal flood trend analysis.
+ * M5 Monitoring orchestrator: single-period flood detection with auto-derived
+ * dry-season reference.
  *
- * Key differences from V1 (trend/index.js):
- *   - Input:  analysisYear (integer) → 4 seasons generated automatically.
- *   - Logic:  VH-only Otsu per-stratum, urban double-bounce, mine SAR heuristic.
- *   - Output: flood_extent, flood_frequency, new_flood, impact (pop/crop),
- *             land-change, drainage-risk. NO Sentinel-2 accuracy assessment.
+ * NEW model (replaces annual 4-season TREND_FINAL):
+ *   Input:  monitorStart + monitorEnd  (one arbitrary monitoring window)
+ *   Dry season: derived automatically via computeDrySeason(monitorStart)
+ *               — no user input required for the reference window.
+ *   Output: flood_extent, flood_frequency (0/1), frequent_flood, impact
+ *           products, land-change, drainage-risk.  NO new_flood (needs 2 periods).
  *
- * @ported-from final_code.js (entire script)
- * @pipeline TREND_FINAL
+ * @ported-from new_code.js (entire script — §0–§9)
+ * @pipeline TREND_MONITORING_V1
  */
 
 const { TREND_FINAL_DEFAULTS } = require('../../config/defaults');
@@ -38,31 +40,26 @@ function defaultFinalDeps() {
 
 /**
  * Resolve orbit pass when AUTO: compare Sentinel-1 coverage for the dry window
- * and the first two seasons, pick the pass with more total scenes.
- * Returns the resolved pass string ('ASCENDING' | 'DESCENDING').
+ * and the monitoring window, pick the pass with more total scenes.
  */
-async function resolveOrbitPass(ee, { dryStart, dryEnd, seasonList, aoi, geeAdapter, deps }) {
-  // Use the dry window as the pre-collection and the merged season span as post.
-  const firstSeason = seasonList[0];
-  const lastSeason  = seasonList[seasonList.length - 1];
+async function resolveOrbitPass(ee, { dryStart, dryEnd, monitorStart, monitorEnd, aoi, geeAdapter, deps }) {
   const preCollection  = deps.sentinel1.getS1Collection(ee, {
     start: dryStart, end: dryEnd, aoi, pass: 'AUTO',
   });
   const postCollection = deps.sentinel1.getS1Collection(ee, {
-    start: firstSeason.start, end: lastSeason.end, aoi, pass: 'AUTO',
+    start: monitorStart, end: monitorEnd, aoi, pass: 'AUTO',
   });
   const best = await deps.chooseBestS1Orbit(ee, { preCollection, postCollection, geeAdapter });
-  // chooseBestS1Orbit returns null when no qualifying orbit is found; fall back to ASCENDING.
   return best?.orbitPass || 'ASCENDING';
 }
 
 /**
- * Run FINAL M5 trend analysis.
+ * Run M5 monitoring-period flood analysis.
  *
  * @param {object} opts
  * @param {object} opts.ee              — Earth Engine module
  * @param {object} opts.geeAdapter      — { evaluate(eeObj): Promise<any> }
- * @param {object} opts.runConfig       — validated config (must contain analysisYear)
+ * @param {object} opts.runConfig       — validated config (must contain monitorStart + monitorEnd)
  * @param {string} [opts.runMode]       — 'product' | 'calibration'
  * @param {object} [opts.authoritativeGeoJson]
  * @param {object} [opts.deps]
@@ -77,24 +74,31 @@ async function runTrendAnalysisFinal({
 } = {}) {
   if (!ee) throw new Error('trend/final.runTrendAnalysisFinal requires the ee module');
   if (!geeAdapter?.evaluate) throw new Error('trend/final.runTrendAnalysisFinal requires geeAdapter.evaluate');
-  if (!runConfig?.analysisYear) throw new Error('trend/final.runTrendAnalysisFinal requires runConfig.analysisYear');
+  if (!runConfig?.monitorStart || !runConfig?.monitorEnd) {
+    throw new Error('trend/final.runTrendAnalysisFinal requires runConfig.monitorStart and runConfig.monitorEnd');
+  }
   assertValidMode(runMode);
 
   const config = { ...TREND_FINAL_DEFAULTS, ...runConfig, mode: runMode };
-  const analysisYear = config.analysisYear;
+  const { monitorStart, monitorEnd } = config;
 
   // ── AOI ──────────────────────────────────────────────────────────────────
   const { geometry: aoi, source: aoiSource } = deps.geometry.loadAoi(ee, { authoritativeGeoJson });
 
-  // ── Seasons ───────────────────────────────────────────────────────────────
-  const seasonList = deps.seasons.buildSeasons(analysisYear);
-  const { start: dryStart, end: dryEnd } = deps.seasons.buildDryWindow(analysisYear);
+  // ── Dry-season reference window (auto-derived) ────────────────────────────
+  const { start: dryStart, end: dryEnd } = deps.seasons.computeDrySeason(
+    monitorStart,
+    config.dryMonthStart,
+    config.dryMonthEnd,
+  );
 
   // ── Orbit resolution ──────────────────────────────────────────────────────
   const orbitRequested = config.orbitPass;
   let orbitSelected = orbitRequested;
   if (orbitRequested === 'AUTO') {
-    orbitSelected = await resolveOrbitPass(ee, { dryStart, dryEnd, seasonList, aoi, geeAdapter, deps });
+    orbitSelected = await resolveOrbitPass(ee, {
+      dryStart, dryEnd, monitorStart, monitorEnd, aoi, geeAdapter, deps,
+    });
     config.orbitPass = orbitSelected;
   }
 
@@ -112,7 +116,7 @@ async function runTrendAnalysisFinal({
   // ── Reference (dry season) ────────────────────────────────────────────────
   const reference = deps.periodAnalysis.buildReference(ee, { dryStart, dryEnd, aoi, config });
 
-  // ── Stratification ────────────────────────────────────────────────────────
+  // ── Stratification (depends on dry-season reference) ─────────────────────
   const strataResult = deps.strata.buildStrata(ee, {
     referenceVhNatural: reference.image,
     gswImage,
@@ -120,21 +124,22 @@ async function runTrendAnalysisFinal({
     config,
   });
 
-  // ── Per-season flood detection ────────────────────────────────────────────
-  const periodImages = seasonList.map((season) =>
-    deps.periodAnalysis.buildPeriodFloodFinal(ee, {
-      period: season,
-      aoi,
-      reference,
-      strata: strataResult,
-      slope: terrainStack.slope,
-      hand: handStack.hand,
-      permanentWater: permWater,
-      config,
-    }),
-  );
+  // ── Single-period flood detection ─────────────────────────────────────────
+  const monitoringPeriod = { label: 'Kỳ giám sát', start: monitorStart, end: monitorEnd };
 
-  // ── Frequency products ────────────────────────────────────────────────────
+  const periodImage = deps.periodAnalysis.buildPeriodFloodFinal(ee, {
+    period: monitoringPeriod,
+    aoi,
+    reference,
+    strata: strataResult,
+    slope: terrainStack.slope,
+    hand: handStack.hand,
+    permanentWater: permWater,
+    config,
+  });
+
+  // ── Frequency products (single image — frequency is 0 or 1) ───────────────
+  const periodImages = [periodImage];
   const validCount = ee.ImageCollection(periodImages)
     .filter(ee.Filter.eq('valid', 1)).size();
 
@@ -150,8 +155,6 @@ async function runTrendAnalysisFinal({
     validCount,
     freqAlertMin: config.freqAlertMin,
   });
-
-  const newFlood = deps.frequency.buildNewFlood(ee, { validCollection, validCount });
 
   // ── Land-cover change ─────────────────────────────────────────────────────
   const { pondToBuilt, drainageSensitive, encroachmentAlert } =
@@ -171,7 +174,6 @@ async function runTrendAnalysisFinal({
     flood_extent:        floodExtent.clip(aoi),
     flood_frequency:     frequencyCount.clip(aoi),
     frequent_flood:      frequentFlood.clip(aoi),
-    new_flood:           newFlood.clip(aoi),
     pop_affected:        popAffected,
     crop_affected:       cropAffected,
     built_affected:      builtAffected,
@@ -186,47 +188,44 @@ async function runTrendAnalysisFinal({
   const reduceOpts = { reducer: ee.Reducer.sum(), geometry: aoi, scale: 30, maxPixels: 1e10, bestEffort: true };
 
   const floodExtentArea  = floodExtent.unmask(0).rename('flood_extent').multiply(pixelAreaHa).reduceRegion(reduceOpts);
-  const frequentFloodArea = frequentFlood.unmask(0).rename('frequent_flood').multiply(pixelAreaHa).reduceRegion(reduceOpts);
-  const newFloodArea     = newFlood.unmask(0).rename('new_flood').multiply(pixelAreaHa).reduceRegion(reduceOpts);
   const cropArea         = cropAffected.unmask(0).rename('crop_affected').multiply(pixelAreaHa).reduceRegion(reduceOpts);
   const builtArea        = builtAffected.unmask(0).rename('built_affected').multiply(pixelAreaHa).reduceRegion(reduceOpts);
   const popSum           = popAffected.unmask(0).rename('pop_affected').reduceRegion(reduceOpts);
+  const drainageAlertArea = encroachmentAlert.unmask(0).rename('encroachment_alert').multiply(pixelAreaHa).reduceRegion(reduceOpts);
 
-  // Per-season S1 image counts
-  const seasonImageCounts = seasonList.map((season) =>
-    deps.sentinel1.getS1Collection(ee, {
-      start: season.start, end: season.end, aoi, pass: config.orbitPass,
-    }).size(),
-  );
+  // Count Sentinel-1 scenes in the monitoring window (post-evaluation for metadata)
+  const monitorImageCount = deps.sentinel1.getS1Collection(ee, {
+    start: monitorStart, end: monitorEnd, aoi, pass: config.orbitPass,
+  }).size();
 
   // ── Evaluate server-side scalars ──────────────────────────────────────────
   const [
     validPeriodCount,
     drySceneCount,
+    monitorSceneCount,
     floodExtentAreaVal,
-    frequentFloodAreaVal,
-    newFloodAreaVal,
     cropAreaVal,
     builtAreaVal,
     popSumVal,
-    ...seasonImageCountVals
+    drainageAlertAreaVal,
+    periodOtsuThreshold,
   ] = await Promise.all([
     geeAdapter.evaluate(validCount),
     geeAdapter.evaluate(reference.count),
+    geeAdapter.evaluate(monitorImageCount),
     geeAdapter.evaluate(floodExtentArea),
-    geeAdapter.evaluate(frequentFloodArea),
-    geeAdapter.evaluate(newFloodArea),
     geeAdapter.evaluate(cropArea),
     geeAdapter.evaluate(builtArea),
     geeAdapter.evaluate(popSum),
-    ...seasonImageCounts.map((c) => geeAdapter.evaluate(c)),
+    geeAdapter.evaluate(drainageAlertArea),
+    geeAdapter.evaluate(periodImage.get('otsu_threshold')),
   ]);
 
   const warnings = [
     ...(terrainStack.isFallback ? ['TERRAIN_FELL_BACK_TO_DSM'] : []),
     ...(terrainStack.nonCommercial ? ['NON_COMMERCIAL_DTM_FABDEM'] : []),
-    ...(Number(validPeriodCount) < 2 ? ['INSUFFICIENT_VALID_PERIODS_FOR_NEW_FLOOD'] : []),
     ...(Number(drySceneCount) === 0 ? ['NO_DRY_SEASON_IMAGES'] : []),
+    ...(Number(monitorSceneCount) === 0 ? ['NO_MONITOR_PERIOD_IMAGES'] : []),
   ];
 
   return {
@@ -234,16 +233,19 @@ async function runTrendAnalysisFinal({
     catalog: deps.result.selectFinalArtifacts({ runMode }),
     metadata: {
       pipelineVersion: versions.pipelineVersionFor('trendFinal'),
-      configVersion: versions.CONFIG_VERSION,
+      configVersion:   versions.CONFIG_VERSION,
       aoiSource,
-      analysisYear,
+      monitorStart,
+      monitorEnd,
       dryWindow:       { start: dryStart, end: dryEnd },
-      analysisPeriods: seasonList.map((s, i) => ({
-        label: s.label, start: s.start, end: s.end,
-        imageCount: Number(seasonImageCountVals[i]),
-        valid: Number(seasonImageCountVals[i]) > 0,
-      })),
-      totalPeriods:    seasonList.length,
+      analysisPeriods: [{
+        label:      monitoringPeriod.label,
+        start:      monitorStart,
+        end:        monitorEnd,
+        imageCount: Number(monitorSceneCount),
+        valid:      Number(monitorSceneCount) > 0,
+      }],
+      totalPeriods:    1,
       validPeriodCount: Number(validPeriodCount),
       drySceneCount:    Number(drySceneCount),
       orbitRequested,
@@ -253,6 +255,7 @@ async function runTrendAnalysisFinal({
       floodRatioFallback: config.floodRatioThresh,
       otsuRatioMin:     config.otsuRatioMin,
       otsuRatioMax:     config.otsuRatioMax,
+      otsuThreshold:    periodOtsuThreshold,
       slopeThresholdDeg: config.slopeThresh,
       useHand:          config.useHand,
       handThresholdM:   config.handThresh,
@@ -260,17 +263,16 @@ async function runTrendAnalysisFinal({
       freqAlertMin:     config.freqAlertMin,
       elevLowland:      config.elevLowland,
       areaStats: {
-        floodExtentAreaHa:    Number((floodExtentAreaVal?.flood_extent   ?? 0).toFixed(1)),
-        frequentFloodAreaHa:  Number((frequentFloodAreaVal?.frequent_flood ?? 0).toFixed(1)),
-        newFloodAreaHa:       Number((newFloodAreaVal?.new_flood          ?? 0).toFixed(1)),
-        cropAffectedAreaHa:   Number((cropAreaVal?.crop_affected          ?? 0).toFixed(1)),
-        builtAffectedAreaHa:  Number((builtAreaVal?.built_affected        ?? 0).toFixed(1)),
-        populationAffected:   Math.round(popSumVal?.pop_affected          ?? 0),
+        floodExtentAreaHa:    Number((floodExtentAreaVal?.flood_extent  ?? 0).toFixed(1)),
+        cropAffectedAreaHa:   Number((cropAreaVal?.crop_affected        ?? 0).toFixed(1)),
+        builtAffectedAreaHa:  Number((builtAreaVal?.built_affected      ?? 0).toFixed(1)),
+        populationAffected:   Math.round(popSumVal?.pop_affected        ?? 0),
+        drainageAlertAreaHa:  Number((drainageAlertAreaVal?.encroachment_alert ?? 0).toFixed(1)),
       },
       warnings,
     },
     diagnostics: shouldEnableDiagnostics({ mode: runMode })
-      ? { totalSeasons: seasonList.length, analysisYear }
+      ? { monitorStart, monitorEnd, dryWindow: { start: dryStart, end: dryEnd } }
       : null,
   };
 }

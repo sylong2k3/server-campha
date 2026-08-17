@@ -210,6 +210,11 @@ function periodTagFromRun(run) {
             return [depth, month].filter(Boolean).join('_') || null;
         }
         case 'trend':
+            // Monitoring model: tag by monitorStart_monitorEnd (e.g. "2025-09-01_2025-09-30")
+            if (p.monitorStart && p.monitorEnd) {
+                return `${p.monitorStart}_${p.monitorEnd}`;
+            }
+            // Backward-compat: old runs recorded analysisYear
             return p.analysisYear ? String(p.analysisYear) : null;
         default:
             return null;
@@ -252,6 +257,11 @@ function buildLayerLabel(definition, run, lang) {
         case 'hand':
             return p.levelM != null ? `${base} (${p.levelM}m)` : base;
         case 'trend':
+            // Monitoring model: include date range in label
+            if (p.monitorStart && p.monitorEnd) {
+                return `${base} (${p.monitorStart} – ${p.monitorEnd})`;
+            }
+            // Backward-compat: old runs recorded analysisYear
             return p.analysisYear ? `${base} (${p.analysisYear})` : base;
         case 'impact': {
             const src = p.impactSource || 'M1';

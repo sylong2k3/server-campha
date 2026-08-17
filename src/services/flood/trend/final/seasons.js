@@ -1,16 +1,16 @@
 'use strict';
 
 /**
- * Season generation for FINAL M5 trend analysis.
+ * Season / dry-window helpers for M5 trend analysis.
  *
- * FINAL replaces explicit period arrays with a single analysisYear that
- * auto-generates the 4 standard Vietnamese seasons:
- *   Xuân  (Spring) : 01/03 – 31/05
- *   Hạ    (Summer) : 01/06 – 31/08
- *   Thu   (Autumn) : 01/09 – 30/11
- *   Đông  (Winter) : 01/12 – last day of Feb (next year, leap-year-aware)
+ * computeDrySeason() is the primary entry point for the monitoring model:
+ *   monitorStart  →  picks the most recent dry-season window that ended
+ *                    before the monitoring period begins.
  *
- * @ported-from final_code.js — function buildSeasons(year) lines 60-67
+ * buildSeasons() / buildDryWindow() are kept for backward-compatibility with
+ * tests and any legacy annual-analysis code paths.
+ *
+ * @ported-from new_code.js — function computeDrySeason() (§4)
  */
 
 const SEASON_LABELS = Object.freeze(['Xuân', 'Hạ', 'Thu', 'Đông']);
@@ -54,4 +54,36 @@ function buildDryWindow(year) {
   return { start: `${year}-01-01`, end: `${year}-04-30` };
 }
 
-module.exports = { buildSeasons, buildDryWindow, SEASON_LABELS };
+/**
+ * Derive the dry-season reference window from a monitoring-period start date.
+ *
+ * Logic (mirrors new_code.js §4 computeDrySeason):
+ *   1. Compute the last calendar day of dryMonthEnd in the same year as monitorStart.
+ *   2. If that date falls before monitorStart → use current year's dry season.
+ *   3. Otherwise → use the previous year's dry season.
+ *
+ * Example (dryMonthStart=1, dryMonthEnd=4):
+ *   monitorStart = '2025-09-01' → dry = '2025-01-01' .. '2025-04-30'
+ *   monitorStart = '2025-03-01' → dry = '2024-01-01' .. '2024-04-30'
+ *
+ * @param {string} monitorStartStr — ISO-8601 date 'YYYY-MM-DD'
+ * @param {number} [dryMonthStart=1]
+ * @param {number} [dryMonthEnd=4]
+ * @returns {{ start: string, end: string }}
+ */
+function computeDrySeason(monitorStartStr, dryMonthStart = 1, dryMonthEnd = 4) {
+  const ms = new Date(monitorStartStr + 'T00:00:00Z');
+  const y  = ms.getUTCFullYear();
+  // Last day of dryMonthEnd in year y (Date.UTC month is 0-indexed; day 0 = last of prev month)
+  const dryEndOfY = new Date(Date.UTC(y, dryMonthEnd, 0));
+  const yr = dryEndOfY < ms ? y : y - 1;
+  // Last calendar day of dryMonthEnd in the chosen year
+  const lastDay = new Date(Date.UTC(yr, dryMonthEnd, 0)).getUTCDate();
+  const pad2 = (n) => String(n).padStart(2, '0');
+  return {
+    start: `${yr}-${pad2(dryMonthStart)}-01`,
+    end:   `${yr}-${pad2(dryMonthEnd)}-${pad2(lastDay)}`,
+  };
+}
+
+module.exports = { buildSeasons, buildDryWindow, computeDrySeason, SEASON_LABELS };

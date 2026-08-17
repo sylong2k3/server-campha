@@ -90,10 +90,15 @@ const impactSchema = Joi.object({
     sourceRunId: Joi.number().integer().positive(),
 }).unknown(false);
 
-// ── M5 (Trend FINAL) ─────────────────────────────────────────────────────────
+// ── M5 (Trend Monitoring — single monitoring period, auto dry season) ─────────
 const trendFinalSchema = Joi.object({
     mode: modeSchema,
-    analysisYear: Joi.number().integer().min(2015).max(2100).required(),
+    // Monitoring window — required. Dry-season reference is derived automatically.
+    monitorStart: iso8601Date.required(),
+    monitorEnd:   iso8601Date.required(),
+    // Optional: override auto-derived dry season month range (defaults match new_code.js).
+    dryMonthStart: Joi.number().integer().min(1).max(12).default(1),
+    dryMonthEnd:   Joi.number().integer().min(1).max(12).default(4),
     orbitPass: Joi.string().valid('AUTO', 'ASCENDING', 'DESCENDING').default('ASCENDING'),
     useOtsu: Joi.boolean().default(true),
     floodRatioThresh: Joi.number().greater(1).max(5).default(1.25),
@@ -102,7 +107,7 @@ const trendFinalSchema = Joi.object({
     periodPadDays: Joi.number().integer().min(0).max(30).default(10),
     slopeThresh: Joi.number().min(0).max(45).default(5),
     handThresh: Joi.number().min(0).max(100).default(15),
-    freqAlertMin: Joi.number().integer().min(1).max(4).default(2),
+    freqAlertMin: Joi.number().integer().min(1).max(4).default(1),
     elevLowland: Joi.number().min(0).max(50).default(5),
     lcYearOld: Joi.number().integer().min(2015).max(2100).default(2018),
     lcYearNew: Joi.number().integer().min(2015).max(2100).default(2023),
@@ -115,11 +120,17 @@ const trendFinalSchema = Joi.object({
     ephemeralWaterMode: Joi.string().valid('flag', 'exclude').default('flag'),
 })
     .custom((value, helpers) => {
+        if (value.monitorStart > value.monitorEnd) {
+            return helpers.message('monitorStart must be <= monitorEnd');
+        }
         if (value.lcYearOld >= value.lcYearNew) {
             return helpers.message('lcYearOld must be < lcYearNew');
         }
+        if (value.dryMonthStart > value.dryMonthEnd) {
+            return helpers.message('dryMonthStart must be <= dryMonthEnd');
+        }
         return value;
-    }, 'trendFinal-consistency')
+    }, 'trendMonitoring-consistency')
     .unknown(false);
 
 const SCHEMAS = Object.freeze({

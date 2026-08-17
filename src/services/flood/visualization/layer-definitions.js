@@ -127,73 +127,97 @@ const M4_LAYERS = Object.freeze({
     },
 });
 
-// ── Phân tích ngập theo năm (TREND_FINAL pipeline) ───────────────────────────
+// ── Giám sát ngập theo kỳ (TREND_MONITORING_V1 pipeline) ────────────────────
+// Palettes and ranges derived from new_code.js §9 (Map.addLayer calls).
 const M5_FINAL_LAYERS = Object.freeze({
+    // ── Kết quả chính ────────────────────────────────────────────────────────
     flood_extent: {
         palette: ['1f78b4'],
         min: 1,
         max: 1,
-        label: { vi: 'Phạm vi ngập', en: 'Flood extent' },
+        label: {
+            vi: 'Vùng ghi nhận ngập',
+            en: 'Detected flood extent',
+        },
     },
-    flood_frequency: {
-        palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494'],
-        min: 0,
-        max: 4,
-        label: { vi: 'Tần suất ngập (số mùa)', en: 'Flood frequency (seasons)' },
-    },
-    frequent_flood: {
-        palette: ['08519C'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ngập tái diễn', en: 'Frequent flood' },
-    },
-    new_flood: {
-        palette: ['E31A1C'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ngập mới', en: 'New flood' },
-    },
+    // ── Ảnh hưởng ────────────────────────────────────────────────────────────
     pop_affected: {
-        palette: ['FFFFB2', 'FED976', 'FEB24C', 'FD8D3C', 'F03B20', 'BD0026'],
+        // Yellow → dark red (5 stops — new_code.js §9, layer 2)
+        palette: ['FFFFB2', 'FECC5C', 'FD8D3C', 'F03B20', 'BD0026'],
         min: 0,
         max: 50,
-        label: { vi: 'Dân số trong vùng ngập', en: 'Population in flood zone' },
+        label: {
+            vi: 'Dân số trong vùng ảnh hưởng',
+            en: 'Affected population',
+        },
     },
     crop_affected: {
-        palette: ['33a02c'],
+        palette: ['238B45'],   // new_code.js §9, layer 3
         min: 1,
         max: 1,
-        label: { vi: 'Đất nông nghiệp trong vùng ngập', en: 'Cropland in flood zone' },
+        label: {
+            vi: 'Cây trồng trong vùng ảnh hưởng',
+            en: 'Affected cropland',
+        },
     },
     built_affected: {
         palette: ['C2185B'],
         min: 1,
         max: 1,
-        label: { vi: 'Khu xây dựng trong vùng ngập', en: 'Built-up in flood zone' },
+        label: {
+            vi: 'Khu xây dựng trong vùng ảnh hưởng',
+            en: 'Affected built-up',
+        },
     },
-    pond_to_built: {
-        palette: ['D95F02'],
+    // ── Cảnh báo / rủi ro ────────────────────────────────────────────────────
+    encroachment_alert: {
+        palette: ['DE2D26'],   // new_code.js §9, layer 4
         min: 1,
         max: 1,
-        label: { vi: 'Ao/mặt nước chuyển thành đất xây dựng', en: 'Pond converted to built-up' },
+        label: {
+            vi: 'Cảnh báo tiêu thoát',
+            en: 'Drainage encroachment alert',
+        },
     },
     drainage_sensitive: {
-        palette: ['1B7837'],
+        palette: ['756BB1'],   // new_code.js §9, layer 5
         min: 1,
         max: 1,
-        label: { vi: 'Vùng nhạy cảm tiêu thoát nước', en: 'Drainage-sensitive area' },
+        label: {
+            vi: 'Vùng nhạy cảm tiêu thoát',
+            en: 'Drainage-sensitive area',
+        },
     },
-    encroachment_alert: {
-        palette: ['E6AB02'],
+    pond_to_built: {
+        palette: ['FEB24C'],   // new_code.js §9, layer 6
         min: 1,
         max: 1,
-        label: { vi: 'Cảnh báo lấn chiếm mặt nước', en: 'Waterbody encroachment alert' },
+        label: {
+            vi: 'Ao/mặt nước chuyển thành khu xây dựng',
+            en: 'Pond-to-built',
+        },
     },
+    // ── QA ────────────────────────────────────────────────────────────────────
+    // frequent_flood: binary 0/1 (with freqAlertMin=1, equals flood_extent)
+    frequent_flood: {
+        palette: ['08519C'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Phát hiện ngập (QA)', en: 'Flood detection flag (QA)' },
+    },
+    // flood_frequency: raw count (0 or 1 in single-period model)
+    flood_frequency: {
+        palette: ['f7f7f7', '1f78b4'],
+        min: 0,
+        max: 1,
+        label: { vi: 'Tần số phát hiện ngập (QA)', en: 'Flood frequency count (QA)' },
+    },
+    // stratum: 1=non-urban (#2ca25f), 2=urban (#de2d26), 3=mine/bare (#8c6bb1)
     stratum: {
-        palette: ['b2df8a', 'fb9a99', 'cab2d6'],
+        palette: ['2ca25f', 'de2d26', '8c6bb1'],
         min: 1,
         max: 3,
-        label: { vi: 'Lớp phân vùng (QA)', en: 'Stratum (QA)' },
+        label: { vi: 'Phân tầng khu vực (QA)', en: 'Monitoring stratum (QA)' },
     },
 });
 
