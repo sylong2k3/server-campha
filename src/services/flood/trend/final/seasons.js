@@ -8,7 +8,7 @@
  *   Xuân  (Spring) : 01/03 – 31/05
  *   Hạ    (Summer) : 01/06 – 31/08
  *   Thu   (Autumn) : 01/09 – 30/11
- *   Đông  (Winter) : 01/12 – 28/02 (next year)
+ *   Đông  (Winter) : 01/12 – last day of Feb (next year, leap-year-aware)
  *
  * @ported-from final_code.js — function buildSeasons(year) lines 60-67
  */
@@ -22,16 +22,22 @@ const SEASON_LABELS = Object.freeze(['Xuân', 'Hạ', 'Thu', 'Đông']);
  * @param {number} year  Integer analysis year (e.g. 2023)
  * @returns {{ label: string, start: string, end: string }[]}
  */
+function lastDayOfFeb(year) {
+  // Day 0 of March = last day of February in that year.
+  return new Date(year, 2, 0).getDate();
+}
+
 function buildSeasons(year) {
   if (!Number.isInteger(year) || year < 2014 || year > 2100) {
     throw new Error(`buildSeasons: invalid analysis year ${year}`);
   }
   const next = year + 1;
+  const winterEnd = `${next}-02-${String(lastDayOfFeb(next)).padStart(2, '0')}`;
   return [
     { label: 'Xuân', start: `${year}-03-01`, end: `${year}-05-31` },
     { label: 'Hạ',   start: `${year}-06-01`, end: `${year}-08-31` },
     { label: 'Thu',  start: `${year}-09-01`, end: `${year}-11-30` },
-    { label: 'Đông', start: `${year}-12-01`, end: `${next}-02-28` },
+    { label: 'Đông', start: `${year}-12-01`, end: winterEnd },
   ];
 }
 

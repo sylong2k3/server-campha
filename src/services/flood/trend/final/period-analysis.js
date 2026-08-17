@@ -44,9 +44,11 @@ function naturalToDb(ee, imgNatural) {
  * Returns natural-unit images with 50 m focal-mean smoothing applied.
  */
 function getS1NaturalVH(ee, { start, end, aoi, orbitPass = 'ASCENDING' }) {
+  // filterDate end is exclusive — advance 1 day so the calendar end date is included.
+  const endExclusive = ee.Date(end).advance(1, 'day');
   const raw = ee.ImageCollection(ASSETS.SENTINEL1_GRD)
     .filterBounds(aoi)
-    .filterDate(start, end)
+    .filterDate(start, endExclusive)
     .filter(ee.Filter.eq('instrumentMode', 'IW'))
     .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH'))
     .filter(ee.Filter.eq('orbitProperties_pass', orbitPass))
@@ -55,12 +57,7 @@ function getS1NaturalVH(ee, { start, end, aoi, orbitPass = 'ASCENDING' }) {
 
   return raw.map((image) => {
     const natural = toNatural(ee, ee.Image(image));
-    const smoothed = natural.focalMean({
-      radius: SMOOTH_RADIUS_M,
-      kernelType: 'circle',
-      units: 'meters',
-      iterations: 1,
-    });
+    const smoothed = natural.focal_mean(SMOOTH_RADIUS_M, 'circle', 'meters');
     return smoothed.rename('VH')
       .copyProperties(image, ['system:time_start', 'system:index',
         'orbitProperties_pass', 'relativeOrbitNumber_start']);
