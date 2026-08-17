@@ -1,15 +1,24 @@
 'use strict';
 
 /**
- * Deterministic Sentinel-2 land-cover pipeline tailored for Cam Pha.
+ * Hybrid Sentinel-2 + Landsat land-cover pipeline tailored for Cam Pha.
  *
- * This is intentionally separate from the generic satellite builders: it needs
- * red-edge/SWIR bands and regional auxiliary datasets which RGB and NDVI do not.
- * It implements the 8-class rule set and clips every output to cp_rg.
+ * Primary source: Sentinel-2 SR (full 8-band + red-edge → high accuracy).
+ * Fallback source: Landsat 8/9 SR (6 common bands, no red-edge) used to fill
+ * pixels masked by cloud/shadow in S2. Classification rules branch on whether
+ * a pixel has S2 red-edge data; Landsat-only pixels use NBR-based proxies that
+ * maintain accuracy for the forest/crop distinction without red-edge.
+ *
+ * Band name convention (common across both sources after masking):
+ *   blue, green, red, nir, swir1, swir2  ← available from both S2 and Landsat
+ *   redEdge1, redEdge2                   ← S2-only; masked in Landsat-filled pixels
  */
 
 const { ee } = require('../../configs/gge');
 const { Api400Error } = require('../../core/error.response');
+
+const LANDSAT_8_ID = 'LANDSAT/LC08/C02/T1_L2';
+const LANDSAT_9_ID = 'LANDSAT/LC09/C02/T1_L2';
 
 const CLASS_DEFINITIONS = Object.freeze([
     { value: 0, label: 'Mặt nước', nameEn: 'Surface water', color: '#0886FB' },
@@ -66,6 +75,9 @@ const summariseCoverage = (areaByClass = {}, totalHa = 0) => {
     };
 };
 
+// S2 mask: renames to common band names so S2 and Landsat composites share the
+// same band namespace. redEdge1/redEdge2 are S2-exclusive — they remain masked
+// in pixels covered only by Landsat.
 const maskSentinel2 = (image) => {
     const scl = image.select('SCL');
     const clearMask = scl
@@ -76,20 +88,46 @@ const maskSentinel2 = (image) => {
         .and(scl.neq(11));
     return image
         .updateMask(clearMask)
-        .select(['B2', 'B3', 'B4', 'B5', 'B6', 'B8', 'B11', 'B12'])
+        .select(
+            ['B2', 'B3', 'B4', 'B5', 'B6', 'B8', 'B11', 'B12'],
+            ['blue', 'green', 'red', 'redEdge1', 'redEdge2', 'nir', 'swir1', 'swir2'],
+        )
         .multiply(0.0001)
         .copyProperties(image, ['system:time_start']);
 };
 
+// Landsat 8/9 Collection-2 SR mask using QA_PIXEL bit flags. Returns only the
+// 6 bands that have Sentinel-2 equivalents; red-edge bands are absent.
+const maskLandsat = (image) => {
+    const qa = image.select('QA_PIXEL');
+    const clearMask = qa
+        .bitwiseAnd(1 << 0)
+        .eq(0)
+        .and(qa.bitwiseAnd(1 << 1).eq(0))
+        .and(qa.bitwiseAnd(1 << 3).eq(0))
+        .and(qa.bitwiseAnd(1 << 4).eq(0))
+        .and(qa.bitwiseAnd(1 << 5).eq(0));
+    return image
+        .updateMask(clearMask)
+        .select(
+            ['SR_B2', 'SR_B3', 'SR_B4', 'SR_B5', 'SR_B6', 'SR_B7'],
+            ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'],
+        )
+        .multiply(0.0000275)
+        .add(-0.2)
+        .clamp(0, 1)
+        .copyProperties(image, ['system:time_start']);
+};
+
 const addDerivedBands = (image) => {
-    const blue = image.select('B2');
-    const green = image.select('B3');
-    const red = image.select('B4');
-    const redEdge1 = image.select('B5');
-    const redEdge2 = image.select('B6');
-    const nir = image.select('B8');
-    const swir1 = image.select('B11');
-    const swir2 = image.select('B12');
+    const blue = image.select('blue');
+    const green = image.select('green');
+    const red = image.select('red');
+    const redEdge1 = image.select('redEdge1');
+    const redEdge2 = image.select('redEdge2');
+    const nir = image.select('nir');
+    const swir1 = image.select('swir1');
+    const swir2 = image.select('swir2');
     const safeDivide = (numerator, denominator, name) =>
         numerator.divide(denominator.add(1e-9)).rename(name);
 
@@ -152,6 +190,32 @@ const buildSentinelCollection = (params, region) =>
 const buildSentinelComposite = (params, region) =>
     buildSentinelCollection(params, region).median().clip(region);
 
+const buildLandsatCollection = (params, region) =>
+    ee
+        .ImageCollection(LANDSAT_8_ID)
+        .filterBounds(region)
+        .filterDate(params.startDate, params.endDate)
+        .map(maskLandsat)
+        .merge(
+            ee
+                .ImageCollection(LANDSAT_9_ID)
+                .filterBounds(region)
+                .filterDate(params.startDate, params.endDate)
+                .map(maskLandsat),
+        );
+
+// Builds a pixel-level hybrid composite:
+//   • Common bands (blue/green/red/nir/swir1/swir2): S2 where cloud-free, Landsat fill elsewhere.
+//   • Red-edge bands (redEdge1/redEdge2): S2-only, remain masked in Landsat-only pixels.
+// Callers can detect S2 coverage via composite.select('redEdge1').mask().
+const buildHybridComposite = (params, region) => {
+    const s2 = buildSentinelCollection(params, region).median().clip(region);
+    const landsat = buildLandsatCollection(params, region).median().clip(region);
+    const commonBands = ['blue', 'green', 'red', 'nir', 'swir1', 'swir2'];
+    const hybridCommon = s2.select(commonBands).unmask(landsat.select(commonBands));
+    return hybridCommon.addBands(s2.select(['redEdge1', 'redEdge2']));
+};
+
 const loadAuxiliaryData = (region, params) => {
     const year = Number(String(params.endDate).slice(0, 4));
     const analysisYear = Number.isFinite(year) ? year : new Date().getUTCFullYear();
@@ -212,10 +276,13 @@ const classifyLandCover = (composite, auxiliary, region) => {
     const cmri = composite.select('CMRI');
     const awei = composite.select('AWEI');
     const ndviRedEdge = composite.select('NDVIre');
-    const nir = composite.select('B8');
-    const swir1 = composite.select('B11');
+    const nir = composite.select('nir');
+    const swir1 = composite.select('swir1');
     const { jrcWater, dem, sarVhVv, gmw, gladMining, hansen } = auxiliary;
     const slope = ee.Terrain.slope(dem);
+
+    // 1 where pixel came from Sentinel-2 (red-edge available), 0 for Landsat-only fill.
+    const hasS2 = composite.select('redEdge1').mask();
 
     const water = mndwi.gt(0.2).or(awei.gt(0)).or(jrcWater.gt(70)).and(ndvi.lt(0.15));
     const tidal = jrcWater
@@ -266,19 +333,44 @@ const classifyLandCover = (composite, auxiliary, region) => {
         .and(mineDump.not())
         .and(infrastructure.not())
         .and(residential.not());
-    const naturalForest = ndvi
+
+    // Forest rules branch on red-edge availability:
+    //   S2 pixels  → NDVIre separates natural (≥0.22) from planted (<0.22) canopy.
+    //   Landsat fill → NBR used as proxy; higher NDVI/EVI thresholds compensate for
+    //                  the missing spectral dimension (conservative to avoid over-mapping).
+    const naturalForestS2 = ndvi
         .gte(0.6)
         .and(evi.gte(0.32))
         .and(ndviRedEdge.gte(0.22))
         .and(sarVhVv.gte(-7))
         .and(hansen.gte(40).or(dem.gte(100)));
-    const plantedForest = ndvi
+    const naturalForestL = ndvi
+        .gte(0.65)
+        .and(evi.gte(0.35))
+        .and(nbr.gte(0.3))
+        .and(sarVhVv.gte(-7))
+        .and(hansen.gte(40).or(dem.gte(100)));
+    const naturalForest = hasS2.and(naturalForestS2).or(hasS2.not().and(naturalForestL));
+
+    const plantedForestS2 = ndvi
         .gte(0.45)
         .and(evi.gte(0.2))
         .and(ndviRedEdge.lt(0.22))
         .and(sarVhVv.lt(-7))
-        .and(mndwi.lt(0.05))
+        .and(mndwi.lt(0.05));
+    // NBR [0.2, 0.35): moderate canopy closure typical of plantation, below dense natural forest.
+    const plantedForestL = ndvi
+        .gte(0.45)
+        .and(evi.gte(0.2))
+        .and(nbr.gte(0.2))
+        .and(nbr.lt(0.35))
+        .and(sarVhVv.lt(-7))
+        .and(mndwi.lt(0.05));
+    const plantedForest = hasS2
+        .and(plantedForestS2)
+        .or(hasS2.not().and(plantedForestL))
         .and(naturalForest.not());
+
     const shrubGrass = ndvi
         .gte(0.18)
         .and(ndvi.lt(0.45))
@@ -286,16 +378,30 @@ const classifyLandCover = (composite, auxiliary, region) => {
         .and(mndwi.lt(0.1))
         .and(naturalForest.not())
         .and(plantedForest.not());
-    const perennialCrops = ndvi
+
+    const perennialCropsS2 = ndvi
         .gte(0.35)
         .and(ndvi.lt(0.6))
         .and(evi.gte(0.15))
         .and(evi.lt(0.32))
         .and(ndviRedEdge.lt(0.2))
         .and(slope.lt(25))
-        .and(dem.lt(200))
+        .and(dem.lt(200));
+    // Without NDVIre, use low NBR (open-canopy orchards/gardens) as proxy.
+    const perennialCropsL = ndvi
+        .gte(0.35)
+        .and(ndvi.lt(0.6))
+        .and(evi.gte(0.15))
+        .and(evi.lt(0.32))
+        .and(nbr.lt(0.25))
+        .and(slope.lt(25))
+        .and(dem.lt(200));
+    const perennialCrops = hasS2
+        .and(perennialCropsS2)
+        .or(hasS2.not().and(perennialCropsL))
         .and(naturalForest.not())
         .and(plantedForest.not());
+
     const annualCrops = ndvi
         .gte(0.18)
         .and(ndvi.lt(0.55))
@@ -326,7 +432,7 @@ const classifyLandCover = (composite, auxiliary, region) => {
         .where(coalMine, 4)
         .where(tidal, 0)
         .where(water, 0)
-        .updateMask(composite.select('B2').mask())
+        .updateMask(composite.select('blue').mask())
         .rename('class')
         .byte()
         .clip(region);
@@ -362,19 +468,25 @@ const computeAreaStats = async (classified, region, evaluate) => {
 };
 
 const buildForestClassification = async (params, region, { evaluate }) => {
-    const source = buildSentinelCollection(params, region);
-    const imageCount = Number(await evaluate(source.size()));
-    if (!Number.isFinite(imageCount) || imageCount <= 0) {
-        throw new Api400Error('Không tìm thấy ảnh Sentinel-2 cho kỳ phân loại đã chọn.', [
-            'SATELLITE_IMAGE_NOT_FOUND',
-        ]);
+    const s2Collection = buildSentinelCollection(params, region);
+    const landsatCollection = buildLandsatCollection(params, region);
+    const [s2Count, landsatCount] = await Promise.all([
+        evaluate(s2Collection.size()).then(Number),
+        evaluate(landsatCollection.size()).then(Number),
+    ]);
+    const imageCount = (Number.isFinite(s2Count) ? s2Count : 0) + (Number.isFinite(landsatCount) ? landsatCount : 0);
+    if (imageCount <= 0) {
+        throw new Api400Error(
+            'Không tìm thấy ảnh vệ tinh (Sentinel-2 hoặc Landsat) cho kỳ phân loại đã chọn.',
+            ['SATELLITE_IMAGE_NOT_FOUND'],
+        );
     }
-    const opticalComposite = source.median().clip(region);
+    const opticalComposite = buildHybridComposite(params, region);
     const composite = addDerivedBands(opticalComposite);
     const auxiliary = loadAuxiliaryData(region, params);
     const image = classifyLandCover(composite, auxiliary, region);
     const area = await computeAreaStats(image, region, evaluate);
-    return { image, imageCount, ...area };
+    return { image, imageCount, s2Count: s2Count || 0, landsatCount: landsatCount || 0, ...area };
 };
 
 module.exports = {
@@ -384,12 +496,15 @@ module.exports = {
     MINE_CLASS_IDS,
     addDerivedBands,
     buildForestClassification,
+    buildHybridComposite,
+    buildLandsatCollection,
     buildLegend,
     buildSentinelCollection,
     buildSentinelComposite,
     classifyLandCover,
     computeAreaStats,
     loadAuxiliaryData,
+    maskLandsat,
     maskSentinel2,
     summariseCoverage,
 };

@@ -54,6 +54,11 @@ const requireLayerAccess = (access) => {
             if (!req.user) {
                 return next(new Api401Error(t('please_login', req.lang)));
             }
+            // system_admin có toàn quyền truy cập mọi lớp
+            if (req.user.role === 'system_admin') {
+                req.layerAcl = layer;
+                return next();
+            }
             if (layer.allowed !== true) {
                 return next(
                     new Api403Error(
