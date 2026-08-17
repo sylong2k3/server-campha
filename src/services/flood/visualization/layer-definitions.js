@@ -127,55 +127,73 @@ const M4_LAYERS = Object.freeze({
     },
 });
 
-// ── M5 FINAL (TREND_FINAL pipeline) ──────────────────────────────────────────
+// ── Phân tích ngập theo năm (TREND_FINAL pipeline) ───────────────────────────
 const M5_FINAL_LAYERS = Object.freeze({
     flood_extent: {
         palette: ['1f78b4'],
         min: 1,
         max: 1,
-        label: { vi: 'Phạm vi ngập (FINAL)', en: 'Flood extent (FINAL)' },
+        label: { vi: 'Phạm vi ngập', en: 'Flood extent' },
     },
     flood_frequency: {
         palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494'],
         min: 0,
         max: 4,
-        label: { vi: 'Tần suất ngập (số mùa)', en: 'Flood frequency (season count)' },
+        label: { vi: 'Tần suất ngập (số mùa)', en: 'Flood frequency (seasons)' },
     },
     frequent_flood: {
         palette: ['08519C'],
         min: 1,
         max: 1,
-        label: { vi: 'Ngập tái diễn (FINAL)', en: 'Frequent flood (FINAL)' },
+        label: { vi: 'Ngập tái diễn', en: 'Frequent flood' },
     },
     new_flood: {
         palette: ['E31A1C'],
         min: 1,
         max: 1,
-        label: { vi: 'Ngập mới (FINAL)', en: 'New flood (FINAL)' },
+        label: { vi: 'Ngập mới', en: 'New flood' },
     },
     pop_affected: {
         palette: ['FFFFB2', 'FED976', 'FEB24C', 'FD8D3C', 'F03B20', 'BD0026'],
         min: 0,
         max: 50,
-        label: { vi: 'Dân cư bị ảnh hưởng (FINAL)', en: 'Population affected (FINAL)' },
+        label: { vi: 'Dân số trong vùng ngập', en: 'Population in flood zone' },
     },
     crop_affected: {
         palette: ['33a02c'],
         min: 1,
         max: 1,
-        label: { vi: 'Đất nông nghiệp bị ảnh hưởng (FINAL)', en: 'Cropland affected (FINAL)' },
+        label: { vi: 'Đất nông nghiệp trong vùng ngập', en: 'Cropland in flood zone' },
     },
     built_affected: {
         palette: ['C2185B'],
         min: 1,
         max: 1,
-        label: { vi: 'Khu vực đô thị bị ảnh hưởng (FINAL)', en: 'Built-up affected (FINAL)' },
+        label: { vi: 'Khu xây dựng trong vùng ngập', en: 'Built-up in flood zone' },
+    },
+    pond_to_built: {
+        palette: ['D95F02'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Ao/mặt nước chuyển thành đất xây dựng', en: 'Pond converted to built-up' },
+    },
+    drainage_sensitive: {
+        palette: ['1B7837'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Vùng nhạy cảm tiêu thoát nước', en: 'Drainage-sensitive area' },
+    },
+    encroachment_alert: {
+        palette: ['E6AB02'],
+        min: 1,
+        max: 1,
+        label: { vi: 'Cảnh báo lấn chiếm mặt nước', en: 'Waterbody encroachment alert' },
     },
     stratum: {
         palette: ['b2df8a', 'fb9a99', 'cab2d6'],
         min: 1,
         max: 3,
-        label: { vi: 'Lớp phân vùng (QA)', en: 'Stratum layer (QA)' },
+        label: { vi: 'Lớp phân vùng (QA)', en: 'Stratum (QA)' },
     },
 });
 

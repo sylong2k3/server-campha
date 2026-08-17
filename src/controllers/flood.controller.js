@@ -20,7 +20,7 @@ const legends = async (req, res) =>
     OK(res, 'Đã tải chú giải ngập lụt', service.getLegends(req.query.module));
 
 const adminLegends = async (req, res) =>
-    OK(res, 'Đã tải chú giải ngập lụt (admin)', service.getAdminLegends(req.query.module));
+    OK(res, 'Đã tải chú giải ngập lụt (admin)', service.getAdminLegends(req.query.module ?? 'trend'));
 
 const updateLegend = async (req, res) => {
     const actor = buildActor(req);

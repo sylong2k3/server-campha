@@ -597,13 +597,11 @@ function getTrendConfig() {
 function getConfig() {
     return {
         defaults: {
-            event: defaults.S1_DEFAULTS,
-            hand: defaults.HAND_DEFAULTS,
-            impact: defaults.IMPACT_DEFAULTS,
             trend: defaults.TREND_FINAL_DEFAULTS,
-            trendFinal: defaults.TREND_FINAL_DEFAULTS,
         },
-        versions: versions.MODULE_TO_PIPELINE_VERSION,
+        versions: {
+            trend: versions.MODULE_TO_PIPELINE_VERSION.trend,
+        },
         configVersion: versions.CONFIG_VERSION,
     };
 }
