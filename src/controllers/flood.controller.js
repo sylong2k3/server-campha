@@ -65,6 +65,7 @@ const publicRuns = async (req, res) =>
 const dashboard = async (_req, res) =>
     OK(res, 'Đã tải bảng điều khiển ngập lụt', await service.overview({ mode: null, onlySucceeded: false }));
 const config = async (_req, res) => OK(res, 'Đã tải cấu hình ngập lụt', service.getConfig());
+const trendConfig = async (_req, res) => OK(res, 'Cấu hình mô hình xu thế FINAL', service.getTrendConfig());
 const queue = async (_req, res) => OK(res, 'Đã tải trạng thái hàng đợi', service.getQueueState());
 const listRuns = async (req, res) =>
     listResponse(res, await service.listRuns(req.query), req.query, 'Đã tải danh sách lượt phân tích');
@@ -171,6 +172,7 @@ module.exports = {
     publicRuns,
     dashboard,
     config,
+    trendConfig,
     queue,
     listRuns,
     getRun,
