@@ -2,7 +2,7 @@
 
 **Date**: 2026-08-17  
 **Scope**: M5 Trend Analysis module only  
-**Status**: Fully integrated — backend wired, admin UI, client WebGIS complete
+**Status**: V1 removed — TREND_FINAL is the sole pipeline. DB reset pending (run migration 108).
 
 ---
 

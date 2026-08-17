@@ -111,44 +111,6 @@ const IMPACT_DEFAULTS = Object.freeze({
     impactUseNonTidal: true,
 });
 
-// Multi-period trend (M5). These thresholds come from floodTrend_ft_final.js
-// and are ratios in natural power space, not M1 dB-decrease thresholds.
-const TREND_DEFAULTS = Object.freeze({
-    dryStart: '2023-01-01',
-    dryEnd: '2023-04-30',
-    periods: Object.freeze([
-        Object.freeze({ start: '2023-07-01', end: '2023-07-31' }),
-        Object.freeze({ start: '2023-08-01', end: '2023-08-31' }),
-        Object.freeze({ start: '2023-09-01', end: '2023-09-30' }),
-        Object.freeze({ start: '2023-10-01', end: '2023-10-31' }),
-    ]),
-    orbitPass: 'AUTO',
-    relativeOrbit: null,
-    ratioThresholdMode: 'fixed',
-    floodRatioThresholdVV: 1.2,
-    floodRatioThresholdVH: 1.58,
-    medianSigmaK: 3.5,
-    maximumRatio: 2.5,
-    periodPadDays: 0,
-    slopeThreshold: 5,
-    handThreshold: 12,
-    frequencyAlertPercent: 50,
-    localDepressionRadiusM: 500,
-    localDepressionDepthM: -2,
-    dynamicWorldYearOld: 2018,
-    dynamicWorldYearNew: 2023,
-    enableUrbanDoubleBounce: false,
-    validationPeriod: null,
-    s2ExtraDays: 10,
-    s2ClearThreshold: 0.6,
-    mndwiThreshold: 0,
-    samplesPerClass: 500,
-    sampleSeed: 42,
-    waterCriterion: 'VH_only',
-    waterVVDbFallback: -15,
-    waterVHDbFallback: -22,
-});
-
 // ── FINAL M5 trend (year-based, VH-only, 3-stratum Otsu) ────────────────────
 const TREND_FINAL_DEFAULTS = Object.freeze({
     // analysisYear is REQUIRED — no default; caller must supply it
@@ -247,7 +209,6 @@ module.exports = {
     S1_DEFAULTS,
     HAND_DEFAULTS,
     IMPACT_DEFAULTS,
-    TREND_DEFAULTS,
     TREND_FINAL_DEFAULTS,
     RUN_MODES,
     DEFAULT_RUN_MODE,

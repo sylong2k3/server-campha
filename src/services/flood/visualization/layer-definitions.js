@@ -127,57 +127,6 @@ const M4_LAYERS = Object.freeze({
     },
 });
 
-const M5_LAYERS = Object.freeze({
-    trend_frequency: {
-        palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494'],
-        min: 0,
-        max: 100,
-        label: { vi: 'Tần suất ngập (%)', en: 'Flood frequency (%)' },
-    },
-    trend_frequent_flood: {
-        palette: ['08306B'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ngập tái diễn', en: 'Frequent flood' },
-    },
-    trend_new_flood: {
-        palette: ['E31A1C'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ngập mới', en: 'New flood' },
-    },
-    pond_to_built: {
-        palette: ['B45F06'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ao/hồ chuyển sang đô thị', en: 'Pond-to-built change' },
-    },
-    drainage_sensitive: {
-        palette: ['FFC300'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Nhạy cảm với tiêu thoát', en: 'Drainage-sensitive' },
-    },
-    encroachment_alert: {
-        palette: ['FF0000'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Cảnh báo lấn chiếm', en: 'Encroachment alert' },
-    },
-    trend_tidal_candidate: {
-        palette: ['FF00FF'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ứng viên vùng triều (QA)', en: 'Tidal candidate (QA)' },
-    },
-    trend_mining_candidate: {
-        palette: ['FF8C00'],
-        min: 1,
-        max: 1,
-        label: { vi: 'Ứng viên vùng mỏ (QA)', en: 'Mining candidate (QA)' },
-    },
-});
-
 // ── M5 FINAL (TREND_FINAL pipeline) ──────────────────────────────────────────
 const M5_FINAL_LAYERS = Object.freeze({
     flood_extent: {
@@ -235,7 +184,6 @@ const ARTIFACT_LAYER_DEFINITIONS = Object.freeze({
     ...M2_LAYERS,
     ...M3_LAYERS,
     ...M4_LAYERS,
-    ...M5_LAYERS,
     ...M5_FINAL_LAYERS,
 });
 
@@ -245,7 +193,6 @@ const ARTIFACT_MODULE_MAP = Object.freeze({
     ...Object.fromEntries(Object.keys(M2_LAYERS).map(k => [k, 'hand'])),
     ...Object.fromEntries(Object.keys(M3_LAYERS).map(k => [k, 'rain'])),
     ...Object.fromEntries(Object.keys(M4_LAYERS).map(k => [k, 'impact'])),
-    ...Object.fromEntries(Object.keys(M5_LAYERS).map(k => [k, 'trend'])),
     ...Object.fromEntries(Object.keys(M5_FINAL_LAYERS).map(k => [k, 'trend'])),
 });
 
@@ -271,7 +218,6 @@ function listArtifactCodes() {
         ...Object.keys(M2_LAYERS),
         ...Object.keys(M3_LAYERS),
         ...Object.keys(M4_LAYERS),
-        ...Object.keys(M5_LAYERS),
         ...Object.keys(M5_FINAL_LAYERS),
     ]);
 }
@@ -283,7 +229,6 @@ module.exports = {
     M2_LAYERS,
     M3_LAYERS,
     M4_LAYERS,
-    M5_LAYERS,
     M5_FINAL_LAYERS,
     getLayerDefinition,
     listArtifactCodes,

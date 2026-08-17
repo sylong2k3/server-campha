@@ -51,7 +51,6 @@ const MODULE_RUNNERS = Object.freeze({
     event: { module: './event', fn: 'runSentinel1Flood' },
     hand: { module: './hand', fn: 'runHandScenario' },
     rain: { module: './rain', fn: 'runRainRisk' },
-    trend: { module: './trend', fn: 'runTrendAnalysis' },
 });
 
 function safeMessage(error) {
@@ -114,8 +113,7 @@ async function runScientificModule(run) {
     if (run.module === 'impact') {
         return runImpactWithReconstructedSource(run);
     }
-    // TREND FINAL uses analysisYear-based pipeline; dispatch by pipeline_version.
-    if (run.module === 'trend' && run.pipeline_version === 'TREND_FINAL') {
+    if (run.module === 'trend') {
         const { runTrendAnalysisFinal } = require('./trend/final/index');
         return runTrendAnalysisFinal({
             ee,
@@ -211,15 +209,8 @@ function periodTagFromRun(run) {
                 : null;
             return [depth, month].filter(Boolean).join('_') || null;
         }
-        case 'trend': {
-            // FINAL: analysisYear-based.
-            if (p.analysisYear) return String(p.analysisYear);
-            // V1: dryStart + last period year.
-            const baseYear = p.dryStart ? p.dryStart.slice(0, 4) : null;
-            const periods = Array.isArray(p.periods) && p.periods.length > 0 ? p.periods : null;
-            const lastYear = periods ? periods[periods.length - 1].end.slice(0, 4) : null;
-            return baseYear && lastYear ? `${baseYear}_${lastYear}` : (baseYear || null);
-        }
+        case 'trend':
+            return p.analysisYear ? String(p.analysisYear) : null;
         default:
             return null;
     }
@@ -260,14 +251,8 @@ function buildLayerLabel(definition, run, lang) {
         }
         case 'hand':
             return p.levelM != null ? `${base} (${p.levelM}m)` : base;
-        case 'trend': {
-            if (p.analysisYear) return `${base} (${p.analysisYear})`;
-            const periods = Array.isArray(p.periods) && p.periods.length > 0 ? p.periods : null;
-            if (!p.dryStart || !periods) return base;
-            const baseYear = p.dryStart.slice(0, 4);
-            const lastYear = periods[periods.length - 1].end.slice(0, 4);
-            return `${base} (${baseYear}–${lastYear})`;
-        }
+        case 'trend':
+            return p.analysisYear ? `${base} (${p.analysisYear})` : base;
         case 'impact': {
             const src = p.impactSource || 'M1';
             return lang === 'vi' ? `${base} (nguồn ${src})` : `${base} (source ${src})`;

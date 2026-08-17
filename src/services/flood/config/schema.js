@@ -90,64 +90,7 @@ const impactSchema = Joi.object({
     sourceRunId: Joi.number().integer().positive(),
 }).unknown(false);
 
-// ── M5 (Trend) — reserved for GEE-S08 ────────────────────────────────────────
-const trendSchema = Joi.object({
-    mode: modeSchema,
-    dryStart: iso8601Date.default('2023-01-01'),
-    dryEnd: iso8601Date.default('2023-04-30'),
-    periods: Joi.array()
-        .items(
-            Joi.object({
-                start: iso8601Date.required(),
-                end: iso8601Date.required(),
-            }),
-        )
-        .min(2)
-        .max(24)
-        .default([
-            { start: '2023-07-01', end: '2023-07-31' },
-            { start: '2023-08-01', end: '2023-08-31' },
-            { start: '2023-09-01', end: '2023-09-30' },
-            { start: '2023-10-01', end: '2023-10-31' },
-        ]),
-    orbitPass: Joi.string().valid('AUTO', 'ASCENDING', 'DESCENDING').default('AUTO'),
-    relativeOrbit: Joi.number().integer().min(1).max(175).allow(null).default(null),
-    ratioThresholdMode: Joi.string().valid('fixed', 'otsu', 'median_sigma').default('fixed'),
-    floodRatioThresholdVV: Joi.number().greater(1).max(5).default(1.2),
-    floodRatioThresholdVH: Joi.number().greater(1).max(5).default(1.58),
-    medianSigmaK: Joi.number().min(0.5).max(10).default(3.5),
-    periodPadDays: Joi.number().integer().min(0).max(30).default(0),
-    slopeThreshold: Joi.number().min(0).max(45).default(5),
-    handThreshold: Joi.number().min(0).max(100).default(12),
-    frequencyAlertPercent: Joi.number().min(0).max(100).default(50),
-    dynamicWorldYearOld: Joi.number().integer().min(2015).max(2100).default(2018),
-    dynamicWorldYearNew: Joi.number().integer().min(2015).max(2100).default(2023),
-    enableUrbanDoubleBounce: Joi.boolean().default(false),
-    validationPeriod: Joi.number().integer().min(0),
-})
-    .custom((value, helpers) => {
-        if (value.dryStart > value.dryEnd) {
-            return helpers.message('dryStart must be <= dryEnd');
-        }
-        if (value.dynamicWorldYearOld >= value.dynamicWorldYearNew) {
-            return helpers.message('dynamicWorldYearOld must be < dynamicWorldYearNew');
-        }
-        for (const period of value.periods) {
-            if (period.start > period.end) {
-                return helpers.message('each trend period start must be <= end');
-            }
-        }
-        if (
-            value.validationPeriod !== null &&
-            value.validationPeriod !== undefined &&
-            value.validationPeriod >= value.periods.length
-        ) {
-            return helpers.message('validationPeriod must index an existing period');
-        }
-        return value;
-    }, 'trend-consistency')
-    .unknown(false);
-
+// ── M5 (Trend FINAL) ─────────────────────────────────────────────────────────
 const trendFinalSchema = Joi.object({
     mode: modeSchema,
     analysisYear: Joi.number().integer().min(2015).max(2100).required(),
@@ -183,12 +126,12 @@ const SCHEMAS = Object.freeze({
     event: eventSchema,
     hand: handSchema,
     impact: impactSchema,
-    trend: trendSchema,
+    trend: trendFinalSchema,
     trendFinal: trendFinalSchema,
 });
 
 /**
- * @param {'event'|'hand'|'impact'|'trend'|'trendFinal'} module
+ * @param {'event'|'hand'|'impact'|'trend'|'trendFinal'} module  ('trend' and 'trendFinal' both use trendFinalSchema)
  * @param {object} payload
  * @returns {object} — normalised value with defaults applied
  * @throws  {Error} with .details listing every rejected key

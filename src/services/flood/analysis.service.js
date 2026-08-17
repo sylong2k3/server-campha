@@ -400,7 +400,7 @@ function getConfig() {
             event: defaults.S1_DEFAULTS,
             hand: defaults.HAND_DEFAULTS,
             impact: defaults.IMPACT_DEFAULTS,
-            trend: defaults.TREND_DEFAULTS,
+            trend: defaults.TREND_FINAL_DEFAULTS,
             trendFinal: defaults.TREND_FINAL_DEFAULTS,
         },
         versions: versions.MODULE_TO_PIPELINE_VERSION,
