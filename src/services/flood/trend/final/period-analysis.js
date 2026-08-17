@@ -56,7 +56,7 @@ function getS1NaturalVH(ee, { start, end, aoi, orbitPass = 'ASCENDING' }) {
     .select(['VH']);
 
   return raw.map((image) => {
-    const natural = toNatural(ee, ee.Image(image));
+    const natural = ee.Image(toNatural(ee, ee.Image(image)));
     const smoothed = natural.focal_mean(SMOOTH_RADIUS_M, 'circle', 'meters');
     return smoothed.rename('VH')
       .copyProperties(image, ['system:time_start', 'system:index',
