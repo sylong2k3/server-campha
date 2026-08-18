@@ -367,35 +367,23 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'impact', 'trend'];
-    const latest = await Promise.all(
-        modules.map((module) =>
-            runRepo.findLatestByModule(module, {
-                mode,
-                onlySucceeded,
-            }),
-        ),
-    );
-    const layers = await listPublished({ limit: 100 });
+    const [run, layers] = await Promise.all([
+        runRepo.findLatestByModule('trend', { mode, onlySucceeded }),
+        listPublished({ limit: 100 }),
+    ]);
     return {
-        modules: Object.fromEntries(
-            modules.map((module, index) => {
-                const run = latest[index];
-                return [
-                    module,
-                    run
-                        ? {
-                              id: run.id,
-                              status: run.status,
-                              finishedAt: run.finished_at,
-                              metadata: run.result_metadata,
-                              params: run.params_snapshot,
-                              warnings: run.warnings,
-                          }
-                        : null,
-                ];
-            }),
-        ),
+        modules: {
+            trend: run
+                ? {
+                      id: run.id,
+                      status: run.status,
+                      finishedAt: run.finished_at,
+                      metadata: run.result_metadata,
+                      params: run.params_snapshot,
+                      warnings: run.warnings,
+                  }
+                : null,
+        },
         layers: layers.items,
     };
 }

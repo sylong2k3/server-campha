@@ -17,6 +17,7 @@ const floodRoutes = require('./flood.routes');
 const satelliteRoutes = require('./satellite.routes');
 const forestClassificationRoutes = require('./forest-classification.routes');
 const notificationRoutes = require('./notification.routes');
+const adminDashboardRoutes = require('./admin-dashboard.routes');
 const router = Router();
 
 router.use('/auth', authRoutes);
@@ -45,5 +46,6 @@ router.use('/admin/flood', floodRoutes.adminRouter);
 router.use('/satellite', satelliteRoutes);
 router.use('/forest-classification', forestClassificationRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/admin/dashboard', adminDashboardRoutes);
 
 module.exports = router;
