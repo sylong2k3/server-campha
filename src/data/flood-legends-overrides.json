@@ -1,1 +1,65 @@
-{}
+{
+  "flood_extent": {
+    "palette": ["1f78b4"],
+    "min": 1,
+    "max": 1,
+    "label": {
+      "vi": "Vùng ngập (giám sát vs mùa khô)",
+      "en": "Detected flood extent"
+    }
+  },
+  "pop_affected": {
+    "palette": ["FFFFB2", "FECC5C", "FD8D3C", "F03B20", "BD0026"],
+    "min": 0,
+    "max": 50,
+    "label": {
+      "vi": "Dân số bị ảnh hưởng (thấp→cao)",
+      "en": "Affected population (low→high)"
+    }
+  },
+  "crop_affected": {
+    "palette": ["238B45"],
+    "min": 1,
+    "max": 1,
+    "label": {
+      "vi": "Cây trồng bị ảnh hưởng",
+      "en": "Affected cropland"
+    }
+  },
+  "encroachment_alert": {
+    "palette": ["DE2D26"],
+    "min": 1,
+    "max": 1,
+    "label": {
+      "vi": "Cảnh báo tiêu thoát",
+      "en": "Drainage encroachment alert"
+    }
+  },
+  "drainage_sensitive": {
+    "palette": ["756BB1"],
+    "min": 1,
+    "max": 1,
+    "label": {
+      "vi": "Vùng nhạy cảm tiêu thoát",
+      "en": "Drainage-sensitive area"
+    }
+  },
+  "pond_to_built": {
+    "palette": ["FEB24C"],
+    "min": 1,
+    "max": 1,
+    "label": {
+      "vi": "Ao/mặt nước → khu xây dựng",
+      "en": "Pond-to-built encroachment"
+    }
+  },
+  "stratum": {
+    "palette": ["2ca25f", "de2d26", "8c6bb1"],
+    "min": 1,
+    "max": 3,
+    "label": {
+      "vi": "Phân tầng (1=ngoài đô thị, 2=đô thị, 3=mỏ)",
+      "en": "Monitoring stratum (1=non-urban, 2=urban, 3=mine)"
+    }
+  }
+}
