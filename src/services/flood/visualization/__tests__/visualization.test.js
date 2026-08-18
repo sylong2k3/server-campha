@@ -7,27 +7,49 @@ const { createDiagnosticStore } = require('../../diagnostics/store');
 describe('layer-definitions.js', () => {
     test('every M1..M5 artifact code is defined', () => {
         for (const code of [
+            // M1 — event
             'main_flood_non_tidal',
             'open_water',
             'shallow_flood',
             'tidal_candidate',
             'mining_candidate',
             'urban_double_bounce',
+            // M2 — hand
+            'hand_scenario',
+            'hand_depth',
+            // M3 — rain
             'rain_risk_score',
             'rain_risk_class',
+            // M4 — impact
             'affected_population',
             'affected_cropland',
             'affected_built',
+            // M5 — trend monitoring (TREND_MONITORING_V1)
+            'flood_extent',
+            'pop_affected',
+            'crop_affected',
+            'built_affected',
+            'encroachment_alert',
+            'drainage_sensitive',
+            'pond_to_built',
+            'frequent_flood',
+            'flood_frequency',
+            'stratum',
+        ]) {
+            expect(layerDefs.ARTIFACT_LAYER_DEFINITIONS[code]).toBeDefined();
+        }
+    });
+
+    test('removed V1 artifact codes are NOT defined', () => {
+        for (const code of [
             'trend_frequency',
             'trend_frequent_flood',
             'trend_new_flood',
-            'pond_to_built',
-            'drainage_sensitive',
-            'encroachment_alert',
             'trend_tidal_candidate',
             'trend_mining_candidate',
+            'new_flood',
         ]) {
-            expect(layerDefs.ARTIFACT_LAYER_DEFINITIONS[code]).toBeDefined();
+            expect(layerDefs.ARTIFACT_LAYER_DEFINITIONS[code]).toBeUndefined();
         }
     });
 
@@ -79,8 +101,8 @@ describe('layer-definitions.js', () => {
     test('listArtifactCodes returns all defined codes in module order', () => {
         const codes = layerDefs.listArtifactCodes();
         expect(codes[0]).toBe('main_flood_non_tidal'); // First M1 entry
-        expect(codes[codes.length - 1]).toBe('trend_mining_candidate'); // Last M5 entry
-        expect(new Set(codes).size).toBe(codes.length); // no duplicates
+        expect(codes[codes.length - 1]).toBe('stratum');  // Last M5 MONITORING entry
+        expect(new Set(codes).size).toBe(codes.length);   // no duplicates
     });
 });
 

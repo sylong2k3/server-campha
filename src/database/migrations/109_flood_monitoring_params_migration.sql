@@ -121,7 +121,7 @@ SET publish_status = 'unpublished',
     workspace      = NULL,
     layer_name     = NULL,
     style_name     = NULL,
-    registry_layer_id = NULL
+    ingest_job_id  = NULL
 WHERE artifact_code = 'new_flood'
   AND publish_status IN ('published', 'publishing', 'failed');
 
