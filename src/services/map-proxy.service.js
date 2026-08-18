@@ -44,15 +44,28 @@ const proxyWms = async (layer, query) => {
     // so GeoServer renders with the correct colors without needing persistent
     // GeoServer SLD styles (which the raster-ingest pipeline does not create).
     //
-    // Resolve artifact code via two methods (in priority order):
-    // 1. Parse layer.code for the fl_{module}_{artifact_code}_{id} pattern
-    //    (also resolves legacy code aliases, e.g. flood_main → main_flood_non_tidal)
+    // Resolve artifact code via three methods (in priority order):
+    // 1. Parse layer.code for the fl_{module}_{artifact_code}_{tag} pattern
+    //    (handles both legacy _r{id} and Monitoring _YYYY_MM_DD_YYYY_MM_DD tags;
+    //     also resolves legacy code aliases, e.g. flood_main → main_flood_non_tidal)
     // 2. Use layer.style_name if it maps to a known artifact code or alias
-    //    (works even when layer.category is NULL in older DB rows)
+    // 3. Use layer.metadata.style (always populated by the ingest pipeline for
+    //    flood layers; style_name is NULL in the registry for these layers)
     const artifactCode =
         artifactCodeFromLayerCode(layer.code) ||
-        resolveKnownArtifactCode(layer.style_name);
+        resolveKnownArtifactCode(layer.style_name) ||
+        resolveKnownArtifactCode(layer.metadata?.style);
     const sldBody = artifactCode ? buildSld(layerName, artifactCode) : null;
+
+    if (!sldBody && layer.code?.startsWith('fl_')) {
+        console.warn('[map-proxy] WMS: SLD could not be resolved for flood layer', {
+            layerCode: layer.code,
+            layerId: layer.id,
+            geoserverLayer: layerName,
+            styleName: layer.style_name,
+            metadataStyle: layer.metadata?.style,
+        });
+    }
 
     const params = new URLSearchParams({
         service: 'WMS',
