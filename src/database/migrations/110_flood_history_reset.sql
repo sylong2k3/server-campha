@@ -73,7 +73,7 @@ BEGIN
     RAISE NOTICE '[110] flood_run_audit: %',        v_audits;
     RAISE NOTICE '[110] raster_ingest_jobs: %',     v_jobs;
     RAISE NOTICE '[110] raster_ingest_dlq: %',      v_dlq;
-    RAISE NOTICE '[110] gis.layers (fl_%): %',      v_layers;
+    RAISE NOTICE '[110] gis.layers (fl_%%): %',      v_layers;
 
     IF v_runs > 0 OR v_arts > 0 OR v_layers > 0 THEN
         RAISE EXCEPTION '[110] Reset không hoàn chỉnh — còn dữ liệu sót lại';
