@@ -15,9 +15,15 @@ const SORT_COLUMNS = Object.freeze({
 const list = async (filter) => {
     const params = [];
     const where = ['l.deleted_at IS NULL'];
-    if (filter.q) {
-        params.push(`%${filter.q}%`);
-        where.push(`(l.name_vi ILIKE $${params.length} OR l.code ILIKE $${params.length})`);
+    const keyword = filter.search || filter.q;
+    if (keyword) {
+        params.push(`%${keyword}%`);
+        const term = `unaccent($${params.length})`;
+        where.push(
+            `(unaccent(l.name_vi) ILIKE ${term}
+              OR l.code ILIKE $${params.length}
+              OR unaccent(COALESCE(l.category_name, '')) ILIKE ${term})`,
+        );
     }
     if (filter.category) {
         params.push(filter.category);

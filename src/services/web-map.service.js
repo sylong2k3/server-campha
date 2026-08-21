@@ -76,10 +76,11 @@ const serializeLayer = (layer, actor) => {
         editableFields,
     };
 };
-const listLayers = async (category, actor) => {
+const listLayers = async (filter, actor) => {
     assertMap(actor, 'view');
+    const { category, search } = filter || {};
     const isAdmin = actor?.role === 'system_admin';
-    const layers = await repository.catalog(actor, category);
+    const layers = await repository.catalog(actor, { category, search });
     const visible = isAdmin ? layers : layers.filter((l) => !BLOCKED_CATEGORIES.has(l.category));
     return visible.map((layer) => serializeLayer(layer, actor));
 };

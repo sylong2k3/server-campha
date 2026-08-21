@@ -21,7 +21,11 @@ const commonImport = {
 
 const shapefileImportSchema = Joi.object({
     ...commonImport,
-    sourceEncoding: Joi.string().valid('UTF-8', 'CP1258', 'WINDOWS-1252').optional(),
+    sourceEncoding: Joi.string()
+        .trim()
+        .uppercase()
+        .valid('UTF-8', 'CP1258', 'WINDOWS-1258', 'TCVN3', 'TCVN-3', 'WINDOWS-1252', 'CP1252')
+        .optional(),
     topologyProfile: Joi.string().valid('basic', 'administrative_boundary').default('basic'),
 });
 
@@ -41,6 +45,7 @@ const paginationSchema = Joi.object({
 });
 const listLayersSchema = paginationSchema.keys({
     q: Joi.string().trim().max(200).allow('').optional(),
+    search: Joi.string().trim().max(200).allow('').optional(),
     category: Joi.string().trim().max(50).optional(),
     geometryType: Joi.string()
         .valid(

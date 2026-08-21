@@ -24,6 +24,17 @@ describe('layer validator', () => {
         });
     });
 
+    test('accepts Vietnamese encodings TCVN3 and WINDOWS-1258', () => {
+        for (const enc of ['TCVN3', 'tcvn3', 'WINDOWS-1258', 'CP1258']) {
+            const res = validate(validator.shapefileImportSchema, {
+                ...base,
+                sourceEncoding: enc,
+            });
+            expect(res.error).toBeUndefined();
+            expect(res.value.sourceEncoding).toBe(enc.toUpperCase());
+        }
+    });
+
     test('rejects unsafe generated layer code', () => {
         const result = validate(validator.shapefileImportSchema, {
             ...base,
