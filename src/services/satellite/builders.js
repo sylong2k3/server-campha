@@ -46,16 +46,13 @@ const landsatThermalComposite = (params, region) => {
 };
 
 const buildClassified = async (params, region, dependencies) => {
-    const { image, imageCount, areaByClass, totalHa } = await buildForestClassification(
-        params,
-        region,
-        dependencies,
-    );
+    const { image, imageCount, s2Count, landsatCount, areaByClass, totalHa } =
+        await buildForestClassification(params, region, dependencies);
     return {
         image,
         viz: CLASSIFIED_VIZ,
         region,
-        stats: { imageCount, areaByClass, totalHa },
+        stats: { imageCount, s2Count, landsatCount, areaByClass, totalHa },
         legend: CLASSIFIED_LEGEND,
         metadata: {
             source: resolveCollectionSources(params.collection),

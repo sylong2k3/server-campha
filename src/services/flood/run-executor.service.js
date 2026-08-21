@@ -51,7 +51,6 @@ const MODULE_RUNNERS = Object.freeze({
     event: { module: './event', fn: 'runSentinel1Flood' },
     hand: { module: './hand', fn: 'runHandScenario' },
     rain: { module: './rain', fn: 'runRainRisk' },
-    trend: { module: './trend', fn: 'runTrendAnalysis' },
 });
 
 function safeMessage(error) {
@@ -113,6 +112,15 @@ async function executeStage(run, stage, status, fn) {
 async function runScientificModule(run) {
     if (run.module === 'impact') {
         return runImpactWithReconstructedSource(run);
+    }
+    if (run.module === 'trend') {
+        const { runTrendAnalysisFinal } = require('./trend/final/index');
+        return runTrendAnalysisFinal({
+            ee,
+            geeAdapter,
+            runConfig: run.params_snapshot,
+            runMode: run.mode,
+        });
     }
     const descriptor = MODULE_RUNNERS[run.module];
     if (!descriptor) {
@@ -201,13 +209,13 @@ function periodTagFromRun(run) {
                 : null;
             return [depth, month].filter(Boolean).join('_') || null;
         }
-        case 'trend': {
-            // Kỳ nền year → last analysis period year, e.g. "2023_2024".
-            const baseYear = p.dryStart ? p.dryStart.slice(0, 4) : null;
-            const periods = Array.isArray(p.periods) && p.periods.length > 0 ? p.periods : null;
-            const lastYear = periods ? periods[periods.length - 1].end.slice(0, 4) : null;
-            return baseYear && lastYear ? `${baseYear}_${lastYear}` : (baseYear || null);
-        }
+        case 'trend':
+            // Monitoring model: tag by monitorStart_monitorEnd (e.g. "2025-09-01_2025-09-30")
+            if (p.monitorStart && p.monitorEnd) {
+                return `${p.monitorStart}_${p.monitorEnd}`;
+            }
+            // Backward-compat: old runs recorded analysisYear
+            return p.analysisYear ? String(p.analysisYear) : null;
         default:
             return null;
     }
@@ -248,13 +256,13 @@ function buildLayerLabel(definition, run, lang) {
         }
         case 'hand':
             return p.levelM != null ? `${base} (${p.levelM}m)` : base;
-        case 'trend': {
-            const periods = Array.isArray(p.periods) && p.periods.length > 0 ? p.periods : null;
-            if (!p.dryStart || !periods) return base;
-            const baseYear = p.dryStart.slice(0, 4);
-            const lastYear = periods[periods.length - 1].end.slice(0, 4);
-            return `${base} (${baseYear}–${lastYear})`;
-        }
+        case 'trend':
+            // Monitoring model: include date range in label
+            if (p.monitorStart && p.monitorEnd) {
+                return `${base} (${p.monitorStart} – ${p.monitorEnd})`;
+            }
+            // Backward-compat: old runs recorded analysisYear
+            return p.analysisYear ? `${base} (${p.analysisYear})` : base;
         case 'impact': {
             const src = p.impactSource || 'M1';
             return lang === 'vi' ? `${base} (nguồn ${src})` : `${base} (source ${src})`;

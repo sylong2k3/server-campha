@@ -74,6 +74,10 @@ const requirePermission = (resource, action) => {
         if (!req.user) {
             throw new Api401Error(t('please_login', req.lang));
         }
+        // system_admin có toàn quyền — bỏ qua kiểm tra chi tiết
+        if (req.user.role === 'system_admin') {
+            return next();
+        }
         if (!hasPermission(req.user.role_permissions, resource, action)) {
             throw new Api403Error(t('no_permission_resource', req.lang, { resource, action }));
         }

@@ -12,7 +12,8 @@ const PIPELINE_VERSIONS = Object.freeze({
     EVENT: 'FLOOD_EVENT_V1',
     HAND: 'HAND_V1',
     IMPACT: 'IMPACT_V1',
-    TREND: 'TREND_V1',
+    TREND_FINAL: 'TREND_FINAL',       // legacy — annual 4-season model
+    TREND_MONITORING: 'TREND_MONITORING_V1', // monitoring-period model (monitorStart/monitorEnd)
 });
 
 const CONFIG_VERSION = 'V1';
@@ -21,7 +22,8 @@ const MODULE_TO_PIPELINE_VERSION = Object.freeze({
     event: PIPELINE_VERSIONS.EVENT,
     hand: PIPELINE_VERSIONS.HAND,
     impact: PIPELINE_VERSIONS.IMPACT,
-    trend: PIPELINE_VERSIONS.TREND,
+    trend: PIPELINE_VERSIONS.TREND_MONITORING,
+    trendFinal: PIPELINE_VERSIONS.TREND_MONITORING,
 });
 
 const pipelineVersionFor = (module) => {

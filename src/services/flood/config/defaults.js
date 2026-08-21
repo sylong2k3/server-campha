@@ -111,42 +111,73 @@ const IMPACT_DEFAULTS = Object.freeze({
     impactUseNonTidal: true,
 });
 
-// Multi-period trend (M5). These thresholds come from floodTrend_ft_final.js
-// and are ratios in natural power space, not M1 dB-decrease thresholds.
-const TREND_DEFAULTS = Object.freeze({
-    dryStart: '2023-01-01',
-    dryEnd: '2023-04-30',
-    periods: Object.freeze([
-        Object.freeze({ start: '2023-07-01', end: '2023-07-31' }),
-        Object.freeze({ start: '2023-08-01', end: '2023-08-31' }),
-        Object.freeze({ start: '2023-09-01', end: '2023-09-30' }),
-        Object.freeze({ start: '2023-10-01', end: '2023-10-31' }),
-    ]),
-    orbitPass: 'AUTO',
-    relativeOrbit: null,
-    ratioThresholdMode: 'fixed',
-    floodRatioThresholdVV: 1.2,
-    floodRatioThresholdVH: 1.58,
-    medianSigmaK: 3.5,
-    maximumRatio: 2.5,
-    periodPadDays: 0,
-    slopeThreshold: 5,
-    handThreshold: 12,
-    frequencyAlertPercent: 50,
-    localDepressionRadiusM: 500,
-    localDepressionDepthM: -2,
-    dynamicWorldYearOld: 2018,
-    dynamicWorldYearNew: 2023,
-    enableUrbanDoubleBounce: false,
-    validationPeriod: null,
-    s2ExtraDays: 10,
-    s2ClearThreshold: 0.6,
-    mndwiThreshold: 0,
-    samplesPerClass: 500,
-    sampleSeed: 42,
-    waterCriterion: 'VH_only',
-    waterVVDbFallback: -15,
-    waterVHDbFallback: -22,
+// ── MONITORING M5 trend (monitorStart/End-based, VH-only, 3-stratum Otsu) ────
+const TREND_FINAL_DEFAULTS = Object.freeze({
+    // monitorStart/monitorEnd are REQUIRED — no defaults; caller must supply them.
+    // Dry-season reference window is derived automatically via computeDrySeason().
+    orbitPass: 'ASCENDING',
+    polarization: 'VH',
+
+    // Dry-season window derivation (months, inclusive, within-year)
+    dryMonthStart: 1,   // January
+    dryMonthEnd:   4,   // April (last day computed dynamically)
+
+    // Period padding
+    periodPadDays: 10,
+
+    // Otsu dynamic thresholding on log10(ratio)
+    useOtsu: true,
+    floodRatioThresh: 1.25,    // fallback when Otsu out of range
+    otsuScale: 30,
+    otsuMaxBuckets: 256,
+    otsuLogMin: -1.0,
+    otsuLogMax: 1.30,
+    otsuRatioMin: 1.20,
+    otsuRatioMax: 2.50,
+
+    // Terrain filters
+    slopeThresh: 5,            // degrees
+    useHand: true,
+    handThresh: 15,            // metres (MERIT Hydro)
+
+    // Water masks
+    permWaterMonths: 8,        // JRC seasonality threshold
+
+    // Connectivity filter
+    connMin: 8,
+    connMax: 100,
+
+    // Frequency threshold — single monitoring period always yields 0 or 1,
+    // so freqAlertMin=1 means "any detected flood pixel = flood zone".
+    freqAlertMin: 1,
+
+    // Lowland classification
+    elevLowland: 5,            // metres
+
+    // Land-cover change detection (ESRI LULC years)
+    lcYearOld: 2018,
+    lcYearNew: 2023,
+
+    // Stratification
+    useStratification: true,
+    stratSource: 'WORLDCOVER',  // 'WORLDCOVER' | 'ESRI'
+    minePolygonAsset: '',       // '' = no authoritative polygon
+
+    // Mine stratum
+    mineFromBareGround: true,
+    excludeMineStratumFromProduct: true,
+    useMineLikeSAR: true,
+    mineLikeDbMax: -17,         // VH dB (dry) below = mine-like
+    mineLikeOccMax: 5,          // JRC occurrence % below = not water
+
+    // Ephemeral water
+    ephemeralWaterMode: 'flag', // 'flag' | 'exclude'
+    ephemeralOccMin: 5,
+    ephemeralOccMax: 75,
+
+    // Urban flood (double-bounce)
+    useUrbanFloodLogic: true,
+    urbanDeltaUpDb: 3.0,        // VH increase threshold (dB)
 });
 
 // ── Run orchestrator toggles — Flood_D lines 136–144 ────────────────────────
@@ -181,7 +212,7 @@ module.exports = {
     S1_DEFAULTS,
     HAND_DEFAULTS,
     IMPACT_DEFAULTS,
-    TREND_DEFAULTS,
+    TREND_FINAL_DEFAULTS,
     RUN_MODES,
     DEFAULT_RUN_MODE,
     RUN_CONFIG_TOGGLES,

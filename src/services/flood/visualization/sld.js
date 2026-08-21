@@ -16,12 +16,32 @@ const ARTIFACT_CODE_ALIASES = Object.freeze({
  * Resolves any known aliases before returning.
  */
 function artifactCodeFromLayerCode(layerCode) {
-    const m = String(layerCode || '').match(
-        /^fl_(?:event|hand|rain|impact|trend)_(.+)_\d+$/,
+    const value = String(layerCode || '').trim();
+
+    const match = value.match(/^fl_(?:event|hand|rain|impact|trend)_(.+)$/);
+
+    if (!match) return null;
+
+    const remainder = match[1];
+
+    // Ưu tiên code dài hơn để tránh match nhầm prefix.
+    const knownCodes = Object.keys(ARTIFACT_LAYER_DEFINITIONS).sort((a, b) => b.length - a.length);
+
+    // Match trực tiếp artifact code hiện tại.
+    const direct = knownCodes.find(
+        (code) => remainder === code || remainder.startsWith(`${code}_`),
     );
-    if (!m) return null;
-    const raw = m[1];
-    return ARTIFACT_CODE_ALIASES[raw] || raw;
+
+    if (direct) return direct;
+
+    // Hỗ trợ alias legacy.
+    for (const [legacyCode, canonicalCode] of Object.entries(ARTIFACT_CODE_ALIASES)) {
+        if (remainder === legacyCode || remainder.startsWith(`${legacyCode}_`)) {
+            return canonicalCode;
+        }
+    }
+
+    return null;
 }
 
 function buildColorMap(def) {
@@ -115,7 +135,9 @@ function buildSld(geoserverLayer, artifactCode) {
  * needing to rely on the layer's category column.
  */
 function isKnownArtifactCode(code) {
-    return typeof code === 'string' && code.trim() !== '' && code.trim() in ARTIFACT_LAYER_DEFINITIONS;
+    return (
+        typeof code === 'string' && code.trim() !== '' && code.trim() in ARTIFACT_LAYER_DEFINITIONS
+    );
 }
 
 /**
@@ -131,4 +153,9 @@ function resolveKnownArtifactCode(code) {
     return aliased && aliased in ARTIFACT_LAYER_DEFINITIONS ? aliased : null;
 }
 
-module.exports = { buildSld, artifactCodeFromLayerCode, isKnownArtifactCode, resolveKnownArtifactCode };
+module.exports = {
+    buildSld,
+    artifactCodeFromLayerCode,
+    isKnownArtifactCode,
+    resolveKnownArtifactCode,
+};

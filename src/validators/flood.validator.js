@@ -78,6 +78,10 @@ const createScenarioSchema = Joi.object({
     }),
     description: Joi.string().allow(null, '').default(null),
     isActive: Joi.boolean().default(true),
+    currentRainfall: Joi.number().min(0).allow(null).default(null),
+    rainfallSource: Joi.string().valid('MANUAL', 'AUTO').default('MANUAL'),
+    currentTide: Joi.number().allow(null).default(null),
+    tideSource: Joi.string().valid('MANUAL', 'AUTO').default('MANUAL'),
 }).unknown(false);
 
 const updateScenarioSchema = Joi.object({
@@ -90,6 +94,10 @@ const updateScenarioSchema = Joi.object({
     layerCode: Joi.string().trim().max(120),
     description: Joi.string().allow(null, ''),
     isActive: Joi.boolean(),
+    currentRainfall: Joi.number().min(0).allow(null),
+    rainfallSource: Joi.string().valid('MANUAL', 'AUTO'),
+    currentTide: Joi.number().allow(null),
+    tideSource: Joi.string().valid('MANUAL', 'AUTO'),
 }).unknown(false);
 
 const queryScenarioSchema = Joi.object({

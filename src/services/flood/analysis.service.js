@@ -18,6 +18,7 @@ const defaults = require('./config/defaults');
 const versions = require('./config/versions');
 const { buildAllLegends, buildAllAdminLegends } = require('./visualization/legends');
 const legendStore = require('./visualization/legend-store');
+const configStore = require('./config/config-store');
 const { ARTIFACT_LAYER_DEFINITIONS } = require('./visualization/layer-definitions');
 const { Api400Error, Api403Error, Api404Error, Api409Error } = require('../../core/error.response');
 const debug = require('./debug.util');
@@ -90,22 +91,32 @@ async function submit({ module, config = {}, mode = 'product' }, actor) {
             'FLOOD_CALIBRATION_FORBIDDEN',
         ]);
     }
+    // When module is 'trend' and monitorStart is present, validate against the
+    // monitoring schema (trendFinal key, same Joi schema).
+    const schemaKey = module === 'trend' && config?.monitorStart !== undefined
+        ? 'trendFinal'
+        : module;
+    // Merge stored config overrides beneath user-provided values so the admin
+    // can adjust algorithm defaults without touching every submit form call.
+    const baseConfig = schemaKey === 'trendFinal'
+        ? { ...configStore.getOverrides(), ...config }
+        : config;
     let normalized;
     try {
-        normalized = validateRunConfig(module, { ...config, mode });
+        normalized = validateRunConfig(schemaKey, { ...baseConfig, mode });
     } catch (error) {
-        debug.logError('analysis.submit validation failed', error, { module });
+        debug.logError('analysis.submit validation failed', error, { module, schemaKey });
         throw new Api400Error(error.message, ['INVALID_FLOOD_CONFIG']);
     }
     const key = analysisKey(module, normalized);
-    debug.log('analysis.submit config validated', { module, analysisKey: key });
+    debug.log('analysis.submit config validated', { module, schemaKey, analysisKey: key });
     await ensureRunAdmissible(key);
     const run = await createRun({
         analysisKey: key,
         attemptNo: await runRepo.nextAttemptNo(key),
         module,
         mode: normalized.mode,
-        pipelineVersion: versions.pipelineVersionFor(module),
+        pipelineVersion: versions.pipelineVersionFor(schemaKey),
         configVersion: versions.CONFIG_VERSION,
         paramsSnapshot: normalized,
         aoiSource: 'REFERENCE_GAUL',
@@ -356,47 +367,260 @@ async function unpublishArtifact(id, actor) {
 }
 
 async function overview({ mode = 'product', onlySucceeded = true } = {}) {
-    const modules = ['event', 'impact', 'trend'];
-    const latest = await Promise.all(
-        modules.map((module) =>
-            runRepo.findLatestByModule(module, {
-                mode,
-                onlySucceeded,
-            }),
-        ),
-    );
-    const layers = await listPublished({ limit: 100 });
+    const [run, layers] = await Promise.all([
+        runRepo.findLatestByModule('trend', { mode, onlySucceeded }),
+        listPublished({ limit: 100 }),
+    ]);
     return {
-        modules: Object.fromEntries(
-            modules.map((module, index) => {
-                const run = latest[index];
-                return [
-                    module,
-                    run
-                        ? {
-                              id: run.id,
-                              status: run.status,
-                              finishedAt: run.finished_at,
-                              metadata: run.result_metadata,
-                              warnings: run.warnings,
-                          }
-                        : null,
-                ];
-            }),
-        ),
+        modules: {
+            trend: run
+                ? {
+                      id: run.id,
+                      status: run.status,
+                      finishedAt: run.finished_at,
+                      metadata: run.result_metadata,
+                      params: run.params_snapshot,
+                      warnings: run.warnings,
+                  }
+                : null,
+        },
         layers: layers.items,
     };
+}
+
+function getTrendConfig() {
+    const d = defaults.TREND_FINAL_DEFAULTS;
+    const overrides = configStore.getOverrides();
+    const effective = { ...d, ...overrides };
+    return {
+        defaults: d,
+        overrides,
+        effective,
+        fields: [
+            // ── Basic ────────────────────────────────────────────────────────────
+            // Note: monitorStart, monitorEnd, and orbitPass are per-run inputs, not stored config.
+            // ── Advanced ─────────────────────────────────────────────────────────
+            {
+                key: 'handThresh',
+                category: 'advanced',
+                type: 'number',
+                label: 'Ngưỡng địa hình thấp (HAND)',
+                description: 'Loại trừ khu vực nằm cao hơn ngưỡng này so với hệ thống thoát nước gần nhất, giảm phát hiện nhầm trên đồi dốc.',
+                unit: 'm',
+                default: d.handThresh,
+                min: 0,
+                max: 100,
+            },
+            {
+                key: 'slopeThresh',
+                category: 'advanced',
+                type: 'number',
+                label: 'Độ dốc tối đa',
+                description: 'Loại trừ khu vực có độ dốc lớn hơn ngưỡng này — đất dốc không có khả năng bị ngập thực sự.',
+                unit: '°',
+                default: d.slopeThresh,
+                min: 0,
+                max: 45,
+            },
+            {
+                key: 'freqAlertMin',
+                category: 'advanced',
+                type: 'integer',
+                label: 'Ngưỡng xác nhận ngập',
+                description: 'Ngưỡng tối thiểu để xác nhận một pixel là ngập trong kỳ giám sát. Giá trị 1 = phát hiện bất kỳ pixel nào có tín hiệu ngập.',
+                unit: 'kỳ',
+                default: d.freqAlertMin,
+                min: 1,
+                max: 4,
+            },
+            {
+                key: 'floodRatioThresh',
+                category: 'advanced',
+                type: 'number',
+                label: 'Ngưỡng phát hiện ngập dự phòng',
+                description: 'Ngưỡng tỷ lệ tín hiệu SAR dùng khi thuật toán Otsu không xác định được ngưỡng tự động.',
+                default: d.floodRatioThresh,
+                min: 1.0,
+                max: 5.0,
+            },
+            {
+                key: 'ephemeralWaterMode',
+                category: 'advanced',
+                type: 'select',
+                label: 'Xử lý vùng nước xuất hiện không thường xuyên',
+                description: 'Quyết định cách xử lý các vùng nước tạm thời (ao mùa mưa, nước triều thấp).',
+                default: d.ephemeralWaterMode,
+                options: [
+                    { value: 'flag', label: 'Đánh dấu (giữ nhưng phân biệt)' },
+                    { value: 'exclude', label: 'Loại trừ khỏi kết quả' },
+                ],
+            },
+            {
+                key: 'useUrbanFloodLogic',
+                category: 'advanced',
+                type: 'boolean',
+                label: 'Phát hiện ngập đô thị',
+                description: 'Dùng tín hiệu phản xạ kép để phát hiện ngập trong khu vực đô thị — công nghê trả về ít bỏ sót hơn nhưng phức tạp hơn.',
+                default: d.useUrbanFloodLogic,
+            },
+            {
+                key: 'elevLowland',
+                category: 'advanced',
+                type: 'number',
+                label: 'Ngưỡng độ cao vùng thấp',
+                description: 'Khu vực có độ cao tuyệt đối thấp hơn ngưỡng này được xem là vùng trũng nhạy cảm tiêu thoát.',
+                unit: 'm',
+                default: d.elevLowland,
+                min: 0,
+                max: 50,
+            },
+            {
+                key: 'lcYearOld',
+                category: 'advanced',
+                type: 'integer',
+                label: 'Năm lớp đất cũ (so sánh thay đổi)',
+                description: 'Năm lớp phủ đất dùng làm cơ sở để phát hiện thay đổi ao hồ → đô thị.',
+                unit: 'năm',
+                default: d.lcYearOld,
+                min: 2017,
+                max: 2100,
+            },
+            {
+                key: 'lcYearNew',
+                category: 'advanced',
+                type: 'integer',
+                label: 'Năm lớp đất mới (so sánh thay đổi)',
+                description: 'Năm lớp phủ đất dùng để phát hiện thay đổi gần đây (phải lớn hơn năm lớp đất cũ).',
+                unit: 'năm',
+                default: d.lcYearNew,
+                min: 2017,
+                max: 2100,
+            },
+            // ── Expert ───────────────────────────────────────────────────────────
+            {
+                key: 'useOtsu',
+                category: 'expert',
+                type: 'boolean',
+                label: 'Dùng thuật toán Otsu',
+                description: 'Cho phép hệ thống tự xác định ngưỡng phát hiện ngập theo từng khu vực và mùa thay vì dùng ngưỡng cố định.',
+                default: d.useOtsu,
+            },
+            {
+                key: 'otsuRatioMin',
+                category: 'expert',
+                type: 'number',
+                label: 'Otsu — tỷ lệ tối thiểu',
+                description: 'Ngưỡng tối thiểu hợp lệ của kết quả Otsu. Nếu kết quả dưới ngưỡng này, dùng giá trị dự phòng.',
+                default: d.otsuRatioMin,
+                min: 1.0,
+                max: 5.0,
+            },
+            {
+                key: 'otsuRatioMax',
+                category: 'expert',
+                type: 'number',
+                label: 'Otsu — tỷ lệ tối đa',
+                description: 'Ngưỡng tối đa hợp lệ của kết quả Otsu.',
+                default: d.otsuRatioMax,
+                min: 1.0,
+                max: 5.0,
+            },
+            {
+                key: 'urbanDeltaUpDb',
+                category: 'expert',
+                type: 'number',
+                label: 'Tín hiệu tăng tối thiểu tại đô thị',
+                description: 'Độ tăng tín hiệu SAR (VH) tính bằng dB so với mùa khô để xác nhận ngập trong khu vực đô thị.',
+                unit: 'dB',
+                default: d.urbanDeltaUpDb,
+                min: 0,
+                max: 10,
+            },
+            {
+                key: 'periodPadDays',
+                category: 'expert',
+                type: 'integer',
+                label: 'Mở rộng cửa sổ thời gian',
+                description: 'Số ngày thêm vào đầu và cuối mỗi mùa khi thu thập ảnh Sentinel-1, để tăng số lượng ảnh.',
+                unit: 'ngày',
+                default: d.periodPadDays,
+                min: 0,
+                max: 30,
+            },
+            // ── System (not exposed to UI) ────────────────────────────────────────
+            { key: 'connMin', category: 'system', default: d.connMin },
+            { key: 'connMax', category: 'system', default: d.connMax },
+            { key: 'otsuScale', category: 'system', default: d.otsuScale },
+            { key: 'otsuMaxBuckets', category: 'system', default: d.otsuMaxBuckets },
+            { key: 'otsuLogMin', category: 'system', default: d.otsuLogMin },
+            { key: 'otsuLogMax', category: 'system', default: d.otsuLogMax },
+            { key: 'permWaterMonths', category: 'system', default: d.permWaterMonths },
+            { key: 'polarization', category: 'system', default: d.polarization },
+            { key: 'stratSource', category: 'system', default: d.stratSource },
+            { key: 'useStratification', category: 'system', default: d.useStratification },
+            { key: 'minePolygonAsset', category: 'system', default: d.minePolygonAsset },
+            { key: 'mineFromBareGround', category: 'system', default: d.mineFromBareGround },
+            { key: 'excludeMineStratumFromProduct', category: 'system', default: d.excludeMineStratumFromProduct },
+            { key: 'useMineLikeSAR', category: 'system', default: d.useMineLikeSAR },
+            { key: 'mineLikeDbMax', category: 'system', default: d.mineLikeDbMax },
+            { key: 'mineLikeOccMax', category: 'system', default: d.mineLikeOccMax },
+            { key: 'ephemeralOccMin', category: 'system', default: d.ephemeralOccMin },
+            { key: 'ephemeralOccMax', category: 'system', default: d.ephemeralOccMax },
+        ].filter((f) => f.category !== 'system')
+         .map((f) => ({
+             ...f,
+             default: f.default ?? d[f.key],
+             current: effective[f.key] ?? f.default ?? d[f.key],
+             hasOverride: Object.prototype.hasOwnProperty.call(overrides, f.key),
+         })),
+    };
+}
+
+const TREND_CONFIG_EDITABLE_KEYS = new Set([
+    'handThresh', 'slopeThresh', 'freqAlertMin', 'floodRatioThresh',
+    'ephemeralWaterMode', 'useUrbanFloodLogic', 'elevLowland',
+    'lcYearOld', 'lcYearNew', 'useOtsu', 'otsuRatioMin', 'otsuRatioMax',
+    'urbanDeltaUpDb', 'periodPadDays',
+]);
+
+function updateTrendConfig(patch) {
+    const unknown = Object.keys(patch).filter((k) => !TREND_CONFIG_EDITABLE_KEYS.has(k));
+    if (unknown.length) {
+        throw new Api400Error(
+            `Không cho phép cập nhật trường: ${unknown.join(', ')}`,
+            ['INVALID_CONFIG_KEY'],
+        );
+    }
+    const d = defaults.TREND_FINAL_DEFAULTS;
+    const cleaned = {};
+    for (const [k, v] of Object.entries(patch)) {
+        if (!(k in d)) throw new Api400Error(`Trường '${k}' không tồn tại trong cấu hình`, ['UNKNOWN_CONFIG_KEY']);
+        const expected = typeof d[k];
+        if (typeof v !== expected) {
+            throw new Api400Error(
+                `Trường '${k}' phải là ${expected}, nhận được ${typeof v}`,
+                ['INVALID_CONFIG_VALUE'],
+            );
+        }
+        cleaned[k] = v;
+    }
+    configStore.upsertOverrides(cleaned);
+    return getTrendConfig();
+}
+
+function resetTrendConfig(key) {
+    configStore.deleteOverride(key ?? null);
+    return getTrendConfig();
 }
 
 function getConfig() {
     return {
         defaults: {
-            event: defaults.S1_DEFAULTS,
-            hand: defaults.HAND_DEFAULTS,
-            impact: defaults.IMPACT_DEFAULTS,
-            trend: defaults.TREND_DEFAULTS,
+            trend: defaults.TREND_FINAL_DEFAULTS,
         },
-        versions: versions.MODULE_TO_PIPELINE_VERSION,
+        versions: {
+            trend: versions.MODULE_TO_PIPELINE_VERSION.trend,
+        },
         configVersion: versions.CONFIG_VERSION,
     };
 }
@@ -543,6 +767,9 @@ module.exports = {
     unpublishArtifact,
     overview,
     getConfig,
+    getTrendConfig,
+    updateTrendConfig,
+    resetTrendConfig,
     simulateFlood,
     listScenarios,
     getScenario,

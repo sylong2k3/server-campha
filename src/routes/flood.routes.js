@@ -90,6 +90,10 @@ adminRouter.get(
     asyncHandler(controller.dashboard),
 );
 adminRouter.get('/config', requirePermission('flood', 'read'), asyncHandler(controller.config));
+adminRouter.get('/trend/config', requirePermission('flood', 'read'), asyncHandler(controller.trendConfig));
+adminRouter.put('/trend/config', requirePermission('flood', 'run'), asyncHandler(controller.updateTrendConfig));
+adminRouter.delete('/trend/config/:key', requirePermission('flood', 'run'), asyncHandler(controller.resetTrendConfig));
+adminRouter.delete('/trend/config', requirePermission('flood', 'run'), asyncHandler(controller.resetTrendConfig));
 adminRouter.get('/queue', requirePermission('flood', 'read'), asyncHandler(controller.queue));
 adminRouter.get(
     '/runs',

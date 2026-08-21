@@ -87,14 +87,18 @@ async function executeRun(snapshot, deps = {}) {
             );
         }
         const finalStatus = archiveJob ? 'exporting' : 'completed';
-        const s2ImageCount = Number.isFinite(Number(result?.stats?.imageCount))
-            ? Number(result.stats.imageCount)
+        const s2ImageCount = Number.isFinite(Number(result?.stats?.s2Count))
+            ? Number(result.stats.s2Count)
+            : undefined;
+        const lsImageCount = Number.isFinite(Number(result?.stats?.landsatCount))
+            ? Number(result.stats.landsatCount)
             : undefined;
         const durationMs = Date.now() - geeStart;
         debug.log('service.executeRun finish', {
             snapshotId: snapshot.id,
             status: finalStatus,
             s2ImageCount,
+            lsImageCount,
             durationMs,
         });
         return repo.updateRun(snapshot.id, {
@@ -103,6 +107,7 @@ async function executeRun(snapshot, deps = {}) {
             geeDownloadUrl: result.downloadUrl,
             provinceSummary: summaryFromResult(result, archiveJob),
             s2ImageCount,
+            lsImageCount,
             durationMs,
             computedAt: new Date(),
         });

@@ -127,54 +127,97 @@ const M4_LAYERS = Object.freeze({
     },
 });
 
-const M5_LAYERS = Object.freeze({
-    trend_frequency: {
-        palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494'],
+// ── Giám sát ngập theo kỳ (TREND_MONITORING_V1 pipeline) ────────────────────
+// Palettes and ranges derived from new_code.js §9 (Map.addLayer calls).
+const M5_FINAL_LAYERS = Object.freeze({
+    // ── Kết quả chính ────────────────────────────────────────────────────────
+    flood_extent: {
+        palette: ['1f78b4'],
+        min: 1,
+        max: 1,
+        label: {
+            vi: 'Vùng ghi nhận ngập',
+            en: 'Detected flood extent',
+        },
+    },
+    // ── Ảnh hưởng ────────────────────────────────────────────────────────────
+    pop_affected: {
+        // Yellow → dark red (5 stops — new_code.js §9, layer 2)
+        palette: ['FFFFB2', 'FECC5C', 'FD8D3C', 'F03B20', 'BD0026'],
         min: 0,
-        max: 100,
-        label: { vi: 'Tần suất ngập (%)', en: 'Flood frequency (%)' },
+        max: 50,
+        label: {
+            vi: 'Dân số trong vùng ảnh hưởng',
+            en: 'Affected population',
+        },
     },
-    trend_frequent_flood: {
-        palette: ['08306B'],
+    crop_affected: {
+        palette: ['238B45'],   // new_code.js §9, layer 3
         min: 1,
         max: 1,
-        label: { vi: 'Ngập tái diễn', en: 'Frequent flood' },
+        label: {
+            vi: 'Cây trồng trong vùng ảnh hưởng',
+            en: 'Affected cropland',
+        },
     },
-    trend_new_flood: {
-        palette: ['E31A1C'],
+    built_affected: {
+        palette: ['C2185B'],
         min: 1,
         max: 1,
-        label: { vi: 'Ngập mới', en: 'New flood' },
+        label: {
+            vi: 'Khu xây dựng trong vùng ảnh hưởng',
+            en: 'Affected built-up',
+        },
     },
-    pond_to_built: {
-        palette: ['B45F06'],
+    // ── Cảnh báo / rủi ro ────────────────────────────────────────────────────
+    encroachment_alert: {
+        palette: ['DE2D26'],   // new_code.js §9, layer 4
         min: 1,
         max: 1,
-        label: { vi: 'Ao/hồ chuyển sang đô thị', en: 'Pond-to-built change' },
+        label: {
+            vi: 'Cảnh báo tiêu thoát',
+            en: 'Drainage encroachment alert',
+        },
     },
     drainage_sensitive: {
-        palette: ['FFC300'],
+        palette: ['756BB1'],   // new_code.js §9, layer 5
         min: 1,
         max: 1,
-        label: { vi: 'Nhạy cảm với tiêu thoát', en: 'Drainage-sensitive' },
+        label: {
+            vi: 'Vùng nhạy cảm tiêu thoát',
+            en: 'Drainage-sensitive area',
+        },
     },
-    encroachment_alert: {
-        palette: ['FF0000'],
+    pond_to_built: {
+        palette: ['FEB24C'],   // new_code.js §9, layer 6
         min: 1,
         max: 1,
-        label: { vi: 'Cảnh báo lấn chiếm', en: 'Encroachment alert' },
+        label: {
+            vi: 'Ao/mặt nước chuyển thành khu xây dựng',
+            en: 'Pond-to-built',
+        },
     },
-    trend_tidal_candidate: {
-        palette: ['FF00FF'],
+    // ── QA ────────────────────────────────────────────────────────────────────
+    // frequent_flood: binary 0/1 (with freqAlertMin=1, equals flood_extent)
+    frequent_flood: {
+        palette: ['08519C'],
         min: 1,
         max: 1,
-        label: { vi: 'Ứng viên vùng triều (QA)', en: 'Tidal candidate (QA)' },
+        label: { vi: 'Phát hiện ngập (QA)', en: 'Flood detection flag (QA)' },
     },
-    trend_mining_candidate: {
-        palette: ['FF8C00'],
-        min: 1,
+    // flood_frequency: raw count (0 or 1 in single-period model)
+    flood_frequency: {
+        palette: ['f7f7f7', '1f78b4'],
+        min: 0,
         max: 1,
-        label: { vi: 'Ứng viên vùng mỏ (QA)', en: 'Mining candidate (QA)' },
+        label: { vi: 'Tần số phát hiện ngập (QA)', en: 'Flood frequency count (QA)' },
+    },
+    // stratum: 1=non-urban (#2ca25f), 2=urban (#de2d26), 3=mine/bare (#8c6bb1)
+    stratum: {
+        palette: ['2ca25f', 'de2d26', '8c6bb1'],
+        min: 1,
+        max: 3,
+        label: { vi: 'Phân tầng khu vực (QA)', en: 'Monitoring stratum (QA)' },
     },
 });
 
@@ -183,7 +226,7 @@ const ARTIFACT_LAYER_DEFINITIONS = Object.freeze({
     ...M2_LAYERS,
     ...M3_LAYERS,
     ...M4_LAYERS,
-    ...M5_LAYERS,
+    ...M5_FINAL_LAYERS,
 });
 
 // Maps each artifact_code to its module name.
@@ -192,7 +235,7 @@ const ARTIFACT_MODULE_MAP = Object.freeze({
     ...Object.fromEntries(Object.keys(M2_LAYERS).map(k => [k, 'hand'])),
     ...Object.fromEntries(Object.keys(M3_LAYERS).map(k => [k, 'rain'])),
     ...Object.fromEntries(Object.keys(M4_LAYERS).map(k => [k, 'impact'])),
-    ...Object.fromEntries(Object.keys(M5_LAYERS).map(k => [k, 'trend'])),
+    ...Object.fromEntries(Object.keys(M5_FINAL_LAYERS).map(k => [k, 'trend'])),
 });
 
 /**
@@ -217,7 +260,7 @@ function listArtifactCodes() {
         ...Object.keys(M2_LAYERS),
         ...Object.keys(M3_LAYERS),
         ...Object.keys(M4_LAYERS),
-        ...Object.keys(M5_LAYERS),
+        ...Object.keys(M5_FINAL_LAYERS),
     ]);
 }
 
@@ -228,7 +271,7 @@ module.exports = {
     M2_LAYERS,
     M3_LAYERS,
     M4_LAYERS,
-    M5_LAYERS,
+    M5_FINAL_LAYERS,
     getLayerDefinition,
     listArtifactCodes,
 };
