@@ -93,4 +93,46 @@ describe('layer validator', () => {
             validate(validator.permissionsSchema, { permissions: [item, item] }).error,
         ).toBeTruthy();
     });
+
+    test('layer update accepts a valid legend entries payload', () => {
+        const result = validate(validator.layerUpdateSchema, {
+            expectedUpdatedAt: new Date().toISOString(),
+            legendConfig: {
+                entries: [
+                    { label: 'Mặt nước', color: '#1A73E8' },
+                    { label: 'Rừng', color: '#2D7B2E' },
+                ],
+            },
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.value.legendConfig.entries).toHaveLength(2);
+    });
+
+    test('layer update allows clearing legend with null', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                legendConfig: null,
+            }).error,
+        ).toBeUndefined();
+    });
+
+    test('layer update rejects legacy legend shapes without entries', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                legendConfig: { type: 'rgb', bands: ['red', 'green', 'blue'] },
+            }).error,
+        ).toBeTruthy();
+    });
+
+    test('layer update rejects legend entries with invalid hex color', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                legendConfig: { entries: [{ label: 'Rừng', color: 'green' }] },
+            }).error,
+        ).toBeTruthy();
+    });
 });
+

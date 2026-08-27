@@ -276,6 +276,24 @@ const failInterruptedActiveRuns = async ({ errorCode = 'INTERRUPTED_ON_RESTART' 
     return rows;
 };
 
+/**
+ * Hard-delete a single terminal run (§admin "xóa lượt phân tích đã chạy").
+ * Only rows already in a TERMINAL_STATUSES state may be deleted — live runs
+ * must be cancelled first. flood_artifacts and flood_run_stage_events cascade
+ * via ON DELETE CASCADE (§080_flood_domain.sql); flood_run_audit rows are
+ * detached via ON DELETE SET NULL (§112_flood_run_delete.sql) so the audit
+ * trail survives the run's deletion.
+ */
+const deleteRun = async (id, client = db) => {
+    const { rows } = await client.query(
+        `DELETE FROM gis.flood_analysis_runs
+          WHERE id = $1 AND status = ANY($2::text[])
+          RETURNING id`,
+        [id, TERMINAL_STATUSES],
+    );
+    return rows[0] || null;
+};
+
 // ── Stage event log (§74 observability) ──────────────────────────────────────
 
 const createStageEvent = async (
@@ -320,6 +338,7 @@ const AUDIT_ACTIONS = Object.freeze([
     'unpublish',
     'retry_publish',
     'discard_artifact',
+    'delete_run',
 ]);
 
 const insertAudit = async (
@@ -360,6 +379,7 @@ module.exports = {
     startRun,
     updateStatus,
     finishRun,
+    deleteRun,
     failInterruptedActiveRuns,
     createStageEvent,
     listStageEvents,

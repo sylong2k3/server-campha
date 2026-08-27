@@ -99,6 +99,12 @@ const cancel = async (req, res) => {
     debug.log('controller.cancel response', { runId: cancelled?.id, status: cancelled?.status });
     return OK(res, 'Đã hủy lượt phân tích', cancelled);
 };
+const deleteRun = async (req, res) => {
+    debug.log('controller.deleteRun received', { runId: req.params.id });
+    const result = await service.deleteRun(Number(req.params.id), buildActor(req));
+    debug.log('controller.deleteRun response', result);
+    return OK(res, 'Đã xóa lượt phân tích', result);
+};
 const publishArtifact = async (req, res) => {
     debug.log('controller.publishArtifact received', { artifactId: req.params.id });
     const published = await service.publishArtifact(Number(req.params.id), buildActor(req));
@@ -187,6 +193,7 @@ module.exports = {
     submit,
     rerun,
     cancel,
+    deleteRun,
     publishArtifact,
     unpublishArtifact,
     triggerDaily,

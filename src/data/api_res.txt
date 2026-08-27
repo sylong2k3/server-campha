@@ -1,0 +1,1493 @@
+overview	/api/v1/flood/overview	200	fetch	request.js:145	3.5 kB	43 ms
+{
+    "message": "Đã tải tổng quan ngập lụt",
+    "status": 200,
+    "data": {
+        "modules": {
+            "trend": {
+                "id": "2",
+                "status": "SUCCEEDED",
+                "finishedAt": "2026-08-18T03:00:27.252Z",
+                "metadata": {
+                    "useHand": true,
+                    "warnings": [
+                        "NON_COMMERCIAL_DTM_FABDEM"
+                    ],
+                    "aoiSource": "REFERENCE_GAUL",
+                    "areaStats": {
+                        "floodExtentAreaHa": 496,
+                        "cropAffectedAreaHa": 13.2,
+                        "populationAffected": 9032,
+                        "builtAffectedAreaHa": 3.5,
+                        "drainageAlertAreaHa": 44.8
+                    },
+                    "dryWindow": {
+                        "end": "2023-04-30",
+                        "start": "2023-01-01"
+                    },
+                    "monitorEnd": "2024-08-18",
+                    "elevLowland": 5,
+                    "freqAlertMin": 1,
+                    "monitorStart": "2024-01-18",
+                    "otsuRatioMax": 2.5,
+                    "otsuRatioMin": 1.2,
+                    "polarization": "VH",
+                    "totalPeriods": 1,
+                    "configVersion": "V1",
+                    "drySceneCount": 10,
+                    "orbitSelected": "ASCENDING",
+                    "otsuThreshold": 1.25,
+                    "handThresholdM": 15,
+                    "orbitRequested": "AUTO",
+                    "analysisPeriods": [
+                        {
+                            "end": "2024-08-18",
+                            "label": "Kỳ giám sát",
+                            "start": "2024-01-18",
+                            "valid": true,
+                            "imageCount": 17
+                        }
+                    ],
+                    "permWaterMonths": 8,
+                    "pipelineVersion": "TREND_MONITORING_V1",
+                    "thresholdMethod": "Otsu_dynamic",
+                    "validPeriodCount": 1,
+                    "slopeThresholdDeg": 5,
+                    "floodRatioFallback": 1.25
+                },
+                "params": {
+                    "mode": "product",
+                    "useOtsu": true,
+                    "lcYearNew": 2023,
+                    "lcYearOld": 2018,
+                    "orbitPass": "AUTO",
+                    "handThresh": 15,
+                    "monitorEnd": "2024-08-18",
+                    "dryMonthEnd": 4,
+                    "elevLowland": 5,
+                    "slopeThresh": 5,
+                    "freqAlertMin": 1,
+                    "monitorStart": "2024-01-18",
+                    "otsuRatioMax": 2.5,
+                    "otsuRatioMin": 1.2,
+                    "dryMonthStart": 1,
+                    "periodPadDays": 10,
+                    "urbanDeltaUpDb": 3,
+                    "useMineLikeSAR": true,
+                    "floodRatioThresh": 1.25,
+                    "minePolygonAsset": "",
+                    "ephemeralWaterMode": "flag",
+                    "mineFromBareGround": true,
+                    "useUrbanFloodLogic": true,
+                    "excludeMineStratumFromProduct": true
+                },
+                "warnings": [
+                    "NON_COMMERCIAL_DTM_FABDEM"
+                ]
+            }
+        },
+        "layers": [
+            {
+                "id": "19",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "encroachment_alert",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "145",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_encroachment_alert_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T03:00:26.288Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage encroachment alert",
+                        "vi": "Cảnh báo tiêu thoát"
+                    },
+                    "style": "encroachment_alert",
+                    "archiveOnly": false,
+                    "description": "Drainage encroachment alert"
+                }
+            },
+            {
+                "id": "18",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "drainage_sensitive",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "144",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_drainage_sensitive_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T03:00:02.313Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage-sensitive zone",
+                        "vi": "Vùng nhạy cảm tiêu thoát"
+                    },
+                    "style": "drainage_sensitive",
+                    "archiveOnly": false,
+                    "description": "Drainage-sensitive zone"
+                }
+            },
+            {
+                "id": "17",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "pond_to_built",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "143",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pond_to_built_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:59:30.927Z",
+                "metadata": {
+                    "label": {
+                        "en": "Pond-to-built",
+                        "vi": "Ao/mặt nước chuyển thành khu xây dựng"
+                    },
+                    "style": "pond_to_built",
+                    "archiveOnly": false,
+                    "description": "Pond-to-built"
+                }
+            },
+            {
+                "id": "16",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "built_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "142",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_built_affected_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:59:20.720Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected built-up",
+                        "vi": "Khu xây dựng trong vùng ảnh hưởng"
+                    },
+                    "style": "built_affected",
+                    "archiveOnly": false,
+                    "description": "Affected built-up"
+                }
+            },
+            {
+                "id": "15",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "crop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "141",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_crop_affected_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:59:08.465Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected cropland",
+                        "vi": "Cây trồng trong vùng ảnh hưởng"
+                    },
+                    "style": "crop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected cropland"
+                }
+            },
+            {
+                "id": "14",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "pop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "140",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pop_affected_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:58:50.580Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected population",
+                        "vi": "Dân số trong vùng ảnh hưởng"
+                    },
+                    "style": "pop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected population"
+                }
+            },
+            {
+                "id": "11",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "flood_extent",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "139",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_flood_extent_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:58:37.988Z",
+                "metadata": {
+                    "label": {
+                        "en": "Detected flood extent",
+                        "vi": "Vùng ghi nhận ngập"
+                    },
+                    "style": "flood_extent",
+                    "archiveOnly": false,
+                    "description": "Detected flood extent"
+                }
+            },
+            {
+                "id": "9",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "encroachment_alert",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "138",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_encroachment_alert_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:58:03.046Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage encroachment alert",
+                        "vi": "Cảnh báo tiêu thoát"
+                    },
+                    "style": "encroachment_alert",
+                    "archiveOnly": false,
+                    "description": "Drainage encroachment alert"
+                }
+            },
+            {
+                "id": "8",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "drainage_sensitive",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "137",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_drainage_sensitive_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:57:37.665Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage-sensitive zone",
+                        "vi": "Vùng nhạy cảm tiêu thoát"
+                    },
+                    "style": "drainage_sensitive",
+                    "archiveOnly": false,
+                    "description": "Drainage-sensitive zone"
+                }
+            },
+            {
+                "id": "7",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "pond_to_built",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "136",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pond_to_built_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:57:15.963Z",
+                "metadata": {
+                    "label": {
+                        "en": "Pond-to-built",
+                        "vi": "Ao/mặt nước chuyển thành khu xây dựng"
+                    },
+                    "style": "pond_to_built",
+                    "archiveOnly": false,
+                    "description": "Pond-to-built"
+                }
+            },
+            {
+                "id": "6",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "built_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "135",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_built_affected_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:57:07.764Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected built-up",
+                        "vi": "Khu xây dựng trong vùng ảnh hưởng"
+                    },
+                    "style": "built_affected",
+                    "archiveOnly": false,
+                    "description": "Affected built-up"
+                }
+            },
+            {
+                "id": "5",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "crop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "134",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_crop_affected_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:56:53.504Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected cropland",
+                        "vi": "Cây trồng trong vùng ảnh hưởng"
+                    },
+                    "style": "crop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected cropland"
+                }
+            },
+            {
+                "id": "4",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "pop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "133",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pop_affected_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:56:38.251Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected population",
+                        "vi": "Dân số trong vùng ảnh hưởng"
+                    },
+                    "style": "pop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected population"
+                }
+            },
+            {
+                "id": "1",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "flood_extent",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "132",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_flood_extent_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:56:18.493Z",
+                "metadata": {
+                    "label": {
+                        "en": "Detected flood extent",
+                        "vi": "Vùng ghi nhận ngập"
+                    },
+                    "style": "flood_extent",
+                    "archiveOnly": false,
+                    "description": "Detected flood extent"
+                }
+            }
+        ]
+    }
+}
+layers?page=1&limit=100	/api/v1/flood/layers	200	fetch	request.js:145	2.8 kB	27 ms
+{
+    "message": "Đã tải danh sách lớp ngập đã công bố",
+    "status": 200,
+    "data": {
+        "items": [
+            {
+                "id": "19",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "encroachment_alert",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "145",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_encroachment_alert_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T03:00:26.288Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage encroachment alert",
+                        "vi": "Cảnh báo tiêu thoát"
+                    },
+                    "style": "encroachment_alert",
+                    "archiveOnly": false,
+                    "description": "Drainage encroachment alert"
+                }
+            },
+            {
+                "id": "18",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "drainage_sensitive",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "144",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_drainage_sensitive_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T03:00:02.313Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage-sensitive zone",
+                        "vi": "Vùng nhạy cảm tiêu thoát"
+                    },
+                    "style": "drainage_sensitive",
+                    "archiveOnly": false,
+                    "description": "Drainage-sensitive zone"
+                }
+            },
+            {
+                "id": "17",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "pond_to_built",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "143",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pond_to_built_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:59:30.927Z",
+                "metadata": {
+                    "label": {
+                        "en": "Pond-to-built",
+                        "vi": "Ao/mặt nước chuyển thành khu xây dựng"
+                    },
+                    "style": "pond_to_built",
+                    "archiveOnly": false,
+                    "description": "Pond-to-built"
+                }
+            },
+            {
+                "id": "16",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "built_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "142",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_built_affected_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:59:20.720Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected built-up",
+                        "vi": "Khu xây dựng trong vùng ảnh hưởng"
+                    },
+                    "style": "built_affected",
+                    "archiveOnly": false,
+                    "description": "Affected built-up"
+                }
+            },
+            {
+                "id": "15",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "crop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "141",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_crop_affected_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:59:08.465Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected cropland",
+                        "vi": "Cây trồng trong vùng ảnh hưởng"
+                    },
+                    "style": "crop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected cropland"
+                }
+            },
+            {
+                "id": "14",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "pop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "140",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pop_affected_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:58:50.580Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected population",
+                        "vi": "Dân số trong vùng ảnh hưởng"
+                    },
+                    "style": "pop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected population"
+                }
+            },
+            {
+                "id": "11",
+                "analysisRunId": "2",
+                "module": "trend",
+                "code": "flood_extent",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "139",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_flood_extent_2024_01_18_2024_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:58:37.988Z",
+                "metadata": {
+                    "label": {
+                        "en": "Detected flood extent",
+                        "vi": "Vùng ghi nhận ngập"
+                    },
+                    "style": "flood_extent",
+                    "archiveOnly": false,
+                    "description": "Detected flood extent"
+                }
+            },
+            {
+                "id": "9",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "encroachment_alert",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "138",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_encroachment_alert_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:58:03.046Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage encroachment alert",
+                        "vi": "Cảnh báo tiêu thoát"
+                    },
+                    "style": "encroachment_alert",
+                    "archiveOnly": false,
+                    "description": "Drainage encroachment alert"
+                }
+            },
+            {
+                "id": "8",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "drainage_sensitive",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "137",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_drainage_sensitive_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:57:37.665Z",
+                "metadata": {
+                    "label": {
+                        "en": "Drainage-sensitive zone",
+                        "vi": "Vùng nhạy cảm tiêu thoát"
+                    },
+                    "style": "drainage_sensitive",
+                    "archiveOnly": false,
+                    "description": "Drainage-sensitive zone"
+                }
+            },
+            {
+                "id": "7",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "pond_to_built",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "136",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pond_to_built_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:57:15.963Z",
+                "metadata": {
+                    "label": {
+                        "en": "Pond-to-built",
+                        "vi": "Ao/mặt nước chuyển thành khu xây dựng"
+                    },
+                    "style": "pond_to_built",
+                    "archiveOnly": false,
+                    "description": "Pond-to-built"
+                }
+            },
+            {
+                "id": "6",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "built_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "135",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_built_affected_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:57:07.764Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected built-up",
+                        "vi": "Khu xây dựng trong vùng ảnh hưởng"
+                    },
+                    "style": "built_affected",
+                    "archiveOnly": false,
+                    "description": "Affected built-up"
+                }
+            },
+            {
+                "id": "5",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "crop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "134",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_crop_affected_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:56:53.504Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected cropland",
+                        "vi": "Cây trồng trong vùng ảnh hưởng"
+                    },
+                    "style": "crop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected cropland"
+                }
+            },
+            {
+                "id": "4",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "pop_affected",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "133",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_pop_affected_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:56:38.251Z",
+                "metadata": {
+                    "label": {
+                        "en": "Affected population",
+                        "vi": "Dân số trong vùng ảnh hưởng"
+                    },
+                    "style": "pop_affected",
+                    "archiveOnly": false,
+                    "description": "Affected population"
+                }
+            },
+            {
+                "id": "1",
+                "analysisRunId": "1",
+                "module": "trend",
+                "code": "flood_extent",
+                "role": "PRODUCT",
+                "crs": null,
+                "bbox": null,
+                "resolutionM": null,
+                "registryLayerId": "132",
+                "isPublic": true,
+                "workspace": "campha",
+                "layerName": "fl_trend_flood_extent_2025_01_18_2025_08_18",
+                "styleName": null,
+                "publishedAt": "2026-08-18T02:56:18.493Z",
+                "metadata": {
+                    "label": {
+                        "en": "Detected flood extent",
+                        "vi": "Vùng ghi nhận ngập"
+                    },
+                    "style": "flood_extent",
+                    "archiveOnly": false,
+                    "description": "Detected flood extent"
+                }
+            }
+        ]
+    },
+    "metadata": {
+        "page": 1,
+        "limit": 100,
+        "total": 14,
+        "totalPages": 1
+    }
+}
+legends	/api/v1/flood/legends
+{
+    "message": "Đã tải chú giải ngập lụt",
+    "status": 200,
+    "data": [
+        {
+            "code": "main_flood_non_tidal",
+            "module": "event",
+            "label": {
+                "vi": "Ngập lụt",
+                "en": "Confirmed flood"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#1E4F8C",
+                    "label": {
+                        "vi": "Ngập lụt",
+                        "en": "Confirmed flood"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "open_water",
+            "module": "event",
+            "label": {
+                "vi": "Mặt nước mở",
+                "en": "Open water"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#0E2F5C",
+                    "label": {
+                        "vi": "Mặt nước mở",
+                        "en": "Open water"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "shallow_flood",
+            "module": "event",
+            "label": {
+                "vi": "Ngập nông (QA)",
+                "en": "Shallow flood (QA)"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#6BAED6",
+                    "label": {
+                        "vi": "Ngập nông (QA)",
+                        "en": "Shallow flood (QA)"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "tidal_candidate",
+            "module": "event",
+            "label": {
+                "vi": "Nghi vùng triều (QA)",
+                "en": "Tidal candidate (QA)"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#9E9AC8",
+                    "label": {
+                        "vi": "Nghi vùng triều (QA)",
+                        "en": "Tidal candidate (QA)"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "mining_candidate",
+            "module": "event",
+            "label": {
+                "vi": "Nghi khai trường mỏ (QA)",
+                "en": "Mining candidate (QA)"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#B45F06",
+                    "label": {
+                        "vi": "Nghi khai trường mỏ (QA)",
+                        "en": "Mining candidate (QA)"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "urban_double_bounce",
+            "module": "event",
+            "label": {
+                "vi": "Nghi phản xạ đôi đô thị (QA)",
+                "en": "Urban double-bounce (QA)"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#E7298A",
+                    "label": {
+                        "vi": "Nghi phản xạ đôi đô thị (QA)",
+                        "en": "Urban double-bounce (QA)"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "hand_scenario",
+            "module": "hand",
+            "label": {
+                "vi": "Kịch bản HAND",
+                "en": "HAND scenario"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#08519C",
+                    "label": {
+                        "vi": "Kịch bản HAND",
+                        "en": "HAND scenario"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "hand_depth",
+            "module": "hand",
+            "label": {
+                "vi": "Độ sâu ngập kịch bản HAND (m)",
+                "en": "HAND scenario depth (m)"
+            },
+            "kind": "continuous",
+            "entries": [
+                {
+                    "color": "#deebf7",
+                    "value": 0
+                },
+                {
+                    "color": "#9ecae1",
+                    "value": 1.25
+                },
+                {
+                    "color": "#4292c6",
+                    "value": 2.5
+                },
+                {
+                    "color": "#08519c",
+                    "value": 3.75
+                },
+                {
+                    "color": "#08306b",
+                    "value": 5
+                }
+            ],
+            "min": 0,
+            "max": 5
+        },
+        {
+            "code": "rain_risk_score",
+            "module": "rain",
+            "label": {
+                "vi": "Chỉ số rủi ro (mưa)",
+                "en": "Rain Risk Index (0..1)"
+            },
+            "kind": "continuous",
+            "entries": [
+                {
+                    "color": "#fee5d9",
+                    "value": 0
+                },
+                {
+                    "color": "#fcae91",
+                    "value": 0.25
+                },
+                {
+                    "color": "#fb6a4a",
+                    "value": 0.5
+                },
+                {
+                    "color": "#de2d26",
+                    "value": 0.75
+                },
+                {
+                    "color": "#a50f15",
+                    "value": 1
+                }
+            ],
+            "min": 0,
+            "max": 1
+        },
+        {
+            "code": "rain_risk_class",
+            "module": "rain",
+            "label": {
+                "vi": "Nguy cơ theo mưa (phân lớp)",
+                "en": "Rain-based Flood Risk (classified)"
+            },
+            "kind": "class",
+            "entries": [
+                {
+                    "color": "#ffffbf",
+                    "value": 1
+                },
+                {
+                    "color": "#fdae61",
+                    "value": 2
+                },
+                {
+                    "color": "#d7191c",
+                    "value": 3
+                }
+            ],
+            "min": 1,
+            "max": 3
+        },
+        {
+            "code": "affected_population",
+            "module": "impact",
+            "label": {
+                "vi": "Dân cư bị ảnh hưởng",
+                "en": "Affected population"
+            },
+            "kind": "continuous",
+            "entries": [
+                {
+                    "color": "#f7f4f9",
+                    "value": 0
+                },
+                {
+                    "color": "#d4b9da",
+                    "value": 25
+                },
+                {
+                    "color": "#df65b0",
+                    "value": 50
+                },
+                {
+                    "color": "#ce1256",
+                    "value": 75
+                },
+                {
+                    "color": "#67001f",
+                    "value": 100
+                }
+            ],
+            "min": 0,
+            "max": 100
+        },
+        {
+            "code": "affected_cropland",
+            "module": "impact",
+            "label": {
+                "vi": "Đất trồng trọt bị ảnh hưởng",
+                "en": "Affected cropland"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#74C476",
+                    "label": {
+                        "vi": "Đất trồng trọt bị ảnh hưởng",
+                        "en": "Affected cropland"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "affected_built",
+            "module": "impact",
+            "label": {
+                "vi": "Khu vực đô thị bị ảnh hưởng",
+                "en": "Affected built-up"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#C2185B",
+                    "label": {
+                        "vi": "Khu vực đô thị bị ảnh hưởng",
+                        "en": "Affected built-up"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "flood_extent",
+            "module": "trend",
+            "label": {
+                "vi": "Vùng ngập (giám sát vs mùa khô)",
+                "en": "Detected flood extent"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#1f78b4",
+                    "label": {
+                        "vi": "Vùng ngập (giám sát vs mùa khô)",
+                        "en": "Detected flood extent"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "pop_affected",
+            "module": "trend",
+            "label": {
+                "vi": "Dân số bị ảnh hưởng (thấp→cao)",
+                "en": "Affected population (low→high)"
+            },
+            "kind": "continuous",
+            "entries": [
+                {
+                    "color": "#FFFFB2",
+                    "value": 0
+                },
+                {
+                    "color": "#FECC5C",
+                    "value": 12.5
+                },
+                {
+                    "color": "#FD8D3C",
+                    "value": 25
+                },
+                {
+                    "color": "#F03B20",
+                    "value": 37.5
+                },
+                {
+                    "color": "#BD0026",
+                    "value": 50
+                }
+            ],
+            "min": 0,
+            "max": 50
+        },
+        {
+            "code": "crop_affected",
+            "module": "trend",
+            "label": {
+                "vi": "Cây trồng bị ảnh hưởng",
+                "en": "Affected cropland"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#238B45",
+                    "label": {
+                        "vi": "Cây trồng bị ảnh hưởng",
+                        "en": "Affected cropland"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "built_affected",
+            "module": "trend",
+            "label": {
+                "vi": "Khu xây dựng trong vùng ảnh hưởng",
+                "en": "Affected built-up"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#C2185B",
+                    "label": {
+                        "vi": "Khu xây dựng trong vùng ảnh hưởng",
+                        "en": "Affected built-up"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "encroachment_alert",
+            "module": "trend",
+            "label": {
+                "vi": "Cảnh báo tiêu thoát",
+                "en": "Drainage encroachment alert"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#DE2D26",
+                    "label": {
+                        "vi": "Cảnh báo tiêu thoát",
+                        "en": "Drainage encroachment alert"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "drainage_sensitive",
+            "module": "trend",
+            "label": {
+                "vi": "Vùng nhạy cảm tiêu thoát",
+                "en": "Drainage-sensitive area"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#756BB1",
+                    "label": {
+                        "vi": "Vùng nhạy cảm tiêu thoát",
+                        "en": "Drainage-sensitive area"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "pond_to_built",
+            "module": "trend",
+            "label": {
+                "vi": "Ao/mặt nước → khu xây dựng",
+                "en": "Pond-to-built encroachment"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#FEB24C",
+                    "label": {
+                        "vi": "Ao/mặt nước → khu xây dựng",
+                        "en": "Pond-to-built encroachment"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "frequent_flood",
+            "module": "trend",
+            "label": {
+                "vi": "Phát hiện ngập (QA)",
+                "en": "Flood detection flag (QA)"
+            },
+            "kind": "binary",
+            "entries": [
+                {
+                    "color": "#08519C",
+                    "label": {
+                        "vi": "Phát hiện ngập (QA)",
+                        "en": "Flood detection flag (QA)"
+                    }
+                }
+            ],
+            "min": 1,
+            "max": 1
+        },
+        {
+            "code": "flood_frequency",
+            "module": "trend",
+            "label": {
+                "vi": "Tần số phát hiện ngập (QA)",
+                "en": "Flood frequency count (QA)"
+            },
+            "kind": "class",
+            "entries": [
+                {
+                    "color": "#f7f7f7",
+                    "value": 0
+                },
+                {
+                    "color": "#1f78b4",
+                    "value": 1
+                }
+            ],
+            "min": 0,
+            "max": 1
+        },
+        {
+            "code": "stratum",
+            "module": "trend",
+            "label": {
+                "vi": "Phân tầng (1=ngoài đô thị, 2=đô thị, 3=mỏ)",
+                "en": "Monitoring stratum (1=non-urban, 2=urban, 3=mine)"
+            },
+            "kind": "class",
+            "entries": [
+                {
+                    "color": "#2ca25f",
+                    "value": 1
+                },
+                {
+                    "color": "#de2d26",
+                    "value": 2
+                },
+                {
+                    "color": "#8c6bb1",
+                    "value": 3
+                }
+            ],
+            "min": 1,
+            "max": 3
+        }
+    ]
+}
+api/v1/flood/runs?module=trend&mode=product&page=1&limit=50
+
+{
+    "message": "Đã tải lịch sử phân tích ngập",
+    "status": 200,
+    "data": {
+        "items": [
+            {
+                "id": "2",
+                "module": "trend",
+                "mode": "product",
+                "status": "SUCCEEDED",
+                "pipelineVersion": "TREND_MONITORING_V1",
+                "resultMetadata": {
+                    "useHand": true,
+                    "warnings": [
+                        "NON_COMMERCIAL_DTM_FABDEM"
+                    ],
+                    "aoiSource": "REFERENCE_GAUL",
+                    "areaStats": {
+                        "floodExtentAreaHa": 496,
+                        "cropAffectedAreaHa": 13.2,
+                        "populationAffected": 9032,
+                        "builtAffectedAreaHa": 3.5,
+                        "drainageAlertAreaHa": 44.8
+                    },
+                    "dryWindow": {
+                        "end": "2023-04-30",
+                        "start": "2023-01-01"
+                    },
+                    "monitorEnd": "2024-08-18",
+                    "elevLowland": 5,
+                    "freqAlertMin": 1,
+                    "monitorStart": "2024-01-18",
+                    "otsuRatioMax": 2.5,
+                    "otsuRatioMin": 1.2,
+                    "polarization": "VH",
+                    "totalPeriods": 1,
+                    "configVersion": "V1",
+                    "drySceneCount": 10,
+                    "orbitSelected": "ASCENDING",
+                    "otsuThreshold": 1.25,
+                    "handThresholdM": 15,
+                    "orbitRequested": "AUTO",
+                    "analysisPeriods": [
+                        {
+                            "end": "2024-08-18",
+                            "label": "Kỳ giám sát",
+                            "start": "2024-01-18",
+                            "valid": true,
+                            "imageCount": 17
+                        }
+                    ],
+                    "permWaterMonths": 8,
+                    "pipelineVersion": "TREND_MONITORING_V1",
+                    "thresholdMethod": "Otsu_dynamic",
+                    "validPeriodCount": 1,
+                    "slopeThresholdDeg": 5,
+                    "floodRatioFallback": 1.25
+                },
+                "period": {
+                    "baseline": null,
+                    "analysis": [
+                        {
+                            "end": "2024-08-18",
+                            "label": "Kỳ giám sát",
+                            "start": "2024-01-18",
+                            "valid": true,
+                            "imageCount": 17
+                        }
+                    ]
+                },
+                "warnings": [
+                    "NON_COMMERCIAL_DTM_FABDEM"
+                ],
+                "finishedAt": "2026-08-18T03:00:27.252Z"
+            },
+            {
+                "id": "1",
+                "module": "trend",
+                "mode": "product",
+                "status": "SUCCEEDED",
+                "pipelineVersion": "TREND_MONITORING_V1",
+                "resultMetadata": {
+                    "useHand": true,
+                    "warnings": [
+                        "NON_COMMERCIAL_DTM_FABDEM"
+                    ],
+                    "aoiSource": "REFERENCE_GAUL",
+                    "areaStats": {
+                        "floodExtentAreaHa": 2229.9,
+                        "cropAffectedAreaHa": 248.8,
+                        "populationAffected": 45147,
+                        "builtAffectedAreaHa": 12.5,
+                        "drainageAlertAreaHa": 48.6
+                    },
+                    "dryWindow": {
+                        "end": "2024-04-30",
+                        "start": "2024-01-01"
+                    },
+                    "monitorEnd": "2025-08-18",
+                    "elevLowland": 5,
+                    "freqAlertMin": 1,
+                    "monitorStart": "2025-01-18",
+                    "otsuRatioMax": 2.5,
+                    "otsuRatioMin": 1.2,
+                    "polarization": "VH",
+                    "totalPeriods": 1,
+                    "configVersion": "V1",
+                    "drySceneCount": 9,
+                    "orbitSelected": "ASCENDING",
+                    "otsuThreshold": 1.25,
+                    "handThresholdM": 15,
+                    "orbitRequested": "AUTO",
+                    "analysisPeriods": [
+                        {
+                            "end": "2025-08-18",
+                            "label": "Kỳ giám sát",
+                            "start": "2025-01-18",
+                            "valid": true,
+                            "imageCount": 18
+                        }
+                    ],
+                    "permWaterMonths": 8,
+                    "pipelineVersion": "TREND_MONITORING_V1",
+                    "thresholdMethod": "Otsu_dynamic",
+                    "validPeriodCount": 1,
+                    "slopeThresholdDeg": 5,
+                    "floodRatioFallback": 1.25
+                },
+                "period": {
+                    "baseline": null,
+                    "analysis": [
+                        {
+                            "end": "2025-08-18",
+                            "label": "Kỳ giám sát",
+                            "start": "2025-01-18",
+                            "valid": true,
+                            "imageCount": 18
+                        }
+                    ]
+                },
+                "warnings": [
+                    "NON_COMMERCIAL_DTM_FABDEM"
+                ],
+                "finishedAt": "2026-08-18T02:58:03.866Z"
+            }
+        ]
+    },
+    "metadata": {
+        "page": 1,
+        "limit": 50,
+        "total": 2,
+        "totalPages": 1
+    }
+}

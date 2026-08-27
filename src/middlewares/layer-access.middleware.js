@@ -44,6 +44,16 @@ const requireLayerAccess = (access) => {
                 return next(new Api404Error(t('map_layer_not_found', req.lang)));
             }
             if (ticket) {
+                if (access !== 'view' && access !== 'export') {
+                    return next(
+                        new Api403Error(
+                            t('no_permission_resource', req.lang, {
+                                resource: 'layers',
+                                action: access,
+                            }),
+                        ),
+                    );
+                }
                 req.layerAcl = layer;
                 return next();
             }
@@ -54,11 +64,7 @@ const requireLayerAccess = (access) => {
             if (!req.user) {
                 return next(new Api401Error(t('please_login', req.lang)));
             }
-            // system_admin có toàn quyền truy cập mọi lớp
-            if (req.user.role === 'system_admin') {
-                req.layerAcl = layer;
-                return next();
-            }
+            // Edit/delete luôn bắt buộc đối chiếu gis.layer_permissions.can_edit/can_delete.
             if (layer.allowed !== true) {
                 return next(
                     new Api403Error(

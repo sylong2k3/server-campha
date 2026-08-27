@@ -17,7 +17,8 @@ describe('mobile feature edit service', () => {
         jest.clearAllMocks();
         webMap.accessibleLayer.mockResolvedValue(layer);
     });
-    test('rejects every non-TNMT role even with permission', async () => {
+    test('allows any role with map_feature.update permission', async () => {
+        repository.updateTx.mockResolvedValue({ conflict: true });
         await expect(
             service.update(
                 1,
@@ -25,7 +26,7 @@ describe('mobile feature edit service', () => {
                 { baseVersion: 1, attributes: { name: 'x' } },
                 { ...actor, role: 'system_admin' },
             ),
-        ).rejects.toMatchObject({ status: 403 });
+        ).rejects.toMatchObject({ status: 409 });
     });
     test('requires per-layer edit ACL', async () => {
         webMap.accessibleLayer.mockResolvedValue({ ...layer, role_can_edit: false });

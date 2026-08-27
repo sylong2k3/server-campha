@@ -1,0 +1,510 @@
+2026-08-17T16:39:02:
+2026-08-17T16:39:02: ◇ injected env (0) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+2026-08-17T16:39:02: ◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+2026-08-17T16:39:02: ◇ injected env (0) from .env // tip: ◈ encrypted .env [www.dotenvx.com]
+2026-08-17T16:39:02: [LayerWorker] started layer-worker-47320-49af03c1
+2026-08-17T16:39:03: GET /api/v1/admin/flood/queue 200 35.090 ms - 170
+2026-08-17T16:39:19: [FLOOD-DEBUG] controller.submit received {"module":"trend","mode":"product","ip":"183.80.68.29"}
+2026-08-17T16:39:19: [FLOOD-DEBUG] analysis.submit received {"module":"trend","mode":"product","actorId":"1","configKeys":["analysisYear","orbitPass"]}
+2026-08-17T16:39:19: [FLOOD-DEBUG] analysis.submit config validated {"module":"trend","schemaKey":"trendFinal","analysisKey":"0d313ac214944035b94aa5e9cbd00ac92cebdde162eb27bacaee4c172af34f04"}
+2026-08-17T16:39:19: [FLOOD-DEBUG] orchestrator.preflightRun {"analysisKey":"0d313ac214944035b94aa5e9cbd00ac92cebdde162eb27bacaee4c172af34f04"}
+2026-08-17T16:39:19: [FLOOD-DEBUG] analysis.submit run row created {"runId":"11","module":"trend","mode":"product","attemptNo":3,"pipelineVersion":"TREND_FINAL"}
+2026-08-17T16:39:19: [FLOOD-DEBUG] orchestrator.enqueueRun {"runId":"11","module":"trend","mode":"product","queueKey":"flood-analysis:0d313ac214944035b94aa5e9cbd00ac92cebdde162eb27bacaee4c172af34f04","priority":10}
+2026-08-17T16:39:19: [GEE-QUEUE] QUEUED key=flood-analysis:0d313ac214944035b94aa5e9cbd00ac92cebdde162eb27bacaee4c172af34f04 label="Flood trend run #11" priority=10 waiting=1
+2026-08-17T16:39:19: [FLOOD-DEBUG] analysis.submit enqueued {"runId":"11"}
+2026-08-17T16:39:19: [FLOOD-DEBUG] controller.submit response {"runId":"11","status":"QUEUED"}
+2026-08-17T16:39:19: POST /api/v1/admin/flood/runs 201 36.942 ms - 989
+2026-08-17T16:39:19: [GEE-QUEUE] START key=flood-analysis:0d313ac214944035b94aa5e9cbd00ac92cebdde162eb27bacaee4c172af34f04 label="Flood trend run #11" waiting=0 concurrency=1
+2026-08-17T16:39:19: [FLOOD-DEBUG] orchestrator.queue.run start {"runId":"11","module":"trend"}
+2026-08-17T16:39:19: [GEE-CHILD] spawned kind=trend pid=53156 heapLimit=1536MB rssLimit=3072MB timeout=30m
+2026-08-17T16:39:19: GET /api/v1/admin/flood/queue 200 10.627 ms - 378
+2026-08-17T16:39:19: GET /api/v1/admin/flood/config 200 26.558 ms - -
+2026-08-17T16:39:19: GET /api/v1/admin/flood/dashboard 200 59.535 ms - -
+2026-08-17T16:39:22: [FLOOD-DEBUG] run-executor.executePersistedRun start {"runId":"11"}
+2026-08-17T16:39:22: [FLOOD-DEBUG] run-executor.executePersistedRun loaded {"runId":"11","module":"trend","mode":"product","attemptNo":3}
+2026-08-17T16:39:23: [FLOOD-DEBUG] run-executor.gee.ensureInitialized ok {"runId":"11"}
+2026-08-17T16:39:23: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"compute","status":"COMPUTING"}
+2026-08-17T16:39:24: GET /api/v1/admin/flood/queue 200 6.379 ms - 378
+2026-08-17T16:39:24: GET /api/v1/admin/flood/dashboard 200 29.620 ms - -
+2026-08-17T16:39:29: GET /api/v1/admin/flood/queue 200 6.070 ms - 378
+2026-08-17T16:39:30: GET /api/v1/admin/flood/dashboard 200 12.313 ms - -
+2026-08-17T16:39:34: GET /api/v1/admin/flood/queue 200 6.195 ms - 378
+2026-08-17T16:39:35: GET /api/v1/admin/flood/dashboard 200 31.103 ms - -
+2026-08-17T16:39:39: GET /api/v1/admin/flood/queue 200 5.846 ms - 378
+2026-08-17T16:39:40: GET /api/v1/admin/flood/dashboard 200 12.418 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2397065.2070231275,11926622.397392621,2406849.14664363 304 49.805 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2406849.1466436298,11946190.276633626,2416633.0862641325 304 63.269 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2416633.0862641325,11946190.276633626,2426417.0258846353 304 60.484 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2377497.3277821224,11955974.216254128,2387281.267402625 304 26.025 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2387281.2674026247,11946190.276633626,2397065.2070231275 304 40.618 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2406849.1466436298,11965758.15587463,2416633.0862641325 304 41.904 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2397065.2070231275,11955974.216254128,2406849.14664363 304 23.757 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2406849.1466436298,11926622.397392621,2416633.0862641325 304 37.798 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2397065.2070231275,11936406.337013124,2406849.14664363 304 24.260 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2387281.2674026247,11936406.337013124,2397065.2070231275 304 36.424 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2397065.2070231275,11946190.276633626,2406849.14664363 304 41.232 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2397065.2070231275,11965758.15587463,2406849.14664363 304 65.895 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2406849.1466436298,11936406.337013124,2416633.0862641325 304 24.472 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2377497.3277821224,11946190.276633626,2387281.267402625 304 214.958 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2416633.0862641325,11936406.337013124,2426417.0258846353 304 52.747 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2406849.1466436298,11955974.216254128,2416633.0862641325 304 38.496 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2387281.2674026247,11965758.15587463,2397065.2070231275 304 299.170 ms - -
+2026-08-17T16:39:44: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2387281.2674026247,11955974.216254128,2397065.2070231275 304 299.489 ms - -
+2026-08-17T16:39:44: GET /api/v1/admin/flood/queue 200 26.810 ms - 378
+2026-08-17T16:39:45: GET /api/v1/admin/flood/dashboard 200 34.351 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2416633.0862641325,11926622.397392621,2426417.0258846353 304 24.425 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2387281.2674026247,11926622.397392621,2397065.2070231275 304 24.808 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2416633.0862641325,11965758.15587463,2426417.0258846353 304 26.590 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2397065.2070231275,11975542.095495135,2406849.14664363 304 27.468 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2377497.3277821224,11926622.397392621,2387281.267402625 304 50.671 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2377497.3277821224,11965758.15587463,2387281.267402625 304 54.135 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2387281.2674026247,11975542.095495135,2397065.2070231275 304 32.884 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2377497.3277821224,11936406.337013124,2387281.267402625 304 42.556 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2406849.1466436298,11975542.095495135,2416633.0862641325 304 43.490 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2406849.1466436298,11916838.457772119,2416633.0862641325 304 32.103 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2397065.2070231275,11916838.457772119,2406849.14664363 304 34.466 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2397065.2070231275,11985326.035115637,2406849.14664363 304 40.291 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2416633.0862641325,11916838.457772119,2426417.0258846353 304 22.928 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2377497.3277821224,11975542.095495135,2387281.267402625 304 22.326 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2387281.2674026247,11916838.457772119,2397065.2070231275 304 25.481 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2406849.1466436298,11985326.035115637,2416633.0862641325 304 24.831 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2416633.0862641325,11975542.095495135,2426417.0258846353 304 30.319 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2377497.3277821224,11916838.457772119,2387281.267402625 304 28.951 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2397065.2070231275,11907054.518151617,2406849.14664363 304 36.466 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2406849.1466436298,11907054.518151617,2416633.0862641325 304 43.967 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2416633.0862641325,11955974.216254128,2426417.0258846353 304 33.711 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2377497.3277821224,11907054.518151617,2387281.267402625 304 32.175 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2416633.0862641325,11985326.035115637,2426417.0258846353 304 63.361 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2387281.2674026247,11985326.035115637,2397065.2070231275 304 83.275 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2416633.0862641325,11907054.518151617,2426417.0258846353 304 24.566 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2387281.2674026247,11907054.518151617,2397065.2070231275 304 42.960 ms - -
+2026-08-17T16:39:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2377497.3277821224,11985326.035115637,2387281.267402625 304 105.329 ms - -
+2026-08-17T16:39:49: GET /api/v1/admin/flood/queue 200 6.422 ms - 378
+2026-08-17T16:39:50: GET /api/v1/admin/flood/dashboard 200 17.243 ms - -
+2026-08-17T16:39:54: GET /api/v1/admin/flood/queue 200 5.746 ms - 378
+2026-08-17T16:39:54: GET /api/v1/admin/flood/runs?page=1&limit=10 200 8.575 ms - -
+2026-08-17T16:39:55: GET /api/v1/admin/flood/dashboard 200 12.170 ms - -
+2026-08-17T16:39:57: GET /api/v1/auth/me 200 8.406 ms - -
+2026-08-17T16:39:57: GET /api/v1/notifications/mine?page=1&limit=10 200 20.939 ms - 134
+2026-08-17T16:39:57: GET /api/v1/notifications/unread-count 200 18.063 ms - 75
+2026-08-17T16:39:57: GET /api/v1/admin/flood/dashboard 200 17.236 ms - -
+2026-08-17T16:39:57: GET /api/v1/admin/flood/queue 200 29.793 ms - 378
+2026-08-17T16:39:57: GET /api/v1/admin/flood/config 200 28.616 ms - -
+2026-08-17T16:39:58: GET /api/v1/admin/flood/runs?page=1&limit=10 200 7.784 ms - -
+2026-08-17T16:40:01: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"compute","elapsed_ms":37750}
+2026-08-17T16:40:01: [FLOOD-DEBUG] run-executor.science ok {"runId":"11","artifactCount":11,"warnings":["NON_COMMERCIAL_DTM_FABDEM"]}
+2026-08-17T16:40:01: [FLOOD-DEBUG] run-executor.exportAndHarvest {"runId":"11","artifactRows":11,"exportable":10,"exportableCodes":["flood_extent","flood_frequency","frequent_flood","new_flood","pop_affected","crop_affected","built_affected","pond_to_built","drainage_sensitive","encroachment_alert"]}
+2026-08-17T16:40:01: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"31","code":"flood_extent","role":"PRODUCT"}
+2026-08-17T16:40:01: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:flood_extent","status":"EXPORTING"}
+2026-08-17T16:40:02: [FOREST-DEBUG] job.runScheduled tick
+2026-08-17T16:40:02: [FOREST-DEBUG] job.queueMissingPeriod {"period":{"year":2026,"month":7}}
+2026-08-17T16:40:02: [FOREST-DEBUG] job.queueMissingPeriod skipped: settled {"period":{"year":2026,"month":7},"snapshotId":"4","status":"published"}
+2026-08-17T16:40:02: GET /api/v1/admin/flood/queue 200 6.626 ms - 378
+2026-08-17T16:40:02: GET /api/v1/admin/flood/dashboard 200 12.614 ms - -
+2026-08-17T16:40:03: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:flood_extent","elapsed_ms":2062}
+2026-08-17T16:40:03: [FLOOD] run=11 code=flood_extent download-url generated in 2065ms token=22466099…
+2026-08-17T16:40:03: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"flood_extent"}
+2026-08-17T16:40:03: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:flood_extent","status":"ARCHIVING"}
+2026-08-17T16:40:03: [RASTER-INGEST:ENQUEUE] layer=fl_trend_flood_extent_2025 hash=ebc558973b51… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:40:03: [RASTER-INGEST] ENQUEUED job=23 layer=fl_trend_flood_extent_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:40:03: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:flood_extent","elapsed_ms":120}
+2026-08-17T16:40:03: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"flood_extent","ingestJobId":"23","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:40:03: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:flood_extent","status":"PUBLISHING"}
+2026-08-17T16:40:07: GET /api/v1/admin/flood/queue 200 6.598 ms - 378
+2026-08-17T16:40:07: GET /api/v1/admin/flood/dashboard 200 26.572 ms - -
+2026-08-17T16:40:12: GET /api/v1/admin/flood/queue 200 6.047 ms - 378
+2026-08-17T16:40:13: GET /api/v1/admin/flood/dashboard 200 11.428 ms - -
+2026-08-17T16:40:15: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [23]
+2026-08-17T16:40:15: [RASTER-INGEST] job=23 START layer=fl_trend_flood_extent_2025 retry=0/3
+2026-08-17T16:40:15: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:40:15.039Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_23.raw
+2026-08-17T16:40:15: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_23.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:40:17: GET /api/v1/admin/flood/queue 200 4.784 ms - 378
+2026-08-17T16:40:18: GET /api/v1/admin/flood/dashboard 200 8.478 ms - -
+2026-08-17T16:40:21: GET /api/v1/auth/me 200 6.692 ms - -
+2026-08-17T16:40:22: GET /api/v1/notifications/unread-count 200 9.164 ms - 75
+2026-08-17T16:40:22: GET /api/v1/notifications/mine?page=1&limit=10 200 21.903 ms - 134
+2026-08-17T16:40:22: GET /api/v1/admin/flood/queue 200 13.346 ms - 378
+2026-08-17T16:40:22: GET /api/v1/admin/flood/config 200 11.218 ms - -
+2026-08-17T16:40:22: GET /api/v1/admin/flood/dashboard 200 14.918 ms - -
+2026-08-17T16:40:24: GET /api/v1/admin/flood/runs?page=1&limit=10 200 8.576 ms - -
+2026-08-17T16:40:27: GET /api/v1/admin/flood/runs/11 401 4.423 ms - -
+2026-08-17T16:40:27: POST /api/v1/auth/refresh 200 95.141 ms - -
+2026-08-17T16:40:27: GET /api/v1/admin/flood/runs/11 200 17.074 ms - -
+2026-08-17T16:40:27: GET /api/v1/admin/flood/queue 200 8.111 ms - 378
+2026-08-17T16:40:27: GET /api/v1/admin/flood/dashboard 200 13.633 ms - -
+2026-08-17T16:40:30: [raster-ingest-server495187-53180] tick SKIPPED — previous still running
+2026-08-17T16:40:32: GET /api/v1/admin/flood/queue 200 6.038 ms - 378
+2026-08-17T16:40:32: GET /api/v1/admin/flood/dashboard 200 25.733 ms - -
+2026-08-17T16:40:35: [HTTP-STREAM] response status=200 elapsed=20835ms
+2026-08-17T16:40:35: [HTTP-STREAM] content-length declared=8364 bytes
+2026-08-17T16:40:35: [HTTP-STREAM] done bytes=8364 contentType=image/tiff sha256=77fee79f6c75… elapsed=20857ms
+2026-08-17T16:40:35: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:40:35.897Z — bytes=0.01MB sha=77fee79f6c75… (20858ms)
+2026-08-17T16:40:35: [RASTER-INGEST:CRS] 2026-08-17T09:40:35.917Z — skipped (GDAL not installed)
+2026-08-17T16:40:36: [RASTER-INGEST:UPLOAD] 2026-08-17T09:40:36.281Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_flood_extent_2025/job_23.tif (361ms)
+2026-08-17T16:40:36: [RASTER-INGEST:PUBLISH] 2026-08-17T09:40:36.325Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_flood_extent_2025.tif
+2026-08-17T16:40:36: [RASTER-INGEST:PUBLISH] 2026-08-17T09:40:36.334Z — store=fl_trend_flood_extent_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_flood_extent_2025.tif
+2026-08-17T16:40:36: [GEOSERVER-FS] publish store=fl_trend_flood_extent_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_flood_extent_2025.tif
+2026-08-17T16:40:37: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:40:37: GET /api/v1/admin/flood/queue 200 8.658 ms - 378
+2026-08-17T16:40:37: GET /api/v1/admin/flood/dashboard 200 16.197 ms - -
+2026-08-17T16:40:38: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:40:38: [GEOSERVER-FS] done → campha:fl_trend_flood_extent_2025 (1858ms)
+2026-08-17T16:40:38: [RASTER-INGEST:PUBLISH] 2026-08-17T09:40:38.304Z — → campha:fl_trend_flood_extent_2025 reingest=false (2020ms)
+2026-08-17T16:40:38: [RASTER-INGEST:REGISTRY] 2026-08-17T09:40:38.385Z — layer_id=102 (80ms)
+2026-08-17T16:40:38: [RASTER-INGEST] backlink ok flood_artifact#31 → campha:fl_trend_flood_extent_2025
+2026-08-17T16:40:38: [RASTER-INGEST] job=23 COMPLETED layer=campha:fl_trend_flood_extent_2025 size=0.01MB reingest=false total=23356ms
+2026-08-17T16:40:38: [raster-ingest-server495187-53180] TICK done 1/1 ok in 23394ms
+2026-08-17T16:40:39: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:flood_extent","elapsed_ms":36061}
+2026-08-17T16:40:39: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"32","code":"flood_frequency","role":"PRODUCT"}
+2026-08-17T16:40:39: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:flood_frequency","status":"EXPORTING"}
+2026-08-17T16:40:42: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:flood_frequency","elapsed_ms":2508}
+2026-08-17T16:40:42: [FLOOD] run=11 code=flood_frequency download-url generated in 2513ms token=eabbfa8d…
+2026-08-17T16:40:42: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"flood_frequency"}
+2026-08-17T16:40:42: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:flood_frequency","status":"ARCHIVING"}
+2026-08-17T16:40:42: [RASTER-INGEST:ENQUEUE] layer=fl_trend_flood_frequency_2025 hash=738430a6a6b8… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:40:42: [RASTER-INGEST] ENQUEUED job=24 layer=fl_trend_flood_frequency_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:40:42: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:flood_frequency","elapsed_ms":17}
+2026-08-17T16:40:42: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"flood_frequency","ingestJobId":"24","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:40:42: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:flood_frequency","status":"PUBLISHING"}
+2026-08-17T16:40:42: GET /api/v1/admin/flood/queue 200 6.930 ms - 378
+2026-08-17T16:40:42: GET /api/v1/admin/flood/dashboard 200 8.898 ms - -
+2026-08-17T16:40:45: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [24]
+2026-08-17T16:40:45: [RASTER-INGEST] job=24 START layer=fl_trend_flood_frequency_2025 retry=0/3
+2026-08-17T16:40:45: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:40:45.008Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_24.raw
+2026-08-17T16:40:45: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_24.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2397065.2070231275,11926622.397392621,2406849.14664363 304 43.642 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2416633.0862641325,11946190.276633626,2426417.0258846353 304 40.805 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2406849.1466436298,11946190.276633626,2416633.0862641325 304 44.641 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2377497.3277821224,11955974.216254128,2387281.267402625 304 50.486 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2406849.1466436298,11926622.397392621,2416633.0862641325 304 37.530 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2397065.2070231275,11955974.216254128,2406849.14664363 304 42.498 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2397065.2070231275,11936406.337013124,2406849.14664363 304 38.015 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2387281.2674026247,11936406.337013124,2397065.2070231275 304 32.180 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2397065.2070231275,11946190.276633626,2406849.14664363 304 23.427 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2397065.2070231275,11965758.15587463,2406849.14664363 304 30.802 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2406849.1466436298,11936406.337013124,2416633.0862641325 304 22.748 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2377497.3277821224,11946190.276633626,2387281.267402625 304 18.861 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2416633.0862641325,11936406.337013124,2426417.0258846353 304 37.369 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2406849.1466436298,11955974.216254128,2416633.0862641325 304 39.949 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2387281.2674026247,11965758.15587463,2397065.2070231275 304 44.298 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2387281.2674026247,11955974.216254128,2397065.2070231275 304 36.629 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2406849.1466436298,11965758.15587463,2416633.0862641325 304 178.467 ms - -
+2026-08-17T16:40:45: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2387281.2674026247,11946190.276633626,2397065.2070231275 304 193.223 ms - -
+2026-08-17T16:40:46: [FLOOD-DEBUG] controller.submit received {"module":"trend","mode":"product","ip":"183.80.68.29"}
+2026-08-17T16:40:46: [FLOOD-DEBUG] analysis.submit received {"module":"trend","mode":"product","actorId":"1","configKeys":["analysisYear","orbitPass"]}
+2026-08-17T16:40:46: [FLOOD-DEBUG] analysis.submit config validated {"module":"trend","schemaKey":"trendFinal","analysisKey":"0d313ac214944035b94aa5e9cbd00ac92cebdde162eb27bacaee4c172af34f04"}
+2026-08-17T16:40:46: POST /api/v1/admin/flood/runs 409 36.057 ms - 655
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2416633.0862641325,11926622.397392621,2426417.0258846353 304 29.140 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2387281.2674026247,11926622.397392621,2397065.2070231275 304 28.372 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2416633.0862641325,11965758.15587463,2426417.0258846353 304 28.085 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2397065.2070231275,11975542.095495135,2406849.14664363 304 28.358 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2377497.3277821224,11926622.397392621,2387281.267402625 304 33.313 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2387281.2674026247,11975542.095495135,2397065.2070231275 304 26.331 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2377497.3277821224,11965758.15587463,2387281.267402625 304 55.459 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2406849.1466436298,11975542.095495135,2416633.0862641325 304 42.821 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2377497.3277821224,11936406.337013124,2387281.267402625 304 39.667 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2397065.2070231275,11916838.457772119,2406849.14664363 304 40.732 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2397065.2070231275,11985326.035115637,2406849.14664363 304 26.672 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2416633.0862641325,11916838.457772119,2426417.0258846353 304 31.112 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2406849.1466436298,11985326.035115637,2416633.0862641325 304 17.037 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2377497.3277821224,11975542.095495135,2387281.267402625 304 37.485 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2387281.2674026247,11916838.457772119,2397065.2070231275 304 34.042 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2406849.1466436298,11916838.457772119,2416633.0862641325 304 99.038 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2377497.3277821224,11916838.457772119,2387281.267402625 304 42.204 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2397065.2070231275,11907054.518151617,2406849.14664363 304 25.916 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2416633.0862641325,11975542.095495135,2426417.0258846353 304 59.556 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2406849.1466436298,11907054.518151617,2416633.0862641325 304 49.392 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2377497.3277821224,11907054.518151617,2387281.267402625 304 38.046 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2387281.2674026247,11985326.035115637,2397065.2070231275 304 32.750 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2416633.0862641325,11985326.035115637,2426417.0258846353 304 40.199 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2387281.2674026247,11907054.518151617,2397065.2070231275 304 26.500 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2377497.3277821224,11985326.035115637,2387281.267402625 304 15.032 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2416633.0862641325,11907054.518151617,2426417.0258846353 304 34.732 ms - -
+2026-08-17T16:40:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2416633.0862641325,11955974.216254128,2426417.0258846353 304 93.635 ms - -
+2026-08-17T16:40:47: GET /api/v1/admin/flood/queue 200 7.744 ms - 378
+2026-08-17T16:40:47: GET /api/v1/admin/flood/dashboard 200 17.307 ms - -
+2026-08-17T16:40:52: GET /api/v1/admin/flood/queue 200 4.325 ms - 378
+2026-08-17T16:40:52: GET /api/v1/admin/flood/dashboard 200 12.676 ms - -
+2026-08-17T16:40:57: GET /api/v1/admin/flood/queue 200 7.728 ms - 378
+2026-08-17T16:40:57: GET /api/v1/admin/flood/dashboard 200 13.890 ms - -
+2026-08-17T16:40:58: [HTTP-STREAM] response status=200 elapsed=13151ms
+2026-08-17T16:40:58: [HTTP-STREAM] content-length declared=32686 bytes
+2026-08-17T16:40:58: [HTTP-STREAM] done bytes=32686 contentType=image/tiff sha256=35f6f1d4790a… elapsed=13198ms
+2026-08-17T16:40:58: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:40:58.206Z — bytes=0.03MB sha=35f6f1d4790a… (13198ms)
+2026-08-17T16:40:58: [RASTER-INGEST:CRS] 2026-08-17T09:40:58.222Z — skipped (GDAL not installed)
+2026-08-17T16:40:58: [RASTER-INGEST:UPLOAD] 2026-08-17T09:40:58.245Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_flood_frequency_2025/job_24.tif (21ms)
+2026-08-17T16:40:58: [RASTER-INGEST:PUBLISH] 2026-08-17T09:40:58.250Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_flood_frequency_2025.tif
+2026-08-17T16:40:58: [RASTER-INGEST:PUBLISH] 2026-08-17T09:40:58.251Z — store=fl_trend_flood_frequency_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_flood_frequency_2025.tif
+2026-08-17T16:40:58: [GEOSERVER-FS] publish store=fl_trend_flood_frequency_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_flood_frequency_2025.tif
+2026-08-17T16:40:58: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:40:58: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:40:58: [GEOSERVER-FS] done → campha:fl_trend_flood_frequency_2025 (267ms)
+2026-08-17T16:40:58: [RASTER-INGEST:PUBLISH] 2026-08-17T09:40:58.550Z — → campha:fl_trend_flood_frequency_2025 reingest=false (303ms)
+2026-08-17T16:40:58: [RASTER-INGEST:REGISTRY] 2026-08-17T09:40:58.565Z — layer_id=103 (15ms)
+2026-08-17T16:40:58: [RASTER-INGEST] backlink ok flood_artifact#32 → campha:fl_trend_flood_frequency_2025
+2026-08-17T16:40:58: [RASTER-INGEST] job=24 COMPLETED layer=campha:fl_trend_flood_frequency_2025 size=0.03MB reingest=false total=13568ms
+2026-08-17T16:40:58: [raster-ingest-server495187-53180] TICK done 1/1 ok in 13574ms
+2026-08-17T16:41:00: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:flood_frequency","elapsed_ms":18029}
+2026-08-17T16:41:00: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"33","code":"frequent_flood","role":"PRODUCT"}
+2026-08-17T16:41:00: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:frequent_flood","status":"EXPORTING"}
+2026-08-17T16:41:01: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:frequent_flood","elapsed_ms":1629}
+2026-08-17T16:41:01: [FLOOD] run=11 code=frequent_flood download-url generated in 1632ms token=46557f13…
+2026-08-17T16:41:01: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"frequent_flood"}
+2026-08-17T16:41:01: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:frequent_flood","status":"ARCHIVING"}
+2026-08-17T16:41:01: [RASTER-INGEST:ENQUEUE] layer=fl_trend_frequent_flood_2025 hash=34608df0fc44… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:41:01: [RASTER-INGEST] ENQUEUED job=25 layer=fl_trend_frequent_flood_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:41:01: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:frequent_flood","elapsed_ms":11}
+2026-08-17T16:41:01: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"frequent_flood","ingestJobId":"25","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:41:01: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:frequent_flood","status":"PUBLISHING"}
+2026-08-17T16:41:02: GET /api/v1/admin/flood/queue 200 8.003 ms - 378
+2026-08-17T16:41:03: GET /api/v1/admin/flood/dashboard 200 8.049 ms - -
+2026-08-17T16:41:07: GET /api/v1/admin/flood/queue 200 5.639 ms - 378
+2026-08-17T16:41:08: GET /api/v1/admin/flood/dashboard 200 13.964 ms - -
+2026-08-17T16:41:13: GET /api/v1/admin/flood/queue 200 5.579 ms - 378
+2026-08-17T16:41:15: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [25]
+2026-08-17T16:41:15: [RASTER-INGEST] job=25 START layer=fl_trend_frequent_flood_2025 retry=0/3
+2026-08-17T16:41:15: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:41:15.009Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_25.raw
+2026-08-17T16:41:15: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_25.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:41:18: GET /api/v1/admin/flood/queue 200 5.561 ms - 378
+2026-08-17T16:41:22: [HTTP-STREAM] response status=200 elapsed=7040ms
+2026-08-17T16:41:22: [HTTP-STREAM] content-length declared=5389 bytes
+2026-08-17T16:41:22: [HTTP-STREAM] done bytes=5389 contentType=image/tiff sha256=5a496e4e6a87… elapsed=7043ms
+2026-08-17T16:41:22: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:41:22.053Z — bytes=0.01MB sha=5a496e4e6a87… (7044ms)
+2026-08-17T16:41:22: [RASTER-INGEST:CRS] 2026-08-17T09:41:22.063Z — skipped (GDAL not installed)
+2026-08-17T16:41:22: [RASTER-INGEST:UPLOAD] 2026-08-17T09:41:22.099Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_frequent_flood_2025/job_25.tif (31ms)
+2026-08-17T16:41:22: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:22.106Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_frequent_flood_2025.tif
+2026-08-17T16:41:22: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:22.108Z — store=fl_trend_frequent_flood_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_frequent_flood_2025.tif
+2026-08-17T16:41:22: [GEOSERVER-FS] publish store=fl_trend_frequent_flood_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_frequent_flood_2025.tif
+2026-08-17T16:41:22: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:41:22: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:41:22: [GEOSERVER-FS] done → campha:fl_trend_frequent_flood_2025 (104ms)
+2026-08-17T16:41:22: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:22.229Z — → campha:fl_trend_frequent_flood_2025 reingest=false (127ms)
+2026-08-17T16:41:22: [RASTER-INGEST:REGISTRY] 2026-08-17T09:41:22.238Z — layer_id=104 (9ms)
+2026-08-17T16:41:22: [RASTER-INGEST] backlink ok flood_artifact#33 → campha:fl_trend_frequent_flood_2025
+2026-08-17T16:41:22: [RASTER-INGEST] job=25 COMPLETED layer=campha:fl_trend_frequent_flood_2025 size=0.01MB reingest=false total=7241ms
+2026-08-17T16:41:22: [raster-ingest-server495187-53180] TICK done 1/1 ok in 7249ms
+2026-08-17T16:41:23: GET /api/v1/admin/flood/queue 200 5.569 ms - 378
+2026-08-17T16:41:23: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:frequent_flood","elapsed_ms":22023}
+2026-08-17T16:41:23: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"34","code":"new_flood","role":"PRODUCT"}
+2026-08-17T16:41:23: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:new_flood","status":"EXPORTING"}
+2026-08-17T16:41:25: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:new_flood","elapsed_ms":1281}
+2026-08-17T16:41:25: [FLOOD] run=11 code=new_flood download-url generated in 1284ms token=e54d38aa…
+2026-08-17T16:41:25: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"new_flood"}
+2026-08-17T16:41:25: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:new_flood","status":"ARCHIVING"}
+2026-08-17T16:41:25: [RASTER-INGEST:ENQUEUE] layer=fl_trend_new_flood_2025 hash=3e8be3e06e8a… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:41:25: [RASTER-INGEST] ENQUEUED job=26 layer=fl_trend_new_flood_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:41:25: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:new_flood","elapsed_ms":9}
+2026-08-17T16:41:25: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"new_flood","ingestJobId":"26","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:41:25: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:new_flood","status":"PUBLISHING"}
+2026-08-17T16:41:28: GET /api/v1/admin/flood/queue 200 4.119 ms - 378
+2026-08-17T16:41:30: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [26]
+2026-08-17T16:41:30: [RASTER-INGEST] job=26 START layer=fl_trend_new_flood_2025 retry=0/3
+2026-08-17T16:41:30: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:41:30.009Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_26.raw
+2026-08-17T16:41:30: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_26.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:41:33: GET /api/v1/admin/flood/queue 200 4.418 ms - 378
+2026-08-17T16:41:37: [HTTP-STREAM] response status=200 elapsed=7359ms
+2026-08-17T16:41:37: [HTTP-STREAM] content-length declared=4238 bytes
+2026-08-17T16:41:37: [HTTP-STREAM] done bytes=4238 contentType=image/tiff sha256=0c7c264660b9… elapsed=7363ms
+2026-08-17T16:41:37: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:41:37.372Z — bytes=0.00MB sha=0c7c264660b9… (7363ms)
+2026-08-17T16:41:37: [RASTER-INGEST:CRS] 2026-08-17T09:41:37.386Z — skipped (GDAL not installed)
+2026-08-17T16:41:37: [RASTER-INGEST:UPLOAD] 2026-08-17T09:41:37.410Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_new_flood_2025/job_26.tif (21ms)
+2026-08-17T16:41:37: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:37.418Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_new_flood_2025.tif
+2026-08-17T16:41:37: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:37.419Z — store=fl_trend_new_flood_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_new_flood_2025.tif
+2026-08-17T16:41:37: [GEOSERVER-FS] publish store=fl_trend_new_flood_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_new_flood_2025.tif
+2026-08-17T16:41:37: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:41:37: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:41:37: [GEOSERVER-FS] done → campha:fl_trend_new_flood_2025 (168ms)
+2026-08-17T16:41:37: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:37.603Z — → campha:fl_trend_new_flood_2025 reingest=false (189ms)
+2026-08-17T16:41:37: [RASTER-INGEST:REGISTRY] 2026-08-17T09:41:37.631Z — layer_id=105 (28ms)
+2026-08-17T16:41:37: [RASTER-INGEST] backlink ok flood_artifact#34 → campha:fl_trend_new_flood_2025
+2026-08-17T16:41:37: [RASTER-INGEST] job=26 COMPLETED layer=campha:fl_trend_new_flood_2025 size=0.00MB reingest=false total=7630ms
+2026-08-17T16:41:37: [raster-ingest-server495187-53180] TICK done 1/1 ok in 7639ms
+2026-08-17T16:41:38: GET /api/v1/admin/flood/queue 200 4.840 ms - 378
+2026-08-17T16:41:39: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:new_flood","elapsed_ms":14015}
+2026-08-17T16:41:39: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"35","code":"pop_affected","role":"PRODUCT"}
+2026-08-17T16:41:39: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:pop_affected","status":"EXPORTING"}
+2026-08-17T16:41:40: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:pop_affected","elapsed_ms":1430}
+2026-08-17T16:41:40: [FLOOD] run=11 code=pop_affected download-url generated in 1433ms token=3886935d…
+2026-08-17T16:41:40: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"pop_affected"}
+2026-08-17T16:41:40: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:pop_affected","status":"ARCHIVING"}
+2026-08-17T16:41:40: [RASTER-INGEST:ENQUEUE] layer=fl_trend_pop_affected_2025 hash=7f6189aa7a3e… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:41:40: [RASTER-INGEST] ENQUEUED job=27 layer=fl_trend_pop_affected_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:41:40: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:pop_affected","elapsed_ms":13}
+2026-08-17T16:41:40: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"pop_affected","ingestJobId":"27","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:41:40: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:pop_affected","status":"PUBLISHING"}
+2026-08-17T16:41:43: GET /api/v1/admin/flood/queue 200 7.277 ms - 378
+2026-08-17T16:41:45: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [27]
+2026-08-17T16:41:45: [RASTER-INGEST] job=27 START layer=fl_trend_pop_affected_2025 retry=0/3
+2026-08-17T16:41:45: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:41:45.007Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_27.raw
+2026-08-17T16:41:45: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_27.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2397065.2070231275,11926622.397392621,2406849.14664363 304 25.178 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2406849.1466436298,11946190.276633626,2416633.0862641325 304 20.793 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2397065.2070231275,11936406.337013124,2406849.14664363 304 14.873 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2397065.2070231275,11946190.276633626,2406849.14664363 304 14.875 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2406849.1466436298,11936406.337013124,2416633.0862641325 304 14.973 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2397065.2070231275,11965758.15587463,2406849.14664363 304 14.912 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2416633.0862641325,11946190.276633626,2426417.0258846353 304 137.266 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2377497.3277821224,11946190.276633626,2387281.267402625 304 55.084 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2397065.2070231275,11955974.216254128,2406849.14664363 304 183.428 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2416633.0862641325,11936406.337013124,2426417.0258846353 304 64.139 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2406849.1466436298,11955974.216254128,2416633.0862641325 304 34.661 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2406849.1466436298,11926622.397392621,2416633.0862641325 304 206.019 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2377497.3277821224,11955974.216254128,2387281.267402625 304 211.803 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2387281.2674026247,11965758.15587463,2397065.2070231275 304 26.130 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2387281.2674026247,11936406.337013124,2397065.2070231275 304 194.782 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2387281.2674026247,11955974.216254128,2397065.2070231275 304 20.003 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2406849.1466436298,11965758.15587463,2416633.0862641325 304 20.279 ms - -
+2026-08-17T16:41:46: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11936406.337013124,2387281.2674026247,11946190.276633626,2397065.2070231275 304 20.077 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2416633.0862641325,11926622.397392621,2426417.0258846353 304 20.238 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2387281.2674026247,11926622.397392621,2397065.2070231275 304 20.580 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2416633.0862641325,11965758.15587463,2426417.0258846353 304 21.059 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2397065.2070231275,11975542.095495135,2406849.14664363 304 21.741 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11916838.457772119,2377497.3277821224,11926622.397392621,2387281.267402625 304 23.339 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2387281.2674026247,11975542.095495135,2397065.2070231275 304 31.965 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11955974.216254128,2377497.3277821224,11965758.15587463,2387281.267402625 304 21.111 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2406849.1466436298,11975542.095495135,2416633.0862641325 304 22.779 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11926622.397392621,2377497.3277821224,11936406.337013124,2387281.267402625 304 26.006 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2397065.2070231275,11916838.457772119,2406849.14664363 304 28.212 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2416633.0862641325,11916838.457772119,2426417.0258846353 304 20.194 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2397065.2070231275,11985326.035115637,2406849.14664363 304 39.457 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2406849.1466436298,11985326.035115637,2416633.0862641325 304 26.783 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2377497.3277821224,11975542.095495135,2387281.267402625 304 27.307 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2387281.2674026247,11916838.457772119,2397065.2070231275 304 23.353 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2406849.1466436298,11916838.457772119,2416633.0862641325 304 25.791 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11907054.518151617,2377497.3277821224,11916838.457772119,2387281.267402625 304 28.028 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2397065.2070231275,11907054.518151617,2406849.14664363 304 27.610 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2377497.3277821224,11907054.518151617,2387281.267402625 304 28.425 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2406849.1466436298,11907054.518151617,2416633.0862641325 304 31.348 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11965758.155874632,2416633.0862641325,11975542.095495135,2426417.0258846353 304 38.786 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2416633.0862641325,11985326.035115637,2426417.0258846353 304 25.798 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2387281.2674026247,11907054.518151617,2397065.2070231275 304 24.900 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2377497.3277821224,11985326.035115637,2387281.267402625 304 16.239 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11897270.578531114,2416633.0862641325,11907054.518151617,2426417.0258846353 304 16.234 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11946190.276633626,2416633.0862641325,11955974.216254128,2426417.0258846353 304 18.491 ms - -
+2026-08-17T16:41:47: GET /api/v1/maps/layers/1/wms?request=GetMap&width=256&height=256&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&version=1.3.0&bbox=11975542.095495135,2387281.2674026247,11985326.035115637,2397065.2070231275 304 57.178 ms - -
+2026-08-17T16:41:48: GET /api/v1/admin/flood/queue 200 26.194 ms - 378
+2026-08-17T16:41:51: [HTTP-STREAM] response status=200 elapsed=6601ms
+2026-08-17T16:41:51: [HTTP-STREAM] content-length declared=30519 bytes
+2026-08-17T16:41:51: [HTTP-STREAM] done bytes=30519 contentType=image/tiff sha256=4a2a9364412d… elapsed=6646ms
+2026-08-17T16:41:51: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:41:51.653Z — bytes=0.03MB sha=4a2a9364412d… (6646ms)
+2026-08-17T16:41:51: [RASTER-INGEST:CRS] 2026-08-17T09:41:51.672Z — skipped (GDAL not installed)
+2026-08-17T16:41:51: [RASTER-INGEST:UPLOAD] 2026-08-17T09:41:51.688Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_pop_affected_2025/job_27.tif (13ms)
+2026-08-17T16:41:51: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:51.695Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_pop_affected_2025.tif
+2026-08-17T16:41:51: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:51.697Z — store=fl_trend_pop_affected_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_pop_affected_2025.tif
+2026-08-17T16:41:51: [GEOSERVER-FS] publish store=fl_trend_pop_affected_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_pop_affected_2025.tif
+2026-08-17T16:41:51: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:41:51: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:41:51: [GEOSERVER-FS] done → campha:fl_trend_pop_affected_2025 (91ms)
+2026-08-17T16:41:51: [RASTER-INGEST:PUBLISH] 2026-08-17T09:41:51.807Z — → campha:fl_trend_pop_affected_2025 reingest=false (114ms)
+2026-08-17T16:41:51: [RASTER-INGEST:REGISTRY] 2026-08-17T09:41:51.820Z — layer_id=106 (13ms)
+2026-08-17T16:41:51: [RASTER-INGEST] backlink ok flood_artifact#35 → campha:fl_trend_pop_affected_2025
+2026-08-17T16:41:51: [RASTER-INGEST] job=27 COMPLETED layer=campha:fl_trend_pop_affected_2025 size=0.03MB reingest=false total=6829ms
+2026-08-17T16:41:51: [raster-ingest-server495187-53180] TICK done 1/1 ok in 6834ms
+2026-08-17T16:41:52: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:pop_affected","elapsed_ms":12037}
+2026-08-17T16:41:52: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"36","code":"crop_affected","role":"PRODUCT"}
+2026-08-17T16:41:52: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:crop_affected","status":"EXPORTING"}
+2026-08-17T16:41:52: GET /api/v1/admin/flood/queue 200 4.116 ms - 378
+2026-08-17T16:41:53: GET /api/v1/admin/flood/dashboard 200 16.235 ms - -
+2026-08-17T16:41:54: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:crop_affected","elapsed_ms":1548}
+2026-08-17T16:41:54: [FLOOD] run=11 code=crop_affected download-url generated in 1551ms token=d3034d01…
+2026-08-17T16:41:54: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"crop_affected"}
+2026-08-17T16:41:54: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:crop_affected","status":"ARCHIVING"}
+2026-08-17T16:41:54: [RASTER-INGEST:ENQUEUE] layer=fl_trend_crop_affected_2025 hash=8cbabc9f0b18… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:41:54: [RASTER-INGEST] ENQUEUED job=28 layer=fl_trend_crop_affected_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:41:54: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:crop_affected","elapsed_ms":13}
+2026-08-17T16:41:54: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"crop_affected","ingestJobId":"28","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:41:54: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:crop_affected","status":"PUBLISHING"}
+2026-08-17T16:41:54: GET /api/v1/auth/me 200 5.332 ms - -
+2026-08-17T16:41:55: GET /api/v1/notifications/mine?page=1&limit=10 200 9.381 ms - 134
+2026-08-17T16:41:55: GET /api/v1/notifications/unread-count 200 10.053 ms - 75
+2026-08-17T16:41:55: GET /api/v1/admin/flood/config 200 4.167 ms - -
+2026-08-17T16:41:55: GET /api/v1/admin/flood/queue 200 31.685 ms - 378
+2026-08-17T16:41:55: GET /api/v1/admin/flood/dashboard 200 27.190 ms - -
+2026-08-17T16:41:59: GET /api/v1/admin/flood/runs?page=1&limit=10 200 24.287 ms - -
+2026-08-17T16:42:00: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [28]
+2026-08-17T16:42:00: [RASTER-INGEST] job=28 START layer=fl_trend_crop_affected_2025 retry=0/3
+2026-08-17T16:42:00: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:42:00.012Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_28.raw
+2026-08-17T16:42:00: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_28.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:42:00: GET /api/v1/admin/flood/queue 200 7.099 ms - 378
+2026-08-17T16:42:00: GET /api/v1/admin/flood/dashboard 200 22.385 ms - -
+2026-08-17T16:42:05: GET /api/v1/admin/flood/queue 200 25.701 ms - 378
+2026-08-17T16:42:05: GET /api/v1/admin/flood/dashboard 200 30.361 ms - -
+2026-08-17T16:42:10: GET /api/v1/admin/flood/queue 200 4.229 ms - 378
+2026-08-17T16:42:10: GET /api/v1/admin/flood/dashboard 200 9.588 ms - -
+2026-08-17T16:42:15: [raster-ingest-server495187-53180] tick SKIPPED — previous still running
+2026-08-17T16:42:15: GET /api/v1/admin/flood/queue 200 4.422 ms - 378
+2026-08-17T16:42:15: GET /api/v1/admin/flood/dashboard 200 8.159 ms - -
+2026-08-17T16:42:20: GET /api/v1/admin/flood/queue 200 4.057 ms - 378
+2026-08-17T16:42:20: GET /api/v1/admin/flood/dashboard 200 8.917 ms - -
+2026-08-17T16:42:21: [HTTP-STREAM] response status=200 elapsed=21583ms
+2026-08-17T16:42:21: [HTTP-STREAM] content-length declared=2782 bytes
+2026-08-17T16:42:21: [HTTP-STREAM] done bytes=2782 contentType=image/tiff sha256=76cc243a878d… elapsed=21586ms
+2026-08-17T16:42:21: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:42:21.598Z — bytes=0.00MB sha=76cc243a878d… (21586ms)
+2026-08-17T16:42:21: [RASTER-INGEST:CRS] 2026-08-17T09:42:21.607Z — skipped (GDAL not installed)
+2026-08-17T16:42:21: [RASTER-INGEST:UPLOAD] 2026-08-17T09:42:21.634Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_crop_affected_2025/job_28.tif (22ms)
+2026-08-17T16:42:21: [RASTER-INGEST:PUBLISH] 2026-08-17T09:42:21.640Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_crop_affected_2025.tif
+2026-08-17T16:42:21: [RASTER-INGEST:PUBLISH] 2026-08-17T09:42:21.641Z — store=fl_trend_crop_affected_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_crop_affected_2025.tif
+2026-08-17T16:42:21: [GEOSERVER-FS] publish store=fl_trend_crop_affected_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_crop_affected_2025.tif
+2026-08-17T16:42:21: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:42:21: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:42:21: [GEOSERVER-FS] done → campha:fl_trend_crop_affected_2025 (94ms)
+2026-08-17T16:42:21: [RASTER-INGEST:PUBLISH] 2026-08-17T09:42:21.748Z — → campha:fl_trend_crop_affected_2025 reingest=false (111ms)
+2026-08-17T16:42:21: [RASTER-INGEST:REGISTRY] 2026-08-17T09:42:21.759Z — layer_id=107 (11ms)
+2026-08-17T16:42:21: [RASTER-INGEST] backlink ok flood_artifact#36 → campha:fl_trend_crop_affected_2025
+2026-08-17T16:42:21: [RASTER-INGEST] job=28 COMPLETED layer=campha:fl_trend_crop_affected_2025 size=0.00MB reingest=false total=21759ms
+2026-08-17T16:42:21: [raster-ingest-server495187-53180] TICK done 1/1 ok in 21767ms
+2026-08-17T16:42:22: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:crop_affected","elapsed_ms":28164}
+2026-08-17T16:42:22: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"37","code":"built_affected","role":"PRODUCT"}
+2026-08-17T16:42:22: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:built_affected","status":"EXPORTING"}
+2026-08-17T16:42:24: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:built_affected","elapsed_ms":2021}
+2026-08-17T16:42:24: [FLOOD] run=11 code=built_affected download-url generated in 2022ms token=0adeb88c…
+2026-08-17T16:42:24: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"built_affected"}
+2026-08-17T16:42:24: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:built_affected","status":"ARCHIVING"}
+2026-08-17T16:42:24: [RASTER-INGEST:ENQUEUE] layer=fl_trend_built_affected_2025 hash=24fca22711e6… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:42:24: [RASTER-INGEST] ENQUEUED job=29 layer=fl_trend_built_affected_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:42:24: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:built_affected","elapsed_ms":10}
+2026-08-17T16:42:24: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"built_affected","ingestJobId":"29","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:42:24: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:built_affected","status":"PUBLISHING"}
+2026-08-17T16:42:25: GET /api/v1/admin/flood/queue 200 4.543 ms - 378
+2026-08-17T16:42:25: GET /api/v1/admin/flood/dashboard 200 9.013 ms - -
+2026-08-17T16:42:30: [raster-ingest-server495187-53180] CLAIMED 1 job(s): [29]
+2026-08-17T16:42:30: [RASTER-INGEST] job=29 START layer=fl_trend_built_affected_2025 retry=0/3
+2026-08-17T16:42:30: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:42:30.009Z — → C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_29.raw
+2026-08-17T16:42:30: [HTTP-STREAM] fetch host=earthengine.googleapis.com dest=C:\Users\ADMINI~1\AppData\Local\Temp\2\campha_raster_ingest\job_29.raw timeout=900000ms maxBytes=3221225472
+2026-08-17T16:42:30: GET /api/v1/admin/flood/queue 200 4.474 ms - 378
+2026-08-17T16:42:30: GET /api/v1/admin/flood/dashboard 200 8.521 ms - -
+2026-08-17T16:42:35: GET /api/v1/admin/flood/queue 200 6.764 ms - 378
+2026-08-17T16:42:35: GET /api/v1/admin/flood/dashboard 200 7.659 ms - -
+2026-08-17T16:42:40: GET /api/v1/admin/flood/queue 200 7.598 ms - 378
+2026-08-17T16:42:41: GET /api/v1/admin/flood/dashboard 200 8.576 ms - -
+2026-08-17T16:42:43: [HTTP-STREAM] response status=200 elapsed=13578ms
+2026-08-17T16:42:43: [HTTP-STREAM] content-length declared=2343 bytes
+2026-08-17T16:42:43: [HTTP-STREAM] done bytes=2343 contentType=image/tiff sha256=138d4bca16c2… elapsed=13698ms
+2026-08-17T16:42:43: [RASTER-INGEST:DOWNLOAD] 2026-08-17T09:42:43.718Z — bytes=0.00MB sha=138d4bca16c2… (13709ms)
+2026-08-17T16:42:43: [RASTER-INGEST:CRS] 2026-08-17T09:42:43.769Z — skipped (GDAL not installed)
+2026-08-17T16:42:44: [RASTER-INGEST:UPLOAD] 2026-08-17T09:42:44.021Z — bucket-category=flood-rasters key=flood-rasters/2026/08/fl_trend_built_affected_2025/job_29.tif (247ms)
+2026-08-17T16:42:44: [RASTER-INGEST:PUBLISH] 2026-08-17T09:42:44.031Z — copied cog → C:\ProgramData\GeoServer\flood-rasters\fl_trend_built_affected_2025.tif
+2026-08-17T16:42:44: [RASTER-INGEST:PUBLISH] 2026-08-17T09:42:44.034Z — store=fl_trend_built_affected_2025 isReingest=false file=C:\ProgramData\GeoServer\flood-rasters\fl_trend_built_affected_2025.tif
+2026-08-17T16:42:44: [GEOSERVER-FS] publish store=fl_trend_built_affected_2025 ws=campha url=file:///C:/ProgramData/GeoServer/flood-rasters/fl_trend_built_affected_2025.tif
+2026-08-17T16:42:44: [GEOSERVER-FS] store CREATED (POST)
+2026-08-17T16:42:44: [GEOSERVER-FS] coverage CREATED
+2026-08-17T16:42:44: [GEOSERVER-FS] done → campha:fl_trend_built_affected_2025 (189ms)
+2026-08-17T16:42:44: [RASTER-INGEST:PUBLISH] 2026-08-17T09:42:44.270Z — → campha:fl_trend_built_affected_2025 reingest=false (243ms)
+2026-08-17T16:42:44: [RASTER-INGEST:REGISTRY] 2026-08-17T09:42:44.278Z — layer_id=108 (8ms)
+2026-08-17T16:42:44: [RASTER-INGEST] backlink ok flood_artifact#37 → campha:fl_trend_built_affected_2025
+2026-08-17T16:42:44: [RASTER-INGEST] job=29 COMPLETED layer=campha:fl_trend_built_affected_2025 size=0.00MB reingest=false total=14286ms
+2026-08-17T16:42:44: [raster-ingest-server495187-53180] TICK done 1/1 ok in 14299ms
+2026-08-17T16:42:44: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"publish:built_affected","elapsed_ms":20039}
+2026-08-17T16:42:44: [FLOOD-DEBUG] run-executor.exportAndHarvest artifact {"runId":"11","artifactId":"38","code":"pond_to_built","role":"PRODUCT"}
+2026-08-17T16:42:44: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"export:pond_to_built","status":"EXPORTING"}
+2026-08-17T16:42:45: GET /api/v1/admin/flood/queue 200 4.138 ms - 378
+2026-08-17T16:42:45: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"export:pond_to_built","elapsed_ms":1027}
+2026-08-17T16:42:45: [FLOOD] run=11 code=pond_to_built download-url generated in 1031ms token=85f644a1…
+2026-08-17T16:42:45: [FLOOD-DEBUG] run-executor.exportAndHarvest gee-download-url ok {"runId":"11","code":"pond_to_built"}
+2026-08-17T16:42:45: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"archive:pond_to_built","status":"ARCHIVING"}
+2026-08-17T16:42:45: [RASTER-INGEST:ENQUEUE] layer=fl_trend_pond_to_built_2025 hash=c9b988792fb5… url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai… user=1
+2026-08-17T16:42:45: [RASTER-INGEST] ENQUEUED job=30 layer=fl_trend_pond_to_built_2025 url=https://earthengine.googleapis.com/v1/projects/earthengine-legacy/thumbnai…
+2026-08-17T16:42:45: [FLOOD-DEBUG] run-executor.stage end {"runId":"11","stage":"archive:pond_to_built","elapsed_ms":16}
+2026-08-17T16:42:45: [FLOOD-DEBUG] run-executor.exportAndHarvest ingest enqueued {"runId":"11","code":"pond_to_built","ingestJobId":"30","publish":true,"bucketCategory":"flood-rasters"}
+2026-08-17T16:42:45: [FLOOD-DEBUG] run-executor.stage start {"runId":"11","module":"trend","stage":"publish:pond_to_built","status":"PUBLISHING"}
+2026-08-17T16:42:46: GET /api/v1/admin/flood/dashboard 200 8.901 ms - -

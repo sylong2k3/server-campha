@@ -194,6 +194,20 @@ const geographicMetadataSchema = Joi.object({
     }).required(),
 });
 
+const legendColor = Joi.string()
+    .trim()
+    .pattern(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/)
+    .required();
+const legendEntry = Joi.object({
+    label: Joi.string().trim().min(1).max(200).required(),
+    color: legendColor,
+});
+const legendConfigSchema = Joi.object({
+    entries: Joi.array().items(legendEntry).min(1).max(50).required(),
+})
+    .allow(null)
+    .default(null);
+
 const layerUpdateSchema = Joi.object({
     expectedUpdatedAt: Joi.date().iso().required(),
     nameVi: Joi.string().trim().min(2).max(200),
@@ -204,7 +218,7 @@ const layerUpdateSchema = Joi.object({
         .allow(null),
     minZoom: Joi.number().integer().min(0).max(24).allow(null),
     maxZoom: Joi.number().integer().min(0).max(24).allow(null),
-    legendConfig: Joi.object().unknown(true),
+    legendConfig: legendConfigSchema,
     metadata: Joi.object({ standardProfile: Joi.forbidden() }).unknown(true),
     isPublic: Joi.boolean(),
     isEnableDefault: Joi.boolean(),
@@ -246,6 +260,7 @@ module.exports = {
     paginationSchema,
     listLayersSchema,
     layerUpdateSchema,
+    legendConfigSchema,
     geographicMetadataSchema,
     permissionsSchema,
     deleteLayerSchema,

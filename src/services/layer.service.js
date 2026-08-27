@@ -8,18 +8,10 @@ const systemLogger = require('../utils/systemLogger.util');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
 const { toIso19139Xml } = require('../utils/geographic-metadata.util');
 
-const assertTnmt = (actor) => {
-    if (actor?.role !== 'so_tnmt') {
-        throw new Api403Error('Chỉ Sở TNMT được quản trị lớp dữ liệu');
-    }
-};
 const hasPermission = (actor, action) => actor?.permissions?.layers?.[action] === true;
 const assertPermission = (actor, action) => {
     if (!hasPermission(actor, action)) {
         throw new Api403Error('Không có quyền thực hiện thao tác lớp dữ liệu');
-    }
-    if (['update', 'delete', 'grant'].includes(action)) {
-        assertTnmt(actor);
     }
 };
 const audit = (action, actor, metadata) =>

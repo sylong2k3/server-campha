@@ -37,8 +37,10 @@ describe('requireLayerAccess', () => {
         expect(error).toBeInstanceOf(Api401Error);
     });
 
-    test('từ chối action không được ACL cấp', async () => {
-        db.query.mockResolvedValue({ rows: [{ id: 3, is_public: true, allowed: false }] });
+    test('từ chối action edit không được gis.layer_permissions.can_edit cấp', async () => {
+        db.query.mockResolvedValue({
+            rows: [{ id: 3, is_public: true, allowed: false }],
+        });
         const error = await invoke('edit', {
             params: { layerId: '3' },
             lang: 'vi',

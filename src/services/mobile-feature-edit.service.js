@@ -3,8 +3,8 @@ const repository = require('../repositories/mobile-feature-edit.repository');
 const webMap = require('../repositories/web-map.repository');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
 const assertActor = (actor) => {
-    if (actor?.role !== 'so_tnmt' || actor.permissions?.map_feature?.update !== true) {
-        throw new Api403Error('Chỉ Sở TNMT được sửa dữ liệu bản đồ gốc');
+    if (actor?.permissions?.map_feature?.update !== true) {
+        throw new Api403Error('Không có quyền sửa dữ liệu bản đồ gốc');
     }
 };
 const layer = async (id, actor) => {

@@ -358,6 +358,36 @@
       "key": "floodScenarioId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "floodLegendCode",
+      "value": "trend_frequency",
+      "type": "string",
+      "description": "Mã chú giải ngập lụt (ví dụ: trend_frequency, event_extent)"
+    },
+    {
+      "key": "floodTrendConfigKey",
+      "value": "handThresh",
+      "type": "string",
+      "description": "Khóa tham số cấu hình xu thế (ví dụ: handThresh, slopeThresh)"
+    },
+    {
+      "key": "forestSnapshotId",
+      "value": "1",
+      "type": "string",
+      "description": "ID snapshot kết quả phân loại đối tượng"
+    },
+    {
+      "key": "forestZoneId",
+      "value": "1",
+      "type": "string",
+      "description": "ID vùng mẫu kiểm chứng ground truth"
+    },
+    {
+      "key": "forestPointId",
+      "value": "1",
+      "type": "string",
+      "description": "ID điểm mẫu kiểm chứng ground truth"
     }
   ],
   "item": [
@@ -8826,11 +8856,808 @@
       ]
     },
     {
-      "name": "Ngập lụt",
-      "description": "API Flood/Hydrology đang được mount. Dùng tnmtToken cho route quản trị.",
+      "name": "Phân loại đối tượng",
+      "description": "API Phân loại đối tượng (lớp phủ / rừng) sử dụng Google Earth Engine, quản lý snapshot kết quả phân tích theo kỳ, công bố raster lên GeoServer / Web Map và quản lý dữ liệu kiểm chứng mặt đất (Ground Truth).",
       "item": [
         {
           "name": "Công khai",
+          "description": "Các API phân loại đối tượng tra cứu công khai (hoặc tùy chọn xác thực) cho người dùng và cộng đồng.",
+          "item": [
+            {
+              "name": "Lấy kết quả Phân loại đối tượng mới nhất",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/latest",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "latest"
+                  ]
+                },
+                "description": "Lấy snapshot kết quả phân loại đối tượng / lớp phủ mới nhất cùng so sánh với kỳ liền trước và trạng thái tính toán."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const d = pm.response.json().data;",
+                      "if (d?.snapshot?.id) {",
+                      "    pm.collectionVariables.set('forestSnapshotId', d.snapshot.id);",
+                      "    pm.environment.set('forestSnapshotId', d.snapshot.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Truy vấn kết quả theo kỳ",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"year\": 2026,\n  \"month\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/query",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "query"
+                  ]
+                },
+                "description": "Truy vấn kết quả phân loại đối tượng theo năm và tháng. Trả về kết quả đã cache hoặc bắt đầu xử lý nếu chưa có."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const d = pm.response.json().data;",
+                      "if (d?.snapshot?.id) {",
+                      "    pm.collectionVariables.set('forestSnapshotId', d.snapshot.id);",
+                      "    pm.environment.set('forestSnapshotId', d.snapshot.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Chi tiết kết quả phân loại đối tượng",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/snapshot/{{forestSnapshotId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "snapshot",
+                    "{{forestSnapshotId}}"
+                  ]
+                },
+                "description": "Xem chi tiết snapshot phân loại đối tượng theo ID (diện tích các loại đối tượng, độ chính xác Kappa/OOB, GeoServer layer, GEE download URL)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Danh sách kỳ phân loại đã công bố",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "noauth"
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/published-history?page=1&limit=24",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "published-history"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "24"
+                    }
+                  ]
+                },
+                "description": "Danh sách các kỳ phân loại đối tượng đã được xuất bản chính thức cho cộng đồng xem trên Web Map."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().data?.items || [];",
+                      "if (a[0]?.id) {",
+                      "    pm.collectionVariables.set('forestSnapshotId', a[0].id);",
+                      "    pm.environment.set('forestSnapshotId', a[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Quản trị",
+          "description": "Các API quản trị quy trình phân loại đối tượng: tra cứu toàn bộ lịch sử, yêu cầu chạy làm mới trên GEE và xuất bản raster (dùng tnmtToken hoặc adminToken).",
+          "item": [
+            {
+              "name": "Toàn bộ lịch sử các kỳ phân loại",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/history?page=1&limit=24",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "history"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "24"
+                    }
+                  ]
+                },
+                "description": "Xem toàn bộ lịch sử các lần chạy phân loại đối tượng (bao gồm đang tính toán, thành công, lỗi và đã xuất bản)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().data?.items || [];",
+                      "if (a[0]?.id) {",
+                      "    pm.collectionVariables.set('forestSnapshotId', a[0].id);",
+                      "    pm.environment.set('forestSnapshotId', a[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Yêu cầu làm mới / chạy phân loại đối tượng",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"year\": 2026,\n  \"month\": 3,\n  \"cloudCover\": 20\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/refresh",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "refresh"
+                  ]
+                },
+                "description": "Yêu cầu trigger chạy quy trình phân loại đối tượng tự động trên Google Earth Engine cho kỳ chỉ định."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 202]));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Xuất bản raster lên Web Map (GeoServer)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/snapshots/{{forestSnapshotId}}/publish-raster?force=0",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "snapshots",
+                    "{{forestSnapshotId}}",
+                    "publish-raster"
+                  ],
+                  "query": [
+                    {
+                      "key": "force",
+                      "value": "0"
+                    }
+                  ]
+                },
+                "description": "Đưa snapshot phân loại thành công vào hàng đợi ingest raster để tạo layer GeoServer và công bố lên Web Map."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Accepted/OK', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 202]));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Dữ liệu kiểm chứng (Ground Truth)",
+          "description": "Các API quản lý tập mẫu kiểm chứng thực địa (điểm và vùng đa giác) phục vụ huấn luyện và đánh giá độ chính xác phân loại.",
+          "item": [
+            {
+              "name": "Danh sách vùng mẫu (Zones)",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/zones?page=1&limit=50",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "zones"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                },
+                "description": "Danh sách các vùng đa giác mẫu kiểm chứng thực địa (Ground Truth Zones)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().data?.items || [];",
+                      "if (a[0]?.id) {",
+                      "    pm.collectionVariables.set('forestZoneId', a[0].id);",
+                      "    pm.environment.set('forestZoneId', a[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Thêm vùng mẫu (Zone)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Vùng rừng phòng hộ Cẩm Phả 01\",\n  \"observedAt\": \"2026-08-01T08:00:00.000Z\",\n  \"classId\": 1,\n  \"source\": \"Khảo sát thực địa\",\n  \"notes\": \"Rừng phát triển ổn định\",\n  \"geom\": {\n    \"type\": \"Polygon\",\n    \"coordinates\": [\n      [\n        [\n          107.35,\n          21.01\n        ],\n        [\n          107.36,\n          21.01\n        ],\n        [\n          107.36,\n          21.02\n        ],\n        [\n          107.35,\n          21.02\n        ],\n        [\n          107.35,\n          21.01\n        ]\n      ]\n    ]\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/zones",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "zones"
+                  ]
+                },
+                "description": "Tạo mới một vùng mẫu kiểm chứng (GeoJSON Polygon hoặc MultiPolygon, classId từ 0 đến 7)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "const d = pm.response.json().data;",
+                      "if (d?.id) {",
+                      "    pm.collectionVariables.set('forestZoneId', d.id);",
+                      "    pm.environment.set('forestZoneId', d.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Thêm hàng loạt vùng mẫu (Bulk Zones)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"features\": [\n    {\n      \"type\": \"Feature\",\n      \"properties\": {\n        \"name\": \"Vùng mẫu rừng tự nhiên\",\n        \"observedAt\": \"2026-08-01T08:00:00.000Z\",\n        \"classId\": 1,\n        \"source\": \"Khảo sát thực địa\"\n      },\n      \"geometry\": {\n        \"type\": \"Polygon\",\n        \"coordinates\": [\n          [\n            [\n              107.35,\n              21.01\n            ],\n            [\n              107.36,\n              21.01\n            ],\n            [\n              107.36,\n              21.02\n            ],\n            [\n              107.35,\n              21.02\n            ],\n            [\n              107.35,\n              21.01\n            ]\n          ]\n        ]\n      }\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/zones/bulk",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "zones",
+                    "bulk"
+                  ]
+                },
+                "description": "Thêm danh sách hàng loạt vùng mẫu kiểm chứng dạng GeoJSON FeatureCollection (tối đa 500 vùng)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Xóa vùng mẫu (Zone)",
+              "request": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/zones/{{forestZoneId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "zones",
+                    "{{forestZoneId}}"
+                  ]
+                },
+                "description": "Vô hiệu hóa / xóa vùng mẫu kiểm chứng theo ID."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Danh sách điểm mẫu (Points)",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/points?page=1&limit=100",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "points"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "100"
+                    }
+                  ]
+                },
+                "description": "Danh sách các điểm mẫu kiểm chứng thực địa (Ground Truth Points)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().data?.items || [];",
+                      "if (a[0]?.id) {",
+                      "    pm.collectionVariables.set('forestPointId', a[0].id);",
+                      "    pm.environment.set('forestPointId', a[0].id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Thêm điểm mẫu (Point)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lng\": 107.356,\n  \"lat\": 21.015,\n  \"observedAt\": \"2026-08-01T09:30:00.000Z\",\n  \"classId\": 1,\n  \"source\": \"Mobile GIS khảo sát\",\n  \"photoUrl\": \"https://example.com/photos/gt_01.jpg\",\n  \"reporterName\": \"Nguyễn Văn A\",\n  \"notes\": \"Điểm kiểm chứng rừng phòng hộ\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/points",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "points"
+                  ]
+                },
+                "description": "Thêm một điểm mẫu kiểm chứng mới (lng 106..109, lat 20..22.5, classId 0..7)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                      "const d = pm.response.json().data;",
+                      "if (d?.id) {",
+                      "    pm.collectionVariables.set('forestPointId', d.id);",
+                      "    pm.environment.set('forestPointId', d.id);",
+                      "}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Thêm hàng loạt điểm mẫu (Bulk Points)",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"points\": [\n    {\n      \"lng\": 107.356,\n      \"lat\": 21.015,\n      \"observedAt\": \"2026-08-01T09:30:00.000Z\",\n      \"classId\": 1,\n      \"source\": \"Mobile GIS\",\n      \"photoUrl\": \"https://example.com/photos/gt_01.jpg\",\n      \"reporterName\": \"Nguyễn Văn A\",\n      \"notes\": \"Điểm 1\"\n    },\n    {\n      \"lng\": 107.362,\n      \"lat\": 21.022,\n      \"observedAt\": \"2026-08-01T10:00:00.000Z\",\n      \"classId\": 2,\n      \"source\": \"Mobile GIS\",\n      \"reporterName\": \"Trần Văn B\",\n      \"notes\": \"Điểm 2\"\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/points/bulk",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "points",
+                    "bulk"
+                  ]
+                },
+                "description": "Thêm danh sách hàng loạt điểm mẫu kiểm chứng (tối đa 1.000 điểm)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('201 Created', () => pm.response.to.have.status(201));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Xóa điểm mẫu (Point)",
+              "request": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/forest-classification/ground-truth/points/{{forestPointId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "forest-classification",
+                    "ground-truth",
+                    "points",
+                    "{{forestPointId}}"
+                  ]
+                },
+                "description": "Vô hiệu hóa / xóa điểm mẫu kiểm chứng theo ID."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ngập lụt",
+      "description": "API Flood/Hydrology (Ngập lụt) Cẩm Phả bao gồm: phát hiện ngập theo đợt (event), mô hình HAND, xu thế ngập (trend), mô phỏng kịch bản ngập úng, quản lý hàng đợi và xuất bản artifact.",
+      "item": [
+        {
+          "name": "Công khai",
+          "description": "Các API ngập lụt tra cứu công khai không yêu cầu token đăng nhập.",
           "item": [
             {
               "name": "Tổng quan ngập lụt",
@@ -8848,7 +9675,8 @@
                     "flood",
                     "overview"
                   ]
-                }
+                },
+                "description": "Lấy thông tin tổng quan về các lần chạy phân tích ngập lụt, lớp bản đồ đã công bố và thống kê mới nhất."
               },
               "event": [
                 {
@@ -8868,7 +9696,7 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/v1/flood/legends",
+                  "raw": "{{baseUrl}}/api/v1/flood/legends?module=trend",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -8877,8 +9705,15 @@
                     "v1",
                     "flood",
                     "legends"
+                  ],
+                  "query": [
+                    {
+                      "key": "module",
+                      "value": "trend"
+                    }
                   ]
-                }
+                },
+                "description": "Lấy danh sách bảng màu và nhãn chú giải cho các module ngập lụt (event, hand, rain, impact, trend)."
               },
               "event": [
                 {
@@ -8907,8 +9742,19 @@
                     "v1",
                     "flood",
                     "layers"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
                   ]
-                }
+                },
+                "description": "Danh sách các lớp bản đồ ngập lụt đã được công bố ra công chúng."
               },
               "event": [
                 {
@@ -8937,8 +9783,19 @@
                     "v1",
                     "flood",
                     "runs"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
                   ]
-                }
+                },
+                "description": "Danh sách lịch sử các đợt phân tích ngập lụt ở chế độ product phục vụ cộng đồng."
               },
               "event": [
                 {
@@ -8946,14 +9803,15 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().data?.items || []; if (a[0]?.id) { pm.collectionVariables.set('floodRunId', a[0].id); }"
                     ]
                   }
                 }
               ]
             },
             {
-              "name": "Mô phỏng ngập lụt",
+              "name": "Mô phỏng ngập lụt (GET)",
               "request": {
                 "method": "GET",
                 "header": [],
@@ -8971,16 +9829,15 @@
                   "query": [
                     {
                       "key": "rainfall",
-                      "value": "120",
-                      "description": "Lượng mưa (mm) - Bắt buộc"
+                      "value": "120"
                     },
                     {
                       "key": "tide",
-                      "value": "2.5",
-                      "description": "Mực nước thủy triều (m) - Tùy chọn"
+                      "value": "2.5"
                     }
                   ]
-                }
+                },
+                "description": "Mô phỏng mức độ ngập lụt dựa trên lượng mưa (mm) và mực nước triều (m) truyền qua query params."
               },
               "event": [
                 {
@@ -8988,8 +9845,52 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                      "pm.test('Has isEnableDefault', () => { const json = pm.response.json(); pm.expect(json.data.isEnableDefault).to.be.true; });"
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Mô phỏng ngập lụt (POST)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rainfall\": 120,\n  \"tide\": 2.5\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/flood/simulation",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "flood",
+                    "simulation"
+                  ]
+                },
+                "description": "Mô phỏng mức độ ngập lụt theo lượng mưa và triều cường qua JSON body."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
                     ]
                   }
                 }
@@ -9022,17 +9923,11 @@
                     },
                     {
                       "key": "activeOnly",
-                      "value": "true",
-                      "description": "Chỉ lấy kịch bản đang kích hoạt"
-                    },
-                    {
-                      "key": "search",
-                      "value": "",
-                      "description": "Tìm theo mã/tên kịch bản",
-                      "disabled": true
+                      "value": "true"
                     }
                   ]
-                }
+                },
+                "description": "Danh sách các kịch bản ngập úng được định nghĩa sẵn đang kích hoạt."
               },
               "event": [
                 {
@@ -9041,7 +9936,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                      "pm.test('Has items array', () => { const json = pm.response.json(); pm.expect(json.data).to.be.an('array'); });"
+                      "const a = pm.response.json().data?.items || []; if (a[0]?.id) { pm.collectionVariables.set('floodScenarioId', a[0].id); pm.environment.set('floodScenarioId', a[0].id); }"
                     ]
                   }
                 }
@@ -9064,7 +9959,8 @@
                     "scenarios",
                     "{{floodScenarioId}}"
                   ]
-                }
+                },
+                "description": "Xem thông tin chi tiết một kịch bản ngập úng theo ID."
               },
               "event": [
                 {
@@ -9082,16 +9978,7 @@
         },
         {
           "name": "Quản trị",
-          "auth": {
-            "type": "bearer",
-            "bearer": [
-              {
-                "key": "token",
-                "value": "{{tnmtToken}}",
-                "type": "string"
-              }
-            ]
-          },
+          "description": "Các API quản trị quy trình phân tích ngập lụt, cấu hình tham số, kịch bản ngập úng và chú giải (dùng tnmtToken hoặc adminToken).",
           "item": [
             {
               "name": "Dashboard ngập lụt",
@@ -9120,7 +10007,8 @@
                     "flood",
                     "dashboard"
                   ]
-                }
+                },
+                "description": "Bảng điều khiển quản trị tổng hợp tất cả trạng thái lần chạy, hàng đợi và thống kê ngập lụt."
               },
               "event": [
                 {
@@ -9161,7 +10049,195 @@
                     "flood",
                     "config"
                   ]
+                },
+                "description": "Lấy các tham số mặc định và phiên bản pipeline của các module ngập lụt."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
                 }
+              ]
+            },
+            {
+              "name": "Cấu hình mô hình xu thế (Trend Config)",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/trend/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "trend",
+                    "config"
+                  ]
+                },
+                "description": "Lấy cấu hình chi tiết mô hình xu thế ngập FINAL (ngưỡng HAND, độ dốc, diện tích mảng tối thiểu, v.v.)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cập nhật cấu hình mô hình xu thế",
+              "request": {
+                "method": "PUT",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"handThresh\": 15,\n  \"slopeThresh\": 5,\n  \"minPatchPixels\": 10\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/trend/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "trend",
+                    "config"
+                  ]
+                },
+                "description": "Cập nhật ghi đè các tham số của mô hình xu thế ngập."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Đặt lại một tham số cấu hình xu thế",
+              "request": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/trend/config/{{floodTrendConfigKey}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "trend",
+                    "config",
+                    "{{floodTrendConfigKey}}"
+                  ]
+                },
+                "description": "Xóa giá trị ghi đè của một tham số (ví dụ: handThresh) và trở về giá trị mặc định."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Đặt lại toàn bộ cấu hình xu thế",
+              "request": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/trend/config",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "trend",
+                    "config"
+                  ]
+                },
+                "description": "Xóa toàn bộ các tham số ghi đè của mô hình xu thế ngập."
               },
               "event": [
                 {
@@ -9212,7 +10288,8 @@
                       "value": "20"
                     }
                   ]
-                }
+                },
+                "description": "Xem danh sách toàn bộ các kịch bản ngập úng (bao gồm cả active và inactive)."
               },
               "event": [
                 {
@@ -9220,7 +10297,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                      "const a = pm.response.json().data?.items || []; if (a[0]?.id) { pm.collectionVariables.set('floodScenarioId', a[0].id); pm.environment.set('floodScenarioId', a[0].id); }"
                     ]
                   }
                 }
@@ -9254,7 +10332,8 @@
                     "scenarios",
                     "{{floodScenarioId}}"
                   ]
-                }
+                },
+                "description": "Xem chi tiết một kịch bản ngập úng trong phần quản trị."
               },
               "event": [
                 {
@@ -9290,7 +10369,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"code\": \"scenario_test_postman\",\n  \"nameVi\": \"Kịch bản test qua Postman\",\n  \"minRainfall\": 60,\n  \"maxRainfall\": 90,\n  \"minTide\": null,\n  \"maxTide\": null,\n  \"layerCode\": \"lop_phu_sau_ngap_2018\",\n  \"description\": \"Kịch bản được tạo để kiểm thử API qua Postman\",\n  \"isActive\": true\n}",
+                  "raw": "{\n  \"code\": \"kich_ban_mua_lon_trieu_cuong\",\n  \"nameVi\": \"Kịch bản mưa lớn kết hợp triều cường\",\n  \"minRainfall\": 100,\n  \"maxRainfall\": 250,\n  \"minTide\": 2,\n  \"maxTide\": 4.5,\n  \"layerCode\": \"lop_phu_sau_ngap_2026\",\n  \"description\": \"Kịch bản dự báo ngập lụt vùng ven biển Cẩm Phả khi có bão và triều dâng\",\n  \"isActive\": true,\n  \"currentRainfall\": 120,\n  \"rainfallSource\": \"MANUAL\",\n  \"currentTide\": 2.8,\n  \"tideSource\": \"MANUAL\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -9309,7 +10388,8 @@
                     "flood",
                     "scenarios"
                   ]
-                }
+                },
+                "description": "Tạo một kịch bản ngập úng mới gắn với lớp bản đồ."
               },
               "event": [
                 {
@@ -9318,7 +10398,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('201 Created', () => pm.response.to.have.status(201));",
-                      "const d=pm.response.json().data; if(d?.id){ pm.collectionVariables.set('floodScenarioId',d.id); pm.environment.set('floodScenarioId',d.id); }"
+                      "const d = pm.response.json().data; if (d?.id) { pm.collectionVariables.set('floodScenarioId', d.id); pm.environment.set('floodScenarioId', d.id); }"
                     ]
                   }
                 }
@@ -9346,7 +10426,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"nameVi\": \"Kịch bản test qua Postman (đã cập nhật)\",\n  \"maxRainfall\": 95,\n  \"isActive\": true\n}",
+                  "raw": "{\n  \"nameVi\": \"Kịch bản mưa lớn kết hợp triều cường (Cập nhật)\",\n  \"minRainfall\": 120,\n  \"maxRainfall\": 300,\n  \"minTide\": 2.5,\n  \"maxTide\": 5,\n  \"isActive\": true\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -9366,7 +10446,8 @@
                     "scenarios",
                     "{{floodScenarioId}}"
                   ]
-                }
+                },
+                "description": "Cập nhật thông tin ngưỡng và trạng thái kịch bản ngập úng."
               },
               "event": [
                 {
@@ -9408,7 +10489,8 @@
                     "scenarios",
                     "{{floodScenarioId}}"
                   ]
-                }
+                },
+                "description": "Xóa kịch bản ngập úng khỏi hệ thống."
               },
               "event": [
                 {
@@ -9449,7 +10531,8 @@
                     "flood",
                     "queue"
                   ]
-                }
+                },
+                "description": "Xem trạng thái các tác vụ phân tích ngập đang nằm trong hàng đợi hoặc đang thực thi."
               },
               "event": [
                 {
@@ -9489,8 +10572,19 @@
                     "admin",
                     "flood",
                     "runs"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
                   ]
-                }
+                },
+                "description": "Danh sách tất cả các lần chạy phân tích ngập lụt với đầy đủ trạng thái và thông tin chi tiết."
               },
               "event": [
                 {
@@ -9499,7 +10593,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                      "const a=pm.response.json().data?.items||[]; if(a[0]?.id){ pm.collectionVariables.set('floodRunId',a[0].id); }"
+                      "const a = pm.response.json().data?.items || []; if (a[0]?.id) { pm.collectionVariables.set('floodRunId', a[0].id); pm.environment.set('floodRunId', a[0].id); }"
                     ]
                   }
                 }
@@ -9533,7 +10627,8 @@
                     "runs",
                     "{{floodRunId}}"
                   ]
-                }
+                },
+                "description": "Chi tiết một lần chạy phân tích ngập lụt kèm danh sách artifacts và tiến trình từng bước."
               },
               "event": [
                 {
@@ -9542,7 +10637,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('200 OK', () => pm.response.to.have.status(200));",
-                      "const d=pm.response.json().data; const a=d?.artifacts||[]; if(a[0]?.id){ pm.collectionVariables.set('floodArtifactId',a[0].id); }"
+                      "const d = pm.response.json().data; const a = d?.artifacts || []; if (a[0]?.id) { pm.collectionVariables.set('floodArtifactId', a[0].id); pm.environment.set('floodArtifactId', a[0].id); }"
                     ]
                   }
                 }
@@ -9589,7 +10684,8 @@
                     "flood",
                     "runs"
                   ]
-                }
+                },
+                "description": "Đưa một lượt phân tích ngập lụt mới vào hàng đợi (module: event, hand, impact, trend)."
               },
               "event": [
                 {
@@ -9597,8 +10693,8 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));",
-                      "const d=pm.response.json().data; if(d?.id){ pm.collectionVariables.set('floodRunId',d.id); pm.environment.set('floodRunId',d.id); }"
+                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 202]));",
+                      "const d = pm.response.json().data; if (d?.id) { pm.collectionVariables.set('floodRunId', d.id); pm.environment.set('floodRunId', d.id); }"
                     ]
                   }
                 }
@@ -9633,7 +10729,8 @@
                     "{{floodRunId}}",
                     "rerun"
                   ]
-                }
+                },
+                "description": "Chạy lại một lần phân tích ngập lụt đã thực hiện."
               },
               "event": [
                 {
@@ -9641,7 +10738,7 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200,201,202]));"
+                      "pm.test('Accepted', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 202]));"
                     ]
                   }
                 }
@@ -9676,7 +10773,8 @@
                     "{{floodRunId}}",
                     "cancel"
                   ]
-                }
+                },
+                "description": "Hủy một lần phân tích ngập lụt đang chờ hoặc đang xử lý."
               },
               "event": [
                 {
@@ -9719,7 +10817,8 @@
                     "{{floodArtifactId}}",
                     "publish"
                   ]
-                }
+                },
+                "description": "Công bố một artifact kết quả ngập lụt lên bản đồ công khai."
               },
               "event": [
                 {
@@ -9762,7 +10861,199 @@
                     "{{floodArtifactId}}",
                     "unpublish"
                   ]
+                },
+                "description": "Thu hồi công bố của một artifact kết quả ngập lụt."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
                 }
+              ]
+            },
+            {
+              "name": "Danh sách chú giải quản trị",
+              "request": {
+                "method": "GET",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/legends?module=trend",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "legends"
+                  ],
+                  "query": [
+                    {
+                      "key": "module",
+                      "value": "trend"
+                    }
+                  ]
+                },
+                "description": "Lấy cấu hình chi tiết chú giải cho vai trò quản trị (bao gồm dải màu, nhãn ngôn ngữ, giá trị min/max)."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cập nhật chú giải",
+              "request": {
+                "method": "PUT",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"label\": {\n    \"vi\": \"Tần suất ngập\",\n    \"en\": \"Flood Frequency\"\n  },\n  \"palette\": [\n    \"ffffff\",\n    \"00aaff\",\n    \"0000ff\"\n  ],\n  \"min\": 0,\n  \"max\": 100\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/legends/{{floodLegendCode}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "legends",
+                    "{{floodLegendCode}}"
+                  ]
+                },
+                "description": "Tùy biến nhãn và dải màu palette cho chú giải artifact ngập lụt."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Đặt lại chú giải về mặc định",
+              "request": {
+                "method": "DELETE",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/legends/{{floodLegendCode}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "legends",
+                    "{{floodLegendCode}}"
+                  ]
+                },
+                "description": "Khôi phục thiết lập chú giải về cấu hình mặc định ban đầu."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Kích hoạt phân tích ngập hàng ngày thủ công",
+              "request": {
+                "method": "POST",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tnmtToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/admin/flood/daily/trigger",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "admin",
+                    "flood",
+                    "daily",
+                    "trigger"
+                  ]
+                },
+                "description": "Kích hoạt thủ công tiến trình phân tích phát hiện ngập lụt hàng ngày (Daily Cron job)."
               },
               "event": [
                 {

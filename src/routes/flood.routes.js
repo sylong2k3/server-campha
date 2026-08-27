@@ -125,6 +125,12 @@ adminRouter.post(
     strict(validator.idParamsSchema, 'params'),
     asyncHandler(controller.cancel),
 );
+adminRouter.delete(
+    '/runs/:id',
+    requirePermission('flood', 'run'),
+    strict(validator.idParamsSchema, 'params'),
+    asyncHandler(controller.deleteRun),
+);
 adminRouter.post(
     '/artifacts/:id/publish',
     requirePermission('flood', 'publish'),

@@ -187,6 +187,30 @@ async function cancel(id, actor) {
     return cancelled;
 }
 
+async function deleteRun(id, actor) {
+    const run = await getRun(id);
+    if (!runRepo.TERMINAL_STATUSES.includes(run.status)) {
+        throw new Api409Error('Chỉ có thể xóa lượt phân tích đã kết thúc (chưa hủy sẽ bị mất dữ liệu đang chạy)', [
+            'FLOOD_RUN_NOT_TERMINAL',
+        ]);
+    }
+    // Insert audit before the DELETE so the FK (ON DELETE SET NULL) detaches
+    // this row cleanly instead of failing on a dangling analysis_run_id.
+    await runRepo.insertAudit({
+        analysisRunId: id,
+        action: 'delete_run',
+        metadata: { module: run.module, mode: run.mode, status: run.status },
+        ...actorFields(actor),
+    });
+    const deleted = await runRepo.deleteRun(id);
+    if (!deleted) {
+        throw new Api409Error('Không thể xóa lượt phân tích (trạng thái đã thay đổi)', [
+            'FLOOD_RUN_NOT_TERMINAL',
+        ]);
+    }
+    return { id };
+}
+
 async function getRun(id) {
     const run = await runRepo.findById(id);
     if (!run) {
@@ -758,6 +782,7 @@ module.exports = {
     submit,
     rerun,
     cancel,
+    deleteRun,
     getRun,
     getRunDetail,
     listRuns,

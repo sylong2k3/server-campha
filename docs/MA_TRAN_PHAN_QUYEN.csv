@@ -1,9 +1,8 @@
-module,chuc_nang,resource,action,KH,ND,UB,TNMT,XD,QT,ghi_chu
+﻿module,chuc_nang,resource,action,KH,ND,UB,TNMT,XD,QT,ghi_chu
 A.1-11,Xem tổng quan lịch sử và lớp Flood/Hydrology đã công bố,flood,read,1,1,1,1,1,1,KH chỉ dùng API công khai; QT tương ứng system_admin
 A.1-11,Chạy sản phẩm M1-M5 và chạy lại hoặc hủy job,flood,run,0,0,1,1,1,1,RBAC migration 082; mọi thao tác quản trị được audit
 A.1-11,Chạy chế độ hiệu chỉnh Flood,flood,calibrate,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; artifact calibration không được công bố trực tiếp
 A.1-11,Công bố hoặc gỡ công bố artifact Flood,flood,publish,0,0,0,1,0,1,Chỉ product artifact đã archive MinIO và qua kiểm tra raster
-A.1-11,Cấu hình tham số vận hành Flood,flood,configure,0,0,0,1,0,1,Quyền dự phòng cho API cấu hình; bản chạy luôn lưu params_snapshot bất biến
 A.1-12,Xem kết quả Phân loại đối tượng đã công bố,forest_classification,read,1,1,1,1,1,1,KH qua API public; các vai trò đăng nhập có quyền read rõ ràng
 A.1-12,Chạy làm mới và công bố raster Phân loại đối tượng,forest_classification,manage,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; snapshot chỉ published khi đủ district set ổn định
 A.1-12,Quản lý vùng và điểm ground truth Phân loại đối tượng,forest_classification,ground_truth,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; class_id bị giới hạn 0-11
@@ -14,16 +13,16 @@ A.1-1,Tìm kiếm ảnh theo thời gian,raster,read,0,0,1,1,1,1,Tài khoản qu
 A.1-1,Phân trang / chọn số dòng / sắp xếp,raster,read,0,0,1,1,1,1,Tài khoản quản trị
 A.1-2,Thêm lớp từ shapefile,layers,create,0,0,0,1,1,1,
 A.1-2,Thêm lớp từ file Excel,layers,create,0,0,0,1,1,1,
-A.1-2,Chỉnh sửa lớp dữ liệu,layers,update,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
-A.1-2,Xóa lớp dữ liệu,layers,delete,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
-A.1-2,Phân quyền lớp dữ liệu,layers,grant,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
+A.1-2,Chỉnh sửa lớp dữ liệu,layers,update,0,0,0,1,0,1,QT/system_admin có permission theo API; thao tác vẫn chịu ACL từng layer khi áp dụng.
+A.1-2,Xóa lớp dữ liệu,layers,delete,0,0,0,1,0,1,QT/system_admin có permission theo API; thao tác vẫn chịu ACL từng layer khi áp dụng.
+A.1-2,Phân quyền lớp dữ liệu,layers,grant,0,0,0,1,0,1,QT/system_admin có permission theo API; thao tác vẫn chịu ACL từng layer khi áp dụng.
 A.1-2,Tìm kiếm lớp theo tên,layers,read,0,0,1,1,1,1,
 A.1-2,Phân trang / chọn số dòng,layers,read,0,0,1,1,1,1,
 A.1-3,Thêm mới tài khoản,users,create,0,0,0,1,1,1,UB không có quyền
 A.1-3,Xóa tài khoản,users,delete,0,0,0,1,1,1,UB không có quyền
 A.1-3,Khóa tài khoản,users,change_status,0,0,0,1,1,1,UB không có quyền
 A.1-3,Cấp lại mật khẩu,users,reset_password,0,0,0,1,1,1,UB không có quyền
-A.1-3,Phân quyền tài khoản,users,change_role,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
+A.1-3,Phân quyền tài khoản,users,change_role,0,0,0,1,0,1,QT/system_admin có permission theo API; thao tác vẫn chịu ACL từng layer khi áp dụng.
 A.1-3,Tìm kiếm tài khoản,users,read,0,0,0,1,1,1,Giới hạn theo org_id
 A.1-3,Phân trang danh sách người dùng,users,read,0,0,0,1,1,1,Giới hạn theo org_id
 A.1-3,Xem hồ sơ cá nhân,users,read_own,0,1,1,1,1,1,
@@ -33,7 +32,7 @@ A.1-4,Xóa văn bản báo cáo,documents,delete,0,0,1,1,1,1,
 A.1-4,Tìm kiếm / phân trang văn bản,documents,read,0,0,1,1,1,1,
 A.1-5,Tạo API cho lớp dữ liệu,api_registry,create,0,0,0,1,1,1,
 A.1-5,Chia sẻ API,api_registry,share,0,0,0,1,1,1,
-A.1-5,Phân quyền API,api_registry,grant,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
+A.1-5,Phân quyền API,api_registry,grant,0,0,0,1,0,1,QT/system_admin có permission theo API; thao tác vẫn chịu ACL từng layer khi áp dụng.
 A.1-5,Xem / tìm kiếm / phân trang / sắp xếp API,api_registry,read,0,0,1,1,1,1,
 A.1-6,Thêm mới tin tức,news,create,0,0,1,1,1,1,
 A.1-6,Sửa tin tức,news,update,0,0,1,1,1,1,
@@ -46,7 +45,7 @@ A.1-7,Tìm kiếm / phân trang bản đồ PDF (quản trị),pdf_maps,read,0,0
 A.1-8,Nhận thông báo cập nhật từ mobile,field_report,notify,0,0,1,1,1,1,
 A.1-8,Xem thông tin thay đổi tại vị trí,field_report,read,0,0,1,1,1,1,
 A.1-8,Thống kê số người phản ánh cùng địa điểm,field_report,stats,0,0,1,1,1,1,
-A.1-8,Duyệt hoặc bác bỏ phản ánh,field_report,approve,0,0,1,1,1,1,Migration 098 — QT toàn quyền trừ phân quyền và sửa/xóa dữ liệu bản đồ
+A.1-8,Duyệt hoặc bác bỏ phản ánh,field_report,approve,0,0,1,1,1,1,QT được cấp theo API; thao tác vẫn chịu permission và ACL
 A.1-9,Khai báo phạm vi lưới tính bước thời gian,hydro,edit_params,0,0,0,1,1,1,
 A.1-9,Nhập chỉnh sửa tham số thủy văn,hydro,edit_params,0,0,0,1,1,1,
 A.1-9,Nhập chỉnh sửa tham số thủy lực,hydro,edit_params,0,0,0,1,1,1,
@@ -55,7 +54,7 @@ A.1-9,Hiệu chỉnh và kiểm định mô hình,hydro,calibrate,0,0,0,1,1,1,
 A.1-9,Lưu sao chép so sánh khôi phục bộ tham số,hydro,version,0,0,0,1,1,1,
 A.1-9,Nhập xuất bộ tham số JSON XML CSV,hydro,import_export,0,0,0,1,1,1,
 A.1-9,Thiết lập ngưỡng cảnh báo ngập,hydro,set_threshold,0,0,0,1,1,1,
-A.1-9,Tạo và ban hành kịch bản chính thức,hydro,publish_scenario,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
+A.1-9,Tạo và ban hành kịch bản chính thức,hydro,publish_scenario,0,0,0,1,0,0,Chỉ TNMT — QT được cấp theo API; không dùng G2 làm nhãn nghiệp vụ
 A.1-9,Xem bộ tham số và kết quả kiểm định,hydro,read,0,0,1,1,1,1,UB chỉ xem
 A.1-10,Khai báo nguồn dữ liệu KTTV,kttv,create_source,0,0,0,1,1,1,
 A.1-10,Kiểm tra kết nối xem trước dữ liệu,kttv,test_source,0,0,0,1,1,1,
@@ -66,7 +65,7 @@ A.1-10,Quản lý danh mục trạm quan trắc,kttv,manage_stations,0,0,0,1,1,1
 A.1-10,Lập lịch thu thập tự động,kttv,schedule,0,0,0,1,1,1,
 A.1-10,Nhập dữ liệu KTTV thủ công,kttv,manual_input,0,0,0,1,1,1,Ghi người nhập thời điểm và dữ liệu gốc
 A.1-10,Chuẩn bị và khớp kịch bản theo dữ liệu KTTV,kttv,match_scenario,0,0,0,1,1,1,Chỉ TNMT được ban hành hoặc kích hoạt kịch bản chính thức
-A.1-10,Cấu hình hiển thị lớp dữ liệu,kttv,display_config,0,0,0,1,0,0,Chỉ TNMT — QT bị loại trừ (G2)
+A.1-10,Cấu hình hiển thị lớp dữ liệu,kttv,display_config,0,0,0,1,0,0,Chỉ TNMT — QT được cấp theo API; không dùng G2 làm nhãn nghiệp vụ
 A.1-10,Thiết lập ngưỡng cảnh báo và cấp báo động,kttv,alarm_threshold,0,0,1,1,0,0,TNMT và UB
 A.1-10,Xem trạng thái kết nối và nhật ký thu thập,kttv,read,0,0,1,1,1,1,
 A.2-1,Bật tắt lớp dữ liệu bản đồ,map,view,1,1,1,1,1,1,KH và ND chỉ đọc
@@ -80,9 +79,9 @@ A.2-1,Xem chú giải lớp bản đồ,map,view_legend,1,1,1,1,1,1,
 A.2-2,So sánh ảnh vệ tinh 2 thời điểm,raster,compare,1,1,1,1,1,1,
 A.2-2,Tìm kiếm ảnh theo thời gian và loại,raster,search,1,1,1,1,1,1,
 A.2-2,Tải ảnh vệ tinh,raster,download,0,1,1,1,1,1,
-A.2-2,Chạy phân loại tự động trên GEE,raster,classify,0,1,1,1,1,1,
-A.2-2,Tính diện tích đối tượng sau phân loại,raster,classify,0,1,1,1,1,1,
-A.2-2,Xuất kết quả sang vector ghi vào CSDL,raster,export_vector,0,1,1,1,1,1,
+A.2-2,Chạy phân loại tự động trên GEE,raster,classify,0,1,1,1,1,1,"ND, UB, TNMT, XD, QT được chạy phân loại; kết quả chịu ACL lớp dữ liệu."
+A.2-2,Tính diện tích đối tượng sau phân loại,raster,classify,0,1,1,1,1,1,"ND, UB, TNMT, XD, QT được chạy phân loại; kết quả chịu ACL lớp dữ liệu."
+A.2-2,Xuất kết quả sang vector ghi vào CSDL,raster,export_vector,0,1,1,1,1,1,Kết quả được ghi vào CSDL; endpoint phải kiểm tra layers.create.
 A.2-2,Tải lớp dữ liệu sau phân loại,raster,download,0,1,1,1,1,1,
 A.2-3,Xem biểu đồ thống kê,stats,view,1,1,1,1,1,1,
 A.2-3,Xuất báo cáo thống kê,stats,export,0,1,1,1,1,1,
@@ -101,7 +100,7 @@ A.2-7,Tải văn bản nội bộ,documents,download_internal,0,0,1,1,1,1,
 A.2-8,Đăng nhập web,auth,login,1,1,1,1,1,1,
 A.2-9,Đăng ký tài khoản web,auth,register,1,0,0,0,0,0,Chỉ khách chưa đăng nhập
 A.2-10,Xem kết quả dự báo xu hướng ngập,flood_forecast,read,0,1,1,1,1,1,
-A.2-10,Chạy mô hình dự báo lưu kịch bản,flood_forecast,run,0,0,1,1,1,1,MÂU THUẪN với A.1-9 (UB không được chạy mô hình) — cần chốt J.1-9
+A.2-10,Chạy mô hình dự báo lưu kịch bản,flood_forecast,run,0,0,1,1,1,1,UB được chạy mô hình dự báo; TNMT/XD/QT cũng được chạy theo nghiệp vụ.
 A.2-11,Gửi phản ánh kèm ảnh và tọa độ,field_report,create,0,1,1,1,1,1,Mọi vai trò đã đăng nhập; dùng chung key field_report.create với B-2
 B-1,Bật tắt lớp bản đồ trên mobile,map,view,1,1,1,1,1,1,
 B-1,Phóng to thu nhỏ lớp bản đồ,map,view,1,1,1,1,1,1,
@@ -112,11 +111,18 @@ B-1,Đo đạc chiều dài diện tích,map,measure,1,1,1,1,1,1,
 B-1,Xem thông tin thời tiết,weather,read,1,1,1,1,1,1,
 B-1,Vẽ điểm đường vùng,map,draw,0,1,1,1,1,1,
 B-1,Cập nhật thuộc tính và không gian đối tượng,map_feature,update,0,0,0,1,0,0,Chỉ TNMT — endpoint nguy hiểm nhất hệ thống
-B-2,Chụp ảnh hiện trạng lấn chiếm,field_report,create,0,1,1,1,1,1,Migration 098 — QT toàn quyền trừ phân quyền và sửa/xóa dữ liệu bản đồ
-B-2,Đo đạc tương đối khu vực lấn chiếm,field_report,measure,0,1,1,1,1,1,Migration 098 — QT toàn quyền trừ phân quyền và sửa/xóa dữ liệu bản đồ
+B-2,Chụp ảnh hiện trạng lấn chiếm,field_report,create,0,1,1,1,1,1,QT được cấp theo API; thao tác vẫn chịu permission và ACL
+B-2,Đo đạc tương đối khu vực lấn chiếm,field_report,measure,0,1,1,1,1,1,QT được cấp theo API; thao tác vẫn chịu permission và ACL
 B-3,Đăng nhập mobile,auth,login,1,1,1,1,1,1,
 B-4,Đăng ký tài khoản mobile,auth,register,1,0,0,0,0,0,Chỉ khách chưa đăng nhập
 B-5,Đọc tin tức trên mobile,news,read_public,1,1,1,1,1,1,
 B-5,Tìm kiếm tin tức trên mobile,news,read_public,1,1,1,1,1,1,
 B-6,Đọc văn bản báo cáo công khai trên mobile,documents,read_public,1,1,1,1,1,1,
 B-6,Đọc văn bản nội bộ trên mobile,documents,read_internal,0,0,1,1,1,1,
+A.1-3,Đọc nhật ký hệ thống,system_logs,read,0,0,0,0,0,1,Quyền vận hành nhạy cảm; chỉ QT; audit bất biến.
+A.1-3,Quản lý vòng đời nhật ký hệ thống,system_logs,manage,0,0,0,0,0,1,Quyền nhạy cảm; thao tác phải audit và không được xóa audit bất biến.
+A.1-8,Gửi thông báo quản trị,notifications,send,0,0,0,1,0,1,Gửi thông báo diện rộng; bắt buộc audit.
+A.1-1,Quản lý publish ảnh vệ tinh,satellite,manage,0,0,1,1,0,1,Khớp migration 087 và route satellite publish.
+A.1-2,Nạp raster thành lớp bản đồ,map_layers,ingest_raster,0,0,1,1,0,1,Khớp route publish raster; phải kiểm tra ACL và audit.
+B-1,Đọc đối tượng bản đồ trước khi cập nhật,map_feature,read,0,0,0,1,0,0,Bổ sung để không tồn tại update-without-read; đọc qua map.view_attributes trong UI.
+A.2-4,Đọc dữ liệu đầu vào phân tích không gian,spatial,read,0,1,1,1,1,1,Phân tích là read-only; bổ sung action đọc để policy rõ ràng.

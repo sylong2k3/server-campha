@@ -22,7 +22,7 @@ const actor = {
 describe('layer service', () => {
     beforeEach(() => jest.clearAllMocks());
 
-    test('allows RBAC read but rejects non-TNMT mutation even if token claims it', async () => {
+    test('uses permissions instead of role name for layer mutation', async () => {
         layerRepository.list.mockResolvedValue({ items: [], total: 0 });
         await expect(
             service.listLayers(
@@ -34,6 +34,7 @@ describe('layer service', () => {
                 },
             ),
         ).resolves.toEqual({ items: [], total: 0 });
+
         await expect(
             service.updateLayer(
                 1,
@@ -41,7 +42,7 @@ describe('layer service', () => {
                 {
                     ...actor,
                     role: 'system_admin',
-                    permissions: { layers: { update: true } },
+                    permissions: { layers: {} },
                 },
             ),
         ).rejects.toMatchObject({ status: 403 });
@@ -83,13 +84,13 @@ describe('layer service', () => {
         ).rejects.toMatchObject({ status: 422, errors: ['ACL_EXCEEDS_ROLE_CONTRACT'] });
     });
 
-    test('standard metadata update is TNMT-only and exports XML', async () => {
+    test('standard metadata update follows permission, not role name', async () => {
         const profile = { metadataIdentifier: 'cp.roads' };
         await expect(
             service.updateStandardMetadata(
                 1,
                 { expectedUpdatedAt: new Date(), ...profile },
-                { ...actor, role: 'system_admin' },
+                { ...actor, role: 'system_admin', permissions: { layers: {} } },
             ),
         ).rejects.toMatchObject({ status: 403 });
         layerRepository.updateStandardMetadata.mockResolvedValue({

@@ -8,8 +8,8 @@ const permission = (actor, action) => {
     }
 };
 const tnmt = (actor) => {
-    if (actor?.role !== 'so_tnmt' || actor.permissions?.api_registry?.grant !== true) {
-        throw new Api403Error('Chỉ Sở TNMT được phân quyền API', ['API_GRANT_TNMT_ONLY']);
+    if (actor?.permissions?.api_registry?.grant !== true) {
+        throw new Api403Error('Không có quyền phân quyền API', ['API_GRANT_PERMISSION_REQUIRED']);
     }
 };
 const hasWrite = (value) => value.some((x) => x !== 'GET' && x !== 'features:read');
