@@ -15,7 +15,15 @@ const IDENTIFIER = /^[a-z][a-z0-9_]{0,62}$/;
 const ERROR_LIMIT = Number(process.env.LAYER_IMPORT_ERROR_LIMIT || 1000);
 const PROCESS_TIMEOUT_MS = Number(process.env.LAYER_GDAL_TIMEOUT_MS || 10 * 60 * 1000);
 const DB_TIMEOUT_MS = Number(process.env.LAYER_DB_TIMEOUT_MS || 5 * 60 * 1000);
-const SOURCE_ENCODINGS = new Set(['UTF-8', 'CP1258', 'WINDOWS-1252']);
+const SOURCE_ENCODINGS = new Set([
+    'UTF-8',
+    'CP1258',
+    'WINDOWS-1258',
+    'TCVN3',
+    'TCVN-3',
+    'WINDOWS-1252',
+    'CP1252',
+]);
 
 class LayerImportValidationError extends Error {
     constructor(code, message, errors = []) {
@@ -51,6 +59,7 @@ const getTool = (envName, fallback) => {
 
 const processEnv = () => ({
     ...process.env,
+    PGCLIENTENCODING: 'UTF8',
     PGPASSWORD: process.env.DB_PASSWORD,
     PGOPTIONS: `-c statement_timeout=${DB_TIMEOUT_MS} -c lock_timeout=10000`,
     ...(process.env.PROJ_DATA_PATH ? { PROJ_DATA: process.env.PROJ_DATA_PATH } : {}),
@@ -98,8 +107,15 @@ const postgresDatasource = () => {
     return `PG:host='${values.host}' port='${values.port}' dbname='${values.dbname}' user='${values.user}'`;
 };
 
-const inspectSource = async (source, layerName, openOptions = []) => {
-    const args = ['-json', '-so', ...openOptions.flatMap((option) => ['-oo', option]), source];
+const inspectSource = async (source, layerName, openOptions = [], configOptions = {}) => {
+    const configArgs = Object.entries(configOptions).flatMap(([k, v]) => ['--config', k, v]);
+    const args = [
+        ...configArgs,
+        '-json',
+        '-so',
+        ...openOptions.flatMap((option) => ['-oo', option]),
+        source,
+    ];
     if (layerName) {
         args.push(layerName);
     }
@@ -158,21 +174,31 @@ const importShapefileToStaging = async (job, filePath, stagingTable) => {
     const archive = inspectShapefileZip(filePath);
     const normalizedZip = path.resolve(filePath).replaceAll('\\', '/');
     const source = `/vsizip/{${normalizedZip}}/${archive.shapefilePath}`;
-    const metadata = parseShapefileMetadata(await inspectSource(source));
-    await assertSridExists(metadata.sourceSrid);
-    await assertSridExists(input.targetSrid);
     if (!archive.cpgPath && !input.sourceEncoding) {
         throw new LayerImportValidationError(
             'DBF_ENCODING_REQUIRED',
             'Shapefile thiếu .cpg; phải gửi sourceEncoding',
         );
     }
-    if (input.sourceEncoding && !SOURCE_ENCODINGS.has(input.sourceEncoding)) {
+    const enc = input.sourceEncoding ? String(input.sourceEncoding).trim().toUpperCase() : null;
+    if (enc && !SOURCE_ENCODINGS.has(enc)) {
         throw new LayerImportValidationError(
             'DBF_ENCODING_INVALID',
             'DBF encoding không được hỗ trợ',
         );
     }
+    const openOptions = [];
+    const configOptions = {};
+    if (enc) {
+        openOptions.push(`ENCODING=${enc}`);
+        configOptions.SHAPE_ENCODING = enc;
+    }
+    const metadata = parseShapefileMetadata(
+        await inspectSource(source, null, openOptions, configOptions),
+    );
+    await assertSridExists(metadata.sourceSrid);
+    await assertSridExists(input.targetSrid);
+
     const args = [
         '-f',
         'PostgreSQL',
@@ -194,8 +220,8 @@ const importShapefileToStaging = async (job, filePath, stagingTable) => {
         'OGR_TRUNCATE',
         'NO',
     ];
-    if (input.sourceEncoding) {
-        args.push('--config', 'SHAPE_ENCODING', input.sourceEncoding);
+    if (enc) {
+        args.push('--config', 'SHAPE_ENCODING', enc);
     }
     await runTool(getTool('GDAL_OGR2OGR_PATH', 'ogr2ogr'), args);
     return { ...metadata, targetSrid: input.targetSrid };

@@ -9,7 +9,7 @@ const listLayers = async (req, res) =>
     OK(
         res,
         t('web_map_layers_success', req.lang),
-        await service.listLayers(req.query.category, buildActor(req)),
+        await service.listLayers(req.query, buildActor(req)),
     );
 const getFeature = async (req, res) =>
     OK(

@@ -84,8 +84,8 @@ const pageQuery = Joi.object({
 });
 const deleteQuery = Joi.object({ expectedUpdatedAt: Joi.date().iso().required() });
 const weatherQuery = Joi.object({
-    longitude: Joi.number().min(107).max(108).required(),
-    latitude: Joi.number().min(20.7).max(21.3).required(),
+    longitude: Joi.number().required(),
+    latitude: Joi.number().required(),
 });
 const routeBody = Joi.object({
     start: coordinate.required(),

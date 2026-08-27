@@ -16,7 +16,7 @@ const qid = (value, pattern = IDENTIFIER) => {
 };
 const actorRole = (actor) => actor?.role || null;
 
-const catalog = async (actor, category) => {
+const catalog = async (actor, { category, search } = {}) => {
     const params = [actorRole(actor)];
     const where = [
         'l.deleted_at IS NULL',
@@ -26,6 +26,15 @@ const catalog = async (actor, category) => {
     if (category) {
         params.push(category);
         where.push(`l.category = $${params.length}`);
+    }
+    if (search) {
+        params.push(`%${search}%`);
+        const term = `unaccent($${params.length})`;
+        where.push(
+            `(unaccent(l.name_vi) ILIKE ${term}
+              OR l.code ILIKE $${params.length}
+              OR unaccent(COALESCE(l.category_name, '')) ILIKE ${term})`,
+        );
     }
     const { rows } = await db.query(
         `SELECT l.id, l.code, l.name_vi, l.category, l.category_name, l.geometry_type, l.srid,

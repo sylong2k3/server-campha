@@ -15,6 +15,7 @@ const featureParamsSchema = layerIdParamsSchema.keys({
 });
 const catalogQuerySchema = Joi.object({
     category: Joi.string().trim().max(50).optional(),
+    search: Joi.string().trim().max(200).allow('').optional(),
 });
 const featureQuerySchema = Joi.object({
     includeGeometry: Joi.boolean().default(false),
