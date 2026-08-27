@@ -10,6 +10,11 @@
 
 BEGIN;
 
+-- Existing legacy rows may need to be reset to NULL. Relax the old constraint
+-- before cleanup so the whole migration remains atomic and rerunnable.
+ALTER TABLE gis.layers ALTER COLUMN legend_config DROP DEFAULT;
+ALTER TABLE gis.layers ALTER COLUMN legend_config DROP NOT NULL;
+
 UPDATE gis.layers
 SET legend_config = NULL
 WHERE legend_config IS NOT NULL
@@ -19,10 +24,5 @@ WHERE legend_config IS NOT NULL
       OR jsonb_typeof(legend_config -> 'entries') IS DISTINCT FROM 'array'
       OR jsonb_array_length(legend_config -> 'entries') = 0
   );
-
--- New layers should default to NULL (no legend) rather than an empty object,
--- matching the API contract (legend is null or {entries:[...]}).
-ALTER TABLE gis.layers ALTER COLUMN legend_config DROP DEFAULT;
-ALTER TABLE gis.layers ALTER COLUMN legend_config DROP NOT NULL;
 
 COMMIT;
