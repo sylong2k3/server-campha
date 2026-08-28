@@ -148,6 +148,20 @@ describe('layer import cleanup worker', () => {
         expect(deps.jobRepository.completeCleanup).toHaveBeenCalled();
     });
 
+    test('keeps an unknown raster CoverageStore untouched', async () => {
+        const deps = makeDeps({
+            ...rasterLayer,
+            metadata: { geoserverStore: 'forest_classification_202501' },
+        });
+        deps.layerRepository.findRasterIngestArtifact.mockResolvedValue(null);
+
+        await worker.processCleanup(job, deps);
+
+        expect(deps.geoserverClient.deleteCoverageStore).not.toHaveBeenCalled();
+        expect(deps.removeGeoServerMirror).not.toHaveBeenCalled();
+        expect(deps.jobRepository.completeCleanup).toHaveBeenCalled();
+    });
+
     test('only derives stores from a safe name', () => {
         expect(
             worker.coverageStoreForLayer({
@@ -158,5 +172,32 @@ describe('layer import cleanup worker', () => {
         expect(worker.coverageStoreForLayer({ geoserver_layer: 'campha:valid_store' })).toBe(
             'valid_store',
         );
+        expect(worker.coverageStoreForLayer({ geoserver_layer: 'campha:one:two' })).toBeNull();
+    });
+
+    test('rejects a symbolic-link mirror category', async () => {
+        const previousDataDir = process.env.GEOSERVER_DATA_DIR;
+        process.env.GEOSERVER_DATA_DIR = 'C:/geoserver';
+        try {
+            await expect(
+                worker.removeGeoServerMirror('forest_classification_202501', 'raster', {
+                    fsPromises: {
+                        realpath: jest.fn().mockResolvedValue('C:/geoserver'),
+                        lstat: jest.fn().mockResolvedValue({
+                            isDirectory: () => true,
+                            isSymbolicLink: () => true,
+                        }),
+                        rm: jest.fn(),
+                    },
+                    path: require('path').win32,
+                }),
+            ).rejects.toThrow('not a real directory');
+        } finally {
+            if (previousDataDir === undefined) {
+                delete process.env.GEOSERVER_DATA_DIR;
+            } else {
+                process.env.GEOSERVER_DATA_DIR = previousDataDir;
+            }
+        }
     });
 });

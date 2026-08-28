@@ -80,30 +80,52 @@ const processImport = async (job) => {
 };
 
 const isAlreadyGone = (error) => error instanceof GeoServerError && error.status === 404;
-const safeSegment = (value) => /^[a-z0-9_-]+$/i.test(value || '');
+const safePathSegment = (value) => typeof value === 'string' && /^[a-z0-9_-]{1,80}$/i.test(value);
+const safeStoreName = (value) => typeof value === 'string' && /^[a-z][a-z0-9_-]{0,79}$/.test(value);
 const coverageStoreForLayer = (layer) => {
-    const store =
-        layer.metadata?.geoserverStore ||
-        String(layer.geoserver_layer || '')
-            .split(':')
-            .at(-1);
-    return safeSegment(store) ? store : null;
+    const metadataStore = layer.metadata?.geoserverStore;
+    if (metadataStore !== undefined && metadataStore !== null) {
+        return safeStoreName(metadataStore) ? metadataStore : null;
+    }
+    const parts = typeof layer.geoserver_layer === 'string' ? layer.geoserver_layer.split(':') : [];
+    return parts.length === 2 && safeStoreName(parts[1]) ? parts[1] : null;
 };
-const removeGeoServerMirror = async (storeName, publishCategory) => {
+const removeGeoServerMirror = async (storeName, publishCategory, deps = {}) => {
+    const fsPromises = deps.fsPromises || fs.promises;
+    const pathApi = deps.path || path;
     const dataDir = process.env.GEOSERVER_DATA_DIR;
-    const category = safeSegment(publishCategory) ? publishCategory : null;
-    if (!dataDir || !safeSegment(storeName) || !category) {
+    const category = safePathSegment(publishCategory) ? publishCategory : null;
+    if (!dataDir || !safeStoreName(storeName) || !category) {
         return false;
     }
-    const root = path.resolve(dataDir);
-    const mirrorPath = path.resolve(root, category, `${storeName}.tif`);
-    if (
-        path.relative(root, mirrorPath).startsWith('..') ||
-        path.isAbsolute(path.relative(root, mirrorPath))
-    ) {
+    let root;
+    try {
+        root = await fsPromises.realpath(dataDir);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return false;
+        }
+        throw error;
+    }
+    const categoryPath = pathApi.resolve(root, category);
+    const mirrorPath = pathApi.resolve(categoryPath, `${storeName}.tif`);
+    const relative = pathApi.relative(root, mirrorPath);
+    if (relative.startsWith('..') || pathApi.isAbsolute(relative)) {
         throw new Error('GeoServer mirror path escapes GEOSERVER_DATA_DIR');
     }
-    await fs.promises.rm(mirrorPath, { force: true });
+    let categoryStat;
+    try {
+        categoryStat = await fsPromises.lstat(categoryPath);
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return false;
+        }
+        throw error;
+    }
+    if (!categoryStat.isDirectory() || categoryStat.isSymbolicLink()) {
+        throw new Error('GeoServer mirror category is not a real directory');
+    }
+    await fsPromises.rm(mirrorPath, { force: true });
     return true;
 };
 const processCleanup = async (job, deps = {}) => {
@@ -137,7 +159,8 @@ const processCleanup = async (job, deps = {}) => {
         }
         if (layer.storage_kind === 'geotiff_minio') {
             const storeName = coverageStoreForLayer(layer);
-            if (storeName) {
+            const artifact = await layers.findRasterIngestArtifact?.(layer);
+            if (storeName && (layer.source_file_id || artifact)) {
                 try {
                     await geoserver.deleteCoverageStore(storeName);
                 } catch (error) {
@@ -146,7 +169,6 @@ const processCleanup = async (job, deps = {}) => {
                     }
                 }
             }
-            const artifact = await layers.findRasterIngestArtifact?.(layer);
             if (artifact && storeName) {
                 await removeMirror(storeName, artifact.geoserverPublishCategory);
             }
