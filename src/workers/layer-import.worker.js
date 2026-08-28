@@ -4,6 +4,8 @@ process.env.TZ = process.env.TZ || 'Asia/Ho_Chi_Minh';
 require('dotenv').config();
 
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const db = require('../configs/database');
 const jobRepository = require('../repositories/layer-job.repository');
 const layerRepository = require('../repositories/layer.repository');
@@ -78,44 +80,86 @@ const processImport = async (job) => {
 };
 
 const isAlreadyGone = (error) => error instanceof GeoServerError && error.status === 404;
-const processCleanup = async (job) => {
+const safeSegment = (value) => /^[a-z0-9_-]+$/i.test(value || '');
+const coverageStoreForLayer = (layer) => {
+    const store =
+        layer.metadata?.geoserverStore ||
+        String(layer.geoserver_layer || '')
+            .split(':')
+            .at(-1);
+    return safeSegment(store) ? store : null;
+};
+const removeGeoServerMirror = async (storeName, publishCategory) => {
+    const dataDir = process.env.GEOSERVER_DATA_DIR;
+    const category = safeSegment(publishCategory) ? publishCategory : null;
+    if (!dataDir || !safeSegment(storeName) || !category) {
+        return false;
+    }
+    const root = path.resolve(dataDir);
+    const mirrorPath = path.resolve(root, category, `${storeName}.tif`);
+    if (
+        path.relative(root, mirrorPath).startsWith('..') ||
+        path.isAbsolute(path.relative(root, mirrorPath))
+    ) {
+        throw new Error('GeoServer mirror path escapes GEOSERVER_DATA_DIR');
+    }
+    await fs.promises.rm(mirrorPath, { force: true });
+    return true;
+};
+const processCleanup = async (job, deps = {}) => {
+    const jobs = deps.jobRepository || jobRepository;
+    const layers = deps.layerRepository || layerRepository;
+    const geoserver = deps.geoserverClient || geoserverClient;
+    const removeMirror = deps.removeGeoServerMirror || removeGeoServerMirror;
     currentJob = { type: 'cleanup', id: job.id };
     const heartbeat = setInterval(
         () => {
-            jobRepository
-                .heartbeatCleanup(job.id, workerId, leaseSeconds)
-                .catch((error) => console.error('[LayerWorker] cleanup heartbeat:', error.message));
+            jobs.heartbeatCleanup(job.id, workerId, leaseSeconds).catch((error) =>
+                console.error('[LayerWorker] cleanup heartbeat:', error.message),
+            );
         },
         Math.max(10000, Math.floor(leaseSeconds * 500)),
     );
     heartbeat.unref?.();
     try {
-        const layer = await layerRepository.findById(job.layer_id, true);
+        const layer = await layers.findById(job.layer_id, true);
         if (!layer) {
             throw new Error('Layer metadata not found');
         }
         if (layer.geoserver_layer) {
             try {
-                await geoserverClient.unpublishLayer(layer.geoserver_layer);
+                await geoserver.unpublishLayer(layer.geoserver_layer);
             } catch (error) {
                 if (!isAlreadyGone(error)) {
                     throw error;
                 }
             }
         }
+        if (layer.storage_kind === 'geotiff_minio') {
+            const storeName = coverageStoreForLayer(layer);
+            if (storeName) {
+                try {
+                    await geoserver.deleteCoverageStore(storeName);
+                } catch (error) {
+                    if (!isAlreadyGone(error)) {
+                        throw error;
+                    }
+                }
+            }
+            const artifact = await layers.findRasterIngestArtifact?.(layer);
+            if (artifact && storeName) {
+                await removeMirror(storeName, artifact.geoserverPublishCategory);
+            }
+        }
         if (layer.storage_kind === 'postgis' && layer.table_name) {
             await db.query(`DROP TABLE IF EXISTS gis.${quoteIdentifier(layer.table_name)}`);
         }
-        const completed = await jobRepository.completeCleanup(job.id, workerId, job.layer_id);
+        const completed = await jobs.completeCleanup(job.id, workerId, job.layer_id);
         if (!completed) {
             console.warn('[LayerWorker] cleanup lease lost before completion');
         }
     } catch (error) {
-        const failed = await jobRepository.failCleanup(
-            job,
-            workerId,
-            error.message || 'Cleanup failed',
-        );
+        const failed = await jobs.failCleanup(job, workerId, error.message || 'Cleanup failed');
         if (!failed) {
             console.warn('[LayerWorker] cleanup lease lost before failure update');
         }
@@ -165,9 +209,17 @@ process.on('message', (message) => {
 process.on('SIGTERM', stop);
 process.on('SIGINT', stop);
 
-loop()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error('[LayerWorker] fatal:', error.stack || error.message);
-        process.exit(1);
-    });
+if (require.main === module) {
+    loop()
+        .then(() => process.exit(0))
+        .catch((error) => {
+            console.error('[LayerWorker] fatal:', error.stack || error.message);
+            process.exit(1);
+        });
+}
+
+module.exports = {
+    processCleanup,
+    coverageStoreForLayer,
+    removeGeoServerMirror,
+};

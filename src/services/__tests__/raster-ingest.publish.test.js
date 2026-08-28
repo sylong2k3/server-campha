@@ -167,6 +167,7 @@ describe('upsertRasterLayer', () => {
             expect.objectContaining({
                 geoserverLayer: 'campha:cp_flood_event_1',
                 geoserverStore: 'cp_flood_event_1',
+                geoserverPublishCategory: 'raster',
             }),
         );
         const queries = db.__client.query.mock.calls.map((c) => c[0]);

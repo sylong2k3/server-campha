@@ -175,6 +175,9 @@ async function upsertRasterLayer(
             metadata: {
                 minioBucketCategory: bucketCategory,
                 minioUri: `minio://${bucketCategory}/${objectKey}`,
+                geoserverPublishCategory: String(
+                    params?.publishCategory || params?.bucketCategory || 'raster',
+                ).replace(/[^a-z0-9_-]/gi, '_'),
             },
             userId: job.created_by,
         });
@@ -182,6 +185,9 @@ async function upsertRasterLayer(
         const metadataPatch = {
             geoserverLayer,
             geoserverStore: storeName,
+            geoserverPublishCategory: String(
+                params?.publishCategory || params?.bucketCategory || 'raster',
+            ).replace(/[^a-z0-9_-]/gi, '_'),
             styleName: params?.styleName || null,
             rasterIngestJobId: job.id,
             rasterSourceUrl: job.source_url,

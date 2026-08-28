@@ -284,6 +284,16 @@ const unpublishLayer = async (geoserverLayerName) => {
     });
 };
 
+const deleteCoverageStore = async (storeName) => {
+    const config = assertGeoserverConfigured();
+    const name = validateResourceName(storeName, 'storeName');
+    await requestGeoserver(
+        `/rest/workspaces/${encodeURIComponent(config.workspace)}/coveragestores/` +
+            `${encodeURIComponent(name)}?recurse=true&purge=none`,
+        { method: 'DELETE' },
+    );
+};
+
 const setLayerEnabled = async (geoserverLayerName, enabled) => {
     await requestGeoserver(`/rest/layers/${encodeLayerName(geoserverLayerName)}`, {
         method: 'PUT',
@@ -579,6 +589,7 @@ module.exports = {
     publishFsGeoTiffLayer,
     publishTimelapseLayer,
     unpublishLayer,
+    deleteCoverageStore,
     setLayerEnabled,
     verifyLayer,
     truncateGwcLayer,

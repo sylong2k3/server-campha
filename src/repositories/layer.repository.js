@@ -307,6 +307,33 @@ const softDeleteAndEnqueue = async (id, expectedUpdatedAt, actorId, deleteFiles 
     }
 };
 
+const findRasterIngestArtifact = async (layer, client = db) => {
+    if (layer?.source_file_id || layer?.storage_kind !== 'geotiff_minio' || !layer?.object_key) {
+        return null;
+    }
+    const ingestJobId = Number(layer.metadata?.rasterIngestJobId);
+    if (!Number.isSafeInteger(ingestJobId) || ingestJobId < 1) {
+        return null;
+    }
+    const {
+        rows: [artifact],
+    } = await client.query(
+        `SELECT id
+         FROM gis.raster_ingest_jobs
+         WHERE id = $1 AND layer_id = $2 AND layer_code = $3 AND minio_key = $4`,
+        [ingestJobId, layer.id, layer.code, layer.object_key],
+    );
+    if (!artifact) {
+        return null;
+    }
+    return {
+        geoserverPublishCategory:
+            typeof layer.metadata?.geoserverPublishCategory === 'string'
+                ? layer.metadata.geoserverPublishCategory
+                : 'raster',
+    };
+};
+
 const setPublishState = async (id, publishStatus, geoserverLayer = null) => {
     const {
         rows: [row],
@@ -330,5 +357,6 @@ module.exports = {
     activeRoleCodes,
     replacePermissions,
     softDeleteAndEnqueue,
+    findRasterIngestArtifact,
     setPublishState,
 };

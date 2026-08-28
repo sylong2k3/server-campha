@@ -55,4 +55,4 @@ const claimAndProcess = async () => {
     return true;
 };
 
-module.exports = { claimAndProcess, processJob, workerId };
+module.exports = { claimAndProcess, processJob, workerId, missingCodes };
