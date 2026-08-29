@@ -3,6 +3,7 @@
 const db = require('../configs/database');
 const forestRepo = require('../repositories/forest-classification.repository');
 const { OK } = require('../core/success.response');
+const { hasPermission } = require('../middlewares/auth.middleware');
 
 async function latestSucceededFloodRun() {
     const { rows } = await db.query(
@@ -31,11 +32,40 @@ async function fieldReportStats() {
     return { total, byStatus };
 }
 
-const overview = async (_req, res) => {
-    const [floodRun, forestSnapshot, feedbackStats] = await Promise.all([
-        latestSucceededFloodRun(),
-        forestRepo.getLatestCompleted(),
-        fieldReportStats(),
+async function layerStats() {
+    const { rows } = await db.query(
+        `SELECT
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE publish_status = 'published')::int AS published,
+            COUNT(*) FILTER (WHERE is_public = true)::int AS public_count,
+            MAX(updated_at) AS latest_updated_at
+         FROM gis.layers
+         WHERE deleted_at IS NULL`,
+    );
+    const row = rows[0] || {};
+    return {
+        total: row.total || 0,
+        published: row.published || 0,
+        publicCount: row.public_count || 0,
+        latestUpdatedAt: row.latest_updated_at || null,
+    };
+}
+
+const overview = async (req, res) => {
+    const permissions = req.user?.role_permissions;
+
+    const canReadFlood = hasPermission(permissions, 'flood', 'read');
+    const canReadForest = hasPermission(permissions, 'forest_classification', 'read');
+    const canReadFeedback =
+        hasPermission(permissions, 'field_report', 'read') ||
+        hasPermission(permissions, 'field_report', 'stats');
+    const canReadLayers = hasPermission(permissions, 'layers', 'read');
+
+    const [floodRun, forestSnapshot, feedbackData, layerData] = await Promise.all([
+        canReadFlood ? latestSucceededFloodRun() : Promise.resolve(null),
+        canReadForest ? forestRepo.getLatestCompleted() : Promise.resolve(null),
+        canReadFeedback ? fieldReportStats() : Promise.resolve(null),
+        canReadLayers ? layerStats() : Promise.resolve(null),
     ]);
 
     // ── Flood ────────────────────────────────────────────────────────────────
@@ -86,8 +116,11 @@ const overview = async (_req, res) => {
         flood,
         classification,
         landComposition,
-        feedback: feedbackStats,
+        feedback: feedbackData,
+        layers: layerData,
+        generatedAt: new Date().toISOString(),
     });
 };
 
 module.exports = { overview };
+
