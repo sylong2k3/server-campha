@@ -48,6 +48,7 @@ const makeDeps = (layer = rasterLayer) => ({
         findRasterIngestArtifact: jest.fn().mockResolvedValue({
             geoserverPublishCategory: 'raster',
         }),
+        findImageMosaicArtifact: jest.fn().mockResolvedValue(null),
     },
     geoserverClient: {
         unpublishLayer: jest.fn().mockResolvedValue(undefined),
@@ -85,6 +86,38 @@ describe('layer import cleanup worker', () => {
         expect(deps.jobRepository.failCleanup).not.toHaveBeenCalled();
     });
 
+    test('purges an owned ImageMosaic store but keeps MinIO sources and filesystem mirror', async () => {
+        const mosaicLayer = {
+            id: 9,
+            code: 'urban_cover_timeseries',
+            storage_kind: 'geotiff_minio',
+            object_key: null,
+            source_file_id: null,
+            geoserver_layer: 'campha:urban_cover_timeseries',
+            metadata: {
+                geoserverStore: 'urban_cover_timeseries',
+                geoserverStoreKind: 'imagemosaic_upload',
+                timeSeries: { enabled: true, storeUploaded: true },
+            },
+        };
+        const deps = makeDeps(mosaicLayer);
+        deps.layerRepository.findRasterIngestArtifact.mockResolvedValue(null);
+        deps.layerRepository.findImageMosaicArtifact.mockResolvedValue({
+            storeName: 'urban_cover_timeseries',
+        });
+
+        await worker.processCleanup(job, deps);
+
+        expect(deps.geoserverClient.unpublishLayer).toHaveBeenCalledWith(
+            'campha:urban_cover_timeseries',
+        );
+        expect(deps.geoserverClient.deleteCoverageStore).toHaveBeenCalledWith(
+            'urban_cover_timeseries',
+            'all',
+        );
+        expect(deps.removeGeoServerMirror).not.toHaveBeenCalled();
+        expect(deps.jobRepository.completeCleanup).toHaveBeenCalled();
+    });
     test('keeps remote-sensing source and skips filesystem mirror', async () => {
         const deps = makeDeps({
             ...rasterLayer,

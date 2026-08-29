@@ -60,6 +60,12 @@ const publish = async (req, res) =>
         'Xuất bản ảnh GeoTIFF lên Web Map thành công',
         await service.publish(Number(req.params.id), req.body, buildActor(req)),
     );
+const publishCollection = async (req, res) =>
+    OK(
+        res,
+        'Xuất bản bộ GeoTIFF Time Series thành công',
+        await service.publishCollection(req.params.coverageKey, req.body, buildActor(req)),
+    );
 const remove = async (req, res) =>
     OK(
         res,
@@ -80,5 +86,6 @@ module.exports = {
     create,
     categorize,
     publish,
+    publishCollection,
     remove,
 };

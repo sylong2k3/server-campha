@@ -334,6 +334,34 @@ const findRasterIngestArtifact = async (layer, client = db) => {
     };
 };
 
+const findImageMosaicArtifact = async (layer, client = db) => {
+    const metadata = layer?.metadata;
+    const parts =
+        typeof layer?.geoserver_layer === 'string' ? layer.geoserver_layer.split(':') : [];
+    if (
+        layer?.storage_kind !== 'geotiff_minio' ||
+        layer?.source_file_id ||
+        layer?.object_key ||
+        metadata?.geoserverStoreKind !== 'imagemosaic_upload' ||
+        metadata?.timeSeries?.enabled !== true ||
+        metadata?.timeSeries?.storeUploaded !== true ||
+        metadata?.geoserverStore !== layer.code ||
+        parts.length !== 2 ||
+        parts[1] !== layer.code
+    ) {
+        return null;
+    }
+    const {
+        rows: [evidence],
+    } = await client.query(
+        `SELECT EXISTS(
+             SELECT 1 FROM raster.satellite_images WHERE layer_id=$1
+         ) AS has_members`,
+        [layer.id],
+    );
+    return evidence?.has_members ? { storeName: layer.code } : null;
+};
+
 const setPublishState = async (id, publishStatus, geoserverLayer = null) => {
     const {
         rows: [row],
@@ -358,5 +386,6 @@ module.exports = {
     replacePermissions,
     softDeleteAndEnqueue,
     findRasterIngestArtifact,
+    findImageMosaicArtifact,
     setPublishState,
 };

@@ -3,6 +3,7 @@
 const repository = require('../repositories/remote-sensing.repository');
 const webMapRepository = require('../repositories/web-map.repository');
 const minioService = require('./minio.service');
+const timeSeriesService = require('./geotiff-time-series.service');
 const geoserverClient = require('../utils/geoserver.client');
 const systemLogger = require('../utils/systemLogger.util');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
@@ -111,6 +112,11 @@ const categorize = async (id, input, actor) => {
 const remove = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     requirePermission(actor, 'delete');
     const deleted = await repository.remove(id, expectedUpdatedAt, actor.id, deleteFiles);
+    if (deleted?.conflict === 'TIME_SERIES_MEMBER') {
+        throw new Api409Error('Ảnh đang thuộc lớp GeoTIFF Time Series; hãy xoá lớp trước', [
+            'TIME_SERIES_MEMBER',
+        ]);
+    }
     if (deleted?.conflict === 'FILE_STILL_IN_USE') {
         throw new Api409Error('Ảnh GeoTIFF vẫn đang được lớp bản đồ sử dụng', [
             'FILE_STILL_IN_USE',
@@ -174,6 +180,89 @@ const publish = async (id, input, actor) => {
         throw error;
     }
 };
+const publishCollection = async (coverageKey, input, actor) => {
+    requirePermission(actor, 'create');
+    if (actor?.permissions?.layers?.create !== true) {
+        throw new Api403Error('Không có quyền tạo lớp dữ liệu Web Map');
+    }
+    let prepared;
+    try {
+        prepared = await repository.prepareCollectionPublish(
+            coverageKey,
+            input,
+            actor.id,
+            actor.role,
+        );
+    } catch (error) {
+        if (
+            error.code === '23505' ||
+            Object.values(repository.COLLECTION_ERROR).includes(error.code)
+        ) {
+            throw new Api409Error(error.message || 'Bộ GeoTIFF Time Series bị xung đột', [
+                error.code === '23505' ? 'COLLECTION_LAYER_CONFLICT' : error.code,
+            ]);
+        }
+        throw error;
+    }
+
+    const { layer, members, values } = prepared;
+    let mosaic;
+    try {
+        mosaic = await timeSeriesService.materializeImageMosaic({ layerCode: layer.code, members });
+        const geoserverLayer = await geoserverClient.uploadImageMosaicZip({
+            storeName: layer.code,
+            archivePath: mosaic.archivePath,
+        });
+        const owned = await repository.markCollectionStoreOwned(
+            layer.id,
+            coverageKey,
+            geoserverLayer,
+        );
+        if (!owned) {
+            throw new Api409Error('Trạng thái lớp Time Series đã thay đổi', [
+                'COLLECTION_STATE_CONFLICT',
+            ]);
+        }
+        await geoserverClient.configureCoverageTime({ storeName: layer.code });
+        await geoserverClient.verifyImageMosaicTime({ storeName: layer.code });
+        const published = await repository.setCollectionPublishState(
+            layer.id,
+            coverageKey,
+            'published',
+            geoserverLayer,
+        );
+        webMapRepository.invalidateLayerCache(layer.id);
+        audit('satellite_collection_published', actor, {
+            coverageKey,
+            layerId: layer.id,
+            memberCount: members.length,
+            geoserverLayer,
+        });
+        return {
+            coverageKey,
+            layer: published,
+            geoserverLayer,
+            memberCount: members.length,
+            imageIds: members.map((member) => member.id),
+            fileObjectIds: members.map((member) => member.file_object_id),
+            timeSeries: {
+                enabled: true,
+                mode: 'discrete',
+                defaultTime: values.at(-1),
+                values,
+            },
+        };
+    } catch (error) {
+        await repository.setCollectionPublishState(layer.id, coverageKey, 'failed').catch(() => {});
+        webMapRepository.invalidateLayerCache(layer.id);
+        if (error instanceof timeSeriesService.GeoTiffTimeSeriesError) {
+            throw new Api422Error(error.message, [error.code, ...error.details]);
+        }
+        throw error;
+    } finally {
+        await mosaic?.cleanup().catch(() => {});
+    }
+};
 module.exports = {
     list,
     get,
@@ -184,4 +273,5 @@ module.exports = {
     remove,
     listAdmin,
     publish,
+    publishCollection,
 };

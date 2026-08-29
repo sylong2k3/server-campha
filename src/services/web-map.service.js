@@ -56,6 +56,8 @@ const safeEditableFields = (layer, actor) => {
 };
 const serializeLayer = (layer, actor) => {
     const editableFields = safeEditableFields(layer, actor);
+    const timeValues = Array.isArray(layer.time_values) ? layer.time_values : [];
+    const isTimeSeries = layer.metadata?.timeSeries?.enabled === true && timeValues.length > 0;
     return {
         id: layer.id,
         code: layer.code,
@@ -74,6 +76,16 @@ const serializeLayer = (layer, actor) => {
         isEnableDefault: layer.is_enable_default,
         canEdit: canEditLayer(layer, actor),
         editableFields,
+        ...(isTimeSeries
+            ? {
+                  timeSeries: {
+                      enabled: true,
+                      mode: 'discrete',
+                      defaultTime: timeValues.at(-1),
+                      values: timeValues,
+                  },
+              }
+            : {}),
     };
 };
 const listLayers = async (filter, actor) => {

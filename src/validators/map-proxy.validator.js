@@ -13,6 +13,9 @@ const wmsQuerySchema = Joi.object({
     format: Joi.string().valid('image/png', 'image/jpeg').default('image/png'),
     transparent: Joi.boolean().default(true),
     version: Joi.string().valid('1.3.0').default('1.3.0'),
+    time: Joi.string()
+        .pattern(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)
+        .optional(),
     ticket: Joi.string().max(2000).optional(),
 });
 const wfsQuerySchema = Joi.object({

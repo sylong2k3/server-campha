@@ -1,8 +1,12 @@
 'use strict';
 const { requestGeoserver } = require('../utils/geoserver.client');
 const { signTileTicket } = require('../utils/map-tile-ticket.util');
-const { Api404Error, Api413Error } = require('../core/error.response');
-const { buildSld, artifactCodeFromLayerCode, resolveKnownArtifactCode } = require('./flood/visualization/sld');
+const { Api404Error, Api413Error, Api422Error } = require('../core/error.response');
+const {
+    buildSld,
+    artifactCodeFromLayerCode,
+    resolveKnownArtifactCode,
+} = require('./flood/visualization/sld');
 const MAX_RESPONSE_BYTES = Number(process.env.MAP_PROXY_MAX_RESPONSE_MB || 500) * 1024 * 1024;
 const assertLayer = (layer) => {
     if (!layer?.geoserver_layer) {
@@ -32,9 +36,9 @@ const bufferResponse = async (response) => {
 };
 const resolveStyleName = (layer) => {
     const explicit = layer?.style_name || layer?.styleName;
-    if (typeof explicit === 'string' && explicit.trim()) return explicit.trim();
+    if (typeof explicit === 'string' && explicit.trim()) {return explicit.trim();}
     const metaStyle = layer?.metadata?.style;
-    if (typeof metaStyle === 'string' && metaStyle.trim()) return metaStyle.trim();
+    if (typeof metaStyle === 'string' && metaStyle.trim()) {return metaStyle.trim();}
     return '';
 };
 const proxyWms = async (layer, query) => {
@@ -83,6 +87,26 @@ const proxyWms = async (layer, query) => {
         // Prevents Mapbox from receiving XML that it cannot decode as an image.
         exceptions: 'application/vnd.ogc.se_blank',
     });
+    const timeValues = Array.isArray(layer.time_values) ? layer.time_values : [];
+    // Phải khớp với điều kiện trong web-map.service.serializeLayer: nếu bộ ảnh
+    // rỗng (bị soft-delete hết), catalog không phát field timeSeries nên client
+    // không thể biết phải gửi tham số time nào. Khi đó suy biến về raster
+    // thường thay vì trả 422 TIME_REQUIRED vĩnh viễn.
+    const isTimeSeries = layer.metadata?.timeSeries?.enabled === true && timeValues.length > 0;
+    if (isTimeSeries && !query.time) {
+        throw new Api422Error('Thiếu mốc thời gian cho lớp GeoTIFF Time Series', ['TIME_REQUIRED']);
+    }
+    if (!isTimeSeries && query.time) {
+        throw new Api422Error('Lớp không hỗ trợ tham số thời gian', ['TIME_NOT_SUPPORTED']);
+    }
+    if (isTimeSeries && !timeValues.includes(query.time)) {
+        throw new Api422Error('Mốc thời gian không tồn tại trong lớp GeoTIFF Time Series', [
+            'TIME_NOT_FOUND',
+        ]);
+    }
+    if (query.time) {
+        params.set('TIME', query.time);
+    }
     if (sldBody) {
         params.set('SLD_BODY', sldBody);
     }
@@ -121,4 +145,11 @@ const issueTileTicket = (layer, access) => {
     assertLayer(layer);
     return signTileTicket(layer.id, access);
 };
-module.exports = { proxyWms, proxyWfs, proxyWcs, issueTileTicket, bufferResponse, MAX_RESPONSE_BYTES };
+module.exports = {
+    proxyWms,
+    proxyWfs,
+    proxyWcs,
+    issueTileTicket,
+    bufferResponse,
+    MAX_RESPONSE_BYTES,
+};

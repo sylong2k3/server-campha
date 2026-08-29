@@ -159,10 +159,17 @@ const processCleanup = async (job, deps = {}) => {
         }
         if (layer.storage_kind === 'geotiff_minio') {
             const storeName = coverageStoreForLayer(layer);
-            const artifact = await layers.findRasterIngestArtifact?.(layer);
-            if (storeName && (layer.source_file_id || artifact)) {
+            const [artifact, mosaic] = await Promise.all([
+                layers.findRasterIngestArtifact?.(layer),
+                layers.findImageMosaicArtifact?.(layer),
+            ]);
+            if (storeName && (layer.source_file_id || artifact || mosaic)) {
                 try {
-                    await geoserver.deleteCoverageStore(storeName);
+                    if (mosaic) {
+                        await geoserver.deleteCoverageStore(storeName, 'all');
+                    } else {
+                        await geoserver.deleteCoverageStore(storeName);
+                    }
                 } catch (error) {
                     if (!isAlreadyGone(error)) {
                         throw error;

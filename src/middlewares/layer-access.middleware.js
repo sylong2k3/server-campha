@@ -32,7 +32,12 @@ const requireLayerAccess = (access) => {
                 `SELECT l.id, l.code, l.name_vi, l.is_public, l.geoserver_layer,
                         l.style_name, l.metadata, l.category,
                         l.min_zoom, l.max_zoom,
-                        COALESCE(lp.${permissionColumn}, false) AS allowed
+                        COALESCE(lp.${permissionColumn}, false) AS allowed,
+                        (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                                  'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                                          ORDER BY times.acquired_at,times.id)
+                         FROM raster.satellite_images times
+                         WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
                  FROM gis.layers l
                  LEFT JOIN gis.layer_permissions lp
                    ON lp.layer_id = l.id AND lp.role_code = $2
