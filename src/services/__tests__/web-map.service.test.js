@@ -62,6 +62,32 @@ describe('web map service', () => {
         ).rejects.toMatchObject({ status: 403 });
     });
 
+    test('catalog exposes sanitized DB-backed Time Series contract', async () => {
+        const values = ['2001-01-01T00:00:00.000Z', '2024-01-01T00:00:00.000Z'];
+        repository.catalog.mockResolvedValue([
+            {
+                ...layer,
+                storage_kind: 'geotiff_minio',
+                metadata: {
+                    timeSeries: {
+                        enabled: true,
+                        coverageKey: 'urban-cover',
+                        values: ['client-controlled-value'],
+                    },
+                },
+                time_values: values,
+            },
+        ]);
+        const [result] = await service.listLayers(undefined, null);
+        expect(result.timeSeries).toEqual({
+            enabled: true,
+            mode: 'discrete',
+            defaultTime: values[1],
+            values,
+        });
+        expect(result).not.toHaveProperty('metadata');
+        expect(result.timeSeries).not.toHaveProperty('coverageKey');
+    });
     test('TNMT receives only sanitized per-layer editable fields', async () => {
         repository.catalog.mockResolvedValue([layer]);
         const tnmt = {

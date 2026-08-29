@@ -40,7 +40,11 @@ const catalog = async (actor, { category, search } = {}) => {
         `SELECT l.id, l.code, l.name_vi, l.category, l.category_name, l.geometry_type, l.srid,
                 l.storage_kind, l.table_name, l.geoserver_layer, l.style_name,
                 l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.is_enable_default, l.metadata,
-                COALESCE(lp.can_edit, false) AS role_can_edit
+                COALESCE(lp.can_edit, false) AS role_can_edit,
+                (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY times.acquired_at,times.id)
+                 FROM raster.satellite_images times
+                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
          FROM gis.layers l
          LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $1
          WHERE ${where.join(' AND ')}
@@ -64,7 +68,11 @@ const accessibleLayer = async (id, actor, { terrain = false } = {}) => {
     const pending = db
         .query(
             `SELECT l.*, COALESCE(lp.can_view, false) AS role_can_view,
-                    COALESCE(lp.can_edit, false) AS role_can_edit
+                    COALESCE(lp.can_edit, false) AS role_can_edit,
+                    (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                              'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY times.acquired_at,times.id)
+                     FROM raster.satellite_images times
+                     WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
              FROM gis.layers l
              LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $2
              WHERE l.id = $1 AND l.deleted_at IS NULL

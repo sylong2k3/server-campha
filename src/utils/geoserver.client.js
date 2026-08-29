@@ -23,19 +23,20 @@ const requestGeoserver = async (path, options = {}) => {
         throw new TypeError('GeoServer path must be an absolute application path');
     }
     const url = `${normalizeBaseUrl(config.url)}${path}`;
-    const timeoutMs = config.timeoutMs;
+    const { timeoutMs: requestedTimeoutMs, ...fetchInput } = options;
+    const timeoutMs = Number.isFinite(requestedTimeoutMs) ? requestedTimeoutMs : config.timeoutMs;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
         const fetchOptions = {
-            ...options,
+            ...fetchInput,
             redirect: 'error',
             signal: controller.signal,
             headers: {
                 Authorization: authHeader(config),
-                ...(options.headers || {}),
+                ...(fetchInput.headers || {}),
             },
         };
         if (options.body && typeof options.body.pipe === 'function') {
@@ -284,6 +285,19 @@ const unpublishLayer = async (geoserverLayerName) => {
     });
 };
 
+const deleteCoverageStore = async (storeName, purge = 'none') => {
+    const config = assertGeoserverConfigured();
+    const name = validateResourceName(storeName, 'storeName');
+    if (!['none', 'all'].includes(purge)) {
+        throw new TypeError('GeoServer coverage-store purge must be none or all');
+    }
+    await requestGeoserver(
+        `/rest/workspaces/${encodeURIComponent(config.workspace)}/coveragestores/` +
+            `${encodeURIComponent(name)}?recurse=true&purge=${purge}`,
+        { method: 'DELETE' },
+    );
+};
+
 const setLayerEnabled = async (geoserverLayerName, enabled) => {
     await requestGeoserver(`/rest/layers/${encodeLayerName(geoserverLayerName)}`, {
         method: 'PUT',
@@ -451,6 +465,94 @@ const publishGeoTiffStream = async ({ storeName, stream }) => {
     return layerName;
 };
 
+const imageMosaicPath = (workspace, storeName, coverageName = null) => {
+    const base =
+        `/rest/workspaces/${encodeURIComponent(workspace)}/coveragestores/` +
+        `${encodeURIComponent(storeName)}`;
+    return coverageName ? `${base}/coverages/${encodeURIComponent(coverageName)}` : base;
+};
+
+const uploadImageMosaicZip = async ({ storeName, archivePath, timeoutMs = 30 * 60 * 1000 }) => {
+    const fs = require('fs');
+    const config = assertGeoserverConfigured();
+    const workspace = config.workspace;
+    const name = validateResourceName(storeName, 'storeName');
+    const stat = await fs.promises.stat(archivePath);
+    await requestGeoserver(`${imageMosaicPath(workspace, name)}/file.imagemosaic`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/zip',
+            'Content-Length': String(stat.size),
+        },
+        body: fs.createReadStream(archivePath),
+        timeoutMs,
+    });
+    const layerName = `${workspace}:${name}`;
+    await verifyLayer(layerName);
+    return layerName;
+};
+
+const configureCoverageTime = async ({ storeName, coverageName = storeName }) => {
+    const config = assertGeoserverConfigured();
+    const store = validateResourceName(storeName, 'storeName');
+    const coverage = validateResourceName(coverageName, 'coverageName');
+    await requestGeoserver(imageMosaicPath(config.workspace, store, coverage), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            coverage: {
+                metadata: {
+                    entry: [
+                        {
+                            '@key': 'time',
+                            dimensionInfo: {
+                                enabled: true,
+                                attribute: 'ingestion',
+                                presentation: 'LIST',
+                                units: 'ISO8601',
+                                defaultValue: { strategy: 'MAXIMUM' },
+                                nearestMatchEnabled: false,
+                                rawNearestMatchEnabled: false,
+                            },
+                        },
+                    ],
+                },
+            },
+        }),
+    });
+};
+
+const metadataEntries = (metadata) => {
+    const entry = metadata?.entry;
+    if (!entry) {
+        return [];
+    }
+    return Array.isArray(entry) ? entry : [entry];
+};
+
+const verifyImageMosaicTime = async ({ storeName, coverageName = storeName }) => {
+    const config = assertGeoserverConfigured();
+    const store = validateResourceName(storeName, 'storeName');
+    const coverage = validateResourceName(coverageName, 'coverageName');
+    const response = await requestGeoserver(
+        `${imageMosaicPath(config.workspace, store, coverage)}.json`,
+    );
+    const body = await response.json();
+    const timeEntry = metadataEntries(body?.coverage?.metadata).find(
+        (entry) => entry?.['@key'] === 'time',
+    );
+    const info = timeEntry?.dimensionInfo;
+    if (
+        info?.enabled !== true ||
+        info?.attribute !== 'ingestion' ||
+        info?.presentation !== 'LIST' ||
+        info?.defaultValue?.strategy !== 'MAXIMUM'
+    ) {
+        throw new GeoServerError('GeoServer TIME dimension verification failed', 502, '');
+    }
+    return info;
+};
+
 /**
  * Publish 1 GeoTIFF nằm trên filesystem (đã copy vào GEOSERVER_DATA_DIR
  * hoặc path GeoServer đọc được) qua CoverageStore type `GeoTIFF` — dùng cho
@@ -576,9 +678,13 @@ module.exports = {
     publishRasterLayer,
     publishS3GeoTiffLayer,
     publishGeoTiffStream,
+    uploadImageMosaicZip,
+    configureCoverageTime,
+    verifyImageMosaicTime,
     publishFsGeoTiffLayer,
     publishTimelapseLayer,
     unpublishLayer,
+    deleteCoverageStore,
     setLayerEnabled,
     verifyLayer,
     truncateGwcLayer,

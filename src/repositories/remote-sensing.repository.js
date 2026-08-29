@@ -109,6 +109,21 @@ const remove = async (id, expectedUpdatedAt, actorId, deleteFiles = false) => {
             await client.query('ROLLBACK');
             return null;
         }
+        if (image.layer_id) {
+            const {
+                rows: [timeSeriesLayer],
+            } = await client.query(
+                `SELECT id FROM gis.layers
+                 WHERE id=$1 AND deleted_at IS NULL
+                   AND metadata->'timeSeries'->>'enabled'='true'
+                 FOR UPDATE`,
+                [image.layer_id],
+            );
+            if (timeSeriesLayer) {
+                await client.query('ROLLBACK');
+                return { conflict: 'TIME_SERIES_MEMBER' };
+            }
+        }
         const version = versionCondition(2, 's.updated_at');
         const {
             rows: [row],
@@ -285,6 +300,206 @@ const setPublishState = async (imageId, layerId, publishStatus, geoserverLayer =
     return row || null;
 };
 
+const COLLECTION_ERROR = Object.freeze({
+    EMPTY: 'EMPTY_COLLECTION',
+    DUPLICATE_TIME: 'DUPLICATE_COLLECTION_TIME',
+    MEMBER_CONFLICT: 'COLLECTION_MEMBER_CONFLICT',
+    LAYER_CONFLICT: 'COLLECTION_LAYER_CONFLICT',
+});
+
+const collectionError = (code, message) => Object.assign(new Error(message), { code });
+
+const collectionMetadata = (input, coverageKey, existingMetadata = {}) => ({
+    ...input.metadata,
+    geoserverStore: input.code,
+    geoserverStoreKind: 'imagemosaic_upload',
+    timeSeries: {
+        enabled: true,
+        mode: 'discrete',
+        coverageKey,
+        ...(existingMetadata?.timeSeries?.storeUploaded === true ? { storeUploaded: true } : {}),
+    },
+});
+
+const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const { rows: members } = await client.query(
+            `SELECT s.id,s.scene_code,s.coverage_key,s.acquired_at,s.file_object_id,s.layer_id,
+                    f.object_key,f.original_name,f.size_bytes,f.sha256,f.category
+             FROM raster.satellite_images s
+             JOIN core.file_objects f ON f.id=s.file_object_id
+             WHERE s.coverage_key=$1 AND s.deleted_at IS NULL
+               AND f.category='raster' AND f.lifecycle_status='ready'
+               AND f.scan_status='clean' AND f.detected_mime='image/tiff'
+             ORDER BY s.acquired_at,s.id
+             FOR UPDATE OF s`,
+            [coverageKey],
+        );
+        if (!members.length) {
+            throw collectionError(
+                COLLECTION_ERROR.EMPTY,
+                'Bộ GeoTIFF Time Series không có ảnh hợp lệ',
+            );
+        }
+        const seen = new Set();
+        for (const member of members) {
+            const time = new Date(member.acquired_at).toISOString();
+            if (seen.has(time)) {
+                throw collectionError(
+                    COLLECTION_ERROR.DUPLICATE_TIME,
+                    `Bộ GeoTIFF có nhiều ảnh tại ${time}`,
+                );
+            }
+            seen.add(time);
+        }
+        const linkedLayerIds = [
+            ...new Set(members.map((member) => member.layer_id).filter(Boolean)),
+        ];
+        if (linkedLayerIds.length > 1) {
+            throw collectionError(
+                COLLECTION_ERROR.MEMBER_CONFLICT,
+                'Ảnh trong collection đang thuộc nhiều lớp khác nhau',
+            );
+        }
+        const {
+            rows: [codeLayer],
+        } = await client.query(
+            `SELECT id,code,storage_kind,publish_status,metadata,deleted_at
+             FROM gis.layers WHERE code=$1 FOR UPDATE`,
+            [input.code],
+        );
+        if (codeLayer?.deleted_at) {
+            throw collectionError(
+                COLLECTION_ERROR.LAYER_CONFLICT,
+                'Mã lớp đã từng được sử dụng và không thể tái tạo',
+            );
+        }
+        const linkedLayerId = linkedLayerIds[0] || null;
+        if (linkedLayerId && codeLayer?.id !== linkedLayerId) {
+            throw collectionError(
+                COLLECTION_ERROR.MEMBER_CONFLICT,
+                'Ảnh trong collection đang thuộc lớp khác',
+            );
+        }
+        if (
+            codeLayer &&
+            (codeLayer.storage_kind !== 'geotiff_minio' ||
+                codeLayer.metadata?.timeSeries?.enabled !== true ||
+                codeLayer.metadata?.timeSeries?.coverageKey !== coverageKey)
+        ) {
+            throw collectionError(
+                COLLECTION_ERROR.LAYER_CONFLICT,
+                'Mã lớp đang thuộc tài nguyên khác',
+            );
+        }
+
+        const metadata = collectionMetadata(input, coverageKey, codeLayer?.metadata);
+        const values = [
+            input.code,
+            input.nameVi,
+            input.category,
+            input.srid,
+            input.minZoom ?? null,
+            input.maxZoom ?? null,
+            JSON.stringify(input.legendConfig || {}),
+            JSON.stringify(metadata),
+            input.isPublic,
+            actorId,
+        ];
+        let layer;
+        if (codeLayer) {
+            const {
+                rows: [updated],
+            } = await client.query(
+                `UPDATE gis.layers SET name_vi=$2,category=$3,geometry_type='RASTER',srid=$4,
+                        storage_kind='geotiff_minio',table_name=NULL,object_key=NULL,source_file_id=NULL,
+                        min_zoom=$5,max_zoom=$6,legend_config=$7::jsonb,metadata=$8::jsonb,
+                        is_public=$9,publish_status='pending',cleanup_status='none',updated_by=$10,
+                        version=version+1
+                 WHERE id=$11 AND deleted_at IS NULL RETURNING *`,
+                [...values, codeLayer.id],
+            );
+            layer = updated;
+        } else {
+            const {
+                rows: [created],
+            } = await client.query(
+                `INSERT INTO gis.layers
+                    (code,name_vi,category,geometry_type,srid,storage_kind,object_key,source_file_id,
+                     min_zoom,max_zoom,legend_config,metadata,is_public,publish_status,created_by)
+                 VALUES ($1,$2,$3,'RASTER',$4,'geotiff_minio',NULL,NULL,$5,$6,$7::jsonb,$8::jsonb,$9,'pending',$10)
+                 RETURNING *`,
+                values,
+            );
+            layer = created;
+        }
+        if (!layer) {
+            throw collectionError(
+                COLLECTION_ERROR.LAYER_CONFLICT,
+                'Không thể chuẩn bị lớp Time Series',
+            );
+        }
+        await client.query(
+            `UPDATE raster.satellite_images
+             SET layer_id=$2,updated_by=$3
+             WHERE id=ANY($1::bigint[])`,
+            [members.map((member) => member.id), layer.id, actorId],
+        );
+        if (!input.isPublic && roleCode) {
+            await client.query(
+                `INSERT INTO gis.layer_permissions
+                    (layer_id,role_code,can_view,can_export,can_edit,can_delete)
+                 VALUES ($1,$2,true,false,false,false)
+                 ON CONFLICT (layer_id,role_code) DO UPDATE SET can_view=true`,
+                [layer.id, roleCode],
+            );
+        }
+        await client.query('COMMIT');
+        return { layer, members, values: [...seen] };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+const markCollectionStoreOwned = async (layerId, coverageKey, geoserverLayer) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `UPDATE gis.layers
+         SET geoserver_layer=$3,
+             metadata=jsonb_set(metadata,'{timeSeries,storeUploaded}','true'::jsonb,true),
+             version=version+1
+         WHERE id=$1 AND deleted_at IS NULL
+           AND metadata->'timeSeries'->>'coverageKey'=$2
+         RETURNING *`,
+        [layerId, coverageKey, geoserverLayer],
+    );
+    return row || null;
+};
+
+const setCollectionPublishState = async (
+    layerId,
+    coverageKey,
+    publishStatus,
+    geoserverLayer = null,
+) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `UPDATE gis.layers
+         SET publish_status=$3,geoserver_layer=COALESCE($4,geoserver_layer),version=version+1
+         WHERE id=$1 AND deleted_at IS NULL
+           AND metadata->'timeSeries'->>'coverageKey'=$2
+         RETURNING *`,
+        [layerId, coverageKey, publishStatus, geoserverLayer],
+    );
+    return row || null;
+};
 module.exports = {
     list,
     find,
@@ -293,4 +508,8 @@ module.exports = {
     remove,
     preparePublish,
     setPublishState,
+    prepareCollectionPublish,
+    markCollectionStoreOwned,
+    setCollectionPublishState,
+    COLLECTION_ERROR,
 };

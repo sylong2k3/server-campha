@@ -269,6 +269,9 @@ const completeCleanup = async (id, workerId, layerId) => {
         await client.query("UPDATE gis.layers SET cleanup_status = 'complete' WHERE id = $1", [
             layerId,
         ]);
+        await client.query('UPDATE raster.satellite_images SET layer_id=NULL WHERE layer_id=$1', [
+            layerId,
+        ]);
         await client.query('COMMIT');
         return true;
     } catch (error) {

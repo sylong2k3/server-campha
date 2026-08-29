@@ -33,6 +33,82 @@ describe('map proxy', () => {
         expect(target).toContain('layers=campha%3Aflood');
         expect(target).toContain('request=GetMap');
     });
+    test('WMS forwards only an active Time Series value as uppercase TIME', async () => {
+        requestGeoserver.mockResolvedValue(response('png', 'image/png'));
+        const time = '2024-01-01T00:00:00.000Z';
+        await proxyWms(
+            {
+                geoserver_layer: 'campha:urban_cover',
+                metadata: { timeSeries: { enabled: true } },
+                time_values: [time],
+            },
+            {
+                version: '1.3.0',
+                crs: 'EPSG:5899',
+                bbox: '1,2,3,4',
+                width: 256,
+                height: 256,
+                format: 'image/png',
+                transparent: true,
+                time,
+            },
+        );
+        expect(requestGeoserver.mock.calls[0][0]).toContain(`TIME=${encodeURIComponent(time)}`);
+    });
+
+    test('WMS requires active time for Time Series and rejects time on regular layers', async () => {
+        const query = {
+            version: '1.3.0',
+            crs: 'EPSG:5899',
+            bbox: '1,2,3,4',
+            width: 256,
+            height: 256,
+            format: 'image/png',
+            transparent: true,
+        };
+        const layer = {
+            geoserver_layer: 'campha:urban_cover',
+            metadata: { timeSeries: { enabled: true } },
+            time_values: ['2024-01-01T00:00:00.000Z'],
+        };
+        await expect(proxyWms(layer, query)).rejects.toMatchObject({ errors: ['TIME_REQUIRED'] });
+        await expect(
+            proxyWms(layer, { ...query, time: '2023-01-01T00:00:00.000Z' }),
+        ).rejects.toMatchObject({ errors: ['TIME_NOT_FOUND'] });
+        await expect(
+            proxyWms(
+                { geoserver_layer: 'campha:roads', metadata: {} },
+                {
+                    ...query,
+                    time: '2024-01-01T00:00:00.000Z',
+                },
+            ),
+        ).rejects.toMatchObject({ errors: ['TIME_NOT_SUPPORTED'] });
+        expect(requestGeoserver).not.toHaveBeenCalled();
+    });
+
+    test('WMS degrades to a regular layer when the Time Series has no remaining values', async () => {
+        requestGeoserver.mockResolvedValue(response('png', 'image/png'));
+        const query = {
+            version: '1.3.0',
+            crs: 'EPSG:5899',
+            bbox: '1,2,3,4',
+            width: 256,
+            height: 256,
+            format: 'image/png',
+            transparent: true,
+        };
+        // Ảnh bị soft-delete hết: catalog không phát field timeSeries nên client
+        // không thể gửi time, proxy phải phục vụ thay vì khoá cứng bằng 422.
+        const layer = {
+            geoserver_layer: 'campha:urban_cover',
+            metadata: { timeSeries: { enabled: true } },
+            time_values: [],
+        };
+        await expect(proxyWms(layer, query)).resolves.toBeDefined();
+        expect(requestGeoserver.mock.calls[0][0]).not.toContain('TIME=');
+    });
+
     test('WFS is fixed to GetFeature and bounded count', async () => {
         requestGeoserver.mockResolvedValue(response('{"type":"FeatureCollection"}'));
         await proxyWfs(
@@ -77,9 +153,13 @@ describe('map proxy', () => {
                 metadata: { style: 'flood_extent' },
             },
             {
-                version: '1.3.0', crs: 'EPSG:5899',
-                bbox: '1,2,3,4', width: 256, height: 256,
-                format: 'image/png', transparent: true,
+                version: '1.3.0',
+                crs: 'EPSG:5899',
+                bbox: '1,2,3,4',
+                width: 256,
+                height: 256,
+                format: 'image/png',
+                transparent: true,
             },
         );
         const url = requestGeoserver.mock.calls[0][0];
@@ -94,14 +174,18 @@ describe('map proxy', () => {
         await proxyWms(
             {
                 geoserver_layer: 'campha:fl_trend_encroachment_alert_2025_01_18_2025_08_18',
-                code: null,          // simulate missing registry code
+                code: null, // simulate missing registry code
                 style_name: null,
                 metadata: { style: 'encroachment_alert' },
             },
             {
-                version: '1.3.0', crs: 'EPSG:5899',
-                bbox: '1,2,3,4', width: 256, height: 256,
-                format: 'image/png', transparent: true,
+                version: '1.3.0',
+                crs: 'EPSG:5899',
+                bbox: '1,2,3,4',
+                width: 256,
+                height: 256,
+                format: 'image/png',
+                transparent: true,
             },
         );
         const url = requestGeoserver.mock.calls[0][0];
@@ -118,9 +202,13 @@ describe('map proxy', () => {
                 metadata: {},
             },
             {
-                version: '1.3.0', crs: 'EPSG:5899',
-                bbox: '1,2,3,4', width: 256, height: 256,
-                format: 'image/png', transparent: true,
+                version: '1.3.0',
+                crs: 'EPSG:5899',
+                bbox: '1,2,3,4',
+                width: 256,
+                height: 256,
+                format: 'image/png',
+                transparent: true,
             },
         );
         const url = requestGeoserver.mock.calls[0][0];

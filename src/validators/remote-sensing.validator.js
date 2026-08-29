@@ -61,6 +61,11 @@ const publishSchema = Joi.object({
     return value;
 }, 'zoom range validation');
 const idParamsSchema = Joi.object({ id: id.required() });
+const coverageKeyParamsSchema = Joi.object({
+    coverageKey: Joi.string()
+        .pattern(/^[a-z0-9][a-z0-9_-]{1,119}$/)
+        .required(),
+});
 const compareSchema = Joi.object({
     beforeId: id.required(),
     afterId: id.invalid(Joi.ref('beforeId')).required(),
@@ -79,6 +84,7 @@ module.exports = {
     categorySchema,
     publishSchema,
     idParamsSchema,
+    coverageKeyParamsSchema,
     compareSchema,
     deleteQuerySchema,
     downloadQuerySchema,

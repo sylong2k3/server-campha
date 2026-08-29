@@ -307,6 +307,61 @@ const softDeleteAndEnqueue = async (id, expectedUpdatedAt, actorId, deleteFiles 
     }
 };
 
+const findRasterIngestArtifact = async (layer, client = db) => {
+    if (layer?.source_file_id || layer?.storage_kind !== 'geotiff_minio' || !layer?.object_key) {
+        return null;
+    }
+    const ingestJobId = Number(layer.metadata?.rasterIngestJobId);
+    if (!Number.isSafeInteger(ingestJobId) || ingestJobId < 1) {
+        return null;
+    }
+    const {
+        rows: [artifact],
+    } = await client.query(
+        `SELECT id
+         FROM gis.raster_ingest_jobs
+         WHERE id = $1 AND layer_id = $2 AND layer_code = $3 AND minio_key = $4`,
+        [ingestJobId, layer.id, layer.code, layer.object_key],
+    );
+    if (!artifact) {
+        return null;
+    }
+    return {
+        geoserverPublishCategory:
+            typeof layer.metadata?.geoserverPublishCategory === 'string'
+                ? layer.metadata.geoserverPublishCategory
+                : 'raster',
+    };
+};
+
+const findImageMosaicArtifact = async (layer, client = db) => {
+    const metadata = layer?.metadata;
+    const parts =
+        typeof layer?.geoserver_layer === 'string' ? layer.geoserver_layer.split(':') : [];
+    if (
+        layer?.storage_kind !== 'geotiff_minio' ||
+        layer?.source_file_id ||
+        layer?.object_key ||
+        metadata?.geoserverStoreKind !== 'imagemosaic_upload' ||
+        metadata?.timeSeries?.enabled !== true ||
+        metadata?.timeSeries?.storeUploaded !== true ||
+        metadata?.geoserverStore !== layer.code ||
+        parts.length !== 2 ||
+        parts[1] !== layer.code
+    ) {
+        return null;
+    }
+    const {
+        rows: [evidence],
+    } = await client.query(
+        `SELECT EXISTS(
+             SELECT 1 FROM raster.satellite_images WHERE layer_id=$1
+         ) AS has_members`,
+        [layer.id],
+    );
+    return evidence?.has_members ? { storeName: layer.code } : null;
+};
+
 const setPublishState = async (id, publishStatus, geoserverLayer = null) => {
     const {
         rows: [row],
@@ -330,5 +385,7 @@ module.exports = {
     activeRoleCodes,
     replacePermissions,
     softDeleteAndEnqueue,
+    findRasterIngestArtifact,
+    findImageMosaicArtifact,
     setPublishState,
 };

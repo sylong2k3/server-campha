@@ -137,6 +137,14 @@ async function defaultValidateCrs(tifPath) {
                 const geoTransform = parsed?.geoTransform || [];
                 const size = parsed?.size || [];
                 const corners = parsed?.cornerCoordinates || {};
+                const bands = Array.isArray(parsed?.bands)
+                    ? parsed.bands.map((band) => ({
+                          type: band?.type || null,
+                          noDataValue: band?.noDataValue ?? null,
+                          colorInterpretation: band?.colorInterpretation || null,
+                      }))
+                    : [];
+                const firstBand = bands[0] || {};
                 resolve({
                     crs: epsg,
                     raw: parsed?.coordinateSystem,
@@ -155,9 +163,10 @@ async function defaultValidateCrs(tifPath) {
                                   maxY: corners.upperRight[1],
                               }
                             : null,
-                    bandCount: Array.isArray(parsed?.bands) ? parsed.bands.length : null,
-                    dataType: parsed?.bands?.[0]?.type || null,
-                    nodata: parsed?.bands?.[0]?.noDataValue ?? null,
+                    bandCount: bands.length,
+                    dataType: firstBand.type || null,
+                    nodata: firstBand.noDataValue ?? null,
+                    bands,
                 });
             } catch (err) {
                 reject(err);
@@ -339,10 +348,7 @@ async function runJob(job, deps = {}) {
         try {
             crsInfo = await validateCrs(cogPath);
         } catch (error) {
-            if (
-                error?.code === PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE &&
-                !cfg.REQUIRE_GDAL
-            ) {
+            if (error?.code === PIPELINE_ERROR_CODES.GDALINFO_UNAVAILABLE && !cfg.REQUIRE_GDAL) {
                 console.warn(
                     `[RASTER-INGEST] job=${job.id} SKIP CRS check — gdalinfo not installed (RASTER_INGEST_REQUIRE_GDAL=false)`,
                 );
@@ -546,5 +552,6 @@ module.exports = {
     sha256File,
     buildObjectKey,
     extractEpsgFromWkt,
+    defaultValidateCrs,
     defaultConvertToCog,
 };
