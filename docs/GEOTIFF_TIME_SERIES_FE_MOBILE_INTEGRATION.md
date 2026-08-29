@@ -29,22 +29,32 @@ Lop_phu_do_thi_Cam_Pha_2024_RGB.tif → 2024-01-01T00:00:00.000Z
 ## 2. Trạng thái triển khai
 
 > [!IMPORTANT]
-> Backend đã sẵn sàng. Contract dưới đây phản ánh code đang chạy, không còn là
-> thiết kế mục tiêu. Phần còn lại thuộc về khâu vận hành GeoServer và client.
+> Backend và pipeline GeoServer đã chạy trên production. Ngày 2026-08-29 đã
+> publish 3 ImageMosaic và smoke test toàn bộ 34 mốc thời gian qua WMS proxy.
+> Phần còn lại thuộc FE React, Mobile Flutter và xác minh cấu hình GWC.
 
-| Thành phần                      | Trạng thái hiện tại | Ghi chú                                |
-| ------------------------------- | ------------------- | -------------------------------------- |
-| WMS proxy theo `layerId`        | Đã có               | Không đổi route                        |
-| ACL `view`                      | Đã có               | Không đổi                              |
-| Tile ticket cho raster private  | Đã có               | FE/Mobile phải dùng                    |
-| WMS 1.3.0, EPSG:3857            | Đã có               | Không gửi `srs`                        |
-| GeoServer ImageMosaic           | Đã có               | Sinh tự động khi publish collection    |
-| GeoServer dimension `TIME`      | Đã có               | Bật và verify trong luồng publish      |
-| Query API `time`                | Đã có               | Validator nhận ISO UTC mili giây       |
-| Forward `time` thành WMS `TIME` | Đã có               | Uppercase `TIME` khi gọi GeoServer     |
-| Danh sách mốc thời gian         | Đã có               | Catalog phát `timeSeries.values`       |
-| GWC cache theo thời gian        | Chưa xác nhận       | Cần thêm `TIME` parameter filter       |
-| FE React / Mobile Flutter       | Chưa tích hợp       | Client chưa đọc field `timeSeries`     |
+| Thành phần                      | Trạng thái hiện tại | Ghi chú                                      |
+| ------------------------------- | ------------------- | -------------------------------------------- |
+| WMS proxy theo `layerId`        | Đã xác minh         | 34/34 mốc trả `200 image/png`                |
+| ACL `view`                      | Đã có               | Không đổi                                    |
+| Tile ticket cho raster private  | Đã có               | Ba layer production hiện là public           |
+| WMS 1.3.0                       | Đã xác minh         | EPSG:4326 đã smoke test                      |
+| GeoServer ImageMosaic           | Đã xác minh         | 3 store/layer publish thành công             |
+| GeoServer dimension `TIME`      | Đã xác minh         | Bật và verify trong luồng publish            |
+| Query API `time`                | Đã xác minh         | ISO UTC mili giây                            |
+| Forward `time` thành WMS `TIME` | Đã xác minh         | 34 ảnh có 34 SHA-256 khác nhau               |
+| Danh sách mốc thời gian         | Đã xác minh         | Catalog trả 5 + 5 + 24 mốc tăng dần          |
+| Lỗi thiếu/sai `time`            | Đã xác minh         | `TIME_REQUIRED` / `TIME_NOT_FOUND`, HTTP 422 |
+| GWC cache theo thời gian        | Chưa xác nhận       | Cần xác minh `TIME` parameter filter         |
+| FE React / Mobile Flutter       | Chưa tích hợp       | Client chưa đọc field `timeSeries`           |
+
+Layer production hiện tại:
+
+| ID | Code | GeoServer layer | Số mốc | Khoảng thời gian |
+| ---: | --- | --- | ---: | --- |
+| 172 | `lop_phu_truoc_ngap_ts` | `campha:lop_phu_truoc_ngap_ts` | 5 | 2015–2024 |
+| 173 | `lop_phu_sau_ngap_ts` | `campha:lop_phu_sau_ngap_ts` | 5 | 2015–2024 |
+| 174 | `lop_phu_do_thi_ts` | `campha:lop_phu_do_thi_ts` | 24 | 2001–2024 |
 
 Code backend hiện liên quan:
 
@@ -67,27 +77,30 @@ Authorization: Bearer <access-token>
 Layer public có thể gọi không token. Layer private chỉ xuất hiện khi role có
 `can_view`.
 
-Backend cần bổ sung `timeSeries` vào layer raster có dimension thời gian:
+Backend trả `timeSeries` cho layer raster đã bật Time Series và còn dữ liệu.
+Ví dụ production thực tế:
 
 ```json
 {
-    "id": 201,
-    "code": "urban_cover_campha_timeseries",
-    "nameVi": "Lớp phủ đô thị Cẩm Phả 2001–2024",
+    "id": "172",
+    "code": "lop_phu_truoc_ngap_ts",
+    "nameVi": "Lớp phủ trước ngập Cẩm Phả (2015-2024)",
     "geometryType": "RASTER",
-    "storageKind": "geotiff_mosaic",
+    "storageKind": "geotiff_minio",
     "srid": 32648,
-    "geoserverLayer": "campha:urban_cover_campha_timeseries",
+    "geoserverLayer": "campha:lop_phu_truoc_ngap_ts",
     "minZoom": 8,
     "maxZoom": 18,
-    "isPublic": false,
+    "isPublic": true,
     "timeSeries": {
         "enabled": true,
         "mode": "discrete",
         "defaultTime": "2024-01-01T00:00:00.000Z",
         "values": [
-            "2001-01-01T00:00:00.000Z",
-            "2002-01-01T00:00:00.000Z",
+            "2015-01-01T00:00:00.000Z",
+            "2018-01-01T00:00:00.000Z",
+            "2020-01-01T00:00:00.000Z",
+            "2022-01-01T00:00:00.000Z",
             "2024-01-01T00:00:00.000Z"
         ]
     }
@@ -122,7 +135,7 @@ Layer private cần ticket vì Mapbox raster source không gắn Bearer header v
 mỗi tile request:
 
 ```http
-GET /api/v1/maps/layers/201/tile-ticket?access=view
+GET /api/v1/maps/layers/{layerId}/tile-ticket?access=view
 Authorization: Bearer <access-token>
 ```
 
@@ -151,10 +164,10 @@ Ticket:
 
 ### 3.3 WMS Time Series tile URL
 
-Contract mục tiêu:
+Contract đang chạy:
 
 ```http
-GET /api/v1/maps/layers/201/wms
+GET /api/v1/maps/layers/{layerId}/wms
     ?request=GetMap
     &version=1.3.0
     &bbox={bbox-epsg-3857}
@@ -484,26 +497,29 @@ UI phải giới hạn lựa chọn theo `timeSeries.values`.
    đúng, và layer hết ảnh suy biến về raster thường thay vì khoá cứng 422 —
    [map-proxy.service.test.js](../src/services/__tests__/map-proxy.service.test.js).
 
-Còn lại:
+Production đã xác minh ngày 2026-08-29:
 
-8. ⏳ GWC parameter filter theo `TIME` — thiếu sẽ trả tile sai năm.
-9. ⏳ Smoke test ít nhất ba năm qua production proxy sau khi publish.
+8. ✅ Catalog có đủ 3 layer, `timeSeries.values` lần lượt 5, 5 và 24 mốc.
+9. ✅ 34/34 mốc trả `200 image/png`; 34 nội dung ảnh có SHA-256 khác nhau.
+10. ✅ Thiếu `time` trả `422 TIME_REQUIRED`.
+11. ✅ Mốc ngoài danh sách trả `422 TIME_NOT_FOUND`.
+12. ⏳ GWC parameter filter theo `TIME` vẫn cần xác minh riêng.
 
 ## 11. Acceptance checklist FE/Mobile
 
-- [ ] Catalog trả một layer Time Series và danh sách thời gian tăng dần.
+- [x] Catalog trả ba layer Time Series và danh sách thời gian tăng dần.
 - [ ] Layer không có field `timeSeries` render bình thường, không gửi `time`.
-- [ ] Default time hiển thị đúng ảnh.
-- [ ] Chọn năm đầu, giữa, cuối trả ba ảnh đúng.
+- [ ] Default time hiển thị đúng ảnh trên client.
+- [ ] Chọn năm đầu, giữa, cuối trả ba ảnh đúng trên client.
 - [ ] Thiếu một năm không làm slider tự sinh mốc đó.
-- [ ] Layer public chạy không ticket.
+- [x] Layer public chạy không ticket.
 - [ ] Layer private chạy với ticket `view`.
 - [ ] Ticket của layer khác trả `403`.
 - [ ] Ticket hết hạn được refresh một lần.
 - [ ] Logout gỡ layer private và xóa ticket cache.
 - [ ] App background quá TTL rồi resume vẫn render lại.
 - [ ] Kéo slider nhanh không tạo nhiều source/layer rác.
-- [ ] Không có request trực tiếp từ client đến GeoServer/MinIO.
+- [x] Production WMS không cần client gọi trực tiếp GeoServer/MinIO.
 - [ ] GWC không trả ảnh năm cũ khi đổi `time`.
 - [ ] Mạng chậm/mất mạng giữ UI ổn định và cho retry.
 
@@ -516,11 +532,13 @@ Còn lại:
   giới hạn frame và đo tải GeoServer trước.
 - Offline toàn bộ chuỗi: cần thiết kế tile pack/quota riêng.
 
-## 13. Ví dụ URL production mục tiêu
+## 13. Ví dụ URL production
+
+Layer đô thị public, mốc 2002:
 
 ```text
-https://apicampha.tourismpj.pro.vn/api/v1/maps/layers/201/wms?request=GetMap&version=1.3.0&bbox={bbox-epsg-3857}&width=512&height=512&crs=EPSG%3A3857&format=image%2Fpng&transparent=true&time=2002-01-01T00%3A00%3A00.000Z&ticket=<url-encoded-ticket>
+https://apicampha.tourismpj.pro.vn/api/v1/maps/layers/174/wms?request=GetMap&version=1.3.0&bbox=20.909%2C107.166%2C21.226%2C107.416&width=512&height=512&crs=EPSG%3A4326&format=image%2Fpng&transparent=true&time=2002-01-01T00%3A00%3A00.000Z
 ```
 
-Không dùng URL này cho tới khi backend gate hoàn tất và `layerId` thật được lấy từ
-catalog của môi trường đang chạy.
+ID trên là production tại ngày cập nhật. Client vẫn phải lấy `layerId` từ catalog,
+không hardcode. Khi chuyển layer sang private, thêm tile ticket đã URL-encode.
