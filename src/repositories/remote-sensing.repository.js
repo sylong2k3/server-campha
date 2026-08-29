@@ -413,13 +413,13 @@ const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) =
             const {
                 rows: [updated],
             } = await client.query(
-                `UPDATE gis.layers SET name_vi=$2,category=$3,geometry_type='RASTER',srid=$4,
+                `UPDATE gis.layers SET name_vi=$1,category=$2,geometry_type='RASTER',srid=$3,
                         storage_kind='geotiff_minio',table_name=NULL,object_key=NULL,source_file_id=NULL,
-                        min_zoom=$5,max_zoom=$6,legend_config=$7::jsonb,metadata=$8::jsonb,
-                        is_public=$9,publish_status='pending',cleanup_status='none',updated_by=$10,
+                        min_zoom=$4,max_zoom=$5,legend_config=$6::jsonb,metadata=$7::jsonb,
+                        is_public=$8,publish_status='pending',cleanup_status='none',
                         version=version+1
-                 WHERE id=$11 AND deleted_at IS NULL RETURNING *`,
-                [...values, codeLayer.id],
+                 WHERE id=$9 AND deleted_at IS NULL RETURNING *`,
+                [...values.slice(1, 9), codeLayer.id],
             );
             layer = updated;
         } else {

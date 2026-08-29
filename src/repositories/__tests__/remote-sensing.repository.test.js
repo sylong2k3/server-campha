@@ -85,3 +85,60 @@ describe('remote sensing repository raster source replacement', () => {
         expect(query.mock.calls[3][0]).toContain('INSERT INTO gis.layers');
     });
 });
+
+describe('remote sensing repository collection publishing', () => {
+    beforeEach(() => jest.clearAllMocks());
+
+    test('updates an existing collection layer without a nonexistent updated_by column', async () => {
+        const coverageKey = 'cam-pha-lop-phu-truoc-ngap';
+        const collectionInput = {
+            ...input,
+            code: 'lop_phu_truoc_ngap_ts',
+            metadata: {},
+        };
+        const members = [
+            {
+                ...image,
+                id: 12,
+                layer_id: 172,
+                acquired_at: '2015-01-01T00:00:00.000Z',
+            },
+            {
+                ...image,
+                id: 13,
+                layer_id: 172,
+                acquired_at: '2018-01-01T00:00:00.000Z',
+            },
+        ];
+        const codeLayer = {
+            id: 172,
+            code: collectionInput.code,
+            storage_kind: 'geotiff_minio',
+            publish_status: 'failed',
+            metadata: { timeSeries: { enabled: true, coverageKey } },
+            deleted_at: null,
+        };
+        query
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({ rows: members })
+            .mockResolvedValueOnce({ rows: [codeLayer] })
+            .mockResolvedValueOnce({ rows: [{ ...codeLayer, publish_status: 'pending' }] })
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({});
+
+        await expect(
+            repository.prepareCollectionPublish(coverageKey, collectionInput, 7, 'tnmt'),
+        ).resolves.toMatchObject({
+            layer: { id: 172, publish_status: 'pending' },
+            values: ['2015-01-01T00:00:00.000Z', '2018-01-01T00:00:00.000Z'],
+        });
+
+        const [updateSql, updateParams] = query.mock.calls[3];
+        expect(updateSql).toContain('UPDATE gis.layers');
+        expect(updateSql).not.toContain('updated_by');
+        expect(updateSql).toContain('WHERE id=$9');
+        expect(updateParams).toHaveLength(9);
+        expect(updateParams[8]).toBe(172);
+        expect(release).toHaveBeenCalledTimes(1);
+    });
+});
