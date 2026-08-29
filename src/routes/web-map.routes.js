@@ -23,6 +23,7 @@ const spatialLimiter = rateLimit({
 });
 router.use(optionalAuth, spatialLimiter);
 router.get('/layers', strict(validator.catalogQuerySchema), asyncHandler(controller.listLayers));
+router.get('/time-series-layers', asyncHandler(controller.listTimeSeriesLayers));
 router.get(
     '/layers/:layerId/features/:featureId',
     validate(validator.featureParamsSchema, 'params'),

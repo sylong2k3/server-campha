@@ -117,6 +117,11 @@ const remove = async (id, expectedUpdatedAt, deleteFiles, actor) => {
             'TIME_SERIES_MEMBER',
         ]);
     }
+    if (deleted?.conflict === 'LAYER_PUBLISHED') {
+        throw new Api409Error('Ảnh đang được publish thành lớp bản đồ riêng; hãy huỷ publish trước', [
+            'LAYER_PUBLISHED',
+        ]);
+    }
     if (deleted?.conflict === 'FILE_STILL_IN_USE') {
         throw new Api409Error('Ảnh GeoTIFF vẫn đang được lớp bản đồ sử dụng', [
             'FILE_STILL_IN_USE',

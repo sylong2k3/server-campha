@@ -11,6 +11,12 @@ const listLayers = async (req, res) =>
         t('web_map_layers_success', req.lang),
         await service.listLayers(req.query, buildActor(req)),
     );
+const listTimeSeriesLayers = async (req, res) =>
+    OK(
+        res,
+        t('web_map_layers_success', req.lang),
+        await service.listTimeSeriesLayers(buildActor(req)),
+    );
 const getFeature = async (req, res) =>
     OK(
         res,
@@ -51,6 +57,7 @@ const getTerrainUrl = async (req, res) =>
 
 module.exports = {
     listLayers,
+    listTimeSeriesLayers,
     getFeature,
     searchFeatures,
     getLegend,

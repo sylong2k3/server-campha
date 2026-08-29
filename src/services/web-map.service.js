@@ -83,6 +83,9 @@ const serializeLayer = (layer, actor) => {
                       mode: 'discrete',
                       defaultTime: timeValues.at(-1),
                       values: timeValues,
+                      members: Array.isArray(layer.time_series_members)
+                          ? layer.time_series_members
+                          : [],
                   },
               }
             : {}),
@@ -95,6 +98,11 @@ const listLayers = async (filter, actor) => {
     const layers = await repository.catalog(actor, { category, search });
     const visible = isAdmin ? layers : layers.filter((l) => !BLOCKED_CATEGORIES.has(l.category));
     return visible.map((layer) => serializeLayer(layer, actor));
+};
+const listTimeSeriesLayers = async (actor) => {
+    assertMap(actor, 'view');
+    const layers = await repository.timeSeriesCatalog(actor);
+    return layers.map((layer) => serializeLayer(layer, actor));
 };
 const getFeature = async (layerId, featureId, includeGeometry, actor) => {
     assertMap(actor, 'view_attributes');
@@ -167,6 +175,7 @@ const getTerrainUrl = async (layerId, expireSeconds, actor) => {
 
 module.exports = {
     listLayers,
+    listTimeSeriesLayers,
     getFeature,
     searchFeatures,
     getLegend,

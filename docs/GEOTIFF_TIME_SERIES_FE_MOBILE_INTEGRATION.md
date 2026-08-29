@@ -1,6 +1,6 @@
 # Tích hợp GeoTIFF Time Series cho Web và Mobile
 
-Cập nhật: 2026-08-29
+Cập nhật: 2026-08-29 (bổ sung kiến trúc tách 34 layer riêng)
 
 ## 1. Mục tiêu
 
@@ -17,6 +17,17 @@ GeoTIFF theo năm
 Client không gọi trực tiếp GeoServer hoặc MinIO. Client chỉ gọi API backend.
 GeoServer chọn ảnh tương ứng qua tham số WMS `TIME`.
 
+### 1.1 Hai contract song song
+
+| Chức năng | Endpoint | Kết quả |
+| --- | --- | --- |
+| Catalog bản đồ mặc định | `GET /api/v1/web-map/layers` | 34 ảnh lớp phủ dưới dạng 34 layer riêng; không chứa 3 layer Time Series |
+| Tính năng Time Series | `GET /api/v1/web-map/time-series-layers` | 3 ImageMosaic collection với `values`, `defaultTime` và `members` cho slider |
+
+Layer riêng gọi WMS không gửi `time`. Layer Time Series luôn gửi đúng chuỗi ISO
+trong `timeSeries.values`. Web React có thể dùng cả hai endpoint; Mobile mặc định
+chỉ cần catalog layer riêng, trừ khi ứng dụng cũng triển khai slider.
+
 Ví dụ dữ liệu lớp phủ đô thị:
 
 ```text
@@ -31,10 +42,12 @@ Lop_phu_do_thi_Cam_Pha_2024_RGB.tif → 2024-01-01T00:00:00.000Z
 > [!IMPORTANT]
 > Backend và pipeline GeoServer đã chạy trên production. Ngày 2026-08-29 đã
 > publish 3 ImageMosaic và smoke test toàn bộ 34 mốc thời gian qua WMS proxy.
-> Phần còn lại thuộc FE React, Mobile Flutter và xác minh cấu hình GWC.
+> Cùng ngày, backend được sửa để tách catalog mặc định (34 layer riêng) khỏi
+> Time Series (endpoint riêng). Phần còn lại thuộc FE React, Mobile Flutter,
+> publish 34 layer riêng trên production và xác minh cấu hình GWC.
 
 | Thành phần                      | Trạng thái hiện tại | Ghi chú                                      |
-| ------------------------------- | ------------------- | -------------------------------------------- |
+| -------------------------------- | ------------------- | -------------------------------------------- |
 | WMS proxy theo `layerId`        | Đã xác minh         | 34/34 mốc trả `200 image/png`                |
 | ACL `view`                      | Đã có               | Không đổi                                    |
 | Tile ticket cho raster private  | Đã có               | Ba layer production hiện là public           |
@@ -43,12 +56,16 @@ Lop_phu_do_thi_Cam_Pha_2024_RGB.tif → 2024-01-01T00:00:00.000Z
 | GeoServer dimension `TIME`      | Đã xác minh         | Bật và verify trong luồng publish            |
 | Query API `time`                | Đã xác minh         | ISO UTC mili giây                            |
 | Forward `time` thành WMS `TIME` | Đã xác minh         | 34 ảnh có 34 SHA-256 khác nhau               |
-| Danh sách mốc thời gian         | Đã xác minh         | Catalog trả 5 + 5 + 24 mốc tăng dần          |
+| Danh sách mốc thời gian         | Đã xác minh         | Catalog Time Series trả 5 + 5 + 24 mốc tăng dần |
 | Lỗi thiếu/sai `time`            | Đã xác minh         | `TIME_REQUIRED` / `TIME_NOT_FOUND`, HTTP 422 |
+| Cột `standalone_layer_id`       | Migration 116 đã chạy | Additive, không đổi `layer_id` hiện có     |
+| `GET /web-map/layers` loại Time Series | Đã sửa code local | Có hiệu lực sau deploy/restart backend mới |
+| `GET /web-map/time-series-layers` | Đã sửa code local | Route/controller/service/repository mới; có hiệu lực sau deploy |
+| Publish 34 layer riêng trên production | Chưa chạy    | Chỉ chạy sau khi backend mới đã deploy      |
 | GWC cache theo thời gian        | Chưa xác nhận       | Cần xác minh `TIME` parameter filter         |
-| FE React / Mobile Flutter       | Chưa tích hợp       | Client chưa đọc field `timeSeries`           |
+| FE React / Mobile Flutter       | Chưa tích hợp       | React cần endpoint riêng; Mobile có thể giữ catalog mặc định |
 
-Layer production hiện tại:
+Ba layer Time Series production hiện tại (sẽ bị loại khỏi catalog mặc định sau khi backend mới deploy):
 
 | ID | Code | GeoServer layer | Số mốc | Khoảng thời gian |
 | ---: | --- | --- | ---: | --- |
@@ -63,22 +80,107 @@ Code backend hiện liên quan:
 - [map-proxy.service.js](../src/services/map-proxy.service.js)
 - [layer-access.middleware.js](../src/middlewares/layer-access.middleware.js)
 - [map-tile-ticket.util.js](../src/utils/map-tile-ticket.util.js)
+- [web-map.routes.js](../src/routes/web-map.routes.js)
+- [web-map.controller.js](../src/controllers/web-map.controller.js)
 - [web-map.service.js](../src/services/web-map.service.js)
+- [web-map.repository.js](../src/repositories/web-map.repository.js)
+- [remote-sensing.repository.js](../src/repositories/remote-sensing.repository.js)
+- [116_standalone_satellite_layer.sql](../src/database/migrations/116_standalone_satellite_layer.sql)
+
+### 2.1 Vì sao tách catalog và Time Series
+
+Trước đây, publish theo collection gán mọi ảnh cùng `coverage_key` vào **một**
+`layer_id` Time Series duy nhất, nên `GET /web-map/layers` chỉ còn 3 layer thay
+vì 34. Cách khắc phục không phải nhồi 34 ảnh vào field `members` của 3 layer,
+mà tách hẳn hai đường publish:
+
+```text
+satellite_images.layer_id
+    → layer ImageMosaic Time Series (172/173/174), publish qua
+      POST /admin/remote-sensing/collections/:coverageKey/publish
+
+satellite_images.standalone_layer_id
+    → layer GeoTIFF riêng cho từng ảnh, publish qua
+      POST /admin/remote-sensing/images/:id/publish
+```
+
+`GET /web-map/layers` chỉ trả layer có
+`metadata.timeSeries.enabled <> true`, tức 34 layer riêng cộng các layer khác
+không phải Time Series. `GET /web-map/time-series-layers` chỉ trả layer có
+`metadata.timeSeries.enabled = true`, tức đúng 3 collection.
+
+> [!WARNING]
+> Không gọi `POST /admin/remote-sensing/images/:id/publish` cho ảnh đang thuộc
+> collection Time Series trên code production cũ (trước migration 116/backend
+> mới) — code cũ ghi đè `layer_id` và có thể phá ImageMosaic. Trên code mới,
+> publish riêng chỉ ghi `standalone_layer_id`, không đụng `layer_id`.
+
+### 2.2 Publish một layer ảnh riêng
+
+```http
+POST /api/v1/admin/remote-sensing/images/{imageId}/publish
+Authorization: Bearer <access-token>
+Content-Type: application/json
+```
+
+Ví dụ ảnh trước ngập năm 2015:
+
+```json
+{
+    "code": "cp_truoc_ngap_2015",
+    "nameVi": "Lớp phủ trước ngập Cẩm Phả năm 2015",
+    "category": "lop-phu",
+    "srid": 32648,
+    "minZoom": 8,
+    "maxZoom": 18,
+    "isPublic": true
+}
+```
+
+Quy ước code lấy từ `scene_code`, đổi về chữ thường và thay ký tự không hợp lệ
+bằng `_`: `CP-DO-THI-2024` thành `cp_do_thi_2024`. Validator chỉ nhận pattern
+`^[a-z][a-z0-9_]{0,62}$`, vì vậy không dùng dấu gạch ngang trong `code`.
+
+Publish lại cùng ảnh dùng `standalone_layer_id` đã có và cùng code; không tạo thêm
+layer Time Series. Script bulk phải chạy tuần tự, dừng ngay ở lỗi đầu tiên. Luôn
+publish thử một ảnh, gọi WMS không có `time`, rồi mới chạy 33 ảnh còn lại.
+
+### 2.3 Thứ tự rollout production
+
+1. Chạy migration `116_standalone_satellite_layer.sql`.
+2. Deploy backend mới và restart PM2.
+3. Xác minh `GET /web-map/time-series-layers` trả 3 layer.
+4. Xác minh `GET /web-map/layers` không còn IDs `172`, `173`, `174`.
+5. Publish thử một ảnh qua API individual publish.
+6. Gọi WMS của layer mới **không có** query `time`; yêu cầu `200 image/png`.
+7. Publish tuần tự 33 ảnh còn lại.
+8. Đếm 34 layer bằng metadata `satelliteImageId` hoặc code; không dùng tổng độ dài
+   catalog vì response còn chứa các layer nghiệp vụ khác.
+9. Smoke test ba ImageMosaic cũ với `time` để bảo đảm Time Series không bị đổi.
+
+> [!IMPORTANT]
+> Migration 116 đã chạy trên DB production. Backend mới và 34 lần individual
+> publish vẫn phải hoàn tất theo đúng thứ tự trên. Không publish 34 ảnh khi PM2
+> còn chạy code cũ.
 
 ## 3. Contract layer Time Series
 
-### 3.1 Lấy catalog
+### 3.1 Lấy catalog Time Series riêng
 
 ```http
-GET /api/v1/web-map/layers
+GET /api/v1/web-map/time-series-layers
 Authorization: Bearer <access-token>
 ```
 
-Layer public có thể gọi không token. Layer private chỉ xuất hiện khi role có
-`can_view`.
+Authorization là tuỳ chọn với layer public. Layer private chỉ xuất hiện khi role
+có `can_view`. Endpoint này chỉ lấy layer có
+`metadata.timeSeries.enabled === true`; không dùng `category`/`search` của
+catalog mặc định.
 
-Backend trả `timeSeries` cho layer raster đã bật Time Series và còn dữ liệu.
-Ví dụ production thực tế:
+`GET /api/v1/web-map/layers` không trả các layer này. Endpoint mặc định dành cho
+34 layer riêng và các layer bản đồ thông thường khác.
+
+Backend trả `timeSeries` khi layer ImageMosaic còn dữ liệu. Ví dụ production:
 
 ```json
 {
@@ -102,6 +204,14 @@ Ví dụ production thực tế:
             "2020-01-01T00:00:00.000Z",
             "2022-01-01T00:00:00.000Z",
             "2024-01-01T00:00:00.000Z"
+        ],
+        "members": [
+            {
+                "imageId": "12",
+                "sceneCode": "CP-TRUOC-NGAP-2015",
+                "acquiredAt": "2015-01-01T00:00:00.000Z",
+                "fileObjectId": "<uuid>"
+            }
         ]
     }
 }
@@ -117,10 +227,9 @@ Quy tắc client:
 
 > [!IMPORTANT]
 > `timeSeries` là field **tuỳ chọn**. Backend chỉ phát field này khi layer vừa bật
-> `metadata.timeSeries.enabled` vừa còn ít nhất một ảnh chưa bị xoá. Nếu toàn bộ
-> ảnh bị soft-delete, field biến mất và layer trở lại raster thường — client
-> **không** được gửi `time` khi field vắng mặt. Quy tắc duy nhất: có field thì gửi
-> `time`, không có field thì không gửi.
+> `metadata.timeSeries.enabled` vừa còn ít nhất một ảnh chưa bị xoá. Nếu field
+> vắng mặt trong response endpoint Time Series, client phải ẩn slider và không
+> gửi `time`. Layer có metadata Time Series vẫn không quay lại catalog mặc định.
 
 > [!NOTE]
 > `storageKind` do DB quyết định và có thể là `geotiff_minio`. Đừng phân nhánh
@@ -245,7 +354,17 @@ Không đưa `bboxToken` qua `encodeURIComponent`. Mapbox phải nhìn thấy li
 
 ### 5.0 Hook đọc catalog
 
-Bắt đầu từ catalog, không hardcode gì:
+Time Series UI phải gọi endpoint riêng, không đọc slider data từ catalog mặc định:
+
+```js
+const response = await fetch(`${apiBase}/api/v1/web-map/time-series-layers`, {
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+});
+const payload = await response.json();
+const timeSeriesLayers = payload.data;
+```
+
+Không hardcode ba ID production. Dùng item user chọn từ `timeSeriesLayers`:
 
 ```jsx
 export function useTimeSeriesLayer(layer) {
@@ -367,8 +486,13 @@ UI:
 
 ## 6. Tích hợp Mobile
 
-Mobile giữ cùng contract HTTP và URL builder. SDK bản đồ chỉ cần adapter ba thao
-tác:
+Mobile mặc định gọi `GET /api/v1/web-map/layers`, nhận 34 layer riêng và dựng WMS
+như raster thường — **không gửi query `time`**. Không cần thêm state slider nếu
+sản phẩm Mobile chỉ yêu cầu chọn từng layer riêng.
+
+Nếu Mobile cũng cần tính năng Time Series, gọi riêng
+`GET /api/v1/web-map/time-series-layers` và giữ cùng contract HTTP/URL builder
+với ReactJS. SDK bản đồ chỉ cần adapter ba thao tác:
 
 ```text
 upsertRasterSource(sourceId, tileUrl, tileSize=512)
@@ -499,18 +623,24 @@ UI phải giới hạn lựa chọn theo `timeSeries.values`.
 
 Production đã xác minh ngày 2026-08-29:
 
-8. ✅ Catalog có đủ 3 layer, `timeSeries.values` lần lượt 5, 5 và 24 mốc.
+8. ✅ Ba ImageMosaic có `timeSeries.values` lần lượt 5, 5 và 24 mốc.
 9. ✅ 34/34 mốc trả `200 image/png`; 34 nội dung ảnh có SHA-256 khác nhau.
 10. ✅ Thiếu `time` trả `422 TIME_REQUIRED`.
 11. ✅ Mốc ngoài danh sách trả `422 TIME_NOT_FOUND`.
-12. ⏳ GWC parameter filter theo `TIME` vẫn cần xác minh riêng.
+12. ✅ Migration 116 thêm `standalone_layer_id` đã chạy.
+13. ✅ Test backend liên quan pass: 4 suite, 22 test.
+14. ⏳ Deploy backend mới và publish 34 standalone layer.
+15. ⏳ GWC parameter filter theo `TIME` vẫn cần xác minh riêng.
 
 ## 11. Acceptance checklist FE/Mobile
 
-- [x] Catalog trả ba layer Time Series và danh sách thời gian tăng dần.
-- [ ] Layer không có field `timeSeries` render bình thường, không gửi `time`.
-- [ ] Default time hiển thị đúng ảnh trên client.
-- [ ] Chọn năm đầu, giữa, cuối trả ba ảnh đúng trên client.
+- [ ] `GET /web-map/layers` có đủ 34 layer lớp phủ riêng sau publish.
+- [ ] Catalog mặc định không chứa Time Series IDs `172`, `173`, `174`.
+- [ ] `GET /web-map/time-series-layers` trả đúng 3 layer và 5 + 5 + 24 mốc.
+- [ ] Mỗi standalone layer render WMS bình thường mà không gửi `time`.
+- [ ] Gửi `time` cho standalone layer trả `422 TIME_NOT_SUPPORTED`.
+- [ ] Default time hiển thị đúng ảnh trên ReactJS.
+- [ ] Chọn năm đầu, giữa, cuối trả ba ảnh đúng trên ReactJS.
 - [ ] Thiếu một năm không làm slider tự sinh mốc đó.
 - [x] Layer public chạy không ticket.
 - [ ] Layer private chạy với ticket `view`.
@@ -519,6 +649,7 @@ Production đã xác minh ngày 2026-08-29:
 - [ ] Logout gỡ layer private và xóa ticket cache.
 - [ ] App background quá TTL rồi resume vẫn render lại.
 - [ ] Kéo slider nhanh không tạo nhiều source/layer rác.
+- [ ] Mobile catalog mặc định hiển thị 34 layer riêng mà không cần slider.
 - [x] Production WMS không cần client gọi trực tiếp GeoServer/MinIO.
 - [ ] GWC không trả ảnh năm cũ khi đổi `time`.
 - [ ] Mạng chậm/mất mạng giữ UI ổn định và cho retry.
@@ -540,5 +671,6 @@ Layer đô thị public, mốc 2002:
 https://apicampha.tourismpj.pro.vn/api/v1/maps/layers/174/wms?request=GetMap&version=1.3.0&bbox=20.909%2C107.166%2C21.226%2C107.416&width=512&height=512&crs=EPSG%3A4326&format=image%2Fpng&transparent=true&time=2002-01-01T00%3A00%3A00.000Z
 ```
 
-ID trên là production tại ngày cập nhật. Client vẫn phải lấy `layerId` từ catalog,
-không hardcode. Khi chuyển layer sang private, thêm tile ticket đã URL-encode.
+ID trên là production tại ngày cập nhật. Client Time Series phải lấy `layerId` từ
+`GET /api/v1/web-map/time-series-layers`, không hardcode. Khi chuyển layer sang
+private, thêm tile ticket đã URL-encode.

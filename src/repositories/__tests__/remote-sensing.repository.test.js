@@ -59,7 +59,7 @@ describe('remote sensing repository raster source replacement', () => {
         expect(query.mock.calls[2][0]).toContain('NOT EXISTS');
         expect(query.mock.calls[3][0]).toContain('UPDATE gis.layers');
         expect(query.mock.calls[4]).toEqual([
-            expect.stringContaining('UPDATE raster.satellite_images SET layer_id=$2'),
+            expect.stringContaining('UPDATE raster.satellite_images SET standalone_layer_id=$2'),
             [12, 3, 7],
         ]);
         expect(query.mock.calls.some(([sql]) => sql.includes('INSERT INTO gis.layers'))).toBe(

@@ -84,6 +84,7 @@ describe('web map service', () => {
             mode: 'discrete',
             defaultTime: values[1],
             values,
+            members: [],
         });
         expect(result).not.toHaveProperty('metadata');
         expect(result.timeSeries).not.toHaveProperty('coverageKey');

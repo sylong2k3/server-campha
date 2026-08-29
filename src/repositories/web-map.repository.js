@@ -22,6 +22,7 @@ const catalog = async (actor, { category, search } = {}) => {
         'l.deleted_at IS NULL',
         "l.publish_status = 'published'",
         '(l.is_public = true OR COALESCE(lp.can_view, false) = true)',
+        "COALESCE(l.metadata->'timeSeries'->>'enabled', 'false') <> 'true'",
     ];
     if (category) {
         params.push(category);
@@ -44,12 +45,51 @@ const catalog = async (actor, { category, search } = {}) => {
                 (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
                                           'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY times.acquired_at,times.id)
                  FROM raster.satellite_images times
-                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
+                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values,
+                (SELECT json_agg(json_build_object(
+                            'imageId', times.id,
+                            'sceneCode', times.scene_code,
+                            'acquiredAt', to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                                   'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                            'fileObjectId', times.file_object_id
+                        ) ORDER BY times.acquired_at,times.id)
+                 FROM raster.satellite_images times
+                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_series_members
          FROM gis.layers l
          LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $1
          WHERE ${where.join(' AND ')}
          ORDER BY l.category NULLS LAST, l.name_vi, l.id`,
         params,
+    );
+    return rows;
+};
+
+const timeSeriesCatalog = async (actor) => {
+    const { rows } = await db.query(
+        `SELECT l.id, l.code, l.name_vi, l.category, l.category_name, l.geometry_type, l.srid,
+                l.storage_kind, l.table_name, l.geoserver_layer, l.style_name,
+                l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.is_enable_default, l.metadata,
+                false AS role_can_edit,
+                (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY times.acquired_at,times.id)
+                 FROM raster.satellite_images times
+                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values,
+                (SELECT json_agg(json_build_object(
+                            'imageId', times.id,
+                            'sceneCode', times.scene_code,
+                            'acquiredAt', to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                                   'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                            'fileObjectId', times.file_object_id
+                        ) ORDER BY times.acquired_at,times.id)
+                 FROM raster.satellite_images times
+                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_series_members
+         FROM gis.layers l
+         LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $1
+         WHERE l.deleted_at IS NULL AND l.publish_status = 'published'
+           AND (l.is_public = true OR COALESCE(lp.can_view, false) = true)
+           AND l.metadata->'timeSeries'->>'enabled' = 'true'
+         ORDER BY l.name_vi, l.id`,
+        [actorRole(actor)],
     );
     return rows;
 };
@@ -72,7 +112,16 @@ const accessibleLayer = async (id, actor, { terrain = false } = {}) => {
                     (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
                                               'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY times.acquired_at,times.id)
                      FROM raster.satellite_images times
-                     WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
+                     WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values,
+                    (SELECT json_agg(json_build_object(
+                                'imageId', times.id,
+                                'sceneCode', times.scene_code,
+                                'acquiredAt', to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+                                'fileObjectId', times.file_object_id
+                            ) ORDER BY times.acquired_at,times.id)
+                     FROM raster.satellite_images times
+                     WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_series_members
              FROM gis.layers l
              LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $2
              WHERE l.id = $1 AND l.deleted_at IS NULL
@@ -223,6 +272,7 @@ const terrainCatalog = async (actor) => {
 
 module.exports = {
     catalog,
+    timeSeriesCatalog,
     accessibleLayer,
     invalidateLayerCache,
     configuredFields,

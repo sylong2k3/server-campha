@@ -100,7 +100,7 @@ const remove = async (id, expectedUpdatedAt, actorId, deleteFiles = false) => {
         const {
             rows: [image],
         } = await client.query(
-            `SELECT s.id,s.file_object_id,s.layer_id,s.updated_at
+            `SELECT s.id,s.file_object_id,s.layer_id,s.standalone_layer_id,s.updated_at
              FROM raster.satellite_images s
              WHERE s.id=$1 AND s.deleted_at IS NULL FOR UPDATE`,
             [id],
@@ -122,6 +122,20 @@ const remove = async (id, expectedUpdatedAt, actorId, deleteFiles = false) => {
             if (timeSeriesLayer) {
                 await client.query('ROLLBACK');
                 return { conflict: 'TIME_SERIES_MEMBER' };
+            }
+        }
+        if (image.standalone_layer_id) {
+            const {
+                rows: [standaloneLayer],
+            } = await client.query(
+                `SELECT id FROM gis.layers
+                 WHERE id=$1 AND deleted_at IS NULL AND publish_status='published'
+                 FOR UPDATE`,
+                [image.standalone_layer_id],
+            );
+            if (standaloneLayer) {
+                await client.query('ROLLBACK');
+                return { conflict: 'LAYER_PUBLISHED' };
             }
         }
         const version = versionCondition(2, 's.updated_at');
@@ -219,7 +233,7 @@ const preparePublish = async (id, input, actorId) => {
             actorId,
         ];
         let layer;
-        let targetLayerId = image.layer_id;
+        let targetLayerId = image.standalone_layer_id;
         if (!targetLayerId) {
             const {
                 rows: [existingLayer],
@@ -229,7 +243,7 @@ const preparePublish = async (id, input, actorId) => {
                  WHERE l.code = $1 AND l.deleted_at IS NULL
                    AND NOT EXISTS (
                        SELECT 1 FROM raster.satellite_images active
-                       WHERE active.layer_id = l.id AND active.deleted_at IS NULL AND active.id <> $2
+                       WHERE active.standalone_layer_id = l.id AND active.deleted_at IS NULL AND active.id <> $2
                    )
                  FOR UPDATE`,
                 [input.code, image.id],
@@ -253,9 +267,9 @@ const preparePublish = async (id, input, actorId) => {
                 return null;
             }
             layer = updated;
-            if (!image.layer_id) {
+            if (!image.standalone_layer_id) {
                 await client.query(
-                    'UPDATE raster.satellite_images SET layer_id=$2,updated_by=$3 WHERE id=$1',
+                    'UPDATE raster.satellite_images SET standalone_layer_id=$2,updated_by=$3 WHERE id=$1',
                     [id, layer.id, actorId],
                 );
             }
@@ -272,7 +286,7 @@ const preparePublish = async (id, input, actorId) => {
             );
             layer = created;
             await client.query(
-                'UPDATE raster.satellite_images SET layer_id=$2,updated_by=$3 WHERE id=$1',
+                'UPDATE raster.satellite_images SET standalone_layer_id=$2,updated_by=$3 WHERE id=$1',
                 [id, layer.id, actorId],
             );
         }
@@ -293,7 +307,7 @@ const setPublishState = async (imageId, layerId, publishStatus, geoserverLayer =
         `UPDATE gis.layers
          SET publish_status=$3,geoserver_layer=COALESCE($4,geoserver_layer),version=version+1
          WHERE id=$2 AND deleted_at IS NULL
-           AND EXISTS (SELECT 1 FROM raster.satellite_images WHERE id=$1 AND layer_id=$2 AND deleted_at IS NULL)
+           AND EXISTS (SELECT 1 FROM raster.satellite_images WHERE id=$1 AND standalone_layer_id=$2 AND deleted_at IS NULL)
          RETURNING *`,
         [imageId, layerId, publishStatus, geoserverLayer],
     );
