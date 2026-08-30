@@ -166,6 +166,52 @@ FE không nhập hoặc hardcode object `timeSeries`. Object này được backe
 vào layer trả bởi `GET /web-map/time-series-layers` khi layer đã bật Time Series
 và còn ít nhất một ảnh hợp lệ.
 
+#### A.1 Thêm mốc dữ liệu và tổng hợp lại từ Admin
+
+Trên giao diện Admin, người dùng không cần chọn từng ảnh hoặc nhập trực tiếp
+`coverageKey`, `code`, `geoserverLayer`. Luồng tối giản là:
+
+```text
+Chọn Nhóm dữ liệu chuỗi thời gian
+    → ID Abstraction ánh xạ lựa chọn sang coverage_key
+    → POST /admin/remote-sensing/collections/:coverageKey/publish
+    → server lấy toàn bộ ảnh hợp lệ cùng coverage_key
+    → ORDER BY acquired_at, id
+    → dựng lại ImageMosaic và dimension TIME
+```
+
+> [!IMPORTANT]
+> Trường `category`/`thematic_group` dùng để phân loại và hiển thị thân thiện.
+> Khóa gom nhóm thực tế của server là `coverage_key`. Không gom trực tiếp theo
+> category vì nhiều collection độc lập có thể dùng cùng một category.
+
+Muốn bổ sung một mốc mới vào chuỗi đã có:
+
+1. Tạo ảnh trong Kho ảnh viễn thám với đúng `coverage_key` của collection.
+2. Đặt `acquired_at` đúng thời điểm thu nhận; không được trùng với mốc đang có.
+3. Chọn lại Nhóm dữ liệu đó trong màn hình Time Series và bấm tổng hợp/công bố.
+4. Server dựng lại toàn bộ ImageMosaic từ các ảnh hợp lệ, không chỉ append file mới.
+
+Mốc mặc định không dựa trên `created_at`, thứ tự upload hoặc bản ghi được thêm
+cuối cùng. Repository sắp xếp tăng dần theo `acquired_at, id`; service trả
+`defaultTime = values.at(-1)`. Vì vậy **mốc có `acquired_at` mới nhất** luôn là
+mốc mặc định của slider.
+
+#### A.2 Lifecycle khi xóa
+
+| Thao tác | Server xử lý | Ảnh hưởng Time Series |
+| --- | --- | --- |
+| Xóa một ảnh đang là thành viên | Từ chối `409 TIME_SERIES_MEMBER` | Không thay đổi collection; phải xóa layer Time Series trước |
+| Xóa standalone layer của một ảnh | Cleanup lớp riêng qua `standalone_layer_id` | Không xóa ảnh khỏi Time Series (`layer_id` là quan hệ khác) |
+| Xóa layer Time Series | Soft-delete layer, đưa cleanup job vào hàng đợi, gỡ ImageMosaic/coverage store khỏi GeoServer | Layer biến mất khỏi catalog và WMS ngừng hoạt động; ảnh nguồn vẫn còn |
+| Cleanup Time Series hoàn tất | `satellite_images.layer_id = NULL` cho các ảnh thành viên | Các ảnh được giải phóng để có thể tổng hợp thành collection mới |
+
+> [!WARNING]
+> Xóa layer Time Series là xóa toàn bộ collection đã publish, không phải chỉ xóa
+> một mốc. Mã `code` của layer đã soft-delete không thể tái sử dụng theo repository
+> hiện tại; publish lại cần một mã lớp mới. Cleanup GeoServer chạy bất đồng bộ nên
+> trạng thái cleanup có thể còn `queued`/`running` trong một khoảng ngắn.
+
 #### B. Publish từng ảnh thành layer độc lập
 
 ```text
