@@ -1,4 +1,4 @@
-﻿module,chuc_nang,resource,action,KH,ND,UB,TNMT,XD,QT,ghi_chu
+module,chuc_nang,resource,action,KH,ND,UB,TNMT,XD,QT,ghi_chu
 A.1-11,Xem tổng quan lịch sử và lớp Flood/Hydrology đã công bố,flood,read,1,1,1,1,1,1,KH chỉ dùng API công khai; QT tương ứng system_admin
 A.1-11,Chạy sản phẩm M1-M5 và chạy lại hoặc hủy job,flood,run,0,0,1,1,1,1,RBAC migration 082; mọi thao tác quản trị được audit
 A.1-11,Chạy chế độ hiệu chỉnh Flood,flood,calibrate,0,0,0,1,0,1,Chỉ so_tnmt và system_admin; artifact calibration không được công bố trực tiếp
@@ -126,3 +126,9 @@ A.1-1,Quản lý publish ảnh vệ tinh,satellite,manage,0,0,1,1,0,1,Khớp mig
 A.1-2,Nạp raster thành lớp bản đồ,map_layers,ingest_raster,0,0,1,1,0,1,Khớp route publish raster; phải kiểm tra ACL và audit.
 B-1,Đọc đối tượng bản đồ trước khi cập nhật,map_feature,read,0,0,0,1,0,0,Bổ sung để không tồn tại update-without-read; đọc qua map.view_attributes trong UI.
 A.2-4,Đọc dữ liệu đầu vào phân tích không gian,spatial,read,0,1,1,1,1,1,Phân tích là read-only; bổ sung action đọc để policy rõ ràng.
+A.1-1,Xem danh sách và chi tiết bộ sưu tập GeoTIFF Time Series,raster,read,0,0,1,1,1,1,Quản trị Time Series đọc raster metadata
+A.1-1,Tải lên và tạo ảnh thành viên GeoTIFF Time Series,raster,create,0,0,1,1,1,1,Upload các mốc GeoTIFF theo coverage_key
+A.1-1,Publish/Re-publish bộ sưu tập GeoTIFF Time Series,raster+layers,create,0,0,0,1,1,1,Cần cả raster.create và layers.create để xuất bản ImageMosaic
+A.1-2,Chỉnh sửa metadata và hiển thị lớp GeoTIFF Time Series,layers,update,0,0,0,1,0,1,Cập nhật thông tin lớp Time Series
+A.1-1,Xóa ảnh thành viên GeoTIFF Time Series chưa xuất bản,raster,delete,0,0,1,1,1,1,Xóa ảnh rời khi chưa gắn vào layer xuất bản
+A.1-2,Xóa lớp GeoTIFF Time Series và cleanup ImageMosaic,layers,delete,0,0,0,1,0,1,Xóa layer Time Series và dọn coverage store GeoServer

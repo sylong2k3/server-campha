@@ -115,6 +115,16 @@ adminRouter.delete(
     asyncHandler(controller.deleteNews),
 );
 adminRouter.get(
+    '/comments',
+    strict(v.commentListSchema, 'query'),
+    asyncHandler(controller.listAllAdminComments),
+);
+adminRouter.get(
+    '/news/comments',
+    strict(v.commentListSchema, 'query'),
+    asyncHandler(controller.listAllAdminComments),
+);
+adminRouter.get(
     '/news/:id/comments',
     strict(v.idParamsSchema, 'params'),
     strict(v.commentListSchema, 'query'),

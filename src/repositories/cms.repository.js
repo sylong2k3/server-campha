@@ -175,6 +175,7 @@ const listComments = async (newsId, filter = {}, publicOnly = false) => {
     const paging = paginate(params, filter.page, filter.limit);
     const { rows } = await db.query(
         `SELECT c.id,c.news_id,c.user_id,u.full_name,c.content,c.status,c.moderated_by,c.moderated_at,c.created_at,
+                n.title AS news_title,
                 COUNT(*) OVER()::int total_count
          FROM cms.news_comments c JOIN cms.news n ON n.id=c.news_id JOIN auth.users u ON u.id=c.user_id
          ${whereClause} ORDER BY c.created_at DESC,c.id DESC ${paging}`,

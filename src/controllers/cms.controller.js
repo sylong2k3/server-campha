@@ -56,6 +56,13 @@ const listAdminComments = async (req, res) =>
         req.query,
         'Danh sách bình luận quản trị',
     );
+const listAllAdminComments = async (req, res) =>
+    list(
+        res,
+        await service.listAdminComments(0, req.query, buildActor(req)),
+        req.query,
+        'Danh sách bình luận quản trị',
+    );
 const createComment = async (req, res) =>
     CREATED(
         res,
@@ -194,6 +201,7 @@ module.exports = {
     listPublicComments,
     getPublicComment,
     listAdminComments,
+    listAllAdminComments,
     getAdminComment,
     createComment,
     moderateComment,
