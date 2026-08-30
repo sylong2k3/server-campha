@@ -27,6 +27,16 @@ publicRouter.get(
     asyncHandler(controller.listPublicNews),
 );
 publicRouter.get(
+    '/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.getPublicComment),
+);
+publicRouter.get(
+    '/news/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.getPublicComment),
+);
+publicRouter.get(
     '/news/:id',
     strict(v.idParamsSchema, 'params'),
     asyncHandler(controller.getPublicNews),
@@ -45,16 +55,6 @@ publicRouter.post(
     strict(v.idParamsSchema, 'params'),
     strict(v.commentCreateSchema),
     asyncHandler(controller.createComment),
-);
-publicRouter.get(
-    '/comments/:commentId',
-    strict(v.commentParamsSchema, 'params'),
-    asyncHandler(controller.getPublicComment),
-);
-publicRouter.get(
-    '/news/comments/:commentId',
-    strict(v.commentParamsSchema, 'params'),
-    asyncHandler(controller.getPublicComment),
 );
 publicRouter.get(
     '/documents',
@@ -98,6 +98,27 @@ adminRouter.get(
 );
 adminRouter.post('/news', strict(v.newsCreateSchema), asyncHandler(controller.createNews));
 adminRouter.get(
+    '/comments',
+    strict(v.commentListSchema, 'query'),
+    asyncHandler(controller.listAllAdminComments),
+);
+adminRouter.get(
+    '/news/comments',
+    strict(v.commentListSchema, 'query'),
+    asyncHandler(controller.listAllAdminComments),
+);
+adminRouter.get(
+    '/news/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.getAdminComment),
+);
+adminRouter.patch(
+    '/news/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    strict(v.commentModerateSchema),
+    asyncHandler(controller.moderateComment),
+);
+adminRouter.get(
     '/news/:id',
     strict(v.idParamsSchema, 'params'),
     asyncHandler(controller.getAdminNews),
@@ -115,31 +136,10 @@ adminRouter.delete(
     asyncHandler(controller.deleteNews),
 );
 adminRouter.get(
-    '/comments',
-    strict(v.commentListSchema, 'query'),
-    asyncHandler(controller.listAllAdminComments),
-);
-adminRouter.get(
-    '/news/comments',
-    strict(v.commentListSchema, 'query'),
-    asyncHandler(controller.listAllAdminComments),
-);
-adminRouter.get(
     '/news/:id/comments',
     strict(v.idParamsSchema, 'params'),
     strict(v.commentListSchema, 'query'),
     asyncHandler(controller.listAdminComments),
-);
-adminRouter.get(
-    '/news/comments/:commentId',
-    strict(v.commentParamsSchema, 'params'),
-    asyncHandler(controller.getAdminComment),
-);
-adminRouter.patch(
-    '/news/comments/:commentId',
-    strict(v.commentParamsSchema, 'params'),
-    strict(v.commentModerateSchema),
-    asyncHandler(controller.moderateComment),
 );
 adminRouter.get(
     '/documents',
