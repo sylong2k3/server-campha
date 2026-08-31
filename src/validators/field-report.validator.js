@@ -1,16 +1,18 @@
 'use strict';
 const Joi = require('joi');
 const id = Joi.number().integer().positive();
+// Chỉ kiểm tra toạ độ hợp lệ theo WGS84. Không chặn theo ranh giới Cẩm Phả
+// nữa — hệ dùng chung cho nhiều địa phương.
 const inBounds = (coordinates) =>
     Array.isArray(coordinates) &&
     (typeof coordinates[0] === 'number'
         ? coordinates.length >= 2 &&
           Number.isFinite(coordinates[0]) &&
           Number.isFinite(coordinates[1]) &&
-          coordinates[0] >= 107 &&
-          coordinates[0] <= 108 &&
-          coordinates[1] >= 20.7 &&
-          coordinates[1] <= 21.3
+          coordinates[0] >= -180 &&
+          coordinates[0] <= 180 &&
+          coordinates[1] >= -90 &&
+          coordinates[1] <= 90
         : coordinates.every(inBounds));
 const geometry = Joi.object({
     type: Joi.string().valid('Point', 'LineString', 'Polygon').required(),
@@ -33,8 +35,8 @@ const createSchema = Joi.object({
         .max(2000)
         .pattern(/<[^>]+>/, { invert: true })
         .required(),
-    longitude: Joi.number().min(107).max(108).required(),
-    latitude: Joi.number().min(20.7).max(21.3).required(),
+    longitude: Joi.number().min(-180).max(180).required(),
+    latitude: Joi.number().min(-90).max(90).required(),
     measuredGeometry: geometry,
     photoIds: Joi.array().items(id).unique().max(5).default([]),
 });
@@ -59,8 +61,8 @@ const reviewSchema = Joi.object({
     expectedUpdatedAt: Joi.date().iso().required(),
 });
 const nearbySchema = Joi.object({
-    longitude: Joi.number().min(107).max(108).required(),
-    latitude: Joi.number().min(20.7).max(21.3).required(),
+    longitude: Joi.number().min(-180).max(180).required(),
+    latitude: Joi.number().min(-90).max(90).required(),
     radiusMeters: Joi.number().integer().min(10).max(500).default(100),
     from: Joi.date().iso().required(),
     to: Joi.date().iso().greater(Joi.ref('from')).required(),
