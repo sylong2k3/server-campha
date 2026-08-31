@@ -66,6 +66,12 @@ const GDAL_CACHEMAX_MB = Number(process.env.GDAL_CACHEMAX_MB || 512);
 const REQUIRE_GDAL =
     String(process.env.RASTER_INGEST_REQUIRE_GDAL || 'true').toLowerCase() === 'true';
 
+// Đường dẫn tuyệt đối tới binary GDAL. Cần thiết trên VPS Windows: PM2 khởi
+// động từ service session không kế thừa PATH của OSGeo4W nên spawn('gdalinfo')
+// trả ENOENT. Để trống thì dùng tên lệnh và tra theo PATH như cũ.
+const GDALINFO_PATH = process.env.GDALINFO_PATH?.trim() || 'gdalinfo';
+const GDAL_TRANSLATE_PATH = process.env.GDAL_TRANSLATE_PATH?.trim() || 'gdal_translate';
+
 // Worker poll cadence.
 const WORKER_POLL_CRON = process.env.RASTER_INGEST_WORKER_POLL_CRON || '*/15 * * * * *';
 
@@ -86,6 +92,8 @@ const summariseConfig = () => ({
     requestedConcurrency: REQUESTED_CONCURRENCY,
     gdalCacheMaxMb: GDAL_CACHEMAX_MB,
     requireGdal: REQUIRE_GDAL,
+    gdalinfoPath: GDALINFO_PATH,
+    gdalTranslatePath: GDAL_TRANSLATE_PATH,
     workerPollCron: WORKER_POLL_CRON,
 });
 
@@ -101,6 +109,8 @@ module.exports = {
     REQUESTED_CONCURRENCY,
     GDAL_CACHEMAX_MB,
     REQUIRE_GDAL,
+    GDALINFO_PATH,
+    GDAL_TRANSLATE_PATH,
     WORKER_POLL_CRON,
     isEnabled,
     summariseConfig,

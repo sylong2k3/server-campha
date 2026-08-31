@@ -247,6 +247,10 @@ const ENV_SCHEMA_KEYS = {
     RASTER_INGEST_CONCURRENCY: positiveInteger.max(4).default(1),
     RASTER_INGEST_WORKER_POLL_CRON: Joi.string().trim().min(9).default('*/15 * * * * *'),
     GDAL_CACHEMAX_MB: positiveInteger.min(64).default(512),
+    // Đường dẫn tuyệt đối tới gdalinfo/gdal_translate (VD OSGeo4W trên Windows).
+    // Bỏ trống thì tra theo PATH.
+    GDALINFO_PATH: Joi.string().trim().allow(''),
+    GDAL_TRANSLATE_PATH: Joi.string().trim().allow(''),
 
     MAPBOX_DIRECTIONS_TOKEN: Joi.string().trim().allow(''),
     MAPBOX_DIRECTIONS_TIMEOUT_MS: positiveInteger.min(1000).max(120000).default(10000),

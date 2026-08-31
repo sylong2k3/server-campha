@@ -105,7 +105,7 @@ const cleanup = async (files) => {
 // Default GDAL-based CRS validator (§22-F). Injectable so tests never need GDAL.
 async function defaultValidateCrs(tifPath) {
     return new Promise((resolve, reject) => {
-        const gdalinfo = spawn('gdalinfo', ['-json', tifPath]);
+        const gdalinfo = spawn(cfg.GDALINFO_PATH, ['-json', tifPath]);
         let stdout = '';
         let stderr = '';
         gdalinfo.stdout.on('data', (b) => {
@@ -177,7 +177,7 @@ async function defaultValidateCrs(tifPath) {
 
 async function defaultConvertToCog(sourcePath, cogPath) {
     return new Promise((resolve, reject) => {
-        const gdalTranslate = spawn('gdal_translate', [
+        const gdalTranslate = spawn(cfg.GDAL_TRANSLATE_PATH, [
             '-of',
             'COG',
             '-co',

@@ -46,8 +46,12 @@ const requestGeoserver = async (path, options = {}) => {
 
         if (!res.ok) {
             const body = await res.text().catch(() => '');
+            // Nội dung phản hồi đi kèm message: error-handler chỉ log `message`,
+            // nên nếu giấu body thì lỗi 500 của GeoServer không chẩn đoán được.
+            const detail = body.replace(/\s+/g, ' ').trim().slice(0, 300);
             throw new GeoServerError(
-                `GeoServer request failed with status ${res.status}`,
+                `GeoServer request failed with status ${res.status}` +
+                    (detail ? `: ${detail}` : ''),
                 res.status,
                 body.slice(0, 1000),
             );
@@ -445,6 +449,20 @@ const publishS3GeoTiffLayer = async ({ storeName, s3Bucket, s3Key, title, enable
     return layerName;
 };
 
+const coverageStoreExists = async (workspace, name) => {
+    try {
+        await requestGeoserver(
+            `/rest/workspaces/${encodeURIComponent(workspace)}/coveragestores/${encodeURIComponent(name)}.json`,
+        );
+        return true;
+    } catch (err) {
+        if (err instanceof GeoServerError && err.status === 404) {
+            return false;
+        }
+        throw err;
+    }
+};
+
 const publishGeoTiffStream = async ({ storeName, stream }) => {
     const config = assertGeoserverConfigured();
     const workspace = config.workspace;
@@ -452,8 +470,16 @@ const publishGeoTiffStream = async ({ storeName, stream }) => {
     if (!stream || typeof stream.pipe !== 'function') {
         throw new TypeError('GeoTIFF stream is required');
     }
+    // `configure=first` chỉ hợp lệ khi store chưa có coverage; publish lại lên
+    // store cũ (đổi ảnh nguồn, retry sau lỗi) làm GeoServer trả 500. Store đã
+    // tồn tại thì dùng `configure=none` để thay file và giữ nguyên cấu hình
+    // coverage/style đang phục vụ WMS.
+    const exists = await coverageStoreExists(workspace, name);
+    const query = exists
+        ? 'configure=none'
+        : `configure=first&coverageName=${encodeURIComponent(name)}`;
     await requestGeoserver(
-        `/rest/workspaces/${workspace}/coveragestores/${name}/file.geotiff?configure=first&coverageName=${encodeURIComponent(name)}`,
+        `/rest/workspaces/${workspace}/coveragestores/${name}/file.geotiff?${query}`,
         {
             method: 'PUT',
             headers: { 'Content-Type': 'image/tiff' },
