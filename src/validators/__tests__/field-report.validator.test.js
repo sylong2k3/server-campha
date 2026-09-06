@@ -11,7 +11,7 @@ describe('Sprint 8 field report validator', () => {
             }).error,
         ).toBeUndefined();
     });
-    test('rejects HTML, outside coordinates and duplicate photos', () => {
+    test('rejects HTML, invalid WGS84 coordinates and duplicate photos', () => {
         expect(
             v.createSchema.validate({
                 description: '<b>bad content</b>',
@@ -24,6 +24,13 @@ describe('Sprint 8 field report validator', () => {
                 description: 'Nội dung phản ánh hợp lệ',
                 longitude: 1,
                 latitude: 1,
+            }).error,
+        ).toBeUndefined();
+        expect(
+            v.createSchema.validate({
+                description: 'Nội dung phản ánh hợp lệ',
+                longitude: 200,
+                latitude: 95,
             }).error,
         ).toBeDefined();
         expect(
@@ -43,7 +50,7 @@ describe('Sprint 8 field report validator', () => {
                     type: 'LineString',
                     coordinates: [
                         [107.3, 21],
-                        [1, 1],
+                        [200, 95],
                     ],
                 },
             }).error,
