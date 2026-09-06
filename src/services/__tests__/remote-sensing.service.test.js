@@ -98,7 +98,7 @@ describe('remote sensing service', () => {
     });
     test('publishes a clean raster layer and invalidates Web Map cache', async () => {
         repository.preparePublish.mockResolvedValue({
-            image: { id: 7, object_key: 'raster/2026/file.tif' },
+            image: { id: 7, object_key: 'raster/2026/file.tif', size_bytes: '4096' },
             layer: { id: 9, code: 'lop_phu_2024', name_vi: 'Lớp phủ 2024' },
         });
         geoserver.publishGeoTiffStream.mockResolvedValue('campha:lop_phu_2024');
@@ -115,6 +115,7 @@ describe('remote sensing service', () => {
         expect(geoserver.publishGeoTiffStream).toHaveBeenCalledWith({
             storeName: 'lop_phu_2024',
             stream: expect.objectContaining({ pipe: expect.any(Function) }),
+            contentLength: 4096,
         });
         expect(webMapRepository.invalidateLayerCache).toHaveBeenCalledWith(9);
     });
@@ -123,7 +124,7 @@ describe('remote sensing service', () => {
             service.publish(7, {}, { ...admin, permissions: { raster: { create: true } } }),
         ).rejects.toMatchObject({ status: 403 });
         repository.preparePublish.mockResolvedValue({
-            image: { id: 7, object_key: 'raster/file.tif' },
+            image: { id: 7, object_key: 'raster/file.tif', size_bytes: '2048' },
             layer: { id: 9, code: 'lop_phu_2024', name_vi: 'Lớp phủ 2024' },
         });
         geoserver.publishGeoTiffStream.mockRejectedValue(new Error('GeoServer failed'));

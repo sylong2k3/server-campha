@@ -463,12 +463,16 @@ const coverageStoreExists = async (workspace, name) => {
     }
 };
 
-const publishGeoTiffStream = async ({ storeName, stream }) => {
+const publishGeoTiffStream = async ({ storeName, stream, contentLength }) => {
     const config = assertGeoserverConfigured();
     const workspace = config.workspace;
     const name = validateResourceName(storeName, 'storeName');
     if (!stream || typeof stream.pipe !== 'function') {
         throw new TypeError('GeoTIFF stream is required');
+    }
+    const size = Number(contentLength);
+    if (!Number.isSafeInteger(size) || size <= 0) {
+        throw new TypeError('GeoTIFF content length must be a positive safe integer');
     }
     // `configure=first` chỉ hợp lệ khi store chưa có coverage; publish lại lên
     // store cũ (đổi ảnh nguồn, retry sau lỗi) làm GeoServer trả 500. Store đã
@@ -482,7 +486,10 @@ const publishGeoTiffStream = async ({ storeName, stream }) => {
         `/rest/workspaces/${workspace}/coveragestores/${name}/file.geotiff?${query}`,
         {
             method: 'PUT',
-            headers: { 'Content-Type': 'image/tiff' },
+            headers: {
+                'Content-Type': 'image/tiff',
+                'Content-Length': String(size),
+            },
             body: stream,
         },
     );

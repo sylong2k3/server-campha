@@ -39,13 +39,18 @@ describe('publishGeoTiffStream', () => {
             return jsonResponse({ layer: { name: 'cp_moi' } });
         });
 
-        await expect(publishGeoTiffStream({ storeName: 'cp_moi', stream: stream() })).resolves.toBe(
+        await expect(publishGeoTiffStream({ storeName: 'cp_moi', stream: stream(), contentLength: 1024 })).resolves.toBe(
             'campha:cp_moi',
         );
 
-        const uploadUrl = global.fetch.mock.calls.map(([url]) => url).find((url) => url.includes('file.geotiff'));
+        const uploadCall = global.fetch.mock.calls.find(([url]) => url.includes('file.geotiff'));
+        const [uploadUrl, uploadOptions] = uploadCall;
         expect(uploadUrl).toContain('configure=first');
         expect(uploadUrl).toContain('coverageName=cp_moi');
+        expect(uploadOptions.headers).toMatchObject({
+            'Content-Type': 'image/tiff',
+            'Content-Length': '1024',
+        });
     });
 
     test('dùng configure=none khi publish lại lên store đã có', async () => {
@@ -60,7 +65,11 @@ describe('publishGeoTiffStream', () => {
         });
 
         await expect(
-            publishGeoTiffStream({ storeName: 'cp_do_thi_2024', stream: stream() }),
+            publishGeoTiffStream({
+                storeName: 'cp_do_thi_2024',
+                stream: stream(),
+                contentLength: 2048,
+            }),
         ).resolves.toBe('campha:cp_do_thi_2024');
 
         const uploadUrl = global.fetch.mock.calls.map(([url]) => url).find((url) => url.includes('file.geotiff'));
@@ -76,7 +85,16 @@ describe('publishGeoTiffStream', () => {
         }));
 
         await expect(
-            publishGeoTiffStream({ storeName: 'cp_loi', stream: stream() }),
+            publishGeoTiffStream({ storeName: 'cp_loi', stream: stream(), contentLength: 1024 }),
         ).rejects.toThrow(/coverage already configured/);
+    });
+
+    test('từ chối kích thước không hợp lệ trước khi gọi GeoServer', async () => {
+        global.fetch = jest.fn();
+
+        await expect(
+            publishGeoTiffStream({ storeName: 'cp_loi', stream: stream(), contentLength: 0 }),
+        ).rejects.toThrow(/content length/);
+        expect(global.fetch).not.toHaveBeenCalled();
     });
 });
