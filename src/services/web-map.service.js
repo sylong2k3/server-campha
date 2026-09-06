@@ -72,6 +72,7 @@ const serializeLayer = (layer, actor) => {
         minZoom: layer.min_zoom,
         maxZoom: layer.max_zoom,
         legend: layer.legend_config,
+        defaultStyle: layer.metadata?.defaultStyle ?? null,
         isPublic: layer.is_public,
         isEnableDefault: layer.is_enable_default,
         canEdit: canEditLayer(layer, actor),

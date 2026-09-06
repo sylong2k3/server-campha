@@ -33,10 +33,10 @@ function upsertOverride(artifactCode, patch) {
     const all = _read();
     const existing = all[artifactCode] ?? {};
     const allowed = {};
-    if (patch.palette !== undefined) allowed.palette = patch.palette;
-    if (patch.min !== undefined) allowed.min = patch.min;
-    if (patch.max !== undefined) allowed.max = patch.max;
-    if (patch.label !== undefined) allowed.label = patch.label;
+    if (patch.palette !== undefined) {allowed.palette = patch.palette;}
+    if (patch.min !== undefined) {allowed.min = patch.min;}
+    if (patch.max !== undefined) {allowed.max = patch.max;}
+    if (patch.label !== undefined) {allowed.label = patch.label;}
     all[artifactCode] = { ...existing, ...allowed };
     _write(all);
     return all[artifactCode];

@@ -163,4 +163,30 @@ describe('web map service', () => {
             expireSeconds: 300,
         });
     });
+
+    test('catalog exposes defaultStyle from metadata and defaults to null', async () => {
+        repository.catalog.mockResolvedValue([
+            {
+                ...layer,
+                metadata: {
+                    defaultStyle: {
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.5,
+                    },
+                },
+            },
+            {
+                ...layer,
+                id: 2,
+                code: 'layer_without_style',
+                metadata: {},
+            },
+        ]);
+        const result = await service.listLayers(undefined, null);
+        expect(result[0].defaultStyle).toEqual({
+            fillColor: '#FF0000',
+            fillOpacity: 0.5,
+        });
+        expect(result[1].defaultStyle).toBeNull();
+    });
 });

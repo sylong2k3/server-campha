@@ -38,7 +38,7 @@ const WC_CROPLAND = 40;
  * @returns {{ mineStratum, urbanStratum, nonUrbanStratum, stratumImage, ephemeralWater }}
  */
 function buildStrata(ee, { referenceVhNatural, gswImage, worldCoverImage = null, config }) {
-  if (!ee) throw new Error('strata.buildStrata requires the ee module');
+  if (!ee) {throw new Error('strata.buildStrata requires the ee module');}
 
   // ── WorldCover base ─────────────────────────────────────────────────────
   const wc = (worldCoverImage || ee.ImageCollection(ASSETS.WORLDCOVER).first()).select('Map');

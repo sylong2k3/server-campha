@@ -72,8 +72,8 @@ async function runTrendAnalysisFinal({
   authoritativeGeoJson = null,
   deps = defaultFinalDeps(),
 } = {}) {
-  if (!ee) throw new Error('trend/final.runTrendAnalysisFinal requires the ee module');
-  if (!geeAdapter?.evaluate) throw new Error('trend/final.runTrendAnalysisFinal requires geeAdapter.evaluate');
+  if (!ee) {throw new Error('trend/final.runTrendAnalysisFinal requires the ee module');}
+  if (!geeAdapter?.evaluate) {throw new Error('trend/final.runTrendAnalysisFinal requires geeAdapter.evaluate');}
   if (!runConfig?.monitorStart || !runConfig?.monitorEnd) {
     throw new Error('trend/final.runTrendAnalysisFinal requires runConfig.monitorStart and runConfig.monitorEnd');
   }
@@ -144,10 +144,7 @@ async function runTrendAnalysisFinal({
     .filter(ee.Filter.eq('valid', 1)).size();
 
   const {
-    floodCollection,
-    validCollection,
     frequencyCount,
-    floodFrequencyPercent,
     floodExtent,
     frequentFlood,
   } = deps.frequency.buildFloodFrequency(ee, {

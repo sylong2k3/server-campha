@@ -145,5 +145,92 @@ describe('layer validator', () => {
             }).error,
         ).toBeTruthy();
     });
+
+    test('layer update accepts valid polygon defaultStyle in metadata', () => {
+        const result = validate(validator.layerUpdateSchema, {
+            expectedUpdatedAt: new Date().toISOString(),
+            metadata: {
+                defaultStyle: {
+                    fillColor: '#F0F0F0',
+                    fillOpacity: 0.15,
+                    strokeColor: '#333333',
+                    strokeWidth: 2,
+                    strokeDasharray: [2, 4],
+                },
+            },
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.value.metadata.defaultStyle.fillColor).toBe('#F0F0F0');
+        expect(result.value.metadata.defaultStyle.strokeWidth).toBe(2);
+    });
+
+    test('layer update accepts valid raster defaultStyle and preserves other metadata keys', () => {
+        const result = validate(validator.layerUpdateSchema, {
+            expectedUpdatedAt: new Date().toISOString(),
+            metadata: {
+                timeSeries: { enabled: true },
+                defaultStyle: {
+                    rasterOpacity: 0.85,
+                    resampling: 'nearest',
+                    brightnessMin: 0.1,
+                    brightnessMax: 0.9,
+                    contrast: 0.2,
+                },
+            },
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.value.metadata.timeSeries.enabled).toBe(true);
+        expect(result.value.metadata.defaultStyle.resampling).toBe('nearest');
+    });
+
+    test('layer update allows clearing defaultStyle with null', () => {
+        const result = validate(validator.layerUpdateSchema, {
+            expectedUpdatedAt: new Date().toISOString(),
+            metadata: {
+                defaultStyle: null,
+            },
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.value.metadata.defaultStyle).toBeNull();
+    });
+
+    test('layer update rejects defaultStyle with invalid hex color', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                metadata: {
+                    defaultStyle: {
+                        fillColor: 'red',
+                    },
+                },
+            }).error,
+        ).toBeTruthy();
+    });
+
+    test('layer update rejects defaultStyle with opacity out of range', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                metadata: {
+                    defaultStyle: {
+                        fillOpacity: 1.5,
+                    },
+                },
+            }).error,
+        ).toBeTruthy();
+    });
+
+    test('layer update rejects defaultStyle with unknown keys', () => {
+        expect(
+            validate(validator.layerUpdateSchema, {
+                expectedUpdatedAt: new Date().toISOString(),
+                metadata: {
+                    defaultStyle: {
+                        unsupportedProperty: '#123456',
+                    },
+                },
+            }).error,
+        ).toBeTruthy();
+    });
 });
 

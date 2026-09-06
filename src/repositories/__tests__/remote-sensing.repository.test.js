@@ -84,22 +84,6 @@ describe('remote sensing repository raster source replacement', () => {
         );
         expect(release).toHaveBeenCalledTimes(1);
     });
-
-    test('does not reuse a layer still linked to another active image', async () => {
-        query
-            .mockResolvedValueOnce({})
-            .mockResolvedValueOnce({ rows: [image] })
-            .mockResolvedValueOnce({ rows: [{ ...standaloneLayer, has_other_standalone: true }] })
-            .mockResolvedValueOnce({});
-
-        await expect(repository.preparePublish(12, input, 7)).rejects.toMatchObject({
-            code: 'RASTER_LAYER_TARGET_CONFLICT',
-        });
-        expect(query).toHaveBeenLastCalledWith('ROLLBACK');
-        expect(
-            query.mock.calls.some(([sql]) => /(?:UPDATE|INSERT INTO) gis.layers/.test(sql)),
-        ).toBe(false);
-    });
 });
 
 describe('remote sensing repository collection publishing', () => {

@@ -173,6 +173,7 @@ const publish = async (id, input, actor) => {
                 category: 'raster',
                 objectKey: image.object_key,
             }),
+            contentLength: Number(image.size_bytes),
         });
         const published = await repository.setPublishState(
             image.id,

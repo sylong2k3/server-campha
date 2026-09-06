@@ -21,9 +21,9 @@ const legendStore = require('./legend-store');
  */
 function _resolveDefinition(artifactCode) {
     const base = ARTIFACT_LAYER_DEFINITIONS[artifactCode];
-    if (!base) throw new Error(`visualization.buildLegend: no definition for '${artifactCode}'`);
+    if (!base) {throw new Error(`visualization.buildLegend: no definition for '${artifactCode}'`);}
     const override = legendStore.getOverride(artifactCode);
-    if (!override) return base;
+    if (!override) {return base;}
     return {
         palette: override.palette ?? base.palette,
         min: override.min ?? base.min,

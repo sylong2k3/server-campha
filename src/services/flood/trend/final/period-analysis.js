@@ -21,7 +21,6 @@
 
 const { ASSETS } = require('../../common/datasets');
 const { otsuThresholdOnBand } = require('../../common/otsu');
-const { ANALYSIS_CRS } = require('../../common/projection');
 
 // Smoothing radius used by FINAL (50 m > V1's 20 m).
 const SMOOTH_RADIUS_M = 50;
