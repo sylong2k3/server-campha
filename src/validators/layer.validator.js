@@ -257,6 +257,8 @@ const deleteLayerSchema = Joi.object({
     deleteFiles: Joi.boolean().default(false),
 });
 
+const cleanupRequestSchema = Joi.object({}).default({});
+
 module.exports = {
     shapefileImportSchema,
     excelImportSchema,
@@ -269,4 +271,5 @@ module.exports = {
     geographicMetadataSchema,
     permissionsSchema,
     deleteLayerSchema,
+    cleanupRequestSchema,
 };

@@ -8,8 +8,73 @@ const pageResult = (rows) => ({
     total: rows[0]?.total_count || 0,
 });
 const selectFields = `s.id,s.scene_code,s.title,s.platform,s.thematic_group,s.coverage_key,s.acquired_at,
-    s.product_level,s.resolution_m,s.cloud_cover_percent,s.orbit_number,s.description,s.layer_id,
+    s.product_level,s.resolution_m,s.cloud_cover_percent,s.orbit_number,s.description,s.layer_id,s.standalone_layer_id,
     f.original_name,f.size_bytes,s.created_at,s.updated_at`;
+
+const PUBLISH_ERROR = Object.freeze({
+    TARGET_CONFLICT: 'RASTER_LAYER_TARGET_CONFLICT',
+    CODE_RETIRED: 'LAYER_CODE_RETIRED',
+    CLEANUP_PENDING: 'LAYER_CLEANUP_PENDING',
+    CLEANUP_REQUIRED: 'LAYER_CLEANUP_REQUIRED',
+});
+const publishError = (code, message) => Object.assign(new Error(message), { code });
+const publishMetadata = (metadata) => {
+    const safe = { ...metadata };
+    for (const key of [
+        'timeSeries',
+        'geoserverStore',
+        'geoserverStoreKind',
+        'geoserverLayer',
+        'geoserverPublishCategory',
+        'rasterIngestJobId',
+    ]) {
+        delete safe[key];
+    }
+    return safe;
+};
+const lockPublishLayers = async (client, linkedIds, code, imageId = null) => {
+    const { rows } = await client.query(
+        `SELECT l.*,
+                EXISTS (SELECT 1 FROM raster.satellite_images s WHERE s.layer_id=l.id)
+                    AS has_collection_members,
+                EXISTS (SELECT 1 FROM raster.satellite_images s
+                        WHERE s.standalone_layer_id=l.id AND s.deleted_at IS NULL
+                          AND s.id IS DISTINCT FROM $3::bigint) AS has_other_standalone,
+                EXISTS (SELECT 1 FROM raster.satellite_images s
+                        WHERE s.file_object_id=l.source_file_id
+                          AND (s.standalone_layer_id=l.id
+                               OR s.id::text=l.metadata->>'satelliteImageId')) AS has_standalone_source
+         FROM gis.layers l WHERE l.id=ANY($1::bigint[]) OR l.code=$2
+         ORDER BY l.id FOR UPDATE OF l`,
+        [linkedIds, code, imageId],
+    );
+    return rows;
+};
+const requireCompletedCleanup = async (client, layer) => {
+    // ponytail: repair only links touched by publish; bulk backfill needs a separate review.
+    const {
+        rows: [job],
+    } = await client.query(
+        `SELECT status,
+                EXISTS (SELECT 1 FROM gis.layer_cleanup_jobs
+                        WHERE layer_id=$1 AND status IN ('queued','running')) AS has_active_job
+         FROM gis.layer_cleanup_jobs WHERE layer_id=$1
+         ORDER BY created_at DESC,id DESC LIMIT 1`,
+        [layer.id],
+    );
+    if (['queued', 'running'].includes(layer.cleanup_status) || job?.has_active_job) {
+        throw publishError(
+            PUBLISH_ERROR.CLEANUP_PENDING,
+            'Lớp cũ đang được dọn; hãy chờ cleanup hoàn tất',
+        );
+    }
+    if (layer.cleanup_status !== 'complete' || job?.status !== 'succeeded') {
+        throw publishError(
+            PUBLISH_ERROR.CLEANUP_REQUIRED,
+            'Chưa xác nhận dọn xong lớp cũ; cần người vận hành kiểm tra và phục hồi cleanup',
+        );
+    }
+};
 
 const list = async (filter) => {
     const params = [];
@@ -205,7 +270,7 @@ const preparePublish = async (id, input, actorId) => {
             return null;
         }
         const metadata = {
-            ...input.metadata,
+            ...publishMetadata(input.metadata),
             satelliteImageId: image.id,
             sceneCode: image.scene_code,
             acquiredAt: image.acquired_at,
@@ -233,24 +298,54 @@ const preparePublish = async (id, input, actorId) => {
             actorId,
         ];
         let layer;
-        let targetLayerId = image.standalone_layer_id;
-        if (!targetLayerId) {
-            const {
-                rows: [existingLayer],
-            } = await client.query(
-                `SELECT l.id
-                 FROM gis.layers l
-                 WHERE l.code = $1 AND l.deleted_at IS NULL
-                   AND NOT EXISTS (
-                       SELECT 1 FROM raster.satellite_images active
-                       WHERE active.standalone_layer_id = l.id AND active.deleted_at IS NULL AND active.id <> $2
-                   )
-                 FOR UPDATE`,
-                [input.code, image.id],
+        const candidates = await lockPublishLayers(
+            client,
+            image.standalone_layer_id ? [image.standalone_layer_id] : [],
+            input.code,
+            image.id,
+        );
+        let linkedLayer = candidates.find(
+            (candidate) => String(candidate.id) === String(image.standalone_layer_id),
+        );
+        if (image.standalone_layer_id && !linkedLayer) {
+            throw publishError(
+                PUBLISH_ERROR.CLEANUP_REQUIRED,
+                'Không xác minh được lớp đã liên kết',
             );
-            targetLayerId = existingLayer?.id || null;
         }
-        if (targetLayerId) {
+        if (linkedLayer?.deleted_at) {
+            await requireCompletedCleanup(client, linkedLayer);
+            linkedLayer = null;
+        }
+        const codeLayer = candidates.find((candidate) => candidate.code === input.code);
+        if (codeLayer?.deleted_at) {
+            throw publishError(
+                PUBLISH_ERROR.CODE_RETIRED,
+                'Mã lớp đã từng được sử dụng; hãy dùng mã mới',
+            );
+        }
+        const target = linkedLayer || codeLayer;
+        if (
+            target &&
+            (target.code !== input.code ||
+                target.geometry_type !== 'RASTER' ||
+                target.storage_kind !== 'geotiff_minio' ||
+                target.table_name ||
+                !target.source_file_id ||
+                !target.object_key ||
+                !target.has_standalone_source ||
+                target.has_collection_members ||
+                target.has_other_standalone ||
+                String(target.metadata?.timeSeries?.enabled) === 'true' ||
+                target.metadata?.geoserverStoreKind === 'imagemosaic_upload' ||
+                target.metadata?.rasterIngestJobId)
+        ) {
+            throw publishError(
+                PUBLISH_ERROR.TARGET_CONFLICT,
+                'Lớp đích không phải GeoTIFF standalone tương thích hoặc mã khác lớp đã liên kết; không được ghi đè collection hay lớp của ảnh khác',
+            );
+        }
+        if (target) {
             const {
                 rows: [updated],
             } = await client.query(
@@ -260,14 +355,14 @@ const preparePublish = async (id, input, actorId) => {
                      min_zoom=$7,max_zoom=$8,legend_config=$9::jsonb,metadata=$10::jsonb,
                      is_public=$11,publish_status='pending',version=version+1
                  WHERE id=$12 AND deleted_at IS NULL RETURNING *`,
-                [...values.slice(0, 11), targetLayerId],
+                [...values.slice(0, 11), target.id],
             );
             if (!updated) {
                 await client.query('ROLLBACK');
                 return null;
             }
             layer = updated;
-            if (!image.standalone_layer_id) {
+            if (String(image.standalone_layer_id) !== String(layer.id)) {
                 await client.query(
                     'UPDATE raster.satellite_images SET standalone_layer_id=$2,updated_by=$3 WHERE id=$1',
                     [id, layer.id, actorId],
@@ -321,10 +416,8 @@ const COLLECTION_ERROR = Object.freeze({
     LAYER_CONFLICT: 'COLLECTION_LAYER_CONFLICT',
 });
 
-const collectionError = (code, message) => Object.assign(new Error(message), { code });
-
 const collectionMetadata = (input, coverageKey, existingMetadata = {}) => ({
-    ...input.metadata,
+    ...publishMetadata(input.metadata),
     geoserverStore: input.code,
     geoserverStoreKind: 'imagemosaic_upload',
     timeSeries: {
@@ -352,7 +445,7 @@ const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) =
             [coverageKey],
         );
         if (!members.length) {
-            throw collectionError(
+            throw publishError(
                 COLLECTION_ERROR.EMPTY,
                 'Bộ GeoTIFF Time Series không có ảnh hợp lệ',
             );
@@ -361,7 +454,7 @@ const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) =
         for (const member of members) {
             const time = new Date(member.acquired_at).toISOString();
             if (seen.has(time)) {
-                throw collectionError(
+                throw publishError(
                     COLLECTION_ERROR.DUPLICATE_TIME,
                     `Bộ GeoTIFF có nhiều ảnh tại ${time}`,
                 );
@@ -369,30 +462,39 @@ const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) =
             seen.add(time);
         }
         const linkedLayerIds = [
-            ...new Set(members.map((member) => member.layer_id).filter(Boolean)),
+            ...new Set(
+                members
+                    .map((member) => member.layer_id)
+                    .filter(Boolean)
+                    .map(String),
+            ),
         ];
-        if (linkedLayerIds.length > 1) {
-            throw collectionError(
+        const candidates = await lockPublishLayers(client, linkedLayerIds, input.code);
+        const activeLinkedIds = [];
+        for (const linkedId of linkedLayerIds) {
+            const linkedLayer = candidates.find((candidate) => String(candidate.id) === linkedId);
+            if (linkedLayer?.deleted_at) {
+                await requireCompletedCleanup(client, linkedLayer);
+            } else {
+                activeLinkedIds.push(linkedId);
+            }
+        }
+        if (activeLinkedIds.length > 1) {
+            throw publishError(
                 COLLECTION_ERROR.MEMBER_CONFLICT,
                 'Ảnh trong collection đang thuộc nhiều lớp khác nhau',
             );
         }
-        const {
-            rows: [codeLayer],
-        } = await client.query(
-            `SELECT id,code,storage_kind,publish_status,metadata,deleted_at
-             FROM gis.layers WHERE code=$1 FOR UPDATE`,
-            [input.code],
-        );
+        const codeLayer = candidates.find((candidate) => candidate.code === input.code);
         if (codeLayer?.deleted_at) {
-            throw collectionError(
-                COLLECTION_ERROR.LAYER_CONFLICT,
+            throw publishError(
+                PUBLISH_ERROR.CODE_RETIRED,
                 'Mã lớp đã từng được sử dụng và không thể tái tạo',
             );
         }
-        const linkedLayerId = linkedLayerIds[0] || null;
-        if (linkedLayerId && codeLayer?.id !== linkedLayerId) {
-            throw collectionError(
+        const linkedLayerId = activeLinkedIds[0] || null;
+        if (linkedLayerId && String(codeLayer?.id) !== linkedLayerId) {
+            throw publishError(
                 COLLECTION_ERROR.MEMBER_CONFLICT,
                 'Ảnh trong collection đang thuộc lớp khác',
             );
@@ -400,10 +502,14 @@ const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) =
         if (
             codeLayer &&
             (codeLayer.storage_kind !== 'geotiff_minio' ||
+                codeLayer.geometry_type !== 'RASTER' ||
+                codeLayer.object_key ||
+                codeLayer.source_file_id ||
+                codeLayer.has_other_standalone ||
                 codeLayer.metadata?.timeSeries?.enabled !== true ||
                 codeLayer.metadata?.timeSeries?.coverageKey !== coverageKey)
         ) {
-            throw collectionError(
+            throw publishError(
                 COLLECTION_ERROR.LAYER_CONFLICT,
                 'Mã lớp đang thuộc tài nguyên khác',
             );
@@ -450,7 +556,7 @@ const prepareCollectionPublish = async (coverageKey, input, actorId, roleCode) =
             layer = created;
         }
         if (!layer) {
-            throw collectionError(
+            throw publishError(
                 COLLECTION_ERROR.LAYER_CONFLICT,
                 'Không thể chuẩn bị lớp Time Series',
             );
@@ -526,4 +632,5 @@ module.exports = {
     markCollectionStoreOwned,
     setCollectionPublishState,
     COLLECTION_ERROR,
+    PUBLISH_ERROR,
 };

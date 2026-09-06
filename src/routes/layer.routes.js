@@ -67,6 +67,21 @@ router.put(
     asyncHandler(controller.updateStandardMetadata),
 );
 router.get(
+    '/:layerId/cleanup',
+    requirePermission('layers', 'read'),
+    strict(validator.layerIdParamsSchema, 'params'),
+    strict(validator.cleanupRequestSchema, 'query'),
+    asyncHandler(controller.getCleanup),
+);
+router.post(
+    '/:layerId/cleanup/retry',
+    requirePermission('layers', 'delete'),
+    strict(validator.layerIdParamsSchema, 'params'),
+    strict(validator.cleanupRequestSchema, 'query'),
+    strict(validator.cleanupRequestSchema),
+    asyncHandler(controller.retryCleanup),
+);
+router.get(
     '/:layerId',
     requirePermission('layers', 'read'),
     validate(validator.layerIdParamsSchema, 'params'),

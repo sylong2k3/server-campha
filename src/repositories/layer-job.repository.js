@@ -190,6 +190,73 @@ const failImport = async (id, workerId, errorCode, errorMessage) => {
     return row || null;
 };
 
+const findCleanupStatus = async (layerId, client = db) => {
+    const {
+        rows: [row],
+    } = await client.query(
+        `SELECT l.id AS layer_id,l.code,l.deleted_at,l.cleanup_status,l.updated_at AS layer_updated_at,
+                j.id AS job_id,j.status AS job_status,j.attempt,j.max_attempts,
+                j.next_attempt_at,j.started_at,j.finished_at,j.created_at,j.updated_at
+         FROM gis.layers l
+         LEFT JOIN LATERAL (
+             SELECT id,status,attempt,max_attempts,next_attempt_at,started_at,finished_at,created_at,updated_at
+             FROM gis.layer_cleanup_jobs WHERE layer_id=l.id
+             ORDER BY (status IN ('queued','running')) DESC,created_at DESC,id DESC LIMIT 1
+         ) j ON true
+         WHERE l.id=$1`,
+        [layerId],
+    );
+    return row || null;
+};
+
+const retryCleanup = async (layerId) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const locked = await client.query('SELECT id FROM gis.layers WHERE id=$1 FOR UPDATE', [
+            layerId,
+        ]);
+        if (!locked.rows.length) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+        // Workers lock job before layer. Read jobs without locking after taking the layer lock;
+        // active jobs cause rollback, and terminal jobs are never mutated by this retry path.
+        const state = await findCleanupStatus(layerId, client);
+        const conflict = !state.deleted_at
+            ? 'LAYER_NOT_DELETED'
+            : ['queued', 'running'].includes(state.job_status)
+              ? 'LAYER_CLEANUP_ALREADY_ACTIVE'
+              : state.cleanup_status === 'complete' || state.job_status !== 'failed'
+                ? 'LAYER_CLEANUP_NOT_RETRYABLE'
+                : null;
+        if (conflict) {
+            await client.query('ROLLBACK');
+            return { conflict };
+        }
+        const { rows } = await client.query(
+            `INSERT INTO gis.layer_cleanup_jobs (layer_id,max_attempts)
+             VALUES ($1,$2)
+             ON CONFLICT (layer_id) WHERE status IN ('queued','running') DO NOTHING
+             RETURNING id`,
+            [layerId, state.max_attempts],
+        );
+        if (!rows.length) {
+            await client.query('ROLLBACK');
+            return { conflict: 'LAYER_CLEANUP_ALREADY_ACTIVE' };
+        }
+        await client.query("UPDATE gis.layers SET cleanup_status='queued' WHERE id=$1", [layerId]);
+        const queued = await findCleanupStatus(layerId, client);
+        await client.query('COMMIT');
+        return { state: queued, previousJobId: state.job_id };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
 const claimCleanup = async (workerId, leaseSeconds = 120) => {
     const client = await db.getClient();
     try {
@@ -201,10 +268,15 @@ const claimCleanup = async (workerId, leaseSeconds = 120) => {
              WHERE status = 'running' AND lease_expires_at < NOW() AND attempt < max_attempts`,
         );
         await client.query(
-            `UPDATE gis.layer_cleanup_jobs c
-             SET status = 'failed', worker_id = NULL, lease_expires_at = NULL, finished_at = NOW(),
-                 error_message = 'Worker lease expired after maximum attempts'
-             WHERE c.status = 'running' AND c.lease_expires_at < NOW() AND c.attempt >= c.max_attempts`,
+            `WITH exhausted AS (
+                 UPDATE gis.layer_cleanup_jobs c
+                 SET status = 'failed', worker_id = NULL, lease_expires_at = NULL, finished_at = NOW(),
+                     error_message = 'Worker lease expired after maximum attempts'
+                 WHERE c.status = 'running' AND c.lease_expires_at < NOW() AND c.attempt >= c.max_attempts
+                 RETURNING layer_id
+             )
+             UPDATE gis.layers SET cleanup_status = 'failed'
+             WHERE id IN (SELECT layer_id FROM exhausted) AND deleted_at IS NOT NULL`,
         );
         const {
             rows: [candidate],
@@ -258,20 +330,32 @@ const completeCleanup = async (id, workerId, layerId) => {
         const completed = await client.query(
             `UPDATE gis.layer_cleanup_jobs
              SET status = 'succeeded', finished_at = NOW(), worker_id = NULL, lease_expires_at = NULL
-             WHERE id = $1 AND status = 'running' AND worker_id = $2
-               AND lease_expires_at > NOW()`,
-            [id, workerId],
+              WHERE id = $1 AND status = 'running' AND worker_id = $2 AND layer_id = $3
+                AND lease_expires_at > NOW()
+                AND EXISTS (SELECT 1 FROM gis.layers WHERE id=$3 AND deleted_at IS NOT NULL)`,
+            [id, workerId, layerId],
         );
         if (completed.rowCount !== 1) {
             await client.query('ROLLBACK');
             return false;
         }
+        // Match publish's image-before-layer lock order, including collection time ordering.
+        await client.query(
+            `SELECT id FROM raster.satellite_images
+             WHERE layer_id=$1 OR standalone_layer_id=$1
+             ORDER BY acquired_at,id FOR UPDATE`,
+            [layerId],
+        );
         await client.query("UPDATE gis.layers SET cleanup_status = 'complete' WHERE id = $1", [
             layerId,
         ]);
         await client.query('UPDATE raster.satellite_images SET layer_id=NULL WHERE layer_id=$1', [
             layerId,
         ]);
+        await client.query(
+            'UPDATE raster.satellite_images SET standalone_layer_id=NULL WHERE standalone_layer_id=$1',
+            [layerId],
+        );
         await client.query('COMMIT');
         return true;
     } catch (error) {
@@ -324,6 +408,8 @@ module.exports = {
     addImportErrors,
     completeImport,
     failImport,
+    findCleanupStatus,
+    retryCleanup,
     claimCleanup,
     heartbeatCleanup,
     completeCleanup,

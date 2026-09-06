@@ -200,6 +200,63 @@ const deleteLayer = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     };
 };
 
+const cleanupView = (state, actor) => ({
+    layerId: state.layer_id,
+    code: state.code,
+    deletedAt: state.deleted_at,
+    cleanupStatus: state.cleanup_status,
+    updatedAt: state.layer_updated_at,
+    canRetry: Boolean(
+        hasPermission(actor, 'delete') &&
+        state.deleted_at &&
+        state.cleanup_status !== 'complete' &&
+        state.job_status === 'failed',
+    ),
+    job: state.job_id
+        ? {
+              id: state.job_id,
+              status: state.job_status,
+              attempt: state.attempt,
+              maxAttempts: state.max_attempts,
+              nextAttemptAt: state.job_status === 'queued' ? state.next_attempt_at : null,
+              startedAt: state.started_at,
+              finishedAt: state.finished_at,
+              createdAt: state.created_at,
+              updatedAt: state.updated_at,
+          }
+        : null,
+});
+const getCleanup = async (id, actor) => {
+    assertPermission(actor, 'read');
+    const state = await jobRepository.findCleanupStatus(id);
+    if (!state) {
+        throw new Api404Error('Không tìm thấy lớp dữ liệu');
+    }
+    return cleanupView(state, actor);
+};
+const retryCleanup = async (id, actor) => {
+    assertPermission(actor, 'delete');
+    const result = await jobRepository.retryCleanup(id);
+    if (!result) {
+        throw new Api404Error('Không tìm thấy lớp dữ liệu');
+    }
+    if (result.conflict) {
+        const messages = {
+            LAYER_NOT_DELETED: 'Chỉ được dọn lại lớp đã xóa',
+            LAYER_CLEANUP_ALREADY_ACTIVE: 'Cleanup đang chờ hoặc đang chạy; không tạo job trùng',
+            LAYER_CLEANUP_NOT_RETRYABLE:
+                'Chỉ được thử lại khi job cleanup thất bại và lớp chưa dọn xong',
+        };
+        throw new Api409Error(messages[result.conflict], [result.conflict]);
+    }
+    audit('layer_cleanup_retried', actor, {
+        layerId: id,
+        previousJobId: result.previousJobId,
+        jobId: result.state.job_id,
+    });
+    return cleanupView(result.state, actor);
+};
+
 const retryPublish = async (id, actor) => {
     assertPermission(actor, 'update');
     const layer = await layerRepository.findById(id);
@@ -236,5 +293,7 @@ module.exports = {
     updateLayer,
     replacePermissions,
     deleteLayer,
+    getCleanup,
+    retryCleanup,
     retryPublish,
 };

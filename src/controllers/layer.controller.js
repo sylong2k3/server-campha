@@ -105,6 +105,22 @@ const deleteLayer = async (req, res) => {
         ),
     );
 };
+const getCleanup = async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    OK(
+        res,
+        'Lấy trạng thái cleanup thành công',
+        await layerService.getCleanup(Number(req.params.layerId), buildActor(req)),
+    );
+};
+const retryCleanup = async (req, res) => {
+    res.set('Cache-Control', 'private, no-store');
+    OK(
+        res,
+        'Đã xếp hàng thử lại cleanup lớp dữ liệu',
+        await layerService.retryCleanup(Number(req.params.layerId), buildActor(req)),
+    );
+};
 const retryPublish = async (req, res) => {
     OK(
         res,
@@ -126,5 +142,7 @@ module.exports = {
     updateLayer,
     replacePermissions,
     deleteLayer,
+    getCleanup,
+    retryCleanup,
     retryPublish,
 };

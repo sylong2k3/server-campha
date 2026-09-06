@@ -118,9 +118,10 @@ const remove = async (id, expectedUpdatedAt, deleteFiles, actor) => {
         ]);
     }
     if (deleted?.conflict === 'LAYER_PUBLISHED') {
-        throw new Api409Error('Ảnh đang được publish thành lớp bản đồ riêng; hãy huỷ publish trước', [
-            'LAYER_PUBLISHED',
-        ]);
+        throw new Api409Error(
+            'Ảnh đang được publish thành lớp bản đồ riêng; hãy huỷ publish trước',
+            ['LAYER_PUBLISHED'],
+        );
     }
     if (deleted?.conflict === 'FILE_STILL_IN_USE') {
         throw new Api409Error('Ảnh GeoTIFF vẫn đang được lớp bản đồ sử dụng', [
@@ -147,8 +148,15 @@ const publish = async (id, input, actor) => {
     try {
         prepared = await repository.preparePublish(id, input, actor.id);
     } catch (error) {
+        if (Object.values(repository.PUBLISH_ERROR).includes(error.code)) {
+            throw new Api409Error(error.message, ['RASTER_LAYER_CONFLICT', error.code]);
+        }
         if (error.code === '23505') {
-            throw new Api409Error('Mã lớp đã tồn tại hoặc file đã liên kết với lớp khác', [
+            audit('satellite_publish_conflict', actor, {
+                satelliteImageId: id,
+                constraint: error.constraint,
+            });
+            throw new Api409Error('Mã lớp đã được dùng hoặc ảnh đã liên kết với lớp khác', [
                 'RASTER_LAYER_CONFLICT',
             ]);
         }
@@ -199,13 +207,20 @@ const publishCollection = async (coverageKey, input, actor) => {
             actor.role,
         );
     } catch (error) {
-        if (
-            error.code === '23505' ||
-            Object.values(repository.COLLECTION_ERROR).includes(error.code)
-        ) {
-            throw new Api409Error(error.message || 'Bộ GeoTIFF Time Series bị xung đột', [
-                error.code === '23505' ? 'COLLECTION_LAYER_CONFLICT' : error.code,
+        if (error.code === '23505') {
+            audit('satellite_collection_publish_conflict', actor, {
+                coverageKey,
+                constraint: error.constraint,
+            });
+            throw new Api409Error('Mã lớp Time Series đã được sử dụng', [
+                'COLLECTION_LAYER_CONFLICT',
             ]);
+        }
+        if (Object.values(repository.PUBLISH_ERROR).includes(error.code)) {
+            throw new Api409Error(error.message, ['COLLECTION_LAYER_CONFLICT', error.code]);
+        }
+        if (Object.values(repository.COLLECTION_ERROR).includes(error.code)) {
+            throw new Api409Error(error.message, [error.code]);
         }
         throw error;
     }

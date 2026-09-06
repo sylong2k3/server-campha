@@ -1,6 +1,10 @@
 # Tích hợp GeoTIFF Time Series cho Web và Mobile
 
-Cập nhật: 2026-08-29 (bổ sung kiến trúc tách 34 layer riêng)
+Cập nhật contract Admin: 2026-09-07. Ghi nhận triển khai 2026-08-29 giữ làm lịch sử.
+
+Hướng dẫn upload, tạo/thêm mốc, publish, lỗi 409 và cleanup:
+[GEOTIFF_TIME_SERIES_FE_ADMIN_GUIDE.md](file:///C:/Users/SunSun/Documents/DuAN_20226/campha/server-campha/docs/GEOTIFF_TIME_SERIES_FE_ADMIN_GUIDE.md).
+Bản sửa Đợt 1 mới ở source; chưa xác nhận deploy hoặc trạng thái production hiện tại.
 
 ## 1. Mục tiêu
 
@@ -37,7 +41,10 @@ Lop_phu_do_thi_Cam_Pha_2002_RGB.tif → 2002-01-01T00:00:00.000Z
 Lop_phu_do_thi_Cam_Pha_2024_RGB.tif → 2024-01-01T00:00:00.000Z
 ```
 
-## 2. Trạng thái triển khai
+## 2. Ghi nhận triển khai lịch sử — 2026-08-29
+
+Các số lượng, ID và trạng thái trong mục này là ghi nhận ngày 2026-08-29,
+không phải kết quả kiểm tra production mới. Không hardcode vào FE.
 
 > [!IMPORTANT]
 > Backend và pipeline GeoServer đã chạy trên production. Ngày 2026-08-29 đã
@@ -168,8 +175,10 @@ và còn ít nhất một ảnh hợp lệ.
 
 #### A.1 Thêm mốc dữ liệu và tổng hợp lại từ Admin
 
-Trên giao diện Admin, người dùng không cần chọn từng ảnh hoặc nhập trực tiếp
-`coverageKey`, `code`, `geoserverLayer`. Luồng tối giản là:
+Trên giao diện Admin, người dùng chọn nhóm dữ liệu; FE ánh xạ sang `coverageKey`.
+Collection hiện có phải lấy `code` từ lớp Admin, không tự sinh lại từ coverage.
+Tạo collection mới cho người dùng sửa mã đề xuất vì mã có thể đã được dùng.
+Luồng tối giản:
 
 ```text
 Chọn Nhóm dữ liệu chuỗi thời gian
@@ -204,7 +213,12 @@ mốc mặc định của slider.
 | Xóa một ảnh đang là thành viên | Từ chối `409 TIME_SERIES_MEMBER` | Không thay đổi collection; phải xóa layer Time Series trước |
 | Xóa standalone layer của một ảnh | Cleanup lớp riêng qua `standalone_layer_id` | Không xóa ảnh khỏi Time Series (`layer_id` là quan hệ khác) |
 | Xóa layer Time Series | Soft-delete layer, đưa cleanup job vào hàng đợi, gỡ ImageMosaic/coverage store khỏi GeoServer | Layer biến mất khỏi catalog và WMS ngừng hoạt động; ảnh nguồn vẫn còn |
-| Cleanup Time Series hoàn tất | `satellite_images.layer_id = NULL` cho các ảnh thành viên | Các ảnh được giải phóng để có thể tổng hợp thành collection mới |
+| Cleanup Time Series hoàn tất | `satellite_images.layer_id = NULL` cho các ảnh trỏ đúng lớp vừa dọn | Tạo collection mới với mã mới; standalone khác giữ nguyên |
+| Cleanup standalone hoàn tất | `standalone_layer_id = NULL` ở ảnh trỏ đúng lớp vừa dọn | Collection khác giữ nguyên; publish riêng lại bằng mã mới |
+
+Bản sửa Đợt 1 chỉ thay liên kết cũ bị kẹt khi lớp cleanup `complete` và job
+`succeeded`; pending/failed không tự gỡ. API xem/retry cleanup cho lớp đã xóa chưa có.
+Không coi 404 detail lớp là cleanup hoàn tất; lỗi cần phục hồi do vận hành xử lý.
 
 > [!WARNING]
 > Xóa layer Time Series là xóa toàn bộ collection đã publish, không phải chỉ xóa
@@ -368,7 +382,7 @@ Backend trả `timeSeries` khi layer ImageMosaic còn dữ liệu. Ví dụ prod
                 "imageId": "12",
                 "sceneCode": "CP-TRUOC-NGAP-2015",
                 "acquiredAt": "2015-01-01T00:00:00.000Z",
-                "fileObjectId": "<uuid>"
+                "fileObjectId": "32"
             }
         ]
     }

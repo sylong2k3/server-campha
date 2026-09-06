@@ -149,4 +149,85 @@ describe('layer service', () => {
             true,
         );
     });
+
+    test('getCleanup requires layers.read and maps job/canRetry fields', async () => {
+        await expect(
+            service.getCleanup(9, { ...actor, permissions: { layers: {} } }),
+        ).rejects.toMatchObject({ status: 403 });
+        jobRepository.findCleanupStatus.mockResolvedValue(null);
+        await expect(service.getCleanup(9, actor)).rejects.toMatchObject({ status: 404 });
+        jobRepository.findCleanupStatus.mockResolvedValue({
+            layer_id: 9,
+            code: 'old_code',
+            deleted_at: '2026-01-01',
+            cleanup_status: 'failed',
+            layer_updated_at: '2026-01-02',
+            job_id: 41,
+            job_status: 'failed',
+            attempt: 5,
+            max_attempts: 5,
+            next_attempt_at: null,
+            started_at: null,
+            finished_at: '2026-01-02',
+            created_at: '2026-01-01',
+            updated_at: '2026-01-02',
+        });
+        await expect(service.getCleanup(9, actor)).resolves.toMatchObject({
+            layerId: 9,
+            cleanupStatus: 'failed',
+            canRetry: true,
+            job: expect.objectContaining({ id: 41, status: 'failed' }),
+        });
+        await expect(
+            service.getCleanup(9, { ...actor, permissions: { layers: { read: true } } }),
+        ).resolves.toMatchObject({ canRetry: false });
+    });
+
+    test('retryCleanup requires layers.delete, maps conflicts and audits success', async () => {
+        await expect(
+            service.retryCleanup(9, { ...actor, permissions: { layers: { read: true } } }),
+        ).rejects.toMatchObject({ status: 403 });
+        jobRepository.retryCleanup.mockResolvedValue(null);
+        await expect(service.retryCleanup(9, actor)).rejects.toMatchObject({ status: 404 });
+        for (const conflict of [
+            'LAYER_NOT_DELETED',
+            'LAYER_CLEANUP_ALREADY_ACTIVE',
+            'LAYER_CLEANUP_NOT_RETRYABLE',
+        ]) {
+            jobRepository.retryCleanup.mockResolvedValue({ conflict });
+            await expect(service.retryCleanup(9, actor)).rejects.toMatchObject({
+                status: 409,
+                errors: [conflict],
+            });
+        }
+        jobRepository.retryCleanup.mockResolvedValue({
+            previousJobId: 41,
+            state: {
+                layer_id: 9,
+                code: 'old_code',
+                deleted_at: '2026-01-01',
+                cleanup_status: 'queued',
+                layer_updated_at: '2026-01-03',
+                job_id: 42,
+                job_status: 'queued',
+                attempt: 0,
+                max_attempts: 5,
+                next_attempt_at: '2026-01-03',
+                started_at: null,
+                finished_at: null,
+                created_at: '2026-01-03',
+                updated_at: '2026-01-03',
+            },
+        });
+        await expect(service.retryCleanup(9, actor)).resolves.toMatchObject({
+            cleanupStatus: 'queued',
+            job: expect.objectContaining({ id: 42, status: 'queued' }),
+        });
+        const systemLogger = require('../../utils/systemLogger.util');
+        expect(systemLogger.logInfo).toHaveBeenCalledWith(
+            'layers',
+            'layer_cleanup_retried',
+            expect.objectContaining({ layerId: 9, previousJobId: 41, jobId: 42 }),
+        );
+    });
 });

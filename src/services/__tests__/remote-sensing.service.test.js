@@ -5,13 +5,21 @@ jest.mock('../minio.service', () => ({
     getPresignedDownloadUrl: jest.fn(),
     getObjectStream: jest.fn(),
 }));
-jest.mock('../../utils/geoserver.client', () => ({ publishGeoTiffStream: jest.fn() }));
+jest.mock('../../utils/geoserver.client', () => ({
+    publishGeoTiffStream: jest.fn(),
+    uploadImageMosaicZip: jest.fn(),
+    configureCoverageTime: jest.fn(),
+    verifyImageMosaicTime: jest.fn(),
+}));
+jest.mock('../geotiff-time-series.service', () => ({ materializeImageMosaic: jest.fn() }));
 jest.mock('../../utils/systemLogger.util', () => ({ logInfo: jest.fn() }));
 const repository = require('../../repositories/remote-sensing.repository');
 const webMapRepository = require('../../repositories/web-map.repository');
 const geoserver = require('../../utils/geoserver.client');
 const minio = require('../minio.service');
 const service = require('../remote-sensing.service');
+const timeSeriesService = require('../geotiff-time-series.service');
+const logger = require('../../utils/systemLogger.util');
 const admin = {
     id: 2,
     role: 'so_tnmt',
@@ -136,5 +144,84 @@ describe('remote sensing service', () => {
         await expect(service.publish(99, {}, admin)).rejects.toMatchObject({ status: 404 });
         repository.preparePublish.mockRejectedValue({ code: '23505' });
         await expect(service.publish(7, {}, admin)).rejects.toMatchObject({ status: 409 });
+    });
+
+    test.each(Object.values(repository.PUBLISH_ERROR))(
+        'returns %s with compatible codes before any remote publish',
+        async (code) => {
+            repository.preparePublish.mockRejectedValue(
+                Object.assign(new Error('Safe domain error'), { code }),
+            );
+            repository.prepareCollectionPublish.mockRejectedValue(
+                Object.assign(new Error('Safe domain error'), { code }),
+            );
+            await expect(service.publish(7, {}, admin)).rejects.toMatchObject({
+                status: 409,
+                errors: ['RASTER_LAYER_CONFLICT', code],
+            });
+            await expect(service.publishCollection('cp-1', {}, admin)).rejects.toMatchObject({
+                status: 409,
+                errors: ['COLLECTION_LAYER_CONFLICT', code],
+            });
+            expect(minio.getObjectStream).not.toHaveBeenCalled();
+            expect(geoserver.publishGeoTiffStream).not.toHaveBeenCalled();
+            expect(geoserver.uploadImageMosaicZip).not.toHaveBeenCalled();
+            expect(repository.setPublishState).not.toHaveBeenCalled();
+            expect(repository.setCollectionPublishState).not.toHaveBeenCalled();
+        },
+    );
+
+    test('keeps raw SQL details out of unique-conflict responses and audit payloads', async () => {
+        const failure = Object.assign(new Error('duplicate key value SQL internal secret'), {
+            code: '23505',
+            constraint: 'layers_code_key',
+            detail: 'private detail',
+        });
+        repository.prepareCollectionPublish.mockRejectedValue(failure);
+        repository.preparePublish.mockRejectedValue(failure);
+        for (const attempt of [
+            () => service.publish(7, {}, admin),
+            () => service.publishCollection('cp-1', {}, admin),
+        ]) {
+            const error = await attempt().catch((error) => error);
+            expect(error.status).toBe(409);
+            expect(error.message).not.toContain('SQL internal secret');
+        }
+        expect(logger.logInfo).toHaveBeenCalledWith(
+            'remote_sensing',
+            'satellite_collection_publish_conflict',
+            expect.objectContaining({ constraint: 'layers_code_key' }),
+        );
+        expect(JSON.stringify(logger.logInfo.mock.calls)).not.toContain('private detail');
+    });
+
+    test('publishes ordered collection values and selects the latest acquired timestamp', async () => {
+        const values = ['2015-01-01T00:00:00.000Z', '2018-01-01T00:00:00.000Z'];
+        repository.prepareCollectionPublish.mockResolvedValue({
+            layer: { id: 172, code: 'cp_ts' },
+            members: [
+                { id: 99, file_object_id: 31 },
+                { id: 7, file_object_id: 32 },
+            ],
+            values,
+        });
+        const cleanup = jest.fn().mockResolvedValue();
+        timeSeriesService.materializeImageMosaic.mockResolvedValue({
+            archivePath: 'test.zip',
+            cleanup,
+        });
+        geoserver.uploadImageMosaicZip.mockResolvedValue('campha:cp_ts');
+        repository.markCollectionStoreOwned.mockResolvedValue({ id: 172 });
+        repository.setCollectionPublishState.mockResolvedValue({
+            id: 172,
+            publish_status: 'published',
+        });
+        await expect(service.publishCollection('cp-1', {}, admin)).resolves.toMatchObject({
+            memberCount: 2,
+            imageIds: [99, 7],
+            timeSeries: { values, defaultTime: values[1] },
+        });
+        expect(geoserver.verifyImageMosaicTime).toHaveBeenCalledWith({ storeName: 'cp_ts' });
+        expect(cleanup).toHaveBeenCalled();
     });
 });
