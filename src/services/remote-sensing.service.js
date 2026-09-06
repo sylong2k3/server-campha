@@ -147,6 +147,12 @@ const publish = async (id, input, actor) => {
     try {
         prepared = await repository.preparePublish(id, input, actor.id);
     } catch (error) {
+        if (
+            error.code &&
+            Object.values(repository.STANDALONE_PUBLISH_ERROR || {}).includes(error.code)
+        ) {
+            throw new Api409Error(error.message, [error.code]);
+        }
         if (error.code === '23505') {
             throw new Api409Error('Mã lớp đã tồn tại hoặc file đã liên kết với lớp khác', [
                 'RASTER_LAYER_CONFLICT',

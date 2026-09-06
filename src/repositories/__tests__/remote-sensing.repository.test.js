@@ -56,7 +56,7 @@ describe('remote sensing repository raster source replacement', () => {
             image: { id: 12 },
             layer: { id: 3, source_file_id: 32 },
         });
-        expect(query.mock.calls[2][0]).toContain('NOT EXISTS');
+        expect(query.mock.calls[2][0]).toContain('LEFT JOIN raster.satellite_images active');
         expect(query.mock.calls[3][0]).toContain('UPDATE gis.layers');
         expect(query.mock.calls[4]).toEqual([
             expect.stringContaining('UPDATE raster.satellite_images SET standalone_layer_id=$2'),
@@ -68,7 +68,22 @@ describe('remote sensing repository raster source replacement', () => {
         expect(release).toHaveBeenCalledTimes(1);
     });
 
-    test('does not reuse a layer still linked to another active image', async () => {
+    test('rejects reuse if the layer code is already linked to another active image', async () => {
+        query
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({ rows: [image] })
+            .mockResolvedValueOnce({
+                rows: [{ id: 3, linked_image_id: 99, linked_scene_code: 'OTHER-IMAGE' }],
+            })
+            .mockResolvedValueOnce({});
+
+        await expect(repository.preparePublish(12, input, 7)).rejects.toMatchObject({
+            code: repository.STANDALONE_PUBLISH_ERROR.CODE_IN_USE_BY_OTHER_IMAGE,
+        });
+        expect(query.mock.calls[3][0]).toContain('ROLLBACK');
+    });
+
+    test('creates a new layer when the code is not yet used', async () => {
         query
             .mockResolvedValueOnce({})
             .mockResolvedValueOnce({ rows: [image] })

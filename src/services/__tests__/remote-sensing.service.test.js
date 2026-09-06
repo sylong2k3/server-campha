@@ -138,4 +138,18 @@ describe('remote sensing service', () => {
         repository.preparePublish.mockRejectedValue({ code: '23505' });
         await expect(service.publish(7, {}, admin)).rejects.toMatchObject({ status: 409 });
     });
+    test('maps domain publish error to specific 409 API error', async () => {
+        repository.STANDALONE_PUBLISH_ERROR = {
+            CODE_IN_USE_BY_OTHER_IMAGE: 'LAYER_CODE_IN_USE_BY_OTHER_IMAGE',
+        };
+        repository.preparePublish.mockRejectedValue({
+            code: 'LAYER_CODE_IN_USE_BY_OTHER_IMAGE',
+            message: 'Mã lớp đã được liên kết với ảnh khác',
+        });
+        await expect(service.publish(7, {}, admin)).rejects.toMatchObject({
+            status: 409,
+            message: 'Mã lớp đã được liên kết với ảnh khác',
+            errors: ['LAYER_CODE_IN_USE_BY_OTHER_IMAGE'],
+        });
+    });
 });

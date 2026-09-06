@@ -184,6 +184,13 @@ const remove = async (id, expectedUpdatedAt, actorId, deleteFiles = false) => {
     }
 };
 
+const STANDALONE_PUBLISH_ERROR = Object.freeze({
+    CODE_IN_USE_BY_OTHER_IMAGE: 'LAYER_CODE_IN_USE_BY_OTHER_IMAGE',
+    CODE_IN_USE: 'LAYER_CODE_IN_USE',
+});
+
+const publishError = (code, message) => Object.assign(new Error(message), { code });
+
 const preparePublish = async (id, input, actorId) => {
     const client = await db.getClient();
     try {
@@ -238,17 +245,49 @@ const preparePublish = async (id, input, actorId) => {
             const {
                 rows: [existingLayer],
             } = await client.query(
+                `SELECT l.id, l.metadata,
+                        active.id AS linked_image_id, active.scene_code AS linked_scene_code
+                 FROM gis.layers l
+                 LEFT JOIN raster.satellite_images active
+                   ON active.standalone_layer_id = l.id AND active.deleted_at IS NULL
+                 WHERE l.code = $1 AND l.deleted_at IS NULL
+                 FOR UPDATE OF l`,
+                [input.code],
+            );
+            if (existingLayer) {
+                if (
+                    existingLayer.linked_image_id &&
+                    Number(existingLayer.linked_image_id) !== Number(image.id)
+                ) {
+                    throw publishError(
+                        STANDALONE_PUBLISH_ERROR.CODE_IN_USE_BY_OTHER_IMAGE,
+                        `Mã lớp "${input.code}" đã được sử dụng bởi ảnh vệ tinh khác (${existingLayer.linked_scene_code || existingLayer.linked_image_id})`,
+                    );
+                }
+                if (existingLayer.metadata?.timeSeries?.enabled === true) {
+                    throw publishError(
+                        STANDALONE_PUBLISH_ERROR.CODE_IN_USE,
+                        `Mã lớp "${input.code}" đang được sử dụng cho chuỗi thời gian`,
+                    );
+                }
+                targetLayerId = existingLayer.id;
+            }
+        } else {
+            const {
+                rows: [codeOwner],
+            } = await client.query(
                 `SELECT l.id
                  FROM gis.layers l
-                 WHERE l.code = $1 AND l.deleted_at IS NULL
-                   AND NOT EXISTS (
-                       SELECT 1 FROM raster.satellite_images active
-                       WHERE active.standalone_layer_id = l.id AND active.deleted_at IS NULL AND active.id <> $2
-                   )
-                 FOR UPDATE`,
-                [input.code, image.id],
+                 WHERE l.code = $1 AND l.id <> $2 AND l.deleted_at IS NULL
+                 FOR UPDATE OF l`,
+                [input.code, targetLayerId],
             );
-            targetLayerId = existingLayer?.id || null;
+            if (codeOwner) {
+                throw publishError(
+                    STANDALONE_PUBLISH_ERROR.CODE_IN_USE,
+                    `Mã lớp "${input.code}" đã tồn tại ở một lớp khác`,
+                );
+            }
         }
         if (targetLayerId) {
             const {
@@ -526,4 +565,5 @@ module.exports = {
     markCollectionStoreOwned,
     setCollectionPublishState,
     COLLECTION_ERROR,
+    STANDALONE_PUBLISH_ERROR,
 };
