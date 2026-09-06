@@ -40,7 +40,7 @@ function upsertOverrides(patch) {
  */
 function deleteOverride(key) {
     const all = _read();
-    if (key == null) {
+    if (key === null || key === undefined) {
         _write({});
         return {};
     }

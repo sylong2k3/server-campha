@@ -203,7 +203,9 @@ function periodTagFromRun(run) {
             return p.postStart ? p.postStart.slice(0, 7).replace('-', '_') : null;
         case 'hand': {
             // No temporal period — tag by scenario depth (e.g. "5m").
-            const depth = p.levelM != null ? `${p.levelM}m` : null;
+            const depth = p.levelM !== null && p.levelM !== undefined
+                ? `${p.levelM}m`
+                : null;
             const month = run.created_at
                 ? new Date(run.created_at).toISOString().slice(0, 7).replace('-', '_')
                 : null;
@@ -246,7 +248,7 @@ function buildLayerLabel(definition, run, lang) {
     switch (run.module) {
         case 'event':
         case 'rain': {
-            if (!p.postStart) return base;
+            if (!p.postStart) {return base;}
             const d = new Date(p.postStart);
             const tag =
                 lang === 'vi'
@@ -255,7 +257,9 @@ function buildLayerLabel(definition, run, lang) {
             return `${base} (${tag})`;
         }
         case 'hand':
-            return p.levelM != null ? `${base} (${p.levelM}m)` : base;
+            return p.levelM !== null && p.levelM !== undefined
+                ? `${base} (${p.levelM}m)`
+                : base;
         case 'trend':
             // Monitoring model: include date range in label
             if (p.monitorStart && p.monitorEnd) {

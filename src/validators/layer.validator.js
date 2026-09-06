@@ -213,6 +213,48 @@ const legendConfigSchema = Joi.object({
     .allow(null)
     .default(null);
 
+const hexColor = Joi.string()
+    .trim()
+    .pattern(/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/);
+
+const defaultStyleSchema = Joi.object({
+    // Polygon
+    fillColor: hexColor,
+    fillOpacity: Joi.number().min(0).max(1),
+    fillAntialias: Joi.boolean(),
+    // Line & Polygon stroke
+    strokeColor: hexColor,
+    strokeOpacity: Joi.number().min(0).max(1),
+    strokeWidth: Joi.number().min(0).max(50),
+    strokeBlur: Joi.number().min(0).max(50),
+    strokeOffset: Joi.number(),
+    strokeDasharray: Joi.array().items(Joi.number().min(0)).min(2).max(10).allow(null),
+    lineCap: Joi.string().valid('butt', 'round', 'square'),
+    lineJoin: Joi.string().valid('bevel', 'round', 'miter'),
+    // Point
+    circleColor: hexColor,
+    circleOpacity: Joi.number().min(0).max(1),
+    circleRadius: Joi.number().min(0).max(100),
+    circleBlur: Joi.number().min(0).max(50),
+    circleStrokeColor: hexColor,
+    circleStrokeOpacity: Joi.number().min(0).max(1),
+    circleStrokeWidth: Joi.number().min(0).max(50),
+    // Raster
+    rasterOpacity: Joi.number().min(0).max(1),
+    brightnessMin: Joi.number().min(0).max(1),
+    brightnessMax: Joi.number().min(0).max(1),
+    contrast: Joi.number().min(-1).max(1),
+    saturation: Joi.number().min(-1).max(1),
+    hueRotate: Joi.number().min(0).max(360),
+    fadeDuration: Joi.number().min(0),
+    resampling: Joi.string().valid('linear', 'nearest'),
+    // Common / legacy
+    opacity: Joi.number().min(0).max(1),
+    visible_by_default: Joi.boolean(),
+})
+    .unknown(false)
+    .allow(null);
+
 const layerUpdateSchema = Joi.object({
     expectedUpdatedAt: Joi.date().iso().required(),
     nameVi: Joi.string().trim().min(2).max(200),
@@ -224,7 +266,10 @@ const layerUpdateSchema = Joi.object({
     minZoom: Joi.number().integer().min(0).max(24).allow(null),
     maxZoom: Joi.number().integer().min(0).max(24).allow(null),
     legendConfig: legendConfigSchema,
-    metadata: Joi.object({ standardProfile: Joi.forbidden() }).unknown(true),
+    metadata: Joi.object({
+        standardProfile: Joi.forbidden(),
+        defaultStyle: defaultStyleSchema,
+    }).unknown(true),
     isPublic: Joi.boolean(),
     isEnableDefault: Joi.boolean(),
 }).or(
@@ -266,6 +311,7 @@ module.exports = {
     listLayersSchema,
     layerUpdateSchema,
     legendConfigSchema,
+    defaultStyleSchema,
     geographicMetadataSchema,
     permissionsSchema,
     deleteLayerSchema,

@@ -72,8 +72,8 @@ const TEST_TITLE_PATTERNS = [
             `SELECT id, title FROM cms.news
              WHERE deleted_at IS NULL
                AND (
-                   -- Ký tự thay thế Unicode (dấu hiệu rõ nhất của lỗi encoding)
-                   title LIKE '%�%'
+                   -- U&'\\FFFD' matches Unicode replacement character U+FFFD.
+                   title LIKE '%' || U&'\\FFFD' || '%'
                    -- Chuỗi 2+ byte không hợp lệ trong Latin-1 bị giải mã sai sang UTF-8
                 OR title ~ '[\\xC0-\\xC1\\xF5-\\xFF]'
                    -- Tiêu đề trống hoặc chỉ có khoảng trắng

@@ -287,7 +287,9 @@ function extractRunPeriod(run) {
         case 'impact':
             return m.postStart ? { start: m.postStart, end: m.postEnd || null } : null;
         case 'hand':
-            return m.levelM != null ? { levelM: m.levelM } : null;
+            return m.levelM !== null && m.levelM !== undefined
+                ? { levelM: m.levelM }
+                : null;
         case 'trend':
             return m.baselinePeriod || m.analysisPeriods
                 ? { baseline: m.baselinePeriod || null, analysis: m.analysisPeriods || null }
@@ -618,7 +620,7 @@ function updateTrendConfig(patch) {
     const d = defaults.TREND_FINAL_DEFAULTS;
     const cleaned = {};
     for (const [k, v] of Object.entries(patch)) {
-        if (!(k in d)) throw new Api400Error(`Trường '${k}' không tồn tại trong cấu hình`, ['UNKNOWN_CONFIG_KEY']);
+        if (!(k in d)) {throw new Api400Error(`Trường '${k}' không tồn tại trong cấu hình`, ['UNKNOWN_CONFIG_KEY']);}
         const expected = typeof d[k];
         if (typeof v !== expected) {
             throw new Api400Error(
@@ -650,7 +652,7 @@ function getConfig() {
 }
 
 async function attachLayerToScenario(scenario, actor) {
-    if (!scenario) return null;
+    if (!scenario) {return null;}
     if (scenario.layer_code) {
         const layer = await layerRepo.findByCode(scenario.layer_code);
         if (layer) {
@@ -728,28 +730,24 @@ async function simulateFlood({ rainfall, tide }, actor) {
     const rainVal = Number(rainfall);
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
 
-    let matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal);
+    const matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal);
     let targetLayerCode = matchedScenario?.layer_code;
 
     // Hardcoded fallback logic if no scenario DB match
     if (!targetLayerCode) {
         const SCENARIO_YEARS = [2015, 2018, 2020, 2022, 2024];
-        let scenarioIndex = 0;
-        if (rainVal >= 300) {
-            scenarioIndex = 4;
-        } else if (rainVal >= 200) {
-            scenarioIndex = 3;
-        } else if (rainVal >= 100) {
-            scenarioIndex = 2;
-        } else if (rainVal >= 50) {
-            scenarioIndex = 1;
-        } else {
-            scenarioIndex = 0;
-        }
-
-        if (tideVal !== null && tideVal >= 2.0) {
-            scenarioIndex = Math.min(SCENARIO_YEARS.length - 1, scenarioIndex + 1);
-        }
+        const rainfallScenarioIndex = rainVal >= 300
+            ? 4
+            : rainVal >= 200
+                ? 3
+                : rainVal >= 100
+                    ? 2
+                    : rainVal >= 50
+                        ? 1
+                        : 0;
+        const scenarioIndex = tideVal !== null && tideVal >= 2.0
+            ? Math.min(SCENARIO_YEARS.length - 1, rainfallScenarioIndex + 1)
+            : rainfallScenarioIndex;
 
         targetLayerCode = `lop_phu_sau_ngap_${SCENARIO_YEARS[scenarioIndex]}`;
     }

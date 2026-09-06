@@ -101,7 +101,7 @@ const overview = async (req, res) => {
             totalAreaHa: summary.totalHa ?? null,
             finishedAt: forestSnapshot.computed_at ?? forestSnapshot.published_at ?? null,
         };
-        if (summary.totalHa != null) {
+        if (summary.totalHa !== null && summary.totalHa !== undefined) {
             landComposition = {
                 forestAreaHa: summary.forestHa ?? null,
                 mineAreaHa: summary.mineHa ?? null,

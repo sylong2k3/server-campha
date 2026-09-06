@@ -118,7 +118,7 @@ const parseOnlyMigrationNames = (argv = process.argv) => {
 
 const parseRepairChecksumNames = (argv = process.argv) => {
     const option = argv.find((arg) => arg.startsWith('--repair-checksum='));
-    if (!option) return [];
+    if (!option) {return [];}
     const names = option
         .slice('--repair-checksum='.length)
         .split(',')
@@ -137,7 +137,7 @@ const repairChecksums = async (db, executed, allFiles, repair) => {
     const filesByName = new Map(allFiles.map((f) => [f.filename, f]));
     for (const filename of repair) {
         const file = filesByName.get(filename);
-        if (!file) throw new Error(`Unknown migration file for --repair-checksum: ${filename}`);
+        if (!file) {throw new Error(`Unknown migration file for --repair-checksum: ${filename}`);}
         const record = executed.get(filename);
         if (!record) {
             console.warn(`warn  ${filename}: not yet applied — skipping checksum repair`);

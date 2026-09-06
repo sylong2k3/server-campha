@@ -20,7 +20,7 @@ function artifactCodeFromLayerCode(layerCode) {
 
     const match = value.match(/^fl_(?:event|hand|rain|impact|trend)_(.+)$/);
 
-    if (!match) return null;
+    if (!match) {return null;}
 
     const remainder = match[1];
 
@@ -32,7 +32,7 @@ function artifactCodeFromLayerCode(layerCode) {
         (code) => remainder === code || remainder.startsWith(`${code}_`),
     );
 
-    if (direct) return direct;
+    if (direct) {return direct;}
 
     // Hỗ trợ alias legacy.
     for (const [legacyCode, canonicalCode] of Object.entries(ARTIFACT_CODE_ALIASES)) {
@@ -109,7 +109,7 @@ function buildColorMap(def) {
  */
 function buildSld(geoserverLayer, artifactCode) {
     const def = ARTIFACT_LAYER_DEFINITIONS[artifactCode];
-    if (!def) return null;
+    if (!def) {return null;}
     const colorMap = buildColorMap(def);
     return (
         `<?xml version="1.0" encoding="UTF-8"?>` +
@@ -147,8 +147,8 @@ function isKnownArtifactCode(code) {
  */
 function resolveKnownArtifactCode(code) {
     const trimmed = typeof code === 'string' ? code.trim() : '';
-    if (!trimmed) return null;
-    if (trimmed in ARTIFACT_LAYER_DEFINITIONS) return trimmed;
+    if (!trimmed) {return null;}
+    if (trimmed in ARTIFACT_LAYER_DEFINITIONS) {return trimmed;}
     const aliased = ARTIFACT_CODE_ALIASES[trimmed];
     return aliased && aliased in ARTIFACT_LAYER_DEFINITIONS ? aliased : null;
 }
