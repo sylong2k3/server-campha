@@ -52,6 +52,17 @@ describe('remote sensing service', () => {
             expect.objectContaining({ expireSeconds: 60 }),
         );
     });
+    test('enforces raster:read permission on listAdmin and listCollections', async () => {
+        repository.listAdmin.mockResolvedValue({ items: [{ id: 1 }], total: 1 });
+        repository.listCollections.mockResolvedValue({ items: [{ coverageKey: 'test' }], total: 1 });
+
+        await expect(service.listAdmin({ page: 1 }, admin)).resolves.toEqual({ items: [{ id: 1 }], total: 1 });
+        await expect(service.listCollections({ page: 1 }, admin)).resolves.toEqual({ items: [{ coverageKey: 'test' }], total: 1 });
+
+        const unprivileged = { id: 4, role: 'citizen', permissions: { raster: { read: false } } };
+        await expect(service.listAdmin({ page: 1 }, unprivileged)).rejects.toMatchObject({ status: 403 });
+        await expect(service.listCollections({ page: 1 }, unprivileged)).rejects.toMatchObject({ status: 403 });
+    });
     test('rejects compare coverage and temporal mismatches', async () => {
         repository.find.mockImplementation((id) =>
             Promise.resolve(id === 1 ? before : { ...after, coverage_key: 'other' }),
@@ -225,4 +236,54 @@ describe('remote sensing service', () => {
         expect(geoserver.verifyImageMosaicTime).toHaveBeenCalledWith({ storeName: 'cp_ts' });
         expect(cleanup).toHaveBeenCalled();
     });
+
+    test('updates coverage key and rejects duplicate or active collection members', async () => {
+        repository.updateCoverageKey.mockResolvedValueOnce({ id: 1, coverage_key: 'new-key' });
+        await expect(service.updateCoverageKey(1, 'new-key', admin)).resolves.toEqual({
+            id: 1,
+            coverage_key: 'new-key',
+        });
+        repository.updateCoverageKey.mockResolvedValueOnce({ conflict: 'TIME_SERIES_MEMBER' });
+        await expect(service.updateCoverageKey(1, 'new-key', admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['TIME_SERIES_MEMBER'],
+        });
+        repository.updateCoverageKey.mockResolvedValueOnce({ conflict: 'CLEANUP_PENDING' });
+        await expect(service.updateCoverageKey(1, 'new-key', admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['LAYER_CLEANUP_PENDING'],
+        });
+        repository.updateCoverageKey.mockResolvedValueOnce({ conflict: 'CLEANUP_REQUIRED' });
+        await expect(service.updateCoverageKey(1, 'new-key', admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['LAYER_CLEANUP_REQUIRED'],
+        });
+    });
+
+    test('merges collections and rejects duplicate times across source and target', async () => {
+        repository.mergeCollections.mockResolvedValueOnce({ updatedCount: 2, targetCoverageKey: 'target-key' });
+        await expect(service.mergeCollections(['src-1', 'src-2'], 'target-key', admin)).resolves.toEqual({
+            updatedCount: 2,
+            targetCoverageKey: 'target-key',
+        });
+        const err = new Error('duplicate');
+        err.code = 'DUPLICATE_COLLECTION_TIME';
+        repository.COLLECTION_ERROR = {
+            DUPLICATE_TIME: 'DUPLICATE_COLLECTION_TIME',
+            MEMBER_CONFLICT: 'COLLECTION_MEMBER_CONFLICT',
+        };
+        repository.mergeCollections.mockRejectedValueOnce(err);
+        await expect(service.mergeCollections(['src-1'], 'target-key', admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['DUPLICATE_COLLECTION_TIME'],
+        });
+        const memberErr = new Error('member conflict');
+        memberErr.code = 'COLLECTION_MEMBER_CONFLICT';
+        repository.mergeCollections.mockRejectedValueOnce(memberErr);
+        await expect(service.mergeCollections(['src-1'], 'target-key', admin)).rejects.toMatchObject({
+            status: 409,
+            errors: ['COLLECTION_MEMBER_CONFLICT'],
+        });
+    });
 });
+

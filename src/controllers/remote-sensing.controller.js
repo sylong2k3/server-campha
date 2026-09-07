@@ -24,6 +24,13 @@ const listAdmin = async (req, res) =>
         req.query,
         t('satellite_admin_list_success', req.lang),
     );
+const listCollections = async (req, res) =>
+    listResponse(
+        res,
+        await service.listCollections(req.query, buildActor(req)),
+        req.query,
+        'Lấy danh sách nhóm chuỗi thời gian thành công',
+    );
 const get = async (req, res) =>
     OK(
         res,
@@ -77,6 +84,26 @@ const remove = async (req, res) =>
             buildActor(req),
         ),
     );
+const updateCoverageKey = async (req, res) =>
+    OK(
+        res,
+        'Cập nhật khóa chuỗi thời gian của ảnh thành công',
+        await service.updateCoverageKey(
+            Number(req.params.id),
+            req.body.coverageKey,
+            buildActor(req),
+        ),
+    );
+const mergeCollections = async (req, res) =>
+    OK(
+        res,
+        'Gộp nhóm ảnh vào chuỗi thời gian thành công',
+        await service.mergeCollections(
+            req.body.sourceCoverageKeys,
+            req.body.targetCoverageKey,
+            buildActor(req),
+        ),
+    );
 module.exports = {
     list,
     listAdmin,
@@ -88,4 +115,8 @@ module.exports = {
     publish,
     publishCollection,
     remove,
+    updateCoverageKey,
+    mergeCollections,
+    listCollections,
 };
+

@@ -55,6 +55,14 @@ const signedRow = async (row, expireSeconds) => ({
 });
 
 const list = (filter) => repository.list(filter);
+const listAdmin = async (filter, actor) => {
+    requirePermission(actor, 'read');
+    return repository.listAdmin(filter);
+};
+const listCollections = async (filter, actor) => {
+    requirePermission(actor, 'read');
+    return repository.listCollections(filter);
+};
 const get = (id, lang) => getOr404(id, false, lang);
 const compare = async (beforeId, afterId, lang) => {
     const [before, after] = await Promise.all([
@@ -134,10 +142,6 @@ const remove = async (id, expectedUpdatedAt, deleteFiles, actor) => {
     }
     audit('satellite_deleted', actor, { satelliteImageId: id });
     return deleted;
-};
-const listAdmin = (filter, actor) => {
-    requirePermission(actor, 'read');
-    return repository.list(filter);
 };
 const publish = async (id, input, actor) => {
     requirePermission(actor, 'create');
@@ -284,6 +288,62 @@ const publishCollection = async (coverageKey, input, actor) => {
         await mosaic?.cleanup().catch(() => {});
     }
 };
+
+const updateCoverageKey = async (id, coverageKey, actor) => {
+    requirePermission(actor, 'create');
+    const result = await repository.updateCoverageKey(id, coverageKey, actor.id);
+    if (result?.conflict === 'TIME_SERIES_MEMBER') {
+        throw new Api409Error(
+            'Ảnh đang thuộc một lớp Time Series đã công bố; hãy gỡ lớp Time Series trước',
+            ['TIME_SERIES_MEMBER'],
+        );
+    }
+    if (result?.conflict === 'DUPLICATE_TIME') {
+        throw new Api409Error('Nhóm đích đã có ảnh cùng mốc thời gian này', [
+            'DUPLICATE_COLLECTION_TIME',
+        ]);
+    }
+    if (result?.conflict === 'CLEANUP_PENDING') {
+        throw new Api409Error('Lớp Time Series cũ đang được dọn dẹp; hãy chờ cleanup hoàn tất', [
+            'LAYER_CLEANUP_PENDING',
+        ]);
+    }
+    if (result?.conflict === 'CLEANUP_REQUIRED') {
+        throw new Api409Error('Lớp Time Series cũ chưa hoàn tất dọn dẹp', [
+            'LAYER_CLEANUP_REQUIRED',
+        ]);
+    }
+    if (!result) {
+        throw new Api404Error(t('satellite_not_found', actor?.lang));
+    }
+    audit('satellite_coverage_key_updated', actor, { satelliteImageId: id, coverageKey });
+    return result;
+};
+
+const mergeCollections = async (sourceCoverageKeys, targetCoverageKey, actor) => {
+    requirePermission(actor, 'create');
+    try {
+        const result = await repository.mergeCollections(
+            sourceCoverageKeys,
+            targetCoverageKey,
+            actor.id,
+        );
+        audit('satellite_collections_merged', actor, { sourceCoverageKeys, targetCoverageKey });
+        return result;
+    } catch (error) {
+        if (error.code === repository.COLLECTION_ERROR?.DUPLICATE_TIME) {
+            throw new Api409Error(error.message, ['DUPLICATE_COLLECTION_TIME']);
+        }
+        if (error.code === repository.COLLECTION_ERROR?.MEMBER_CONFLICT) {
+            throw new Api409Error(error.message, [error.code]);
+        }
+        if (Object.values(repository.PUBLISH_ERROR || {}).includes(error.code)) {
+            throw new Api409Error(error.message, ['COLLECTION_LAYER_CONFLICT', error.code]);
+        }
+        throw error;
+    }
+};
+
 module.exports = {
     list,
     get,
@@ -295,4 +355,8 @@ module.exports = {
     listAdmin,
     publish,
     publishCollection,
+    updateCoverageKey,
+    mergeCollections,
+    listCollections,
 };
+

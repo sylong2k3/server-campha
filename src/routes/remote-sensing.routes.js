@@ -35,7 +35,12 @@ publicRouter.get(
 );
 const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);
-adminRouter.get('/images', strict(v.listSchema, 'query'), asyncHandler(controller.listAdmin));
+adminRouter.get('/images', strict(v.adminListSchema, 'query'), asyncHandler(controller.listAdmin));
+adminRouter.get(
+    '/collections',
+    strict(v.listCollectionsSchema, 'query'),
+    asyncHandler(controller.listCollections),
+);
 adminRouter.post('/images', strict(v.createSchema), asyncHandler(controller.create));
 adminRouter.post(
     '/collections/:coverageKey/publish',
@@ -54,6 +59,17 @@ adminRouter.patch(
     strict(v.idParamsSchema, 'params'),
     strict(v.categorySchema),
     asyncHandler(controller.categorize),
+);
+adminRouter.patch(
+    '/images/:id/coverage-key',
+    strict(v.idParamsSchema, 'params'),
+    strict(v.updateCoverageKeySchema),
+    asyncHandler(controller.updateCoverageKey),
+);
+adminRouter.post(
+    '/collections/merge',
+    strict(v.mergeCollectionsSchema),
+    asyncHandler(controller.mergeCollections),
 );
 adminRouter.delete(
     '/images/:id',

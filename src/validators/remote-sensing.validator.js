@@ -77,9 +77,65 @@ const deleteQuerySchema = Joi.object({
 const downloadQuerySchema = Joi.object({
     expireSeconds: Joi.number().integer().min(60).max(900).default(300),
 });
+const updateCoverageKeySchema = Joi.object({
+    coverageKey: Joi.string()
+        .pattern(/^[a-z0-9][a-z0-9_-]{1,119}$/)
+        .required(),
+});
+const mergeCollectionsSchema = Joi.object({
+    sourceCoverageKeys: Joi.array()
+        .items(
+            Joi.string()
+                .pattern(/^[a-z0-9][a-z0-9_-]{1,119}$/)
+                .required(),
+        )
+        .min(1)
+        .unique()
+        .required(),
+    targetCoverageKey: Joi.string()
+        .pattern(/^[a-z0-9][a-z0-9_-]{1,119}$/)
+        .required(),
+}).custom((value, helpers) => {
+    if (value.sourceCoverageKeys.includes(value.targetCoverageKey)) {
+        return helpers.error('any.invalid');
+    }
+    return value;
+}, 'source and target key differentiation');
+
+const adminListSchema = Joi.object({
+    q: Joi.string().trim().max(100),
+    coverageKey: Joi.string().pattern(/^[a-z0-9][a-z0-9_-]{1,119}$/),
+    platform: Joi.string().valid(...platforms),
+    thematicGroup: Joi.string().trim().max(80),
+    status: Joi.string()
+        .valid('all', 'unpublished', 'standalone', 'time_series', 'in_use', 'cleanup_pending', 'cleanup_failed')
+        .default('all'),
+    from: date,
+    to: date.min(Joi.ref('from')),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    sort: Joi.string().valid('acquiredAt:asc', 'acquiredAt:desc').default('acquiredAt:desc'),
+});
+
+const listCollectionsSchema = Joi.object({
+    q: Joi.string().trim().max(100),
+    page: Joi.number().integer().min(1).default(1),
+    limit: Joi.number().integer().min(1).max(100).default(20),
+    sort: Joi.string()
+        .valid(
+            'latestAcquiredAt:desc',
+            'latestAcquiredAt:asc',
+            'totalImages:desc',
+            'totalImages:asc',
+        )
+        .default('latestAcquiredAt:desc'),
+});
+
 module.exports = {
     platforms,
     listSchema,
+    adminListSchema,
+    listCollectionsSchema,
     createSchema,
     categorySchema,
     publishSchema,
@@ -88,4 +144,7 @@ module.exports = {
     compareSchema,
     deleteQuerySchema,
     downloadQuerySchema,
+    updateCoverageKeySchema,
+    mergeCollectionsSchema,
 };
+

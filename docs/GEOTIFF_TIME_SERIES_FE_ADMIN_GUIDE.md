@@ -189,9 +189,10 @@ nhưng publish collection sẽ chặn. `2018-01-01T07:00:00+07:00` và
 `2018-01-01T00:00:00.000Z` là cùng mốc. Không lấy giờ upload làm acquiredAt;
 ngày suy từ tên file phải được người dùng xác nhận.
 
-Chưa có API sửa coverage/ngày/file ảnh. Chỉ có
-`PATCH /api/v1/admin/remote-sensing/images/:id/category` với `thematicGroup`
-và `expectedUpdatedAt`. Không tự xóa ảnh đang phục vụ bản đồ để sửa metadata sai.
+Đổi nhóm chuỗi thời gian: `PATCH /api/v1/admin/remote-sensing/images/:id/coverage-key` với `{ "coverageKey": "..." }`.
+Đổi chủ đề hiển thị: `PATCH /api/v1/admin/remote-sensing/images/:id/category` với `thematicGroup` và `expectedUpdatedAt`.
+Gộp nhóm ảnh: `POST /api/v1/admin/remote-sensing/collections/merge`.
+Không tự xóa ảnh đang phục vụ bản đồ để sửa metadata sai.
 
 ## 5. Publish collection hoặc standalone
 
@@ -304,34 +305,86 @@ HTTP 200: data gồm imageId, layer, geoserverLayer. Collection không đổi; W
   có bằng chứng nguồn ảnh trong DB. Không phải cơ chế FE nhận lớp bất kỳ khi trùng mã;
   mặc định yêu cầu mã mới khi tạo lớp riêng mới.
 
-## 6. Tra collection và trạng thái Admin
+## 6. Tra collection, kho ảnh nguồn và trạng thái Admin
 
-`GET /api/v1/admin/remote-sensing/images`:
+### 6.1 Tra danh sách nhóm chuỗi thời gian (Collections)
 
-- Query q, platform, thematicGroup, from, to, page, limit, sort.
-- q tìm title/scene code, **không tìm coverage**.
-- Sort acquiredAt:asc hoặc acquiredAt:desc (mặc định desc).
-- Limit 1–100, mặc định 20; page từ 1; from/to ISO, to không trước from.
-- **Không có filter coverageKey**. Gom client theo coverage_key sau khi đọc đủ trang;
-  một trang không chứng minh tổng ảnh của nhóm.
-- Ảnh không ready không nằm trong danh sách này.
-- Không có GET detail ảnh Admin; dùng `GET /api/v1/remote-sensing/images/:id`.
+```http
+GET /api/v1/admin/remote-sensing/collections?page=1&limit=20&sort=latestAcquiredAt:desc
+Authorization: Bearer <access-token>
+```
 
-`GET /api/v1/admin/layers/:layerId`: lớp active, metadata/permissions,
-publish_status, updated_at; không trả lớp đã soft-delete.
+- Query: `q` (tìm theo `coverageKey` hoặc `thematicGroup`), `page`, `limit` (1–100, mặc định 20), `sort` (`latestAcquiredAt:desc`, `latestAcquiredAt:asc`, `totalImages:desc`, `totalImages:asc`).
+- Trả về danh sách nhóm với tổng hợp cấp cơ sở dữ liệu:
+  - `coverageKey`: Khóa nhóm chuỗi.
+  - `thematicGroup`: Nhóm chủ đề.
+  - `totalImages`: Tổng số lượng ảnh thuộc nhóm.
+  - `uniqueDates`: Số mốc thời gian phân biệt.
+  - `earliestAcquiredAt` / `latestAcquiredAt`: Mốc thu nhận đầu tiên và gần nhất.
+  - `hasDuplicateDates`: `true` nếu có từ 2 ảnh cùng mốc thu nhận.
+  - `duplicateDateCount`: Số lượng ảnh bị thừa do trùng mốc.
+  - `isPublishable`: `true` nếu nhóm có từ 2 ảnh trở lên và không có mốc trùng lặp.
+  - `collectionLayer`: Thông tin lớp chuỗi thời gian đang liên kết (`id`, `code`, `nameVi`, `publishStatus`, `cleanupStatus`, `deletedAt`).
 
-`GET /api/v1/admin/layers`: query q/search, category, geometryType, isPublic,
-sortBy, sortOrder, page, limit (10/20/50/100). Không có coverageKey/publishStatus query.
+### 6.2 Tra danh sách ảnh nguồn (Admin Remote Sensing Images)
 
-1. Nhóm ảnh theo coverage, lấy layer_id khác null.
-2. Có một ID: tra Admin detail; xác minh metadata.timeSeries.enabled true và coverage khớp.
-3. Dùng code lớp đó khi cập nhật/retry; không sinh lại mã.
-4. Nhiều ID: báo xung đột, không lấy ID đầu tùy ý.
-5. Chưa có ID: có thể tra lớp Admin, lọc chính xác metadata coverage kể cả pending/failed;
-   đọc đủ trang trước kết luận không có.
-6. Detail 404 nhưng ảnh còn ID: có thể lớp đã xóa/chưa cleanup, không coi là nhóm mới.
+```http
+GET /api/v1/admin/remote-sensing/images?page=1&limit=20&coverageKey=cam-pha-sau-ngap&status=all
+Authorization: Bearer <access-token>
+```
 
-Vắng catalog public không chứng minh không có collection/ảnh hoặc mã đã giải phóng.
+- Query: `q` (tìm title/scene_code), `coverageKey`, `platform`, `thematicGroup`, `status`, `from`, `to`, `page`, `limit`, `sort`.
+- Filter `status` bao gồm:
+  - `all`: Toàn bộ ảnh nguồn còn hiệu lực.
+  - `in_use`: Ảnh đang được sử dụng bởi ít nhất một lớp (độc lập hoặc chuỗi).
+  - `unpublished`: Ảnh lưu kho chưa có lớp sử dụng hoặc lớp đã bị xóa.
+  - `standalone`: Ảnh đang thuộc lớp bản đồ độc lập đang hoạt động.
+  - `time_series`: Ảnh đang thuộc lớp chuỗi thời gian đang hoạt động.
+  - `cleanup_pending`: Ảnh có lớp liên quan đang trong hàng đợi dọn dẹp GeoServer.
+  - `cleanup_failed`: Ảnh có lớp liên quan gặp lỗi trong quá trình dọn dẹp GeoServer.
+- Trả kèm trường lifecycle: `standaloneLayer` và `timeSeriesLayer` (gồm `id`, `code`, `deletedAt`, `cleanupStatus`).
+
+### 6.3 Đổi nhóm chuỗi thời gian và gộp nhóm ảnh
+
+1. **Đổi khóa nhóm của một ảnh**:
+   ```http
+   PATCH /api/v1/admin/remote-sensing/images/:id/coverage-key
+   Authorization: Bearer <access-token>
+   Content-Type: application/json
+
+   { "coverageKey": "cam-pha-do-thi-2024" }
+   ```
+   - Chặn nếu ảnh đang là thành viên của một lớp chuỗi thời gian đang hoạt động (`409 TIME_SERIES_MEMBER`).
+   - Tự động gỡ liên kết lớp chuỗi cũ nếu lớp đó đã bị xóa và hoàn tất dọn dẹp. Lớp độc lập (`standalone_layer_id`) vẫn được giữ nguyên.
+
+2. **Gộp nhiều nhóm chuỗi vào nhóm đích**:
+   ```http
+   POST /api/v1/admin/remote-sensing/collections/merge
+   Authorization: Bearer <access-token>
+   Content-Type: application/json
+
+   {
+     "sourceCoverageKeys": ["nhom_cu_1", "nhom_cu_2"],
+     "targetCoverageKey": "nhom_dich"
+   }
+   ```
+   - Khóa giao dịch phân tán bằng advisory lock PostgreSQL (`pg_advisory_xact_lock(hashtext(k))`).
+   - Chặn nếu phát hiện trùng mốc thời gian (`409 DUPLICATE_COLLECTION_TIME`) hoặc ảnh nguồn đang thuộc lớp chuỗi thời gian active (`409 COLLECTION_MEMBER_CONFLICT`).
+
+### 6.4 Theo dõi tiến trình dọn dẹp và thử lại (Cleanup)
+
+- Tra trạng thái job dọn dẹp: `GET /api/v1/map-layers/:id/cleanup`
+- Thử lại dọn dẹp nếu thất bại: `POST /api/v1/map-layers/:id/cleanup/retry`
+
+### 6.5 Quản lý kho ảnh nguồn sau khi xóa lớp bản đồ
+
+- Khi quản trị viên xóa lớp bản đồ GeoTIFF (độc lập hoặc chuỗi), hệ thống chỉ đánh dấu xóa lớp (`deleted_at = NOW()`) và đẩy yêu cầu dọn dẹp GeoServer vào hàng đợi nền.
+- Tệp ảnh GeoTIFF và bản ghi ảnh gốc **không bị xóa** mà được bảo toàn trong **Kho ảnh nguồn GeoTIFF** (`/map-layers/source-images`).
+- Tại Kho ảnh nguồn, quản trị viên có thể:
+  1. Công bố lại thành một lớp bản đồ độc lập mới với mã lớp mới.
+  2. Đổi nhóm chuỗi thời gian để đưa ảnh vào một chuỗi thời gian khác.
+  3. Theo dõi trạng thái giải phóng tài nguyên GeoServer của các lớp cũ đã xóa.
+  4. Xóa vĩnh viễn bản ghi ảnh và yêu cầu dọn dẹp tệp vật lý trên lưu trữ MinIO (`deleteFiles=true`).
 
 | Trạng thái              | UI                                                                |
 | ----------------------- | ----------------------------------------------------------------- |
@@ -340,8 +393,8 @@ Vắng catalog public không chứng minh không có collection/ảnh hoặc mã
 | Published               | Thêm mốc/cập nhật; giữ mã                                         |
 | Request đang chạy       | Khóa submit, giữ form, hiển thị đang xử lý                        |
 | Pending/failed sau lỗi  | Tra trạng thái, retry đúng endpoint/mã sau khi request cũ đã dừng |
-| Cleanup pending         | Chờ/làm mới, không đổi mã ngẫu nhiên                              |
-| Cleanup cần phục hồi    | Liên hệ vận hành, không hiện nút retry API giả                    |
+| Cleanup pending         | Chờ/làm mới, theo dõi chi tiết qua dialog cleanup                 |
+| Cleanup thất bại        | Bấm nút "Thử lại dọn dẹp" tại Kho ảnh nguồn                       |
 
 Tách nút Publish lớp riêng/Publish chuỗi. Hiện cả hai ID. Hậu tố _ts chỉ gợi ý,
 không bảo đảm unique. Category/thematicGroup không quyết định membership.

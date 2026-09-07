@@ -106,6 +106,201 @@ const list = async (filter) => {
     );
     return pageResult(rows);
 };
+
+const listAdmin = async (filter) => {
+    const params = [];
+    const where = ['s.deleted_at IS NULL', "f.lifecycle_status='ready'"];
+    const add = (value, sql) => {
+        if (value !== undefined && value !== null && value !== '') {
+            params.push(value);
+            where.push(sql.replace('?', `$${params.length}`));
+        }
+    };
+    if (filter.q) {
+        params.push(`%${filter.q}%`);
+        where.push(
+            `(unaccent(lower(s.title)) ILIKE unaccent(lower($${params.length})) OR unaccent(lower(s.scene_code)) ILIKE unaccent(lower($${params.length})) OR unaccent(lower(f.original_name)) ILIKE unaccent(lower($${params.length})))`,
+        );
+    }
+    add(filter.coverageKey, 's.coverage_key=?');
+    add(filter.platform, 's.platform=?');
+    add(filter.thematicGroup, 's.thematic_group=?');
+    add(filter.from, 's.acquired_at>=?::timestamptz');
+    add(filter.to, 's.acquired_at<=?::timestamptz');
+
+    if (filter.status && filter.status !== 'all') {
+        switch (filter.status) {
+            case 'unpublished':
+                where.push(
+                    '((sl.id IS NULL OR sl.deleted_at IS NOT NULL) AND (tl.id IS NULL OR tl.deleted_at IS NOT NULL))',
+                );
+                break;
+            case 'standalone':
+                where.push('s.standalone_layer_id IS NOT NULL');
+                break;
+            case 'time_series':
+                where.push('s.layer_id IS NOT NULL');
+                break;
+            case 'in_use':
+                where.push('(sl.deleted_at IS NULL OR tl.deleted_at IS NULL)');
+                break;
+            case 'cleanup_pending':
+                where.push(
+                    "(sl.cleanup_status IN ('queued','running') OR tl.cleanup_status IN ('queued','running'))",
+                );
+                break;
+            case 'cleanup_failed':
+                where.push(
+                    "((sl.deleted_at IS NOT NULL AND sl.cleanup_status NOT IN ('complete','none')) OR (tl.deleted_at IS NOT NULL AND tl.cleanup_status NOT IN ('complete','none')))",
+                );
+                break;
+        }
+    }
+
+    params.push(filter.limit, (filter.page - 1) * filter.limit);
+    const direction = filter.sort === 'acquiredAt:asc' ? 'ASC' : 'DESC';
+    const { rows } = await db.query(
+        `SELECT ${selectFields},
+                sl.id AS sl_id, sl.code AS sl_code, sl.name_vi AS sl_name_vi,
+                sl.publish_status AS sl_publish_status, sl.cleanup_status AS sl_cleanup_status, sl.deleted_at AS sl_deleted_at,
+                tl.id AS tl_id, tl.code AS tl_code, tl.name_vi AS tl_name_vi,
+                tl.publish_status AS tl_publish_status, tl.cleanup_status AS tl_cleanup_status, tl.deleted_at AS tl_deleted_at,
+                COUNT(*) OVER()::int AS total_count
+         FROM raster.satellite_images s
+         JOIN core.file_objects f ON f.id=s.file_object_id
+         LEFT JOIN gis.layers sl ON sl.id=s.standalone_layer_id
+         LEFT JOIN gis.layers tl ON tl.id=s.layer_id
+         WHERE ${where.join(' AND ')}
+         ORDER BY s.acquired_at ${direction}, s.id ${direction}
+         LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params,
+    );
+    return {
+        items: rows.map(({ total_count: _total, ...row }) => ({
+            id: row.id,
+            scene_code: row.scene_code,
+            title: row.title,
+            platform: row.platform,
+            thematic_group: row.thematic_group,
+            coverage_key: row.coverage_key,
+            acquired_at: row.acquired_at,
+            product_level: row.product_level,
+            resolution_m: row.resolution_m,
+            cloud_cover_percent: row.cloud_cover_percent,
+            orbit_number: row.orbit_number,
+            description: row.description,
+            layer_id: row.layer_id,
+            standalone_layer_id: row.standalone_layer_id,
+            original_name: row.original_name,
+            size_bytes: row.size_bytes,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+            standaloneLayer: row.sl_id
+                ? {
+                      id: row.sl_id,
+                      code: row.sl_code,
+                      nameVi: row.sl_name_vi,
+                      publishStatus: row.sl_publish_status,
+                      cleanupStatus: row.sl_cleanup_status,
+                      deletedAt: row.sl_deleted_at,
+                  }
+                : null,
+            timeSeriesLayer: row.tl_id
+                ? {
+                      id: row.tl_id,
+                      code: row.tl_code,
+                      nameVi: row.tl_name_vi,
+                      publishStatus: row.tl_publish_status,
+                      cleanupStatus: row.tl_cleanup_status,
+                      deletedAt: row.tl_deleted_at,
+                  }
+                : null,
+        })),
+        total: rows[0]?.total_count || 0,
+    };
+};
+
+const listCollections = async (filter) => {
+    const params = [];
+    const where = ['s.deleted_at IS NULL', "f.lifecycle_status='ready'"];
+    if (filter.q) {
+        params.push(`%${filter.q}%`);
+        where.push(
+            `(unaccent(lower(s.coverage_key)) ILIKE unaccent(lower($${params.length})) OR unaccent(lower(COALESCE(s.thematic_group, ''))) ILIKE unaccent(lower($${params.length})))`,
+        );
+    }
+
+    let orderBy = 'MAX(s.acquired_at) DESC, s.coverage_key ASC';
+    if (filter.sort === 'latestAcquiredAt:asc') {
+        orderBy = 'MAX(s.acquired_at) ASC, s.coverage_key ASC';
+    } else if (filter.sort === 'totalImages:desc') {
+        orderBy = 'COUNT(*) DESC, s.coverage_key ASC';
+    } else if (filter.sort === 'totalImages:asc') {
+        orderBy = 'COUNT(*) ASC, s.coverage_key ASC';
+    }
+
+    params.push(filter.limit, (filter.page - 1) * filter.limit);
+
+    const { rows } = await db.query(
+        `SELECT s.coverage_key,
+                MAX(s.thematic_group) AS thematic_group,
+                COUNT(*)::int AS total_images,
+                COUNT(DISTINCT s.acquired_at)::int AS unique_dates,
+                MIN(s.acquired_at) AS earliest_acquired_at,
+                MAX(s.acquired_at) AS latest_acquired_at,
+                (COUNT(*) > COUNT(DISTINCT s.acquired_at)) AS has_duplicate_dates,
+                (COUNT(*) - COUNT(DISTINCT s.acquired_at))::int AS duplicate_date_count,
+                (COUNT(*) >= 2 AND COUNT(*) = COUNT(DISTINCT s.acquired_at)) AS is_publishable,
+                cl.id AS cl_id,
+                cl.code AS cl_code,
+                cl.name_vi AS cl_name_vi,
+                cl.publish_status AS cl_publish_status,
+                cl.cleanup_status AS cl_cleanup_status,
+                cl.deleted_at AS cl_deleted_at,
+                COUNT(*) OVER()::int AS total_count
+         FROM raster.satellite_images s
+         JOIN core.file_objects f ON f.id = s.file_object_id
+         LEFT JOIN LATERAL (
+             SELECT l.id, l.code, l.name_vi, l.publish_status, l.cleanup_status, l.deleted_at
+             FROM gis.layers l
+             WHERE l.metadata->'timeSeries'->>'coverageKey' = s.coverage_key
+               AND l.storage_kind = 'geotiff_minio'
+             ORDER BY (l.deleted_at IS NULL) DESC, l.id DESC
+             LIMIT 1
+         ) cl ON true
+         WHERE ${where.join(' AND ')}
+         GROUP BY s.coverage_key, cl.id, cl.code, cl.name_vi, cl.publish_status, cl.cleanup_status, cl.deleted_at
+         ORDER BY ${orderBy}
+         LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        params,
+    );
+
+    return {
+        items: rows.map((row) => ({
+            coverageKey: row.coverage_key,
+            thematicGroup: row.thematic_group,
+            totalImages: row.total_images,
+            uniqueDates: row.unique_dates,
+            earliestAcquiredAt: row.earliest_acquired_at,
+            latestAcquiredAt: row.latest_acquired_at,
+            hasDuplicateDates: row.has_duplicate_dates,
+            duplicateDateCount: row.duplicate_date_count,
+            isPublishable: row.is_publishable,
+            collectionLayer: row.cl_id
+                ? {
+                      id: row.cl_id,
+                      code: row.cl_code,
+                      nameVi: row.cl_name_vi,
+                      publishStatus: row.cl_publish_status,
+                      cleanupStatus: row.cl_cleanup_status,
+                      deletedAt: row.cl_deleted_at,
+                  }
+                : null,
+        })),
+        total: rows[0]?.total_count || 0,
+    };
+};
+
 const find = async (id, includeObject = false) => {
     const internal = includeObject ? ',f.object_key' : '';
     const {
@@ -620,6 +815,169 @@ const setCollectionPublishState = async (
     );
     return row || null;
 };
+const updateCoverageKey = async (id, coverageKey, actorId) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const {
+            rows: [image],
+        } = await client.query(
+            `SELECT s.* FROM raster.satellite_images s WHERE s.id = $1 AND s.deleted_at IS NULL FOR UPDATE`,
+            [id],
+        );
+        if (!image) {
+            await client.query('ROLLBACK');
+            return null;
+        }
+        if (image.coverage_key === coverageKey) {
+            await client.query('COMMIT');
+            return image;
+        }
+
+        const lockKeys = [image.coverage_key, coverageKey].sort();
+        for (const key of lockKeys) {
+            await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [key]);
+        }
+
+        let clearLayerId = false;
+        if (image.layer_id) {
+            const {
+                rows: [tsLayer],
+            } = await client.query(
+                `SELECT id, deleted_at, cleanup_status FROM gis.layers WHERE id = $1`,
+                [image.layer_id],
+            );
+            if (tsLayer && !tsLayer.deleted_at) {
+                await client.query('ROLLBACK');
+                return { conflict: 'TIME_SERIES_MEMBER' };
+            }
+            if (tsLayer && tsLayer.deleted_at) {
+                try {
+                    await requireCompletedCleanup(client, tsLayer);
+                    clearLayerId = true;
+                } catch (cleanupErr) {
+                    await client.query('ROLLBACK');
+                    if (cleanupErr.code === PUBLISH_ERROR.CLEANUP_PENDING) {
+                        return { conflict: 'CLEANUP_PENDING' };
+                    }
+                    return { conflict: 'CLEANUP_REQUIRED' };
+                }
+            }
+        }
+        const { rows: duplicate } = await client.query(
+            `SELECT id FROM raster.satellite_images
+             WHERE coverage_key = $1 AND acquired_at = $2 AND id != $3 AND deleted_at IS NULL`,
+            [coverageKey, image.acquired_at, id],
+        );
+        if (duplicate.length > 0) {
+            await client.query('ROLLBACK');
+            return { conflict: 'DUPLICATE_TIME' };
+        }
+        const {
+            rows: [updated],
+        } = await client.query(
+            `UPDATE raster.satellite_images
+             SET coverage_key = $2,
+                 layer_id = CASE WHEN $4::boolean THEN NULL ELSE layer_id END,
+                 updated_by = $3,
+                 updated_at = NOW()
+             WHERE id = $1 AND deleted_at IS NULL RETURNING *`,
+            [id, coverageKey, actorId, clearLayerId],
+        );
+        await client.query('COMMIT');
+        return updated;
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
+const mergeCollections = async (sourceCoverageKeys, targetCoverageKey, actorId) => {
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const allKeys = [...new Set([...sourceCoverageKeys, targetCoverageKey])].sort();
+        for (const key of allKeys) {
+            await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [key]);
+        }
+        const { rows: sourceImages } = await client.query(
+            `SELECT s.id, s.acquired_at, s.coverage_key, s.layer_id, s.standalone_layer_id
+             FROM raster.satellite_images s
+             WHERE s.coverage_key = ANY($1::text[]) AND s.deleted_at IS NULL
+             ORDER BY s.acquired_at, s.id
+             FOR UPDATE OF s`,
+            [sourceCoverageKeys],
+        );
+        if (!sourceImages.length) {
+            await client.query('ROLLBACK');
+            return { updatedCount: 0, targetCoverageKey };
+        }
+
+        const sourceLayerIds = [
+            ...new Set(sourceImages.map((img) => img.layer_id).filter(Boolean)),
+        ];
+        if (sourceLayerIds.length > 0) {
+            const { rows: layers } = await client.query(
+                `SELECT id, code, deleted_at, cleanup_status FROM gis.layers WHERE id = ANY($1::bigint[])`,
+                [sourceLayerIds],
+            );
+            for (const layer of layers) {
+                if (!layer.deleted_at) {
+                    throw publishError(
+                        COLLECTION_ERROR.MEMBER_CONFLICT,
+                        'Ảnh trong collection đang thuộc lớp chuỗi thời gian đang hoạt động',
+                    );
+                }
+                await requireCompletedCleanup(client, layer);
+            }
+        }
+
+        const { rows: targetImages } = await client.query(
+            `SELECT s.id, s.acquired_at
+             FROM raster.satellite_images s
+             WHERE s.coverage_key = $1 AND s.deleted_at IS NULL
+             ORDER BY s.acquired_at, s.id
+             FOR UPDATE OF s`,
+            [targetCoverageKey],
+        );
+
+        const targetTimes = new Set(
+            targetImages.map((img) => new Date(img.acquired_at).toISOString()),
+        );
+        const seenSourceTimes = new Set();
+        for (const img of sourceImages) {
+            const timeIso = new Date(img.acquired_at).toISOString();
+            if (targetTimes.has(timeIso) || seenSourceTimes.has(timeIso)) {
+                throw publishError(
+                    COLLECTION_ERROR.DUPLICATE_TIME,
+                    `Có ảnh trùng mốc thời gian (${timeIso}) khi gộp vào nhóm đích`,
+                );
+            }
+            seenSourceTimes.add(timeIso);
+        }
+
+        const sourceIds = sourceImages.map((img) => img.id);
+        const { rowCount } = await client.query(
+            `UPDATE raster.satellite_images
+             SET coverage_key = $1,
+                 layer_id = NULL,
+                 updated_by = $2,
+                 updated_at = NOW()
+             WHERE id = ANY($3::bigint[]) AND deleted_at IS NULL`,
+            [targetCoverageKey, actorId, sourceIds],
+        );
+        await client.query('COMMIT');
+        return { updatedCount: rowCount, targetCoverageKey };
+    } catch (err) {
+        await client.query('ROLLBACK');
+        throw err;
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
     list,
     find,
@@ -631,6 +989,11 @@ module.exports = {
     prepareCollectionPublish,
     markCollectionStoreOwned,
     setCollectionPublishState,
+    updateCoverageKey,
+    mergeCollections,
+    listAdmin,
+    listCollections,
     COLLECTION_ERROR,
     PUBLISH_ERROR,
 };
+

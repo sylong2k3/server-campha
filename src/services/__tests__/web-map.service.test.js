@@ -82,12 +82,12 @@ describe('web map service', () => {
         expect(result.timeSeries).toEqual({
             enabled: true,
             mode: 'discrete',
+            coverageKey: 'urban-cover',
             defaultTime: values[1],
             values,
             members: [],
         });
         expect(result).not.toHaveProperty('metadata');
-        expect(result.timeSeries).not.toHaveProperty('coverageKey');
     });
     test('TNMT receives only sanitized per-layer editable fields', async () => {
         repository.catalog.mockResolvedValue([layer]);

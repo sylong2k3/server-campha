@@ -82,6 +82,7 @@ const serializeLayer = (layer, actor) => {
                   timeSeries: {
                       enabled: true,
                       mode: 'discrete',
+                      coverageKey: layer.metadata?.timeSeries?.coverageKey || null,
                       defaultTime: timeValues.at(-1),
                       values: timeValues,
                       members: Array.isArray(layer.time_series_members)
