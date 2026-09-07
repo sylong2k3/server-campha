@@ -121,6 +121,15 @@ const moderateComment = async (commentId, status, actor) => {
     audit('news_comment_moderated', actor, { commentId, status });
     return row;
 };
+const deleteComment = async (commentId, actor) => {
+    requirePermission(actor, 'news', 'delete');
+    const row = await repository.deleteComment(commentId);
+    if (!row) {
+        throw new Api404Error('Không tìm thấy bình luận');
+    }
+    audit('news_comment_deleted', actor, { commentId });
+    return { id: row.id, deleted: true };
+};
 const getPublicComment = async (commentId) => {
     const comment = await repository.findComment(commentId, true);
     if (!comment) {
@@ -290,6 +299,7 @@ module.exports = {
     getAdminComment,
     createComment,
     moderateComment,
+    deleteComment,
     listDocuments,
     getDocument,
     createDocument,

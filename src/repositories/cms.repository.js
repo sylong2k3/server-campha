@@ -205,6 +205,15 @@ const moderateComment = async (commentId, status, actorId) => {
     );
     return row || null;
 };
+const deleteComment = async (commentId) => {
+    const {
+        rows: [row],
+    } = await db.query(
+        `DELETE FROM cms.news_comments WHERE id=$1 RETURNING *`,
+        [commentId],
+    );
+    return row || null;
+};
 const findComment = async (commentId, publicOnly = false) => {
     const conditions = ['c.id = $1'];
     if (publicOnly) {
@@ -518,6 +527,7 @@ module.exports = {
     findComment,
     createComment,
     moderateComment,
+    deleteComment,
     listDocuments,
     findDocument,
     createDocument,

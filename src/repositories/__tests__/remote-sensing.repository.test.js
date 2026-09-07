@@ -588,8 +588,33 @@ describe('remote sensing repository admin queries', () => {
         expect(sql).toContain('LEFT JOIN gis.layers sl ON sl.id=s.standalone_layer_id');
         expect(sql).toContain('LEFT JOIN gis.layers tl ON tl.id=s.layer_id');
         expect(sql).toContain('s.coverage_key=');
-        expect(sql).toContain('(sl.deleted_at IS NULL OR tl.deleted_at IS NULL)');
+        expect(sql).toContain('((sl.id IS NOT NULL AND sl.deleted_at IS NULL) OR (tl.id IS NOT NULL AND tl.deleted_at IS NULL))');
         expect(params).toContain('cp_water');
+    });
+
+    test.each([
+        ['unpublished', '((sl.id IS NULL OR sl.deleted_at IS NOT NULL) AND (tl.id IS NULL OR tl.deleted_at IS NOT NULL))'],
+        ['standalone', '(sl.id IS NOT NULL AND sl.deleted_at IS NULL)'],
+        ['time_series', '(tl.id IS NOT NULL AND tl.deleted_at IS NULL)'],
+        ['in_use', '((sl.id IS NOT NULL AND sl.deleted_at IS NULL) OR (tl.id IS NOT NULL AND tl.deleted_at IS NULL))'],
+        ['cleanup_pending', "(sl.cleanup_status IN ('queued','running') OR tl.cleanup_status IN ('queued','running'))"],
+        ['cleanup_failed', "(sl.cleanup_status = 'failed' OR tl.cleanup_status = 'failed')"],
+    ])('listAdmin applies %s before pagination', async (status, predicate) => {
+        db.query.mockResolvedValueOnce({ rows: [] });
+        await repository.listAdmin({ status, page: 2, limit: 3 });
+        const [sql, params] = db.query.mock.calls[0];
+        expect(sql).toContain(predicate);
+        expect(sql.indexOf(predicate)).toBeLessThan(sql.indexOf('LIMIT $'));
+        expect(params).toEqual([3, 3]);
+        expect(sql).not.toContain('cleanup_status NOT IN');
+    });
+
+    test('listAdmin all adds no lifecycle predicate', async () => {
+        db.query.mockResolvedValueOnce({ rows: [] });
+        await repository.listAdmin({ status: 'all', page: 1, limit: 10 });
+        const [sql] = db.query.mock.calls[0];
+        expect(sql).toMatch(/WHERE s\.deleted_at IS NULL AND f\.lifecycle_status='ready'\s+ORDER BY/);
+        expect(sql).not.toContain('AND (sl.');
     });
 
     test('listCollections aggregates groups and calculates duplicate dates', async () => {

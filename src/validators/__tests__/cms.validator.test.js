@@ -58,4 +58,12 @@ describe('CMS validators', () => {
             v.documentUpdateSchema.validate({ expectedUpdatedAt, fileObjectId: 2 }).error,
         ).toBeDefined();
     });
+    test('commentParamsSchema requires positive integer commentId', () => {
+        expect(v.commentParamsSchema.validate({ commentId: 51 }).error).toBeUndefined();
+        expect(v.commentParamsSchema.validate({ commentId: '51' }).error).toBeUndefined();
+        expect(v.commentParamsSchema.validate({ commentId: 0 }).error).toBeDefined();
+        expect(v.commentParamsSchema.validate({ commentId: -1 }).error).toBeDefined();
+        expect(v.commentParamsSchema.validate({ commentId: 'abc' }).error).toBeDefined();
+        expect(v.commentParamsSchema.validate({}).error).toBeDefined();
+    });
 });

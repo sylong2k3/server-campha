@@ -136,13 +136,15 @@ const listAdmin = async (filter) => {
                 );
                 break;
             case 'standalone':
-                where.push('s.standalone_layer_id IS NOT NULL');
+                where.push('(sl.id IS NOT NULL AND sl.deleted_at IS NULL)');
                 break;
             case 'time_series':
-                where.push('s.layer_id IS NOT NULL');
+                where.push('(tl.id IS NOT NULL AND tl.deleted_at IS NULL)');
                 break;
             case 'in_use':
-                where.push('(sl.deleted_at IS NULL OR tl.deleted_at IS NULL)');
+                where.push(
+                    '((sl.id IS NOT NULL AND sl.deleted_at IS NULL) OR (tl.id IS NOT NULL AND tl.deleted_at IS NULL))',
+                );
                 break;
             case 'cleanup_pending':
                 where.push(
@@ -151,7 +153,7 @@ const listAdmin = async (filter) => {
                 break;
             case 'cleanup_failed':
                 where.push(
-                    "((sl.deleted_at IS NOT NULL AND sl.cleanup_status NOT IN ('complete','none')) OR (tl.deleted_at IS NOT NULL AND tl.cleanup_status NOT IN ('complete','none')))",
+                    "(sl.cleanup_status = 'failed' OR tl.cleanup_status = 'failed')",
                 );
                 break;
         }

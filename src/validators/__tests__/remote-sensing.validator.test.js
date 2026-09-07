@@ -59,4 +59,31 @@ describe('remote sensing validators', () => {
             }).value.deleteFiles,
         ).toBe(false);
     });
+    test('validates admin list statuses and defaults to all', () => {
+        expect(v.adminListSchema.validate({}).value.status).toBe('all');
+        const allowedStatuses = [
+            'all',
+            'unpublished',
+            'standalone',
+            'time_series',
+            'in_use',
+            'cleanup_pending',
+            'cleanup_failed',
+        ];
+        for (const status of allowedStatuses) {
+            const res = v.adminListSchema.validate({ status });
+            expect(res.error).toBeUndefined();
+            expect(res.value.status).toBe(status);
+        }
+        expect(v.adminListSchema.validate({ status: 'active' }).error).toBeDefined();
+        expect(v.adminListSchema.validate({ status: 'inactive' }).error).toBeDefined();
+        expect(v.adminListSchema.validate({ status: 'invalid_status' }).error).toBeDefined();
+    });
+    test('validates updateCoverageKeySchema requirements', () => {
+        expect(v.updateCoverageKeySchema.validate({ coverageKey: 'campha_2026' }).error).toBeUndefined();
+        expect(v.updateCoverageKeySchema.validate({ coverageKey: 'c-1_a' }).error).toBeUndefined();
+        expect(v.updateCoverageKeySchema.validate({ coverageKey: 'Bad/Key' }).error).toBeDefined();
+        expect(v.updateCoverageKeySchema.validate({ coverageKey: '' }).error).toBeDefined();
+        expect(v.updateCoverageKeySchema.validate({}).error).toBeDefined();
+    });
 });

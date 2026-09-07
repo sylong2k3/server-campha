@@ -118,6 +118,16 @@ adminRouter.patch(
     strict(v.commentModerateSchema),
     asyncHandler(controller.moderateComment),
 );
+adminRouter.delete(
+    '/news/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.deleteComment),
+);
+adminRouter.delete(
+    '/comments/:commentId',
+    strict(v.commentParamsSchema, 'params'),
+    asyncHandler(controller.deleteComment),
+);
 adminRouter.get(
     '/news/:id',
     strict(v.idParamsSchema, 'params'),

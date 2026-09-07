@@ -63,6 +63,15 @@ describe('remote sensing service', () => {
         await expect(service.listAdmin({ page: 1 }, unprivileged)).rejects.toMatchObject({ status: 403 });
         await expect(service.listCollections({ page: 1 }, unprivileged)).rejects.toMatchObject({ status: 403 });
     });
+    test.each(['all', 'unpublished', 'standalone', 'time_series', 'in_use', 'cleanup_pending', 'cleanup_failed'])(
+        'forwards admin status %s unchanged to repository', async (status) => {
+            const filter = { status, page: 1, limit: 10 };
+            const result = { items: [{ id: 1 }], total: 1 };
+            repository.listAdmin.mockResolvedValue(result);
+            await expect(service.listAdmin(filter, admin)).resolves.toBe(result);
+            expect(repository.listAdmin).toHaveBeenCalledWith(filter);
+        },
+    );
     test('rejects compare coverage and temporal mismatches', async () => {
         repository.find.mockImplementation((id) =>
             Promise.resolve(id === 1 ? before : { ...after, coverage_key: 'other' }),

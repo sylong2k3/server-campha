@@ -104,6 +104,15 @@ describe('CMS service', () => {
         repository.findComment.mockResolvedValue(null);
         await expect(service.getPublicComment(1)).rejects.toMatchObject({ status: 404 });
         await expect(service.getAdminComment(1, admin)).rejects.toMatchObject({ status: 404 });
+        repository.deleteComment.mockResolvedValue(row);
+        await expect(service.deleteComment(1, admin)).resolves.toEqual({ id: row.id, deleted: true });
+        repository.deleteComment.mockResolvedValue(null);
+        await expect(service.deleteComment(1, admin)).rejects.toMatchObject({ status: 404 });
+    });
+    test('denied comment deletion never reaches the repository', async () => {
+        await expect(service.deleteComment(51, citizen)).rejects.toMatchObject({ status: 403 });
+        expect(repository.deleteComment).not.toHaveBeenCalled();
+        expect(require('../../utils/systemLogger.util').logInfo).not.toHaveBeenCalled();
     });
     test('documents select public/internal/admin modes and validate file conflicts', async () => {
         repository.listDocuments.mockResolvedValue({ items: [], total: 0 });
