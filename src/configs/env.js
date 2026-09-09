@@ -22,6 +22,8 @@ const ENV_SCHEMA_KEYS = {
     APP_URL: httpUrl.required(),
     FRONTEND_URL: httpUrl.required(),
     CORS_ORIGINS: Joi.string().trim().min(1).required(),
+    // Chỉ bật khi cần FE dev chạy trên chính máy chủ production.
+    CORS_ALLOW_LOCALHOST_IN_PRODUCTION: Joi.boolean().default(false),
     TRUST_PROXY: Joi.string().trim().min(1).default('false'),
     REQUEST_BODY_LIMIT: Joi.string()
         .pattern(/^\d+(?:b|kb|mb|gb)$/i)
@@ -385,7 +387,11 @@ const validateCors = (value, errors) => {
             errors.push(`CORS_ORIGINS contains an invalid origin: ${origin}`);
             continue;
         }
-        if (value.NODE_ENV === 'production' && isLoopbackUrl(origin)) {
+         if (
+            value.NODE_ENV === 'production' &&
+            value.CORS_ALLOW_LOCALHOST_IN_PRODUCTION !== true &&
+            isLoopbackUrl(origin)
+        ) {
             errors.push(`CORS_ORIGINS cannot use a loopback host in production: ${origin}`);
         }
     }

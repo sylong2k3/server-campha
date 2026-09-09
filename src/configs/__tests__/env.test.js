@@ -97,6 +97,20 @@ describe('environment configuration', () => {
                 { checkFiles: false },
             ),
         ).toThrow(/cannot use a loopback host in production/);
+        expect(() =>
+            validateEnv(
+                validEnv({
+                    NODE_ENV: 'production',
+                    APP_URL: 'https://api.campha.vn',
+                    API_BASE_URL: 'https://api.campha.vn',
+                    FRONTEND_URL: 'https://gis.campha.vn',
+                    API_SHARE_JWT_SECRET: 'c'.repeat(48),
+                    CORS_ORIGINS: 'http://localhost:5173,https://gis.campha.vn',
+                    CORS_ALLOW_LOCALHOST_IN_PRODUCTION: 'true',
+                }),
+                { checkFiles: false },
+            ),
+        ).not.toThrow();
     });
 
     test('requires a distinct share JWT secret in production', () => {
