@@ -61,6 +61,11 @@ describe('Flood Scenario Management CRUD', () => {
                 description: 'Mô tả',
                 is_active: true,
             };
+            jest.spyOn(layerRepo, 'findByCode').mockResolvedValue({
+                id: 1,
+                code: 'lop_phu_sau_ngap_2015',
+                name_vi: 'Lớp ngập 2015',
+            });
         });
 
         afterEach(() => {
@@ -155,10 +160,20 @@ describe('Flood Scenario Management CRUD', () => {
                 category: 'lop-phu-ngap',
                 category_name: 'Lớp phủ ngập',
             });
+            const notificationEvents = require('../../notification-events.service');
+            const notifySpy = jest.spyOn(notificationEvents, 'notifyHydroScenarioTriggered').mockResolvedValue({});
 
             const result = await analysisService.simulateFlood({ rainfall: 150, tide: 1.5 });
             expect(result.code).toBe('lop_phu_sau_ngap_2020');
             expect(result.simulationParams.scenarioId).toBe(3);
+            expect(notifySpy).toHaveBeenCalledTimes(1);
+            expect(notifySpy).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    rainVal: 150,
+                    tideVal: 1.5,
+                    layerCode: 'lop_phu_sau_ngap_2020',
+                }),
+            );
             expect(result.simulationParams.scenarioCode).toBe('scenario_heavy');
         });
     });

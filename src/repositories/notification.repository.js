@@ -85,4 +85,13 @@ const remove = async (id, userId) => {
     );
     return row || null;
 };
-module.exports = { createMany, listForUser, countUnread, markRead, markAllRead, remove };
+const cleanupOlderThan = async (days = 90) => {
+    const { rows } = await db.query(
+        `DELETE FROM core.notifications
+          WHERE created_at < NOW() - ($1 * INTERVAL '1 day')
+          RETURNING id`,
+        [days],
+    );
+    return rows.length;
+};
+module.exports = { createMany, listForUser, countUnread, markRead, markAllRead, remove, cleanupOlderThan };

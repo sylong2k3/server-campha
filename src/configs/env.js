@@ -280,6 +280,8 @@ const ENV_SCHEMA_KEYS = {
     WS_MAX_MESSAGES_PER_MINUTE: positiveInteger.max(10000).default(60),
     WS_MAX_PAYLOAD_BYTES: positiveInteger.max(10 * 1024 * 1024).default(65536),
     TOKEN_CLEANUP_CRON: Joi.string().trim().min(1).default('0 * * * *'),
+    NOTIFICATION_CLEANUP_CRON: Joi.string().trim().min(1).default('30 3 * * *'),
+    NOTIFICATION_RETENTION_DAYS: positiveInteger.default(90),
     API_TEST_PASSWORD: Joi.string().allow(''),
 };
 
