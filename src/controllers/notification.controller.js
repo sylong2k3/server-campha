@@ -1,9 +1,22 @@
 'use strict';
 const service = require('../services/notification.service');
+const deviceTokens = require('../repositories/device-token.repository');
+const pushProvider = require('../utils/pushProvider.util');
 const { OK, OK_LIST } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
 const { t } = require('../utils/i18n.util');
 const actor = (req) => buildActor(req);
+const status = async (req, res) => {
+    const provider = pushProvider.getStatus();
+    return OK(res, t('get_success', req.lang), {
+        ...provider,
+        encryptionKeyConfigured: /^[a-f0-9]{64}$/i.test(
+            process.env.DEVICE_TOKEN_ENCRYPTION_KEY || '',
+        ),
+        activeDeviceTokens: await deviceTokens.countActive(),
+        deliveryVerified: false,
+    });
+};
 const send = async (req, res) =>
     OK(res, t('notification_sent', req.lang), await service.sendNotification(req.body, actor(req)));
 const listMine = async (req, res) => {
@@ -22,15 +35,11 @@ const markRead = async (req, res) =>
         await service.markRead(Number(req.params.id), actor(req).id),
     );
 const markAllRead = async (req, res) =>
-    OK(
-        res,
-        t('notifications_all_read', req.lang),
-        await service.markAllRead(actor(req).id),
-    );
+    OK(res, t('notifications_all_read', req.lang), await service.markAllRead(actor(req).id));
 const remove = async (req, res) =>
     OK(
         res,
         t('notification_deleted', req.lang),
         await service.remove(Number(req.params.id), actor(req).id),
     );
-module.exports = { send, listMine, unreadCount, markRead, markAllRead, remove };
+module.exports = { status, send, listMine, unreadCount, markRead, markAllRead, remove };

@@ -7,6 +7,13 @@ const systemLogger = require('../utils/systemLogger.util');
 // Khớp danh sách reviewer trong field-report.service.js: ai duyệt được phản ánh
 // thì nhận thông báo phản ánh mới.
 const MANAGER_ROLES = ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'];
+const STATUS_LABELS = {
+    pending: 'Chờ tiếp nhận',
+    under_review: 'Đang xem xét',
+    approved: 'Đã phê duyệt',
+    rejected: 'Đã từ chối',
+    resolved: 'Đã xử lý',
+};
 let client = null,
     retryTimer = null,
     stopping = false,
@@ -33,31 +40,52 @@ const handle = async (raw) => {
     ) {
         return;
     }
-    const row = await repository.eventSummary(payload.reportId);
+    const actorUserId = Number.isInteger(payload.actorUserId) ? payload.actorUserId : null;
+    const row = await repository.eventSummary(
+        payload.reportId,
+        actorUserId,
+        typeof payload.status === 'string' ? payload.status : null,
+        typeof payload.previousStatus === 'string' ? payload.previousStatus : null,
+    );
     if (!row) {
         return;
     }
-    const data = sanitized(row, payload.event);
+    const status = typeof payload.status === 'string' ? payload.status : row.status;
+    const data = {
+        ...sanitized({ ...row, status }, payload.event),
+        actorRole: row.actor_role || null,
+    };
     MANAGER_ROLES.forEach((role) => websocket.notifyChannel(`role:${role}`, 'field_report', data));
     websocket.notifyUser(row.sender_user_id, 'field_report', data);
-    if (pushEnabled && payload.event === 'status_changed') {
-        await notificationService.notifyUser(row.sender_user_id, {
+    if (!pushEnabled) {
+        return;
+    }
+
+    const notificationData = {
+        reportId: row.id,
+        referenceCode: row.reference_code,
+        status,
+        actorRole: row.actor_role || null,
+    };
+    if (payload.event === 'status_changed') {
+        await notificationService.notifyUsersAndRoles([row.sender_user_id], MANAGER_ROLES, {
             type: 'field_report_status_changed',
-            title: 'Phản ánh Cẩm Phả',
-            body: `Trạng thái phản ánh ${row.reference_code}: ${row.status}`,
-            data: { reportId: row.id, status: row.status },
+            title: 'Cập nhật phản ánh Cẩm Phả',
+            body: `Phản ánh ${row.reference_code}: ${STATUS_LABELS[status] || status}`,
+            data: notificationData,
+            eventKey: row.history_id
+                ? `field_report:${row.id}:history:${row.history_id}`
+                : `field_report:${row.id}:status:${status}`,
         });
     }
-    if (pushEnabled && payload.event === 'created') {
-        const message = {
+    if (payload.event === 'created') {
+        await notificationService.broadcastToRoles(MANAGER_ROLES, {
             type: 'field_report_created',
             title: 'Phản ánh Cẩm Phả mới',
             body: `Có phản ánh mới ${row.reference_code} cần xử lý`,
-            data: { reportId: row.id, status: row.status },
-        };
-        await Promise.all(
-            MANAGER_ROLES.map((role) => notificationService.broadcastToRole(role, message)),
-        );
+            data: notificationData,
+            eventKey: `field_report:${row.id}:created`,
+        });
     }
 };
 const scheduleRetry = () => {

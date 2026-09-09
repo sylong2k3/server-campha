@@ -265,12 +265,27 @@ const photoObjects = async (id) => {
     );
     return rows;
 };
-const eventSummary = async (id) => {
+const eventSummary = async (id, actorUserId = null, eventStatus = null, previousStatus = null) => {
     const {
         rows: [row],
     } = await db.query(
-        `SELECT id,reference_code,sender_user_id,status,created_at,updated_at FROM community.field_reports WHERE id=$1 AND deleted_at IS NULL`,
-        [id],
+        `SELECT r.id,r.reference_code,r.sender_user_id,r.status,r.created_at,r.updated_at,
+                h.id AS history_id,h.actor_user_id,
+                actor_role.code AS actor_role
+           FROM community.field_reports r
+           LEFT JOIN LATERAL (
+                SELECT history.id,history.actor_user_id
+                  FROM community.field_report_status_history history
+                 WHERE history.report_id=r.id
+                   AND ($3::varchar IS NULL OR history.new_status=$3)
+                   AND ($4::varchar IS NULL OR history.previous_status=$4)
+                   AND ($2::bigint IS NULL OR history.actor_user_id=$2)
+                 ORDER BY history.id DESC LIMIT 1
+           ) h ON $2::bigint IS NOT NULL OR $3::varchar IS NOT NULL
+           LEFT JOIN auth.users actor ON actor.id=COALESCE(h.actor_user_id,$2)
+           LEFT JOIN auth.roles actor_role ON actor_role.id=actor.role_id
+          WHERE r.id=$1 AND r.deleted_at IS NULL`,
+        [id, actorUserId, eventStatus, previousStatus],
     );
     return row || null;
 };

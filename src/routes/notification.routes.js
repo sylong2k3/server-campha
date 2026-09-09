@@ -20,6 +20,7 @@ const sendLimiter = rateLimit({
 });
 const router = Router();
 router.use(verifyToken, enforcePasswordChange);
+router.get('/status', requirePermission('notifications', 'send'), asyncHandler(controller.status));
 router.post(
     '/send',
     requirePermission('notifications', 'send'),
