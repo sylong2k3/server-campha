@@ -4,13 +4,22 @@ const db = require('../../configs/database');
 const repository = require('../notification.repository');
 describe('notification.repository', () => {
     beforeEach(() => jest.clearAllMocks());
-    test('createMany dedupes user ids and no-ops for an empty list', async () => {
+    test('createMany dedupes user ids and stores an idempotency key', async () => {
         expect(await repository.createMany([], { title: 't' })).toEqual([]);
         expect(db.query).not.toHaveBeenCalled();
 
         db.query.mockResolvedValue({ rows: [{ id: 1, user_id: 5 }] });
-        await repository.createMany([5, 5, 9], { type: 'x', title: 't', body: 'b', data: { a: 1 } });
-        expect(db.query.mock.calls[0][1][0]).toEqual([5, 9]);
+        await repository.createMany([5, 5, 9], {
+            type: 'x',
+            title: 't',
+            body: 'b',
+            data: { a: 1 },
+            eventKey: 'field_report:1:created',
+        });
+        const [sql, params] = db.query.mock.calls[0];
+        expect(sql).toMatch(/ON CONFLICT \(user_id,event_key\).*DO NOTHING/s);
+        expect(params[0]).toEqual([5, 9]);
+        expect(params[5]).toBe('field_report:1:created');
     });
     test('listForUser scopes to the requesting user and applies unreadOnly', async () => {
         db.query

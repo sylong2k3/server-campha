@@ -59,6 +59,8 @@ npm run dev
 
 ## Tài liệu
 
+- [Quy trình chuẩn tạo chuỗi thời gian (Time Series) GeoTIFF](docs/QUY_TRINH_CHUAN_TAO_TIME_SERIES_GEOTIFF.md)
+- [Hướng dẫn tích hợp FE Admin GeoTIFF Time Series](docs/GEOTIFF_TIME_SERIES_FE_ADMIN_GUIDE.md)
 - [Vận hành Storage, MinIO và Raster](docs/STORAGE_AND_RASTER_OPERATIONS.md)
 - [Postman collection](docs/api/campha.postman_collection.json)
 - [Kế hoạch xây dựng hệ thống](docs/KE_HOACH_XAY_DUNG_HE_THONG.md)

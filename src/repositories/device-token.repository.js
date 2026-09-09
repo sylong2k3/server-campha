@@ -59,6 +59,27 @@ const activeForUser = async (userId) => {
     );
     return rows.map(decrypt);
 };
+const activeForUsers = async (userIds) => {
+    const ids = Array.from(new Set(userIds)).filter(Boolean);
+    if (!ids.length) {
+        return [];
+    }
+    const { rows } = await db.query(
+        `SELECT user_id,token_ciphertext,token_iv,token_auth_tag
+           FROM auth.device_tokens
+          WHERE user_id=ANY($1::bigint[]) AND disabled_at IS NULL`,
+        [ids],
+    );
+    return rows.map((row) => ({ userId: row.user_id, token: decrypt(row) }));
+};
+const countActive = async () => {
+    const {
+        rows: [row],
+    } = await db.query(
+        'SELECT COUNT(*)::int AS total FROM auth.device_tokens WHERE disabled_at IS NULL',
+    );
+    return row?.total || 0;
+};
 const disableTokens = async (tokens) => {
     if (!tokens.length) {
         return;
@@ -68,4 +89,14 @@ const disableTokens = async (tokens) => {
         [tokens.map(hash)],
     );
 };
-module.exports = { hash, encrypt, decrypt, upsert, disable, activeForUser, disableTokens };
+module.exports = {
+    hash,
+    encrypt,
+    decrypt,
+    upsert,
+    disable,
+    activeForUser,
+    activeForUsers,
+    countActive,
+    disableTokens,
+};

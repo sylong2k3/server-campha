@@ -3,7 +3,7 @@ const repository = require('../repositories/field-report.repository');
 const tokenRepository = require('../repositories/device-token.repository');
 const minioService = require('./minio.service');
 const systemLogger = require('../utils/systemLogger.util');
-const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
+const { Api403Error, Api404Error, Api409Error, Api422Error, Api503Error } = require('../core/error.response');
 const has = (actor, resource, action) => actor?.permissions?.[resource]?.[action] === true;
 const requirePermission = (actor, action) => {
     if (!has(actor, 'field_report', action)) {
@@ -155,8 +155,12 @@ const clusters = (input, actor) => {
     requirePermission(actor, 'stats');
     return repository.clusters(input);
 };
-const registerDevice = (input, actor) =>
-    tokenRepository.upsert(input.token, input.platform, actor.id);
+const registerDevice = (input, actor) => {
+    if (!process.env.DEVICE_TOKEN_ENCRYPTION_KEY || !/^[a-f0-9]{64}$/i.test(process.env.DEVICE_TOKEN_ENCRYPTION_KEY)) {
+        throw new Api503Error('Dịch vụ đăng ký push token chưa khả dụng (thiếu DEVICE_TOKEN_ENCRYPTION_KEY)');
+    }
+    return tokenRepository.upsert(input.token, input.platform, actor.id);
+};
 const unregisterDevice = async (input, actor) => {
     const row = await tokenRepository.disable(input.token, actor.id);
     if (!row) {

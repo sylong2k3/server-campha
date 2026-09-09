@@ -1,6 +1,5 @@
 'use strict';
 
-const db = require('../configs/database');
 const deviceTokens = require('../repositories/device-token.repository');
 const userRepository = require('../repositories/user.repository');
 const notificationRepository = require('../repositories/notification.repository');
@@ -25,91 +24,66 @@ const emitCreated = (rows) => {
 };
 
 /**
- * Persists a notification row for a single user (their private "my notifications"
- * inbox) and best-effort pushes it over FCM. Safe no-op push when FCM is disabled.
+ * Persists one inbox row per unique user and pushes only rows newly inserted.
+ * `eventKey` is omitted from public delivery payloads and is used only for DB
+ * idempotency. A repeated event therefore emits neither WebSocket nor FCM.
  */
-const notifyUser = async (userId, message) => {
-    const rows = await notificationRepository.createMany([userId], message);
+const notifyUsers = async (userIds, message) => {
+    const ids = Array.from(new Set(userIds)).filter(Boolean);
+    if (!ids.length) {
+        return withRecipientCount(disabledPushResult(), 0);
+    }
+    const rows = await notificationRepository.createMany(ids, message);
     emitCreated(rows);
+    if (!rows.length) {
+        return withRecipientCount(
+            { successCount: 0, failureCount: 0, invalidTokens: [], duplicate: ids.length > 0 },
+            0,
+        );
+    }
     if (!pushProvider.isAvailable()) {
         return withRecipientCount(disabledPushResult(), rows.length);
     }
-    const tokens = await deviceTokens.activeForUser(userId);
-    const result = await pushProvider.sendToTokens(tokens, message);
+
+    const insertedIds = rows.map((row) => row.user_id);
+    const tokenRows = await deviceTokens.activeForUsers(insertedIds);
+    const tokens = tokenRows.map((row) => row.token);
+    const deliveryMessage = {
+        type: message.type,
+        title: message.title,
+        body: message.body,
+        data: message.data,
+    };
+    const result = await pushProvider.sendToTokens(tokens, deliveryMessage);
     if (result.invalidTokens.length > 0) {
         await deviceTokens.disableTokens(result.invalidTokens);
     }
     return withRecipientCount(result, rows.length);
 };
 
-/**
- * Broadcasts a notification to every active user of a role: persists one row per
- * user (so each of them sees it in their own inbox) and best-effort pushes over
- * the existing encrypted device-token store.
- */
-const broadcastToRole = async (roleCode, message) => {
-    const normalizedRole = String(roleCode || '').trim();
-    if (!/^[a-z0-9_]{2,30}$/.test(normalizedRole)) {
+const normalizeRoles = (roleCodes) => {
+    const roles = Array.from(new Set(roleCodes.map((role) => String(role || '').trim())));
+    if (roles.some((role) => !/^[a-z0-9_]{2,30}$/.test(role))) {
         throw new TypeError('Invalid notification role code');
     }
-
-    const userIds = await userRepository.activeIdsByRoles([normalizedRole]);
-    if (userIds.length > 0) {
-        const rows = await notificationRepository.createMany(userIds, message);
-        emitCreated(rows);
-    }
-
-    if (!pushProvider.isAvailable()) {
-        return withRecipientCount(disabledPushResult(), userIds.length);
-    }
-
-    const { rows } = await db.query(
-        `SELECT dt.token_ciphertext, dt.token_iv, dt.token_auth_tag
-           FROM auth.device_tokens dt
-           JOIN auth.users u ON u.id = dt.user_id
-           JOIN auth.roles r ON r.id = u.role_id
-          WHERE r.code = $1
-            AND r.is_active = TRUE
-            AND u.is_active = TRUE
-            AND u.deleted_at IS NULL
-            AND dt.disabled_at IS NULL`,
-        [normalizedRole],
-    );
-    const tokens = rows.map(deviceTokens.decrypt);
-    const result = await pushProvider.sendToTokens(tokens, message);
-    if (result.invalidTokens.length > 0) {
-        await deviceTokens.disableTokens(result.invalidTokens);
-    }
-    return withRecipientCount(result, userIds.length);
+    return roles;
 };
+
+const notifyUsersAndRoles = async (userIds, roleCodes, message) => {
+    const roles = normalizeRoles(roleCodes);
+    const roleUserIds = roles.length ? await userRepository.activeIdsByRoles(roles) : [];
+    return notifyUsers([...userIds, ...roleUserIds], message);
+};
+
+const notifyUser = (userId, message) => notifyUsers([userId], message);
+
+const broadcastToRoles = (roleCodes, message) => notifyUsersAndRoles([], roleCodes, message);
+
+const broadcastToRole = (roleCode, message) => broadcastToRoles([roleCode], message);
 
 const broadcastToAll = async (message) => {
     const userIds = await userRepository.activeIds();
-    if (userIds.length > 0) {
-        const rows = await notificationRepository.createMany(userIds, message);
-        emitCreated(rows);
-    }
-
-    if (!pushProvider.isAvailable()) {
-        return withRecipientCount(disabledPushResult(), userIds.length);
-    }
-
-    const { rows } = await db.query(
-        `SELECT dt.token_ciphertext, dt.token_iv, dt.token_auth_tag
-           FROM auth.device_tokens dt
-           JOIN auth.users u ON u.id = dt.user_id
-           JOIN auth.roles r ON r.id = u.role_id
-          WHERE r.is_active = TRUE
-            AND u.is_active = TRUE
-            AND u.deleted_at IS NULL
-            AND dt.disabled_at IS NULL`,
-    );
-    const tokens = rows.map(deviceTokens.decrypt);
-    const result = await pushProvider.sendToTokens(tokens, message);
-    if (result.invalidTokens.length > 0) {
-        await deviceTokens.disableTokens(result.invalidTokens);
-    }
-    return withRecipientCount(result, userIds.length);
+    return notifyUsers(userIds, message);
 };
 
 const sendNotification = async (input, actor) => {
@@ -186,8 +160,11 @@ const remove = async (id, userId) => {
 
 module.exports = {
     broadcastToRole,
+    broadcastToRoles,
     broadcastToAll,
     notifyUser,
+    notifyUsers,
+    notifyUsersAndRoles,
     sendNotification,
     listMine,
     unreadCount,

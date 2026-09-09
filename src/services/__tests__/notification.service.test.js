@@ -1,19 +1,20 @@
 'use strict';
-jest.mock('../../configs/database', () => ({ query: jest.fn() }));
 jest.mock('../../repositories/device-token.repository');
 jest.mock('../../repositories/user.repository');
 jest.mock('../../repositories/notification.repository');
 jest.mock('../../utils/pushProvider.util');
 jest.mock('../../realtime/websocket.server', () => ({ notifyUser: jest.fn() }));
-const db = require('../../configs/database'),
-    deviceTokens = require('../../repositories/device-token.repository'),
+const deviceTokens = require('../../repositories/device-token.repository'),
     userRepository = require('../../repositories/user.repository'),
     notificationRepository = require('../../repositories/notification.repository'),
     pushProvider = require('../../utils/pushProvider.util'),
     websocket = require('../../realtime/websocket.server'),
     service = require('../notification.service');
 describe('notification.service', () => {
-    beforeEach(() => jest.clearAllMocks());
+    beforeEach(() => {
+        jest.clearAllMocks();
+        notificationRepository.createMany.mockResolvedValue([]);
+    });
 
     describe('notifyUser', () => {
         test('persists the notification and skips push when FCM is disabled', async () => {
@@ -35,13 +36,25 @@ describe('notification.service', () => {
             expect(result.disabled).toBe(true);
             expect(pushProvider.sendToTokens).not.toHaveBeenCalled();
         });
-        test('pushes to the user active tokens and disables invalid ones', async () => {
+        test('pushes to newly inserted users active tokens and disables invalid ones', async () => {
             pushProvider.isAvailable.mockReturnValue(true);
-            deviceTokens.activeForUser.mockResolvedValue(['tok1']);
+            notificationRepository.createMany.mockResolvedValue([{ id: 10, user_id: 7 }]);
+            deviceTokens.activeForUsers.mockResolvedValue([{ userId: 7, token: 'tok1' }]);
             pushProvider.sendToTokens.mockResolvedValue({ invalidTokens: ['tok1'] });
             await service.notifyUser(7, { title: 't' });
+            expect(deviceTokens.activeForUsers).toHaveBeenCalledWith([7]);
             expect(pushProvider.sendToTokens).toHaveBeenCalledWith(['tok1'], { title: 't' });
             expect(deviceTokens.disableTokens).toHaveBeenCalledWith(['tok1']);
+        });
+        test('does not emit or push when an event key already exists', async () => {
+            notificationRepository.createMany.mockResolvedValue([]);
+            const result = await service.notifyUser(7, {
+                title: 't',
+                eventKey: 'field_report:3:status:approved',
+            });
+            expect(result).toMatchObject({ recipientCount: 0, duplicate: true });
+            expect(websocket.notifyUser).not.toHaveBeenCalled();
+            expect(pushProvider.isAvailable).not.toHaveBeenCalled();
         });
     });
 
@@ -57,7 +70,7 @@ describe('notification.service', () => {
                 { id: 12, user_id: 2, title: 'new report' },
             ]);
             pushProvider.isAvailable.mockReturnValue(true);
-            db.query.mockResolvedValue({ rows: [] });
+            deviceTokens.activeForUsers.mockResolvedValue([]);
             pushProvider.sendToTokens.mockResolvedValue({ invalidTokens: [] });
             const message = { title: 'new report' };
             await service.broadcastToRole('so_tnmt', message);
@@ -69,6 +82,15 @@ describe('notification.service', () => {
                 'notification',
                 expect.objectContaining({ id: 12 }),
             );
+        });
+        test('deduplicates a direct recipient who also belongs to a manager role', async () => {
+            userRepository.activeIdsByRoles.mockResolvedValue([7, 8]);
+            pushProvider.isAvailable.mockReturnValue(false);
+            await service.notifyUsersAndRoles([7], ['ubnd_tp', 'so_tnmt'], { title: 'status' });
+            expect(userRepository.activeIdsByRoles).toHaveBeenCalledWith(['ubnd_tp', 'so_tnmt']);
+            expect(notificationRepository.createMany).toHaveBeenCalledWith([7, 8], {
+                title: 'status',
+            });
         });
         test('skips DB persistence when the role has no active users', async () => {
             userRepository.activeIdsByRoles.mockResolvedValue([]);

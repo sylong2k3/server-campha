@@ -1,24 +1,39 @@
 'use strict';
 const db = require('../configs/database');
-const createMany = async (userIds, { type, title, body, data }) => {
+const createMany = async (userIds, { type, title, body, data, eventKey } = {}) => {
     const ids = Array.from(new Set(userIds)).filter(Boolean);
     if (!ids.length) {
         return [];
     }
+    const normalizedEventKey = eventKey ? String(eventKey).trim() : null;
+    if (normalizedEventKey && normalizedEventKey.length > 160) {
+        throw new TypeError('Notification event key is too long');
+    }
     const { rows } = await db.query(
-        `INSERT INTO core.notifications(user_id,type,title,body,data)
-         SELECT uid, $2, $3, $4, $5::jsonb FROM UNNEST($1::bigint[]) AS uid
+        `INSERT INTO core.notifications(user_id,type,title,body,data,event_key)
+         SELECT uid, $2, $3, $4, $5::jsonb, $6 FROM UNNEST($1::bigint[]) AS uid
+         ON CONFLICT (user_id,event_key) WHERE event_key IS NOT NULL DO NOTHING
          RETURNING id,user_id,type,title,body,data,read_at,created_at`,
-        [ids, type || 'general', title, body || null, JSON.stringify(data || {})],
+        [
+            ids,
+            type || 'general',
+            title,
+            body || null,
+            JSON.stringify(data || {}),
+            normalizedEventKey,
+        ],
     );
     return rows;
 };
 const listForUser = async (userId, { page = 1, limit = 20, unreadOnly = false } = {}) => {
     const offset = (page - 1) * limit;
     const where = unreadOnly ? 'user_id=$1 AND read_at IS NULL' : 'user_id=$1';
-    const [{ rows }, {
-        rows: [{ total }],
-    }] = await Promise.all([
+    const [
+        { rows },
+        {
+            rows: [{ total }],
+        },
+    ] = await Promise.all([
         db.query(
             `SELECT id,type,title,body,data,read_at,created_at
                FROM core.notifications WHERE ${where}
