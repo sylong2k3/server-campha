@@ -92,6 +92,7 @@ const sendNotification = async (input, actor) => {
         title: input.title,
         body: input.body,
         data: { ...(input.data || {}), channel: input.channel || 'system' },
+        ...(input.eventKey ? { eventKey: input.eventKey } : {}),
     };
 
     if (input.target === 'user') {
@@ -158,6 +159,8 @@ const remove = async (id, userId) => {
     return row;
 };
 
+const cleanupOld = (days = 90) => notificationRepository.cleanupOlderThan(days);
+
 module.exports = {
     broadcastToRole,
     broadcastToRoles,
@@ -171,4 +174,5 @@ module.exports = {
     markRead,
     markAllRead,
     remove,
+    cleanupOld,
 };

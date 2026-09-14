@@ -18,8 +18,14 @@ describe('forest-classification service', () => {
             }),
         };
         const queueArchive = jest.fn().mockResolvedValue({ job: { id: 22 } });
+        const notificationEvents = {
+            notifyForestSnapshotCompleted: jest.fn().mockResolvedValue({}),
+            notifyForestSnapshotFailed: jest.fn().mockResolvedValue({}),
+        };
 
-        await executeRun(snapshot, { repository, satellite, queueArchive });
+        await executeRun(snapshot, { repository, satellite, queueArchive, notificationEvents });
+
+        expect(notificationEvents.notifyForestSnapshotCompleted).toHaveBeenCalledTimes(1);
 
         expect(satellite.getClassified).toHaveBeenCalledWith(
             expect.objectContaining({ geometry: CAM_PHA_GEOMETRY }),
@@ -50,8 +56,14 @@ describe('forest-classification service', () => {
                 .mockResolvedValue({ geeTileUrl: 'tiles', downloadUrl: null, stats: {} }),
         };
         const queueArchive = jest.fn().mockResolvedValue(null);
+        const notificationEvents = {
+            notifyForestSnapshotCompleted: jest.fn().mockResolvedValue({}),
+            notifyForestSnapshotFailed: jest.fn().mockResolvedValue({}),
+        };
 
-        await executeRun(snapshot, { repository, satellite, queueArchive });
+        await executeRun(snapshot, { repository, satellite, queueArchive, notificationEvents });
+
+        expect(notificationEvents.notifyForestSnapshotCompleted).toHaveBeenCalledTimes(1);
 
         expect(repository.updateRun).toHaveBeenLastCalledWith(
             9,

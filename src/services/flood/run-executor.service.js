@@ -469,6 +469,18 @@ async function executePersistedRun({ runId } = {}) {
             exportedCount: harvested.exportedCount,
             warnings: harvested.warnings,
         });
+        try {
+            const notificationEvents = require('../notification-events.service');
+            const floodAreaHa = science.metadata?.mainAreaHa ?? science.metadata?.floodAreaHa ?? null;
+            const floodPercentage = floodAreaHa != null ? (Number(floodAreaHa) / 33584) * 100 : null;
+            await notificationEvents.notifyFloodRunCompleted(run, {
+                floodAreaHa,
+                floodPercentage,
+                warnings: harvested.warnings,
+            });
+        } catch (notifErr) {
+            debug.logError('run-executor.notifyFloodRunCompleted failed', notifErr, { runId: run.id });
+        }
         return { runId: run.id, status: 'SUCCEEDED', ...harvested };
     } catch (error) {
         debug.logError('run-executor.executePersistedRun failed', error, { runId: run.id });
@@ -479,6 +491,14 @@ async function executePersistedRun({ runId } = {}) {
                 errorCode: error.code || error.name || 'FLOOD_RUN_FAILED',
                 errorMessageSafe: safeMessage(error),
             });
+            if (error.code !== 'RUN_CANCELLED') {
+                try {
+                    const notificationEvents = require('../notification-events.service');
+                    await notificationEvents.notifyFloodRunFailed(run, error);
+                } catch (notifErr) {
+                    debug.logError('run-executor.notifyFloodRunFailed failed', notifErr, { runId: run.id });
+                }
+            }
         }
         throw error;
     }

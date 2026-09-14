@@ -715,6 +715,12 @@ async function updateScenario(id, data, actor = null) {
     }
 
     const updated = await floodScenarioRepo.update(id, data);
+    try {
+        const notificationEvents = require('../notification-events.service');
+        await notificationEvents.notifyHydroScenarioUpdated(updated);
+    } catch {
+        // non-fatal
+    }
     return attachLayerToScenario(updated, actor);
 }
 
@@ -761,6 +767,20 @@ async function simulateFlood({ rainfall, tide }, actor) {
 
     const serialized = webMapService.serializeLayer(layer, actor);
     serialized.isEnableDefault = true;
+
+    if (rainVal > 0) {
+        try {
+            const notificationEvents = require('../notification-events.service');
+            await notificationEvents.notifyHydroScenarioTriggered({
+                scenario: matchedScenario,
+                layerCode: targetLayerCode,
+                rainVal,
+                tideVal,
+            });
+        } catch {
+            // non-fatal
+        }
+    }
 
     return {
         ...serialized,

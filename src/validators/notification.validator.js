@@ -18,6 +18,13 @@ const messageFields = {
     title: Joi.string().trim().min(1).max(255).required(),
     body: Joi.string().trim().min(1).max(2000).required(),
     data: Joi.object().unknown(true).default({}),
+    eventKey: Joi.string()
+        .trim()
+        .min(1)
+        .max(160)
+        .pattern(/^[a-zA-Z0-9_:.-]+$/)
+        .optional()
+        .allow(null),
 };
 const sendSchema = Joi.alternatives()
     .try(

@@ -44,7 +44,7 @@ async function executeRun(snapshot, deps = {}) {
     await repo.updateRun(snapshot.id, { status: 'computing', errorMessage: null });
     debug.log('service.executeRun status=computing', { snapshotId: snapshot.id });
     try {
-        const { startDate, endDate } = periodDates(snapshot.year, snapshot.month);
+        const { startDate, endDate, seasonContext } = periodDates(snapshot.year, snapshot.month);
         debug.log('service.executeRun gee.getClassified start', {
             snapshotId: snapshot.id,
             startDate,
@@ -101,7 +101,7 @@ async function executeRun(snapshot, deps = {}) {
             lsImageCount,
             durationMs,
         });
-        return repo.updateRun(snapshot.id, {
+        const updatedSnapshot = await repo.updateRun(snapshot.id, {
             status: finalStatus,
             geeTileUrl: result.geeTileUrl,
             geeDownloadUrl: result.downloadUrl,
@@ -111,13 +111,35 @@ async function executeRun(snapshot, deps = {}) {
             durationMs,
             computedAt: new Date(),
         });
+        const coverage = summariseCoverage(result.stats?.areaByClass || {}, Number(result.stats?.totalHa) || 0);
+        const notificationEvents = deps.notificationEvents || require('../notification-events.service');
+        try {
+            await notificationEvents.notifyForestSnapshotCompleted(updatedSnapshot || snapshot, {
+                seasonContext,
+                coverage,
+            });
+        } catch {
+            // non-fatal
+        }
+        return updatedSnapshot;
     } catch (error) {
         debug.logError('service.executeRun failed', error, { snapshotId: snapshot.id });
-        await repo.updateRun(snapshot.id, {
+        const failedSnapshot = await repo.updateRun(snapshot.id, {
             status: 'failed',
             errorMessage: String(error?.message || 'Forest classification failed').slice(0, 1000),
             computedAt: new Date(),
         });
+        const { getSeasonContext } = require('./period');
+        const seasonContext = getSeasonContext(snapshot.year, snapshot.month);
+        const notificationEvents = deps.notificationEvents || require('../notification-events.service');
+        try {
+            await notificationEvents.notifyForestSnapshotFailed(failedSnapshot || snapshot, {
+                seasonContext,
+                error,
+            });
+        } catch {
+            // non-fatal
+        }
         throw error;
     }
 }
@@ -146,10 +168,12 @@ async function requestRun({ year, month, trigger, requestedBy, cloudCover }, dep
             snapshotId: created.snapshot?.id,
             taskKey,
         });
+        const { getSeasonContext } = require('./period');
+        const seasonContext = getSeasonContext(year, month);
         taskQueue
             .enqueue({
                 key: taskKey,
-                label: `Forest classification ${year}-${String(month).padStart(2, '0')}`,
+                label: `Forest classification: ${seasonContext.label}`,
                 run: () => executeRun(created.snapshot, deps),
             })
             .catch((error) => {
