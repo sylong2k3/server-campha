@@ -3,6 +3,7 @@
 const service = require('../services/flood/analysis.service');
 const eventDaily = require('../services/flood/event-daily.service');
 const eventDailyJob = require('../jobs/flood-event-daily.job');
+const weatherService = require('../services/flood/weather.service');
 const { OK, CREATED, OK_LIST } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
 const { logActivity } = require('../utils/activityLogger.util');
@@ -174,6 +175,24 @@ const deleteScenario = async (req, res) => {
     return OK(res, 'Xóa kịch bản ngập úng thành công');
 };
 
+const getWeatherForecast = async (_req, res) => {
+    const data = await weatherService.getForecast24h();
+    return OK(res, 'Đã tải dự báo thời tiết 24 giờ', data);
+};
+
+const refreshWeatherForecast = async (req, res) => {
+    const actor = buildActor(req);
+    const data = await weatherService.refreshForecast24h();
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: 'flood:weather:refresh',
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { forecastDate: data.forecastDate, count: data.hours?.length },
+    });
+    return OK(res, 'Đã làm mới dữ liệu dự báo thời tiết 24 giờ từ WeatherAPI', data);
+};
+
 module.exports = {
     overview,
     legends,
@@ -203,5 +222,7 @@ module.exports = {
     createScenario,
     updateScenario,
     deleteScenario,
+    getWeatherForecast,
+    refreshWeatherForecast,
 };
 

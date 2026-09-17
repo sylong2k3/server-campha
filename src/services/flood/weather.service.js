@@ -1,21 +1,14 @@
 'use strict';
 
 /**
- * Bridge between OpenWeather (point nowcast) and the M3 rainfall form.
+ * Dịch vụ thời tiết và dự báo lượng mưa 24 giờ cho KTTV Cẩm Phả.
  *
- * The admin flood UI has an "Auto-fill from OpenWeather" button on the rain
- * (M3) module. This service exposes the latest reading at the Cẩm Phả center
- * and remaps it into the same field names the form uses so the FE can call
- * one endpoint and set state directly (no per-field wrangling).
- *
- * OpenWeather's free `/data/2.5/weather` only gives:
- *   - `rain.1h` (mm in the last hour, if raining now)
- *   - `rain.3h` (mm in the last 3 hours, if reported)
- * That's enough to seed `amount1h/3h`; longer windows (6h/24h/72h/7d/30d)
- * stay blank and the admin fills them by hand or leaves them for IMERG /
- * CHIRPS. Do not fabricate.
+ * Tích hợp WeatherAPI để lấy dự báo theo từng giờ (24 mốc 00:00 - 23:00)
+ * của ngày hiện tại, lưu cache trong bộ nhớ và tự động làm mới hàng ngày
+ * qua cron job lúc 00:00 (giờ Việt Nam).
  */
 
+const weatherapi = require('../../utils/weatherapi.client');
 const openweather = require('../../utils/openweather.client');
 const weatherConfig = require('../../configs/weather');
 
@@ -24,10 +17,74 @@ const centerCoordinates = () => ({
     lat: Number(process.env.CAMPHA_CENTER_LAT) || 21.002361,
 });
 
+// Cache dự báo 24 giờ trong bộ nhớ tiến trình
+let cachedForecast = null;
+let lastFetchedAt = null;
+let inFlightPromise = null;
+
 /**
- * Fetch OpenWeather nowcast for the Cẩm Phả center and reshape it for the
- * rain form. Returns nulls (never zeros) for windows OpenWeather doesn't
- * report so downstream logic can distinguish "no data" from "no rain".
+ * Lấy dự báo 24 giờ từ WeatherAPI hoặc từ cache trong bộ nhớ.
+ * Hỗ trợ deduplicate các request gọi đồng thời qua inFlightPromise.
+ *
+ * @param {Object} options
+ * @param {boolean} options.forceRefresh Bắt buộc gọi upstream làm mới cache
+ */
+async function getForecast24h({ forceRefresh = false } = {}) {
+    if (!forceRefresh && cachedForecast) {
+        return cachedForecast;
+    }
+
+    if (inFlightPromise) {
+        return inFlightPromise;
+    }
+
+    const { lat, lng } = centerCoordinates();
+
+    inFlightPromise = (async () => {
+        try {
+            const data = await weatherapi.getHourlyForecast(lat, lng, weatherConfig.LANG || 'vi');
+            cachedForecast = data;
+            lastFetchedAt = Date.now();
+            return cachedForecast;
+        } catch (error) {
+            // Khi làm mới thất bại, nếu đã có cache cũ thì giữ lại cache cũ, không làm mất dữ liệu
+            if (cachedForecast && forceRefresh) {
+                console.warn(`[WEATHER-FORECAST] Refresh thất bại, giữ lại cache cũ: ${error.message}`);
+            }
+            throw error;
+        } finally {
+            inFlightPromise = null;
+        }
+    })();
+
+    return inFlightPromise;
+}
+
+/**
+ * Bắt buộc làm mới dự báo 24 giờ từ WeatherAPI và cập nhật cache.
+ */
+async function refreshForecast24h() {
+    return getForecast24h({ forceRefresh: true });
+}
+
+/**
+ * Lấy cache hiện tại đồng bộ (nếu có).
+ */
+function getCachedForecast() {
+    return cachedForecast;
+}
+
+/**
+ * Xóa cache (phục vụ testing).
+ */
+function __resetCacheForTests() {
+    cachedForecast = null;
+    lastFetchedAt = null;
+    inFlightPromise = null;
+}
+
+/**
+ * Hàm kế thừa OpenWeather (phục vụ tương thích ngược nếu có module gọi).
  */
 async function getCurrentRainfallBundle() {
     if (!weatherConfig.isOpenWeatherConfigured()) {
@@ -38,15 +95,11 @@ async function getCurrentRainfallBundle() {
     const { lng, lat } = centerCoordinates();
     const data = await openweather.getCurrentWeather(lng, lat);
     const rain1h = Number.isFinite(data.rain1h) ? Number(data.rain1h) : 0;
-    // Some OpenWeather stations report `rain.3h` when they don't report 1h,
-    // but the client util currently only surfaces `rain1h`. We propagate rain1h
-    // as amount1h and leave 3h+ blank for the operator to fill.
     return {
         observedAt: data.observedAt,
         location: data.location,
         coord: data.coord,
         source: 'openweather',
-        // Field names mirror admin/src/pages/Flood/index.tsx buildRunConfig 'rain'.
         rainfall: {
             amount1h: rain1h,
             amount3h: null,
@@ -56,11 +109,17 @@ async function getCurrentRainfallBundle() {
             amount7d: null,
             amount30d: null,
         },
-        // Extra context for the UI to show alongside the numbers.
         weather: data.weather,
         humidity: data.humidity,
         wind: data.wind,
     };
 }
 
-module.exports = { getCurrentRainfallBundle, centerCoordinates };
+module.exports = {
+    getForecast24h,
+    refreshForecast24h,
+    getCachedForecast,
+    centerCoordinates,
+    getCurrentRainfallBundle,
+    __resetCacheForTests,
+};

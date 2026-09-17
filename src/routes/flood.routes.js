@@ -54,6 +54,16 @@ publicRouter.get(
 const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);
 adminRouter.get(
+    '/weather/forecast',
+    requirePermission('flood', 'read'),
+    asyncHandler(controller.getWeatherForecast),
+);
+adminRouter.post(
+    '/weather/forecast/refresh',
+    requirePermission('flood', 'run'),
+    asyncHandler(controller.refreshWeatherForecast),
+);
+adminRouter.get(
     '/scenarios',
     requirePermission('flood', 'read'),
     strict(validator.queryScenarioSchema, 'query'),

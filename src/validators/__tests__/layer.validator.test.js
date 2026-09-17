@@ -249,5 +249,30 @@ describe('layer validator', () => {
         ).toBeTruthy();
         expect(validate(validator.createCategorySchema, {}).error).toBeTruthy();
     });
+
+    test('listLayersSchema accepts category filter and default pagination/sorting', () => {
+        const result = validate(validator.listLayersSchema, {
+            page: 1,
+            limit: 50,
+            sortBy: 'created_at',
+            sortOrder: 'DESC',
+            category: 'remote_sensing',
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.value).toMatchObject({
+            page: 1,
+            limit: 50,
+            sortBy: 'created_at',
+            sortOrder: 'DESC',
+            category: 'remote_sensing',
+        });
+    });
+
+    test('listLayersSchema accepts empty category string or all', () => {
+        const emptyResult = validate(validator.listLayersSchema, {
+            category: '',
+        });
+        expect(emptyResult.error).toBeUndefined();
+    });
 });
 

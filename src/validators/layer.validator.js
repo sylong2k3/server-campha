@@ -46,7 +46,7 @@ const paginationSchema = Joi.object({
 const listLayersSchema = paginationSchema.keys({
     q: Joi.string().trim().max(200).allow('').optional(),
     search: Joi.string().trim().max(200).allow('').optional(),
-    category: Joi.string().trim().max(50).optional(),
+    category: Joi.string().trim().max(120).allow('').optional(),
     geometryType: Joi.string()
         .valid(
             'POINT',

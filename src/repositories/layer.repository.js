@@ -25,9 +25,11 @@ const list = async (filter) => {
               OR unaccent(COALESCE(l.category_name, '')) ILIKE ${term})`,
         );
     }
-    if (filter.category) {
-        params.push(filter.category);
-        where.push(`l.category = $${params.length}`);
+    if (filter.category && filter.category !== 'all') {
+        params.push(filter.category.trim());
+        where.push(
+            `(LOWER(TRIM(l.category)) = LOWER(TRIM($${params.length})) OR LOWER(TRIM(COALESCE(l.category_name, ''))) = LOWER(TRIM($${params.length})))`,
+        );
     }
     if (filter.geometryType) {
         params.push(filter.geometryType);

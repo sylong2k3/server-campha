@@ -62,3 +62,47 @@ describe('layer repository raster artifact lookup', () => {
         ).resolves.toEqual({ geoserverPublishCategory: 'raster' });
     });
 });
+
+describe('layer repository list query', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
+    test('builds query with category filter matching category key or category_name', async () => {
+        db.query.mockResolvedValueOnce({
+            rows: [{ id: 1, name_vi: 'Ảnh viễn thám 2025', total_count: 1 }],
+        });
+
+        const result = await repository.list({
+            page: 1,
+            limit: 50,
+            sortBy: 'created_at',
+            sortOrder: 'DESC',
+            category: 'remote_sensing',
+        });
+
+        expect(result.total).toBe(1);
+        expect(result.items).toHaveLength(1);
+        expect(db.query).toHaveBeenCalledWith(
+            expect.stringContaining(
+                '(LOWER(TRIM(l.category)) = LOWER(TRIM($1)) OR LOWER(TRIM(COALESCE(l.category_name, \'\'))) = LOWER(TRIM($1)))',
+            ),
+            ['remote_sensing', 50, 0],
+        );
+    });
+
+    test('ignores category when category is "all"', async () => {
+        db.query.mockResolvedValueOnce({ rows: [] });
+
+        await repository.list({
+            page: 1,
+            limit: 10,
+            category: 'all',
+        });
+
+        expect(db.query).toHaveBeenCalledWith(
+            expect.not.stringContaining('l.category'),
+            [10, 0],
+        );
+    });
+});

@@ -33,13 +33,14 @@ VALUES
 ON CONFLICT (key) DO UPDATE
 SET name_vi = EXCLUDED.name_vi;
 
--- Đồng bộ bù các danh mục đã từng được đặt trong gis.layers trước đây
+-- Đồng bộ bù các danh mục đã từng được đặt trong gis.layers trước đây (chỉ lấy các lớp đang hoạt động)
 INSERT INTO gis.layer_categories (key, name_vi)
 SELECT DISTINCT
     TRIM(l.category) AS key,
     COALESCE(NULLIF(TRIM(l.category_name), ''), TRIM(l.category)) AS name_vi
 FROM gis.layers l
-WHERE l.category IS NOT NULL
+WHERE l.deleted_at IS NULL
+  AND l.category IS NOT NULL
   AND TRIM(l.category) <> ''
   AND TRIM(l.category) <> 'other'
 ON CONFLICT (key) DO NOTHING;
