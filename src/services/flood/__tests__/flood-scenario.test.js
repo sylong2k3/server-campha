@@ -1,3 +1,21 @@
+'use strict';
+
+const analysisService = require('../analysis.service');
+const floodScenarioRepo = require('../../../repositories/flood-scenario.repository');
+const layerRepo = require('../../../repositories/layer.repository');
+const db = require('../../../configs/database');
+const {
+    createScenarioSchema,
+    updateScenarioSchema,
+    queryScenarioSchema,
+    convertLayerScenarioSchema,
+} = require('../../../validators/flood.validator');
+
+describe('Flood Scenario Management CRUD', () => {
+    describe('Validator Schemas', () => {
+        test('createScenarioSchema validates required fields', () => {
+            const payload = {
+                code: 'scenario_test',
                 nameVi: 'Kịch bản thử nghiệm',
                 layerCode: 'lop_phu_sau_ngap_2020',
             };
@@ -161,4 +179,113 @@
             expect(result.simulationParams.scenarioCode).toBe('scenario_heavy');
         });
     });
+
+    describe('Scenario Type Classification and Description Encoding', () => {
+        test('encodeDescription encodes type and rcp marker', () => {
+            const encoded = floodScenarioRepo.encodeDescription('Mô tả ban đầu', 'quy_hoach', 'rcp85');
+            expect(encoded).toBe('[[scenario:quy_hoach;rcp:rcp85]]\nMô tả ban đầu');
+
+            const encodedClean = floodScenarioRepo.encodeDescription('[[scenario:hien_trang]]\nNội dung', 'cai_tao');
+            expect(encodedClean).toBe('[[scenario:cai_tao]]\nNội dung');
+        });
+
+        test('classifyScenario extracts type from marker or falls back to text', () => {
+            expect(floodScenarioRepo.classifyScenario({ description: '[[scenario:quy_hoach;rcp:rcp45]]' })).toEqual({
+                type: 'quy_hoach',
+                rcp: 'rcp45',
+            });
+            expect(floodScenarioRepo.classifyScenario({ name_vi: 'Kịch bản cải tạo thoát nước' })).toEqual({
+                type: 'cai_tao',
+                rcp: null,
+            });
+            expect(floodScenarioRepo.classifyScenario({ name_vi: 'Kịch bản quy hoạch 2050 kịch bản 8.5' })).toEqual({
+                type: 'quy_hoach',
+                rcp: 'rcp85',
+            });
+        });
+
+        test('serialize strips marker from description and exposes virtual fields', () => {
+            const row = {
+                id: 5,
+                code: 'kb_qh',
+                name_vi: 'Quy hoạch 2050',
+                description: '[[scenario:quy_hoach;rcp:rcp85]]\nMô tả kịch bản',
+            };
+            const serialized = floodScenarioRepo.serialize(row);
+            expect(serialized.type).toBe('quy_hoach');
+            expect(serialized.rcp).toBe('rcp85');
+            expect(serialized.description).toBe('Mô tả kịch bản');
+        });
+    });
+
+    describe('Layer Conversion to Flood Scenarios', () => {
+        test('convertLayerScenarioSchema validates payload', () => {
+            const valid = convertLayerScenarioSchema.validate({
+                layerCodes: ['cp_sau_ngap_2020'],
+                type: 'hien_trang',
+                minRainfall: 100,
+            });
+            expect(valid.error).toBeUndefined();
+
+            const invalid = convertLayerScenarioSchema.validate({
+                layerCodes: [],
+                type: 'invalid_type',
+            });
+            expect(invalid.error).toBeDefined();
+        });
+
+        test('convertLayersToScenarios creates scenarios and reports skipped/missing', async () => {
+            const mockClient = {
+                query: jest.fn().mockImplementation((sql) => {
+                    if (sql === 'BEGIN' || sql === 'COMMIT' || sql === 'ROLLBACK') {
+                        return Promise.resolve();
+                    }
+                    return Promise.resolve({ rows: [] });
+                }),
+                release: jest.fn(),
+            };
+            jest.spyOn(db, 'getClient').mockResolvedValue(mockClient);
+
+            jest.spyOn(layerRepo, 'findByCodes').mockResolvedValue([
+                { id: 11, code: 'cp_sau_ngap_2020', name_vi: 'Lớp ngập 2020' },
+                { id: 12, code: 'cp_sau_ngap_2022', name_vi: 'Lớp ngập 2022' },
+            ]);
+            jest.spyOn(layerRepo, 'findByCode').mockResolvedValue({ id: 11, code: 'cp_sau_ngap_2020', name_vi: 'Lớp ngập 2020' });
+
+            jest.spyOn(floodScenarioRepo, 'findByCode').mockImplementation((code) => {
+                if (code.includes('2022')) {
+                    return Promise.resolve({ id: 99, code });
+                }
+                return Promise.resolve(null);
+            });
+
+            jest.spyOn(floodScenarioRepo, 'create').mockResolvedValue({
+                id: 50,
+                code: 'scenario_hien_trang_cp_sau_ngap_2020',
+                name_vi: 'Lớp ngập 2020',
+                layer_code: 'cp_sau_ngap_2020',
+                type: 'hien_trang',
+                rcp: null,
+            });
+
+            const result = await analysisService.convertLayersToScenarios({
+                layerCodes: ['cp_sau_ngap_2020', 'cp_sau_ngap_2022', 'non_existing_layer'],
+                type: 'hien_trang',
+                rcp: null,
+                minRainfall: 50,
+                maxRainfall: 100,
+                minTide: null,
+                maxTide: null,
+                isActive: true,
+            });
+
+            expect(result.created.length).toBe(1);
+            expect(result.created[0].code).toBe('scenario_hien_trang_cp_sau_ngap_2020');
+            expect(result.skipped.length).toBe(1);
+            expect(result.missingLayerCodes).toEqual(['non_existing_layer']);
+            expect(mockClient.query).toHaveBeenCalledWith('COMMIT');
+            expect(mockClient.release).toHaveBeenCalledTimes(1);
+        });
+    });
 });
+

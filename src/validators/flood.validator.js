@@ -109,7 +109,7 @@ const updateScenarioSchema = Joi.object({
 
 const queryScenarioSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
+    limit: Joi.number().integer().min(1).max(200).default(20),
     activeOnly: Joi.boolean().default(false),
     search: Joi.string().allow('', null),
     type: scenarioType.allow('', null),

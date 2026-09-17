@@ -14,18 +14,24 @@ function encodeDescription(description, type, rcp = null) {
 
 function classifyScenario(row) {
     const marker = String(row.description || '').match(SCENARIO_MARKER_PATTERN);
-    if (marker) return { type: marker[1].toLowerCase(), rcp: marker[2]?.toLowerCase() || null };
+    if (marker) {
+        return { type: marker[1].toLowerCase(), rcp: marker[2]?.toLowerCase() || null };
+    }
     const text = `${row.code || ''} ${row.name_vi || ''} ${row.description || ''} ${row.layer_code || ''}`.toLowerCase();
     if (text.includes('quy hoạch') || text.includes('quy hoach') || text.includes('2050')) {
         const rcp = text.includes('8.5') || text.includes('rcp85') ? 'rcp85' : text.includes('4.5') || text.includes('rcp45') ? 'rcp45' : null;
         return { type: 'quy_hoach', rcp };
     }
-    if (text.includes('cải tạo') || text.includes('cai tao') || text.includes('thoát nước')) return { type: 'cai_tao', rcp: null };
+    if (text.includes('cải tạo') || text.includes('cai tao') || text.includes('thoát nước')) {
+        return { type: 'cai_tao', rcp: null };
+    }
     return { type: 'hien_trang', rcp: null };
 }
 
 function serialize(row) {
-    if (!row) return row;
+    if (!row) {
+        return row;
+    }
     const classification = classifyScenario(row);
     return {
         ...row,
