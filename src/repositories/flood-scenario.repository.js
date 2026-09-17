@@ -185,55 +185,51 @@ async function listAll({
     type = null,
     rcp = null,
 } = {}, client = db) {
-    const offset = (page - 1) * limit;
     const conditions = [];
     const params = [];
-    let paramIndex = 1;
 
     if (activeOnly) {
         conditions.push(`is_active = true`);
     }
 
     if (search) {
-        conditions.push(`(code ILIKE $${paramIndex} OR name_vi ILIKE $${paramIndex})`);
+        const idx = params.length + 1;
+        conditions.push(`(code ILIKE $${idx} OR name_vi ILIKE $${idx})`);
         params.push(`%${search}%`);
-        paramIndex++;
-    }
-
-    if (type) {
-        params.push(`[[scenario:${type}%`);
-        conditions.push(`description ILIKE $${paramIndex++}`);
-    }
-    if (rcp) {
-        params.push(`%;rcp:${rcp}]]%`);
-        conditions.push(`description ILIKE $${paramIndex++}`);
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const countRes = await client.query(
-        `SELECT COUNT(*) AS total FROM gis.flood_scenarios ${whereClause}`,
-        params,
-    );
-    const total = parseInt(countRes.rows[0].total, 10);
-
-    params.push(limit, offset);
     const dataRes = await client.query(
         `SELECT ${SCENARIO_COLUMNS}
          FROM gis.flood_scenarios
          ${whereClause}
-         ORDER BY min_rainfall ASC, id ASC
-         LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+         ORDER BY min_rainfall ASC NULLS FIRST, id ASC`,
         params,
     );
 
+    let items = dataRes.rows.map(serialize);
+
+    if (type) {
+        items = items.filter((item) => item.type === type);
+    }
+    if (rcp) {
+        items = items.filter((item) => item.rcp === rcp);
+    }
+
+    const total = items.length;
+    const pageNum = Math.max(1, Number(page) || 1);
+    const limitNum = Math.max(1, Number(limit) || 20);
+    const offset = (pageNum - 1) * limitNum;
+    const paginatedItems = items.slice(offset, offset + limitNum);
+
     return {
-        items: dataRes.rows.map(serialize),
+        items: paginatedItems,
         pagination: {
-            page: Number(page),
-            limit: Number(limit),
+            page: pageNum,
+            limit: limitNum,
             total,
-            totalPages: Math.ceil(total / limit),
+            totalPages: Math.ceil(total / limitNum),
         },
     };
 }

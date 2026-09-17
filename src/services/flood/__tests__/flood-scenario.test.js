@@ -216,6 +216,58 @@ describe('Flood Scenario Management CRUD', () => {
             expect(serialized.rcp).toBe('rcp85');
             expect(serialized.description).toBe('Mô tả kịch bản');
         });
+
+        test('listAll filters by type and rcp correctly including legacy rows', async () => {
+            const mockRows = [
+                {
+                    id: 1,
+                    code: 'scenario_light',
+                    name_vi: 'Kịch bản ngập nhẹ',
+                    description: 'Kịch bản mưa nhỏ và triều thấp',
+                    min_rainfall: 0,
+                    is_active: true,
+                },
+                {
+                    id: 2,
+                    code: 'scenario_cai_tao_1',
+                    name_vi: 'Kịch bản cải tạo cống',
+                    description: '[[scenario:cai_tao]]\nCải tạo hệ thống cống',
+                    min_rainfall: 50,
+                    is_active: true,
+                },
+                {
+                    id: 3,
+                    code: 'scenario_qh_rcp45',
+                    name_vi: 'Kịch bản quy hoạch RCP 4.5',
+                    description: '[[scenario:quy_hoach;rcp:rcp45]]\nQuy hoạch RCP 4.5',
+                    min_rainfall: 80,
+                    is_active: true,
+                },
+            ];
+
+            const mockClient = {
+                query: jest.fn().mockResolvedValue({ rows: mockRows }),
+            };
+
+            const hienTrangResult = await floodScenarioRepo.listAll({ type: 'hien_trang', page: 1, limit: 10 }, mockClient);
+            expect(hienTrangResult.items.length).toBe(1);
+            expect(hienTrangResult.items[0].code).toBe('scenario_light');
+            expect(hienTrangResult.items[0].type).toBe('hien_trang');
+            expect(hienTrangResult.pagination.total).toBe(1);
+
+            const caiTaoResult = await floodScenarioRepo.listAll({ type: 'cai_tao' }, mockClient);
+            expect(caiTaoResult.items.length).toBe(1);
+            expect(caiTaoResult.items[0].code).toBe('scenario_cai_tao_1');
+            expect(caiTaoResult.items[0].type).toBe('cai_tao');
+
+            const qhResult = await floodScenarioRepo.listAll({ type: 'quy_hoach', rcp: 'rcp45' }, mockClient);
+            expect(qhResult.items.length).toBe(1);
+            expect(qhResult.items[0].code).toBe('scenario_qh_rcp45');
+
+            const qhNonMatchingRcp = await floodScenarioRepo.listAll({ type: 'quy_hoach', rcp: 'rcp85' }, mockClient);
+            expect(qhNonMatchingRcp.items.length).toBe(0);
+            expect(qhNonMatchingRcp.pagination.total).toBe(0);
+        });
     });
 
     describe('Layer Conversion to Flood Scenarios', () => {
