@@ -1,6 +1,36 @@
 'use strict';
 
-const db = require('../configs/database');
+const SCENARIO_MARKER_PATTERN = /^\[\[scenario:(hien_trang|cai_tao|quy_hoach)(?:;rcp:(rcp45|rcp85))?\]\]\s*/i;
+
+function encodeDescription(description, type, rcp = null) {
+    const clean = String(description || '').replace(SCENARIO_MARKER_PATTERN, '').trim();
+    const scenarioType = ['hien_trang', 'cai_tao', 'quy_hoach'].includes(type) ? type : 'hien_trang';
+    const scenarioRcp = scenarioType === 'quy_hoach' && ['rcp45', 'rcp85'].includes(rcp) ? rcp : null;
+    const marker = `[[scenario:${scenarioType}${scenarioRcp ? `;rcp:${scenarioRcp}` : ''}]]`;
+    return clean ? `${marker}\n${clean}` : marker;
+}
+
+function classifyScenario(row) {
+    const marker = String(row.description || '').match(SCENARIO_MARKER_PATTERN);
+    if (marker) return { type: marker[1].toLowerCase(), rcp: marker[2]?.toLowerCase() || null };
+    const text = `${row.code || ''} ${row.name_vi || ''} ${row.description || ''} ${row.layer_code || ''}`.toLowerCase();
+    if (text.includes('quy hoạch') || text.includes('quy hoach') || text.includes('2050')) {
+        const rcp = text.includes('8.5') || text.includes('rcp85') ? 'rcp85' : text.includes('4.5') || text.includes('rcp45') ? 'rcp45' : null;
+        return { type: 'quy_hoach', rcp };
+    }
+    if (text.includes('cải tạo') || text.includes('cai tao') || text.includes('thoát nước')) return { type: 'cai_tao', rcp: null };
+    return { type: 'hien_trang', rcp: null };
+}
+
+function serialize(row) {
+    if (!row) return row;
+    const classification = classifyScenario(row);
+    return {
+        ...row,
+        description: String(row.description || '').replace(SCENARIO_MARKER_PATTERN, '').trim() || null,
+        ...classification,
+    };
+}
 
 const SCENARIO_COLUMNS = `id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
                 layer_code, description, is_active,
@@ -14,7 +44,7 @@ async function findById(id, client = db) {
          WHERE id = $1`,
         [id],
     );
-    return res.rows[0] || null;
+    return serialize(res.rows[0] || null);
 }
 
 async function findByCode(code, client = db) {
@@ -24,7 +54,7 @@ async function findByCode(code, client = db) {
          WHERE code = $1`,
         [code],
     );
-    return res.rows[0] || null;
+    return serialize(res.rows[0] || null);
 }
 
 async function create(data, client = db) {
@@ -43,7 +73,7 @@ async function create(data, client = db) {
             data.minTide ?? null,
             data.maxTide ?? null,
             data.layerCode,
-            data.description ?? null,
+            encodeDescription(data.description, data.type, data.rcp),
             data.isActive ?? true,
             data.currentRainfall ?? null,
             data.rainfallSource ?? 'MANUAL',
@@ -51,7 +81,7 @@ async function create(data, client = db) {
             data.tideSource ?? 'MANUAL',
         ],
     );
-    return res.rows[0];
+    return serialize(res.rows[0]);
 }
 
 async function update(id, data, client = db) {
@@ -87,9 +117,15 @@ async function update(id, data, client = db) {
         fields.push(`layer_code = $${idx++}`);
         values.push(data.layerCode);
     }
-    if (data.description !== undefined) {
+    const shouldUpdateDescription = data.description !== undefined || data.type !== undefined || data.rcp !== undefined;
+    if (shouldUpdateDescription) {
+        const current = await findById(id, client);
         fields.push(`description = $${idx++}`);
-        values.push(data.description);
+        values.push(encodeDescription(
+            data.description !== undefined ? data.description : current?.description,
+            data.type !== undefined ? data.type : current?.type,
+            data.rcp !== undefined ? data.rcp : current?.rcp,
+        ));
     }
     if (data.isActive !== undefined) {
         fields.push(`is_active = $${idx++}`);
@@ -122,7 +158,7 @@ async function update(id, data, client = db) {
          RETURNING ${SCENARIO_COLUMNS}`,
         values,
     );
-    return res.rows[0] || null;
+    return serialize(res.rows[0] || null);
 }
 
 async function deleteScenario(id, client = db) {
@@ -149,6 +185,15 @@ async function listAll({ page = 1, limit = 20, activeOnly = false, search = null
         paramIndex++;
     }
 
+    if (type) {
+        params.push(`[[scenario:${type}%`);
+        conditions.push(`description ILIKE $${paramIndex++}`);
+    }
+    if (rcp) {
+        params.push(`%;rcp:${rcp}]]%`);
+        conditions.push(`description ILIKE $${paramIndex++}`);
+    }
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const countRes = await client.query(
@@ -168,7 +213,7 @@ async function listAll({ page = 1, limit = 20, activeOnly = false, search = null
     );
 
     return {
-        items: dataRes.rows,
+        items: dataRes.rows.map(serialize),
         pagination: {
             page: Number(page),
             limit: Number(limit),
@@ -228,7 +273,9 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
     return lowestRes.rows[0] || null;
 }
 
-module.exports = {
+    classifyScenario,
+    encodeDescription,
+    serialize,
     findById,
     findByCode,
     create,
