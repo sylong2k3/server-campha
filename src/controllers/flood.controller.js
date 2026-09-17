@@ -175,6 +175,11 @@ const deleteScenario = async (req, res) => {
     return OK(res, 'Xóa kịch bản ngập úng thành công');
 };
 
+const convertFromLayers = async (req, res) => {
+    const result = await service.convertLayersToScenarios(req.body, buildActor(req));
+    return CREATED(res, 'Đã chuyển lớp bản đồ thành kịch bản ngập', result);
+};
+
 const getWeatherForecast = async (_req, res) => {
     const data = await weatherService.getForecast24h();
     return OK(res, 'Đã tải dự báo thời tiết 24 giờ', data);
@@ -222,6 +227,7 @@ module.exports = {
     createScenario,
     updateScenario,
     deleteScenario,
+    convertFromLayers,
     getWeatherForecast,
     refreshWeatherForecast,
 };

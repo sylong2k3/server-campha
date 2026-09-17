@@ -1,5 +1,7 @@
 'use strict';
 
+const db = require('../configs/database');
+
 const SCENARIO_MARKER_PATTERN = /^\[\[scenario:(hien_trang|cai_tao|quy_hoach)(?:;rcp:(rcp45|rcp85))?\]\]\s*/i;
 
 function encodeDescription(description, type, rcp = null) {
@@ -169,7 +171,14 @@ async function deleteScenario(id, client = db) {
     return res.rowCount > 0;
 }
 
-async function listAll({ page = 1, limit = 20, activeOnly = false, search = null } = {}, client = db) {
+async function listAll({
+    page = 1,
+    limit = 20,
+    activeOnly = false,
+    search = null,
+    type = null,
+    rcp = null,
+} = {}, client = db) {
     const offset = (page - 1) * limit;
     const conditions = [];
     const params = [];
@@ -242,7 +251,7 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
     );
 
     if (res.rows.length > 0) {
-        return res.rows[0];
+        return serialize(res.rows[0]);
     }
 
     // Fallback: match by rainfall range only
@@ -258,7 +267,7 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
     );
 
     if (fallbackRes.rows.length > 0) {
-        return fallbackRes.rows[0];
+        return serialize(fallbackRes.rows[0]);
     }
 
     // Final fallback: return scenario with lowest rainfall threshold
@@ -270,9 +279,10 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
          LIMIT 1`,
     );
 
-    return lowestRes.rows[0] || null;
+    return serialize(lowestRes.rows[0] || null);
 }
 
+module.exports = {
     classifyScenario,
     encodeDescription,
     serialize,

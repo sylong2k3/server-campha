@@ -6,6 +6,7 @@ const artifactRepo = require('../../repositories/flood-artifact.repository');
 const ingestRepo = require('../../repositories/raster-ingest.repository');
 const layerRepo = require('../../repositories/layer.repository');
 const floodScenarioRepo = require('../../repositories/flood-scenario.repository');
+const db = require('../../configs/database');
 const webMapService = require('../web-map.service');
 const orchestrator = require('./orchestrator.service');
 const geeAdapter = require('../gee-earth-engine.adapter');
@@ -732,6 +733,59 @@ async function deleteScenario(id) {
     return floodScenarioRepo.deleteScenario(id);
 }
 
+function scenarioCodeFromLayer(layerCode, type, rcp) {
+    const suffix = type === 'quy_hoach' && rcp ? `_${rcp}` : '';
+    return `scenario_${type}_${layerCode}${suffix}`.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 100);
+}
+
+async function convertLayersToScenarios(data, actor = null) {
+    const uniqueCodes = [...new Set(data.layerCodes)];
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const layers = await layerRepo.findByCodes(uniqueCodes, client);
+        const foundCodes = new Set(layers.map((layer) => layer.code));
+        const missingLayerCodes = uniqueCodes.filter((code) => !foundCodes.has(code));
+        const created = [];
+        const skipped = [];
+
+        for (const layer of layers) {
+            const code = scenarioCodeFromLayer(layer.code, data.type, data.rcp);
+            const existing = await floodScenarioRepo.findByCode(code, client);
+            if (existing) {
+                skipped.push(existing);
+                continue;
+            }
+            const scenario = await floodScenarioRepo.create({
+                code,
+                nameVi: layer.name_vi || layer.code,
+                type: data.type,
+                rcp: data.rcp,
+                minRainfall: data.minRainfall,
+                maxRainfall: data.maxRainfall,
+                minTide: data.minTide,
+                maxTide: data.maxTide,
+                layerCode: layer.code,
+                description: `Tạo từ lớp bản đồ ${layer.name_vi || layer.code}`,
+                isActive: data.isActive,
+            }, client);
+            created.push(scenario);
+        }
+
+        await client.query('COMMIT');
+        return {
+            created: await Promise.all(created.map((scenario) => attachLayerToScenario(scenario, actor))),
+            skipped,
+            missingLayerCodes,
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
 async function simulateFlood({ rainfall, tide }, actor) {
     const rainVal = Number(rainfall);
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
@@ -819,6 +873,7 @@ module.exports = {
     createScenario,
     updateScenario,
     deleteScenario,
+    convertLayersToScenarios,
     getLegends: buildAllLegends,
     getAdminLegends: buildAllAdminLegends,
     updateLegend(artifactCode, patch) {

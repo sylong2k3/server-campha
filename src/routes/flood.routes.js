@@ -69,6 +69,12 @@ adminRouter.get(
     strict(validator.queryScenarioSchema, 'query'),
     asyncHandler(controller.listScenarios),
 );
+adminRouter.post(
+    '/scenarios/from-layers',
+    requirePermission('flood', 'run'),
+    strict(validator.convertLayerScenarioSchema, 'body'),
+    asyncHandler(controller.convertFromLayers),
+);
 adminRouter.get(
     '/scenarios/:id',
     requirePermission('flood', 'read'),

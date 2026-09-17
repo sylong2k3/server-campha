@@ -86,6 +86,16 @@ const findByCode = async (code, client = db) => {
     return rows[0] || null;
 };
 
+const findByCodes = async (codes, client = db) => {
+    const { rows } = await client.query(
+        `SELECT * FROM gis.layers
+         WHERE code = ANY($1::varchar[]) AND deleted_at IS NULL
+         ORDER BY id ASC`,
+        [codes],
+    );
+    return rows;
+};
+
 const upsertLayerByCode = async (client, payload) => {
     const code = String(payload.code || '').replace(/[^a-z0-9_]/g, '_');
     const tableName = String(payload.table_name || code).replace(/[^a-z0-9_]/g, '_');
@@ -380,6 +390,7 @@ module.exports = {
     list,
     findById,
     findByCode,
+    findByCodes,
     upsertLayerByCode,
     updatePublishedMetadata,
     updateMetadata,
