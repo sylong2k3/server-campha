@@ -146,4 +146,73 @@ describe('layer-category service', () => {
             errors: ['CATEGORY_ALREADY_EXISTS'],
         });
     });
+
+    test('deleteCategory enforces layers.delete permission', async () => {
+        await expect(
+            service.deleteCategory('custom_cat', {
+                ...actor,
+                permissions: { layers: { delete: false } },
+            }),
+        ).rejects.toMatchObject({ status: 403 });
+    });
+
+    test('deleteCategory protects system default categories', async () => {
+        await expect(service.deleteCategory('flood', actor)).rejects.toMatchObject({
+            status: 422,
+            errors: ['SYSTEM_CATEGORY_IMMUTABLE'],
+        });
+        await expect(service.deleteCategory('land_cover', actor)).rejects.toMatchObject({
+            status: 422,
+            errors: ['SYSTEM_CATEGORY_IMMUTABLE'],
+        });
+    });
+
+    test('deleteCategory checks existence of category', async () => {
+        categoryRepository.findByKey.mockResolvedValueOnce(null);
+
+        await expect(service.deleteCategory('non_existent', actor)).rejects.toMatchObject({
+            status: 404,
+        });
+    });
+
+    test('deleteCategory blocks deletion if active layers exist', async () => {
+        categoryRepository.findByKey.mockResolvedValueOnce({
+            id: 20,
+            key: 'du_lich',
+            name: 'Du lịch',
+        });
+        categoryRepository.countActiveLayers.mockResolvedValueOnce(3);
+
+        await expect(service.deleteCategory('du_lich', actor)).rejects.toMatchObject({
+            status: 409,
+            errors: ['CATEGORY_IN_USE'],
+        });
+    });
+
+    test('deleteCategory successfully deletes unused category', async () => {
+        categoryRepository.findByKey.mockResolvedValueOnce({
+            id: 20,
+            key: 'du_lich_cu',
+            name: 'Du lịch cũ',
+        });
+        categoryRepository.countActiveLayers.mockResolvedValueOnce(0);
+        categoryRepository.deleteByKey.mockResolvedValueOnce({
+            id: 20,
+            key: 'du_lich_cu',
+            name: 'Du lịch cũ',
+        });
+
+        const res = await service.deleteCategory('du_lich_cu', actor);
+        expect(res).toEqual({ key: 'du_lich_cu', name: 'Du lịch cũ' });
+        expect(categoryRepository.deleteByKey).toHaveBeenCalledWith('du_lich_cu');
+        expect(systemLogger.logInfo).toHaveBeenCalledWith(
+            'layers',
+            'layer_category_deleted',
+            expect.objectContaining({
+                actorId: 9,
+                key: 'du_lich_cu',
+                nameVi: 'Du lịch cũ',
+            }),
+        );
+    });
 });

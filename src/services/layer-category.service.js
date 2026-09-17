@@ -2,7 +2,18 @@
 
 const categoryRepository = require('../repositories/layer-category.repository');
 const systemLogger = require('../utils/systemLogger.util');
-const { Api403Error, Api409Error, Api422Error } = require('../core/error.response');
+const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
+
+const SYSTEM_CATEGORY_KEYS = new Set([
+    'land_cover',
+    'flood',
+    'remote_sensing',
+    'forest_district',
+    'hanh_chinh',
+    'thuy_van',
+    'giao_thong',
+    'other',
+]);
 
 const hasPermission = (actor, action) => actor?.permissions?.layers?.[action] === true;
 const assertPermission = (actor, action) => {
@@ -87,8 +98,48 @@ const createCategory = async (input, actor) => {
     }
 };
 
+const deleteCategory = async (key, actor) => {
+    assertPermission(actor, 'delete');
+    const safeKey = String(key || '').trim();
+    if (!safeKey) {
+        throw new Api422Error('Mã danh mục không hợp lệ', ['INVALID_CATEGORY_KEY']);
+    }
+
+    if (SYSTEM_CATEGORY_KEYS.has(safeKey)) {
+        throw new Api422Error('Không thể xóa danh mục mặc định của hệ thống', [
+            'SYSTEM_CATEGORY_IMMUTABLE',
+        ]);
+    }
+
+    const existing = await categoryRepository.findByKey(safeKey);
+    if (!existing) {
+        throw new Api404Error('Không tìm thấy danh mục');
+    }
+
+    const activeLayersCount = await categoryRepository.countActiveLayers(safeKey);
+    if (activeLayersCount > 0) {
+        throw new Api409Error(
+            `Danh mục đang được sử dụng bởi ${activeLayersCount} lớp bản đồ, không thể xóa`,
+            ['CATEGORY_IN_USE'],
+        );
+    }
+
+    await categoryRepository.deleteByKey(safeKey);
+
+    systemLogger.logInfo('layers', 'layer_category_deleted', {
+        actorId: actor?.id,
+        role: actor?.role,
+        orgId: actor?.orgId,
+        key: safeKey,
+        nameVi: existing.name,
+    });
+
+    return { key: safeKey, name: existing.name };
+};
+
 module.exports = {
     toCategorySlug,
     listCategories,
     createCategory,
+    deleteCategory,
 };

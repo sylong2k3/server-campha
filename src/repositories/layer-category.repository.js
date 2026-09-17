@@ -54,9 +54,31 @@ const create = async ({ key, nameVi, createdBy }, client = db) => {
     return mapCategoryRow(rows[0]);
 };
 
+const countActiveLayers = async (key, client = db) => {
+    const { rows } = await client.query(
+        `SELECT COUNT(*)::int AS count
+         FROM gis.layers
+         WHERE category = $1 AND deleted_at IS NULL`,
+        [key],
+    );
+    return rows[0]?.count || 0;
+};
+
+const deleteByKey = async (key, client = db) => {
+    const { rows } = await client.query(
+        `DELETE FROM gis.layer_categories
+         WHERE key = $1
+         RETURNING id, key, name_vi`,
+        [key],
+    );
+    return rows[0] ? { id: rows[0].id, key: rows[0].key, name: rows[0].name_vi } : null;
+};
+
 module.exports = {
     list,
     findByKey,
     findByName,
     create,
+    countActiveLayers,
+    deleteByKey,
 };

@@ -143,6 +143,13 @@ const createCategory = async (req, res) => {
         await layerCategoryService.createCategory(req.body, buildActor(req)),
     );
 };
+const deleteCategory = async (req, res) => {
+    OK(
+        res,
+        'Xóa danh mục lớp thành công',
+        await layerCategoryService.deleteCategory(req.params.key, buildActor(req)),
+    );
+};
 
 module.exports = {
     enqueueShapefile,
@@ -162,4 +169,5 @@ module.exports = {
     retryPublish,
     listCategories,
     createCategory,
+    deleteCategory,
 };

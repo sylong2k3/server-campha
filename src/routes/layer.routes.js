@@ -58,6 +58,11 @@ router.post(
     strict(validator.createCategorySchema),
     asyncHandler(controller.createCategory),
 );
+router.delete(
+    '/categories/:key',
+    requirePermission('layers', 'delete'),
+    asyncHandler(controller.deleteCategory),
+);
 router.get(
     '/:layerId/standard-metadata.xml',
     requirePermission('layers', 'read'),
