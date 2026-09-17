@@ -106,11 +106,17 @@ flowchart TD
         "windKph": 5.4,
         "windDir": "NNE",
         "uv": 0
-      },
+      }
       // ... tổng cộng đúng 24 mốc giờ từ 00:00 đến 23:00
     ],
     "source": "weatherapi",
-    "fetchedAt": "2026-09-18T00:00:05.123Z"
+    "fetchedAt": "2026-09-18T00:00:05.123Z",
+    "metadata": {
+      // Dữ liệu raw gốc từ WeatherAPI chưa qua mapping của server
+      "location": { "name": "Cam Pha Mines", "region": "Quảng Ninh", "country": "Vietnam", "lat": 21.017, "lon": 107.3, ... },
+      "current": { "temp_c": 24.5, "condition": { ... }, "wind_kph": 6.8, ... },
+      "forecast": { "forecastday": [ ... ] }
+    }
   }
 }
 ```

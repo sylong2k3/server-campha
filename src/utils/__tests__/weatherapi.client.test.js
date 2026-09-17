@@ -83,6 +83,7 @@ describe('weatherapi.client', () => {
         expect(result.hours[10].hour).toBe('10:00');
         expect(result.hours[10].precipMm).toBe(12.5);
         expect(result.hours[10].chanceOfRain).toBe(80);
+        expect(result.metadata).toEqual(mockResponse);
     });
 
     test('handles upstream errors without leaking secret', async () => {

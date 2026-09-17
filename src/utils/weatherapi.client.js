@@ -110,6 +110,7 @@ const getHourlyForecast = async (lat, lon, lang = cfg.LANG || 'vi') => {
         hours, // 24 phần tử (00:00 - 23:00)
         source: 'weatherapi',
         fetchedAt: new Date().toISOString(),
+        metadata: data,
     };
 };
 
