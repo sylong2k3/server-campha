@@ -232,5 +232,22 @@ describe('layer validator', () => {
             }).error,
         ).toBeTruthy();
     });
+
+    test('createCategorySchema accepts valid trimmed category name', () => {
+        const result = validate(validator.createCategorySchema, {
+            name: '  Quy hoạch Cẩm Phả  ',
+        });
+        expect(result.error).toBeUndefined();
+        expect(result.value.name).toBe('Quy hoạch Cẩm Phả');
+    });
+
+    test('createCategorySchema rejects name shorter than 2 or longer than 120 chars', () => {
+        expect(validate(validator.createCategorySchema, { name: 'A' }).error).toBeTruthy();
+        expect(validate(validator.createCategorySchema, { name: '' }).error).toBeTruthy();
+        expect(
+            validate(validator.createCategorySchema, { name: 'x'.repeat(121) }).error,
+        ).toBeTruthy();
+        expect(validate(validator.createCategorySchema, {}).error).toBeTruthy();
+    });
 });
 

@@ -1,6 +1,7 @@
 'use strict';
 
 const layerService = require('../services/layer.service');
+const layerCategoryService = require('../services/layer-category.service');
 const { OK, CREATED, OK_LIST } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
 
@@ -128,6 +129,20 @@ const retryPublish = async (req, res) => {
         await layerService.retryPublish(Number(req.params.layerId), buildActor(req)),
     );
 };
+const listCategories = async (req, res) => {
+    OK(
+        res,
+        'Lấy danh sách danh mục lớp thành công',
+        await layerCategoryService.listCategories(buildActor(req)),
+    );
+};
+const createCategory = async (req, res) => {
+    CREATED(
+        res,
+        'Tạo danh mục lớp thành công',
+        await layerCategoryService.createCategory(req.body, buildActor(req)),
+    );
+};
 
 module.exports = {
     enqueueShapefile,
@@ -145,4 +160,6 @@ module.exports = {
     getCleanup,
     retryCleanup,
     retryPublish,
+    listCategories,
+    createCategory,
 };

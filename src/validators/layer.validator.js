@@ -304,6 +304,10 @@ const deleteLayerSchema = Joi.object({
 
 const cleanupRequestSchema = Joi.object({}).default({});
 
+const createCategorySchema = Joi.object({
+    name: Joi.string().trim().min(2).max(120).required(),
+});
+
 module.exports = {
     shapefileImportSchema,
     excelImportSchema,
@@ -318,4 +322,5 @@ module.exports = {
     permissionsSchema,
     deleteLayerSchema,
     cleanupRequestSchema,
+    createCategorySchema,
 };

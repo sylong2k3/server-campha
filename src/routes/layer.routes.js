@@ -48,6 +48,17 @@ router.get(
     asyncHandler(controller.listLayers),
 );
 router.get(
+    '/categories',
+    requirePermission('layers', 'read'),
+    asyncHandler(controller.listCategories),
+);
+router.post(
+    '/categories',
+    requirePermission('layers', 'create'),
+    strict(validator.createCategorySchema),
+    asyncHandler(controller.createCategory),
+);
+router.get(
     '/:layerId/standard-metadata.xml',
     requirePermission('layers', 'read'),
     validate(validator.layerIdParamsSchema, 'params'),
