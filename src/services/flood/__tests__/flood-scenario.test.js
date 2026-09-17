@@ -1,19 +1,3 @@
-'use strict';
-
-const analysisService = require('../analysis.service');
-const floodScenarioRepo = require('../../../repositories/flood-scenario.repository');
-const layerRepo = require('../../../repositories/layer.repository');
-const {
-    createScenarioSchema,
-    updateScenarioSchema,
-    queryScenarioSchema,
-} = require('../../../validators/flood.validator');
-
-describe('Flood Scenario Management CRUD', () => {
-    describe('Validator Schemas', () => {
-        test('createScenarioSchema validates required fields', () => {
-            const payload = {
-                code: 'scenario_test',
                 nameVi: 'Kịch bản thử nghiệm',
                 layerCode: 'lop_phu_sau_ngap_2020',
             };
