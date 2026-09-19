@@ -234,7 +234,7 @@ async function listAll({
     };
 }
 
-async function findMatchingScenario(rainfall, tide = null, client = db) {
+async function findMatchingScenario(rainfall, tide = null, client = db, { type = null } = {}) {
     // Match by rainfall + tide (no is_active filter — simulation finds the best scenario regardless)
     const res = await client.query(
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
@@ -247,13 +247,13 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
              (min_tide IS NULL OR $2::numeric >= min_tide) AND
              (max_tide IS NULL OR $2::numeric <= max_tide)
            )
-         ORDER BY min_rainfall DESC, min_tide DESC NULLS LAST
-         LIMIT 1`,
+         ORDER BY min_rainfall DESC, min_tide DESC NULLS LAST`,
         [rainfall, tide],
     );
 
-    if (res.rows.length > 0) {
-        return serialize(res.rows[0]);
+    const matches = res.rows.map(serialize).filter((item) => !type || item.type === type);
+    if (matches.length > 0) {
+        return matches[0];
     }
 
     // Fallback: match by rainfall range only
@@ -263,13 +263,13 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
          FROM gis.flood_scenarios
          WHERE $1 >= min_rainfall
            AND (max_rainfall IS NULL OR $1 <= max_rainfall)
-         ORDER BY min_rainfall DESC
-         LIMIT 1`,
+         ORDER BY min_rainfall DESC`,
         [rainfall],
     );
 
-    if (fallbackRes.rows.length > 0) {
-        return serialize(fallbackRes.rows[0]);
+    const fallbackMatches = fallbackRes.rows.map(serialize).filter((item) => !type || item.type === type);
+    if (fallbackMatches.length > 0) {
+        return fallbackMatches[0];
     }
 
     // Final fallback: return scenario with lowest rainfall threshold
@@ -277,11 +277,11 @@ async function findMatchingScenario(rainfall, tide = null, client = db) {
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
                 layer_code, description, is_active
          FROM gis.flood_scenarios
-         ORDER BY min_rainfall ASC
-         LIMIT 1`,
+         ORDER BY min_rainfall ASC`,
     );
 
-    return serialize(lowestRes.rows[0] || null);
+    const lowestMatches = lowestRes.rows.map(serialize).filter((item) => !type || item.type === type);
+    return lowestMatches[0] || null;
 }
 
 module.exports = {

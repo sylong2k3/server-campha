@@ -41,9 +41,16 @@ const toCategorySlug = (value) => {
     return /^[a-z]/.test(normalized) ? normalized : `cat_${normalized}`;
 };
 
-const listCategories = async (actor) => {
-    assertPermission(actor, 'read');
-    return categoryRepository.list();
+const listCategories = async (options = {}, actor) => {
+    let search = '';
+    let currentActor = actor;
+    if (options && (options.userId || options.permissions || options.role || options.id)) {
+        currentActor = options;
+    } else if (options && typeof options.search === 'string') {
+        search = options.search.trim();
+    }
+    assertPermission(currentActor, 'read');
+    return categoryRepository.list({ search });
 };
 
 const createCategory = async (input, actor) => {

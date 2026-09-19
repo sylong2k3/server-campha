@@ -9,6 +9,7 @@
 
 const cron = require('node-cron');
 const weatherService = require('../services/flood/weather.service');
+const forecastScenarioService = require('../services/flood/forecast-scenario.service');
 
 let scheduledTask = null;
 
@@ -33,6 +34,14 @@ const runScheduled = async () => {
         console.info(
             `[WEATHER-FORECAST-JOB] Làm mới dự báo thành công cho ngày ${data.forecastDate} (${data.hours.length} mốc giờ)`,
         );
+
+        // Tự động kiểm tra và áp dụng ngay các mốc giờ tới hạn (ví dụ mốc 00:00 của ngày mới)
+        try {
+            await forecastScenarioService.processDueScheduleSlots();
+        } catch (procErr) {
+            console.warn(`[WEATHER-FORECAST-JOB] Xử lý mốc lịch trình sau refresh cảnh báo: ${procErr.message}`);
+        }
+
         return { success: true, forecastDate: data.forecastDate, count: data.hours.length };
     } catch (error) {
         console.error(`[WEATHER-FORECAST-JOB] Làm mới dự báo thất bại: ${error.message}`);

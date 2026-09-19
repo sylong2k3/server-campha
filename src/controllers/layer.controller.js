@@ -130,10 +130,11 @@ const retryPublish = async (req, res) => {
     );
 };
 const listCategories = async (req, res) => {
+    const search = req.query.search || req.query.q;
     OK(
         res,
         'Lấy danh sách danh mục lớp thành công',
-        await layerCategoryService.listCategories(buildActor(req)),
+        await layerCategoryService.listCategories({ search }, buildActor(req)),
     );
 };
 const createCategory = async (req, res) => {

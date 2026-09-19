@@ -43,6 +43,14 @@ describe('layer-category service', () => {
         categoryRepository.list.mockResolvedValueOnce([{ key: 'flood', name: 'Ngập lụt' }]);
         const result = await service.listCategories(actor);
         expect(result).toEqual([{ key: 'flood', name: 'Ngập lụt' }]);
+        expect(categoryRepository.list).toHaveBeenCalledWith({ search: '' });
+    });
+
+    test('listCategories passes search option to repository', async () => {
+        categoryRepository.list.mockResolvedValueOnce([{ key: 'flood', name: 'Ngập lụt' }]);
+        const result = await service.listCategories({ search: 'ngap' }, actor);
+        expect(result).toEqual([{ key: 'flood', name: 'Ngập lụt' }]);
+        expect(categoryRepository.list).toHaveBeenCalledWith({ search: 'ngap' });
     });
 
     test('createCategory enforces layers.create permission', async () => {

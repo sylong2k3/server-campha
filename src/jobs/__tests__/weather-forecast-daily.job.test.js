@@ -1,7 +1,10 @@
-'use strict';
+jest.mock('../../services/flood/forecast-scenario.service', () => ({
+    processDueScheduleSlots: jest.fn().mockResolvedValue({ processed: 0, applied: 0, skipped: 0, errors: 0 }),
+}));
 
 const job = require('../weather-forecast-daily.job');
 const weatherService = require('../../services/flood/weather.service');
+const forecastScenarioService = require('../../services/flood/forecast-scenario.service');
 
 describe('weather-forecast-daily.job', () => {
     afterEach(() => {
@@ -37,6 +40,7 @@ describe('weather-forecast-daily.job', () => {
         const successRes = await job.runScheduled();
         expect(successRes.success).toBe(true);
         expect(spy).toHaveBeenCalledTimes(1);
+        expect(forecastScenarioService.processDueScheduleSlots).toHaveBeenCalledTimes(1);
 
         // Xử lý lỗi mà không văng ngoại lệ ra ngoài
         spy.mockRejectedValueOnce(new Error('WeatherAPI quota exceeded'));

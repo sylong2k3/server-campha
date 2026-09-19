@@ -4,6 +4,7 @@ const service = require('../services/flood/analysis.service');
 const eventDaily = require('../services/flood/event-daily.service');
 const eventDailyJob = require('../jobs/flood-event-daily.job');
 const weatherService = require('../services/flood/weather.service');
+const forecastScenarioService = require('../services/flood/forecast-scenario.service');
 const { OK, CREATED, OK_LIST } = require('../core/success.response');
 const { buildActor } = require('../utils/actor.util');
 const { logActivity } = require('../utils/activityLogger.util');
@@ -198,6 +199,46 @@ const refreshWeatherForecast = async (req, res) => {
     return OK(res, 'Đã làm mới dữ liệu dự báo thời tiết 24 giờ từ WeatherAPI', data);
 };
 
+const manualOverrideScenario = async (req, res) => {
+    const actor = buildActor(req);
+    const result = await forecastScenarioService.applyManualOverride({
+        hour: req.body?.hour,
+        date: req.body?.date,
+        rainfall: req.body?.rainfall,
+        tide: req.body?.tide,
+        scenarioId: req.body?.scenarioId,
+    });
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: 'flood:scenario:manual_override',
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { hour: req.body?.hour, rainfall: req.body?.rainfall, scenarioId: req.body?.scenarioId },
+    });
+    return OK(res, 'Đã áp dụng kịch bản thủ công cho khung giờ', result);
+};
+
+const resetScenarioToAuto = async (req, res) => {
+    const actor = buildActor(req);
+    const result = await forecastScenarioService.resetManualOverrideToAuto({
+        hour: req.body?.hour,
+        date: req.body?.date,
+    });
+    logActivity('[FLOOD]', {
+        userId: actor?.id,
+        action: 'flood:scenario:reset_auto',
+        ipAddress: actor?.ipAddress,
+        userAgent: actor?.userAgent,
+        metadata: { hour: req.body?.hour, date: req.body?.date },
+    });
+    return OK(res, 'Đã khôi phục khung giờ về chế độ tự động hóa', result);
+};
+
+const getForecastSchedule = async (req, res) => {
+    const result = await forecastScenarioService.getForecastSchedule(req.query?.date);
+    return OK(res, 'Lịch trình dự báo kịch bản ngập lụt', result);
+};
+
 module.exports = {
     overview,
     legends,
@@ -230,5 +271,8 @@ module.exports = {
     convertFromLayers,
     getWeatherForecast,
     refreshWeatherForecast,
+    manualOverrideScenario,
+    resetScenarioToAuto,
+    getForecastSchedule,
 };
 

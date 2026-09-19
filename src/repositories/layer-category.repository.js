@@ -15,8 +15,26 @@ const mapCategoryRow = (row) => {
     };
 };
 
-const list = async (client = db) => {
-    const { rows } = await client.query(
+const list = async (options = {}, client = db) => {
+    let actualOptions = options;
+    let actualClient = client;
+    if (options && typeof options.query === 'function') {
+        actualClient = options;
+        actualOptions = {};
+    }
+    const search = actualOptions?.search?.trim();
+    if (search) {
+        const term = `%${search}%`;
+        const { rows } = await actualClient.query(
+            `SELECT id, key, name_vi, created_by, created_at, updated_at
+             FROM gis.layer_categories
+             WHERE name_vi ILIKE $1 OR key ILIKE $1
+             ORDER BY name_vi ASC, id ASC`,
+            [term],
+        );
+        return rows.map(mapCategoryRow);
+    }
+    const { rows } = await actualClient.query(
         `SELECT id, key, name_vi, created_by, created_at, updated_at
          FROM gis.layer_categories
          ORDER BY name_vi ASC, id ASC`,

@@ -56,6 +56,29 @@ describe('layer-category repository', () => {
         );
     });
 
+    test('list filters by search param with ILIKE', async () => {
+        db.query.mockResolvedValueOnce({
+            rows: [
+                {
+                    id: 1,
+                    key: 'giao_thong',
+                    name_vi: 'Giao thông',
+                    created_by: null,
+                    created_at: new Date('2026-01-01'),
+                    updated_at: new Date('2026-01-01'),
+                },
+            ],
+        });
+
+        const result = await repository.list({ search: 'giao' });
+        expect(result).toHaveLength(1);
+        expect(result[0].key).toBe('giao_thong');
+        expect(db.query).toHaveBeenCalledWith(
+            expect.stringContaining('WHERE name_vi ILIKE $1 OR key ILIKE $1'),
+            ['%giao%'],
+        );
+    });
+
     test('findByKey filters by key', async () => {
         db.query.mockResolvedValueOnce({
             rows: [

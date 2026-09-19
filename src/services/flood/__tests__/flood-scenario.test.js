@@ -168,14 +168,8 @@ describe('Flood Scenario Management CRUD', () => {
             const result = await analysisService.simulateFlood({ rainfall: 150, tide: 1.5 });
             expect(result.code).toBe('lop_phu_sau_ngap_2020');
             expect(result.simulationParams.scenarioId).toBe(3);
-            expect(notifySpy).toHaveBeenCalledTimes(1);
-            expect(notifySpy).toHaveBeenCalledWith(
-                expect.objectContaining({
-                    rainVal: 150,
-                    tideVal: 1.5,
-                    layerCode: 'lop_phu_sau_ngap_2020',
-                }),
-            );
+            // Quy tắc: simulateFlood (xem trước mô phỏng) không được phát thông báo
+            expect(notifySpy).not.toHaveBeenCalled();
             expect(result.simulationParams.scenarioCode).toBe('scenario_heavy');
         });
     });

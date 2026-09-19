@@ -96,7 +96,7 @@ describe('notification-events.service', () => {
 
     describe('notifyHydroScenarioTriggered', () => {
         test('dispatches hydro scenario trigger notification with rainfall threshold', async () => {
-            const scenario = { id: 5, code: 'KB_05', name_vi: 'Kịch bản ngập mưa lớn 200mm', min_rainfall: 200, layer_code: 'layer_kb_05' };
+            const scenario = { id: 5, code: 'KB_05', name_vi: 'Kịch bản ngập mưa lớn 200mm', min_rainfall: 200, layer_code: 'layer_kb_05', type: 'hien_trang' };
 
             await eventsService.notifyHydroScenarioTriggered({
                 scenario,
@@ -113,19 +113,28 @@ describe('notification-events.service', () => {
             expect(message.body).toContain('200 mm');
             expect(message.data.channel).toBe('flood');
         });
+
+        test('skips notification when scenario type is cai_tao or quy_hoach', async () => {
+            const caiTaoScenario = { id: 6, code: 'KB_CT', name_vi: 'Kịch bản tiêu thoát cải tạo', type: 'cai_tao' };
+            const quyHoachScenario = { id: 7, code: 'KB_QH', name_vi: 'Kịch bản quy hoạch 2030', type: 'quy_hoach' };
+
+            const resCaiTao = await eventsService.notifyHydroScenarioTriggered({ scenario: caiTaoScenario, rainVal: 100 });
+            const resQuyHoach = await eventsService.notifyHydroScenarioTriggered({ scenario: quyHoachScenario, rainVal: 100 });
+
+            expect(resCaiTao).toBeNull();
+            expect(resQuyHoach).toBeNull();
+            expect(notificationService.broadcastToRoles).not.toHaveBeenCalled();
+        });
     });
 
     describe('notifyHydroScenarioUpdated', () => {
-        test('dispatches hydro scenario updated notification', async () => {
-            const scenario = { id: 5, code: 'KB_05', name_vi: 'Kịch bản ngập úng trung tâm', min_rainfall: 150, max_rainfall: 250 };
+        test('does not dispatch notification on parameter updates (activation-only policy)', async () => {
+            const scenario = { id: 5, code: 'KB_05', name_vi: 'Kịch bản ngập úng trung tâm', min_rainfall: 150, max_rainfall: 250, type: 'hien_trang' };
 
-            await eventsService.notifyHydroScenarioUpdated(scenario);
+            const res = await eventsService.notifyHydroScenarioUpdated(scenario);
 
-            expect(notificationService.broadcastToRoles).toHaveBeenCalledTimes(1);
-            const [, message] = notificationService.broadcastToRoles.mock.calls[0];
-            expect(message.eventKey).toMatch(/^hydro_scenario:5:updated:\d+$/);
-            expect(message.type).toBe('hydro_scenario_updated');
-            expect(message.body).toContain('150 - 250 mm');
+            expect(res).toBeNull();
+            expect(notificationService.broadcastToRoles).not.toHaveBeenCalled();
         });
     });
 

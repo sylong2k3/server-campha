@@ -100,6 +100,21 @@ adminRouter.delete(
     strict(validator.idParamsSchema, 'params'),
     asyncHandler(controller.deleteScenario),
 );
+adminRouter.post(
+    '/scenarios/manual-override',
+    requirePermission('flood', 'run'),
+    asyncHandler(controller.manualOverrideScenario),
+);
+adminRouter.post(
+    '/scenarios/reset-auto',
+    requirePermission('flood', 'run'),
+    asyncHandler(controller.resetScenarioToAuto),
+);
+adminRouter.get(
+    '/forecast/schedule',
+    requirePermission('flood', 'read'),
+    asyncHandler(controller.getForecastSchedule),
+);
 adminRouter.get(
     '/dashboard',
     requirePermission('flood', 'read'),

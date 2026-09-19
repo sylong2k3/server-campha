@@ -716,11 +716,20 @@ async function updateScenario(id, data, actor = null) {
     }
 
     const updated = await floodScenarioRepo.update(id, data);
-    try {
-        const notificationEvents = require('../notification-events.service');
-        await notificationEvents.notifyHydroScenarioUpdated(updated);
-    } catch {
-        // non-fatal
+    const isNewlyActivated = !scenario.is_active && Boolean(updated?.is_active);
+    if (isNewlyActivated && updated?.type === 'hien_trang') {
+        try {
+            const notificationEvents = require('../notification-events.service');
+            await notificationEvents.notifyHydroScenarioTriggered({
+                scenario: updated,
+                layerCode: updated.layer_code,
+                rainVal: updated.current_rainfall ?? updated.min_rainfall ?? 0,
+                tideVal: updated.current_tide ?? null,
+                source: updated.rainfall_source || 'MANUAL',
+            });
+        } catch {
+            // non-fatal
+        }
     }
     return attachLayerToScenario(updated, actor);
 }
@@ -790,7 +799,9 @@ async function simulateFlood({ rainfall, tide }, actor) {
     const rainVal = Number(rainfall);
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
 
-    const matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal);
+    const matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal, undefined, {
+        type: 'hien_trang',
+    });
     let targetLayerCode = matchedScenario?.layer_code;
 
     // Hardcoded fallback logic if no scenario DB match
@@ -821,20 +832,6 @@ async function simulateFlood({ rainfall, tide }, actor) {
 
     const serialized = webMapService.serializeLayer(layer, actor);
     serialized.isEnableDefault = true;
-
-    if (rainVal > 0) {
-        try {
-            const notificationEvents = require('../notification-events.service');
-            await notificationEvents.notifyHydroScenarioTriggered({
-                scenario: matchedScenario,
-                layerCode: targetLayerCode,
-                rainVal,
-                tideVal,
-            });
-        } catch {
-            // non-fatal
-        }
-    }
 
     return {
         ...serialized,

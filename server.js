@@ -22,6 +22,7 @@ const forestClassificationJob = require('./src/jobs/forest-classification.job');
 const floodTrendJob = require('./src/jobs/flood-trend.job');
 const floodEventDailyJob = require('./src/jobs/flood-event-daily.job');
 const weatherForecastDailyJob = require('./src/jobs/weather-forecast-daily.job');
+const floodScenarioAutoJob = require('./src/jobs/flood-scenario-auto.job');
 const { recoverInterruptedRuns } = require('./src/workers/geeInterruptedRunRecovery.worker');
 require('dotenv').config();
 
@@ -127,6 +128,7 @@ async function gracefulShutdown(signal) {
     floodTrendJob.stop();
     floodEventDailyJob.stop();
     weatherForecastDailyJob.stop();
+    floodScenarioAutoJob.stop();
     geeQueue.stop();
     await Promise.race([geeQueue.onIdle(), new Promise((resolve) => setTimeout(resolve, 5000))]);
 
@@ -191,6 +193,7 @@ function startServer({ earthEngineStatus, dbStatus, minioStatus, geoserverStatus
         floodTrendJob.start();
         floodEventDailyJob.start();
         weatherForecastDailyJob.start();
+        floodScenarioAutoJob.start();
     }
 
     process.on('unhandledRejection', (error) => {

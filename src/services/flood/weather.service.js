@@ -11,6 +11,7 @@
 const weatherapi = require('../../utils/weatherapi.client');
 const openweather = require('../../utils/openweather.client');
 const weatherConfig = require('../../configs/weather');
+const floodForecastRepo = require('../../repositories/flood-forecast.repository');
 
 const centerCoordinates = () => ({
     lng: Number(process.env.CAMPHA_CENTER_LNG) || 107.303749,
@@ -21,6 +22,35 @@ const centerCoordinates = () => ({
 let cachedForecast = null;
 let lastFetchedAt = null;
 let inFlightPromise = null;
+
+/**
+ * Lưu trữ snapshot dự báo và danh sách mốc giờ vào cơ sở dữ liệu.
+ */
+async function persistForecastData(forecastData) {
+    if (!forecastData || !forecastData.forecastDate || !Array.isArray(forecastData.hours)) {
+        return null;
+    }
+    try {
+        const snapshot = await floodForecastRepo.saveForecastSnapshot({
+            forecastDate: forecastData.forecastDate,
+            location: forecastData.location?.name || 'Cam Pha',
+            fetchedAt: forecastData.fetchedAt ? new Date(forecastData.fetchedAt) : new Date(),
+            hourlyData: forecastData.hours,
+        });
+
+        if (snapshot?.id) {
+            await floodForecastRepo.createOrUpdateScheduleSlots(
+                snapshot.id,
+                forecastData.forecastDate,
+                forecastData.hours,
+            );
+        }
+        return snapshot;
+    } catch (error) {
+        console.warn(`[WEATHER-PERSISTENCE] Lưu forecast snapshot/schedule vào DB thất bại: ${error.message}`);
+        return null;
+    }
+}
 
 /**
  * Lấy dự báo 24 giờ từ WeatherAPI hoặc từ cache trong bộ nhớ.
@@ -45,6 +75,10 @@ async function getForecast24h({ forceRefresh = false } = {}) {
             const data = await weatherapi.getHourlyForecast(lat, lng, weatherConfig.LANG || 'vi');
             cachedForecast = data;
             lastFetchedAt = Date.now();
+
+            // Lưu snapshot và lịch trình vào DB (xử lý không đồng bộ để không chặn cache)
+            await persistForecastData(data).catch(() => null);
+
             return cachedForecast;
         } catch (error) {
             // Khi làm mới thất bại, nếu đã có cache cũ thì giữ lại cache cũ, không làm mất dữ liệu
@@ -121,5 +155,6 @@ module.exports = {
     getCachedForecast,
     centerCoordinates,
     getCurrentRainfallBundle,
+    persistForecastData,
     __resetCacheForTests,
 };

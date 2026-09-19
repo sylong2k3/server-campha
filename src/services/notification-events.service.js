@@ -2,6 +2,7 @@
 
 const notificationService = require('./notification.service');
 const systemLogger = require('../utils/systemLogger.util');
+const { classifyScenario } = require('../repositories/flood-scenario.repository');
 
 const MANAGER_ROLES = Object.freeze(['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd']);
 
@@ -114,18 +115,59 @@ const notifyFloodRunFailed = async (run, error) => {
     return safeDispatch(eventKey, message);
 };
 
-const notifyHydroScenarioTriggered = async ({ scenario, layerCode, rainVal, tideVal } = {}) => {
+const resolveScenarioType = (scenario, layerCode) => {
+    if (scenario?.type) {
+        return scenario.type;
+    }
+    if (scenario) {
+        return classifyScenario(scenario).type;
+    }
+    if (layerCode) {
+        return classifyScenario({ layer_code: layerCode }).type;
+    }
+    return 'hien_trang';
+};
+
+const notifyHydroScenarioTriggered = async ({
+    scenario,
+    layerCode,
+    rainVal,
+    tideVal,
+    eventHour,
+    source = 'MANUAL',
+} = {}) => {
+    const scenarioType = resolveScenarioType(scenario, layerCode);
+    if (scenarioType !== 'hien_trang') {
+        systemLogger.logInfo(
+            'notification_events',
+            `Bỏ qua thông báo kích hoạt kịch bản: loại '${scenarioType}' không thuộc hiện trạng ngập lụt`,
+            {
+                scenarioId: scenario?.id,
+                scenarioCode: scenario?.code,
+                layerCode,
+                type: scenarioType,
+            },
+        );
+        return null;
+    }
+
     const scenarioName = scenario?.name_vi || layerCode || 'Kịch bản thủy văn';
     const minRain = scenario?.min_rainfall ?? 0;
     const tideStr = tideVal != null ? `, triều ${tideVal} m` : '';
-    const hourBucket = new Date().toISOString().slice(0, 13);
+    const hourBucket = eventHour || new Date().toISOString().slice(0, 13);
     const identifier = scenario?.id || scenario?.code || layerCode || 'unknown';
     const eventKey = `hydro_scenario:${identifier}:${Math.round(rainVal)}:${hourBucket}`;
 
+    const isAuto = source === 'AUTO' || source === 'FORECAST';
+    const titlePrefix = isAuto
+        ? 'Dự báo thời tiết kích hoạt kịch bản ngập lụt'
+        : 'Cảnh báo kịch bản thủy văn';
+    const actionDesc = isAuto ? 'Dự báo thời tiết' : 'Mô phỏng';
+
     const message = {
         type: 'hydro_scenario_triggered',
-        title: `Cảnh báo kịch bản thủy văn: ${scenarioName}`,
-        body: `Mô phỏng lượng mưa ${rainVal} mm${tideStr} kích hoạt kịch bản '${scenarioName}' (ngưỡng tối thiểu ${minRain} mm). Lớp dữ liệu: ${scenario?.layer_code || layerCode}.`,
+        title: `${titlePrefix}: ${scenarioName}`,
+        body: `${actionDesc} lượng mưa ${rainVal} mm${tideStr} kích hoạt kịch bản '${scenarioName}' (ngưỡng tối thiểu ${minRain} mm). Lớp dữ liệu: ${scenario?.layer_code || layerCode}.`,
         data: {
             channel: 'flood',
             scenarioId: scenario?.id || null,
@@ -133,32 +175,25 @@ const notifyHydroScenarioTriggered = async ({ scenario, layerCode, rainVal, tide
             layerCode: scenario?.layer_code || layerCode,
             rainfall: rainVal,
             tide: tideVal,
+            source,
+            hourBucket,
         },
     };
     return safeDispatch(eventKey, message);
 };
 
 const notifyHydroScenarioUpdated = async (scenario) => {
-    if (!scenario?.id) {
-        return null;
-    }
-    const name = scenario.name_vi || scenario.code;
-    const eventKey = `hydro_scenario:${scenario.id}:updated:${Date.now()}`;
-    const rangeStr = scenario.max_rainfall != null
-        ? `${scenario.min_rainfall} - ${scenario.max_rainfall} mm`
-        : `≥ ${scenario.min_rainfall} mm`;
-
-    const message = {
-        type: 'hydro_scenario_updated',
-        title: `Cập nhật kịch bản thủy văn: ${name}`,
-        body: `Kịch bản ${name} (${scenario.code}) đã cập nhật thông số ngưỡng (Mưa: ${rangeStr}).`,
-        data: {
-            channel: 'flood',
-            scenarioId: scenario.id,
-            code: scenario.code,
+    // Theo quy định: chỉ phát thông báo khi kịch bản hiện trạng chuyển trạng thái kích hoạt,
+    // thay đổi tham số kịch bản không phát thông báo.
+    systemLogger.logInfo(
+        'notification_events',
+        `Bỏ qua thông báo cập nhật tham số kịch bản: chỉ thông báo khi kích hoạt kịch bản hiện trạng`,
+        {
+            scenarioId: scenario?.id,
+            scenarioCode: scenario?.code,
         },
-    };
-    return safeDispatch(eventKey, message);
+    );
+    return null;
 };
 
 module.exports = {
