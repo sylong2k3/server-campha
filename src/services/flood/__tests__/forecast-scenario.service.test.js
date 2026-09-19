@@ -94,12 +94,8 @@ describe('forecast-scenario.service', () => {
             precip_mm: 20.0,
             status: 'PENDING',
         };
-        const activeCurrentScenario = { id: 9, type: 'hien_trang', is_active: true };
-        const activePlanningScenario = { id: 10, type: 'quy_hoach', is_active: true };
         floodForecastRepo.getDuePendingSlots.mockResolvedValue([slot]);
-        floodScenarioRepo.listAll.mockResolvedValue({
-            items: [activeCurrentScenario, activePlanningScenario],
-        });
+        floodScenarioRepo.deactivateAllActive.mockResolvedValue([{ id: 9 }]);
 
         const res = await forecastScenarioService.processDueScheduleSlots();
 
@@ -107,8 +103,7 @@ describe('forecast-scenario.service', () => {
         expect(res.applied).toBe(0);
         expect(res.skipped).toBe(1);
         expect(floodScenarioRepo.findMatchingScenario).not.toHaveBeenCalled();
-        expect(floodScenarioRepo.update).toHaveBeenCalledTimes(1);
-        expect(floodScenarioRepo.update).toHaveBeenCalledWith(9, { isActive: false });
+        expect(floodScenarioRepo.deactivateAllActive).toHaveBeenCalledWith({ types: ['hien_trang'] });
         expect(floodForecastRepo.updateScheduleSlot).toHaveBeenCalledWith(102, {
             status: 'SKIPPED',
             appliedScenarioId: null,
@@ -116,7 +111,7 @@ describe('forecast-scenario.service', () => {
         expect(notificationEvents.notifyHydroScenarioTriggered).not.toHaveBeenCalled();
     });
 
-    test('skips slot when precip_mm is 0 even if chance > 50%', async () => {
+    test('skips slot and deactivates all active scenarios when precip_mm is 0 even if chance > 50%', async () => {
         const slot = {
             id: 103,
             forecast_date: '2026-09-18',
@@ -126,12 +121,14 @@ describe('forecast-scenario.service', () => {
             status: 'PENDING',
         };
         floodForecastRepo.getDuePendingSlots.mockResolvedValue([slot]);
+        floodScenarioRepo.deactivateAllActive.mockResolvedValue([{ id: 13 }, { id: 14 }]);
 
         const res = await forecastScenarioService.processDueScheduleSlots();
 
         expect(res.applied).toBe(0);
         expect(res.skipped).toBe(1);
         expect(floodScenarioRepo.findMatchingScenario).not.toHaveBeenCalled();
+        expect(floodScenarioRepo.deactivateAllActive).toHaveBeenCalledWith();
         expect(floodForecastRepo.updateScheduleSlot).toHaveBeenCalledWith(103, {
             status: 'SKIPPED',
             appliedScenarioId: null,
@@ -291,18 +288,8 @@ describe('forecast-scenario.service', () => {
             expect(notificationEvents.notifyHydroScenarioTriggered).not.toHaveBeenCalled();
         });
 
-        test('locks a zero-rainfall hour as MANUAL so cron cannot overwrite it', async () => {
-            const targetScenario = {
-                id: 6,
-                code: 'scenario_dry',
-                name_vi: 'Kịch bản không mưa',
-                layer_code: 'layer_dry',
-                type: 'hien_trang',
-                is_active: true,
-            };
-            floodScenarioRepo.findById.mockResolvedValue(targetScenario);
-            floodScenarioRepo.listAll.mockResolvedValue({ items: [targetScenario] });
-            floodScenarioRepo.update.mockResolvedValue(targetScenario);
+        test('locks a zero-rainfall hour as MANUAL and deactivates all active scenarios', async () => {
+            floodScenarioRepo.deactivateAllActive.mockResolvedValue([{ id: 13 }, { id: 14 }]);
             floodForecastRepo.setSlotManualOverride.mockResolvedValue({
                 id: 11,
                 status: 'MANUAL',
@@ -314,38 +301,31 @@ describe('forecast-scenario.service', () => {
                 hour: '06:00',
                 date: '2026-09-19',
                 rainfall: 0,
-                scenarioId: 6,
             });
 
             expect(result.success).toBe(true);
+            expect(result.action).toBe('deactivated');
+            expect(result.deactivatedCount).toBe(2);
+            expect(result.scenario).toBeNull();
+            expect(floodScenarioRepo.deactivateAllActive).toHaveBeenCalledTimes(1);
             expect(floodForecastRepo.setSlotManualOverride).toHaveBeenCalledWith({
                 forecastDate: '2026-09-19',
                 hourStr: '06:00',
                 rainfall: 0,
-                scenarioId: 6,
+                scenarioId: null,
             });
+            expect(notificationEvents.notifyHydroScenarioTriggered).not.toHaveBeenCalled();
         });
 
         test('uses the Vietnam calendar date when date is omitted around UTC midnight', async () => {
             jest.useFakeTimers().setSystemTime(new Date('2026-09-18T18:30:00.000Z'));
-            const targetScenario = {
-                id: 7,
-                code: 'scenario_light',
-                name_vi: 'Kịch bản ngập nhẹ',
-                layer_code: 'layer_light',
-                type: 'hien_trang',
-                is_active: true,
-            };
-            floodScenarioRepo.findById.mockResolvedValue(targetScenario);
-            floodScenarioRepo.listAll.mockResolvedValue({ items: [targetScenario] });
-            floodScenarioRepo.update.mockResolvedValue(targetScenario);
+            floodScenarioRepo.deactivateAllActive.mockResolvedValue([]);
             floodForecastRepo.setSlotManualOverride.mockResolvedValue({ id: 12 });
 
             try {
                 await forecastScenarioService.applyManualOverride({
                     hour: '01:00',
                     rainfall: 0,
-                    scenarioId: 7,
                 });
             } finally {
                 jest.useRealTimers();
@@ -355,7 +335,7 @@ describe('forecast-scenario.service', () => {
                 forecastDate: '2026-09-19',
                 hourStr: '01:00',
                 rainfall: 0,
-                scenarioId: 7,
+                scenarioId: null,
             });
         });
 

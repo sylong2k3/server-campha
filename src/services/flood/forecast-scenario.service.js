@@ -40,7 +40,7 @@ function getDateInTimeZone(date = new Date(), timeZone = VIETNAM_TIME_ZONE) {
  * @returns {Promise<{processed: number, applied: number, skipped: number, errors: number}>}
  */
 async function processDueScheduleSlots({ targetTime = new Date() } = {}) {
-    let slots = [];
+    let slots;
     try {
         slots = await floodForecastRepo.getDuePendingSlots(targetTime);
     } catch (error) {
@@ -137,14 +137,18 @@ async function processDueScheduleSlots({ targetTime = new Date() } = {}) {
                     });
                     skipped++;
                 }
+            } else if (precipMm === 0) {
+                // Mốc tự động có lượng mưa bằng 0 mm: Máy chạy (cron) tự động tắt TẤT CẢ các kịch bản đang kích hoạt (cả 3 nhóm)
+                await floodScenarioRepo.deactivateAllActive();
+
+                await floodForecastRepo.updateScheduleSlot(slot.id, {
+                    status: 'SKIPPED',
+                    appliedScenarioId: null,
+                });
+                skipped++;
             } else {
-                // Mốc tự động không đủ điều kiện mưa: tắt mọi kịch bản hiện trạng còn hoạt động
-                // để trạng thái bản đồ không bị giữ lại từ khung giờ có mưa trước đó.
-                const allActive = await floodScenarioRepo.listAll({ activeOnly: true, limit: 100 });
-                const activeCurrentScenarios = (allActive?.items || []).filter((s) => s.type === 'hien_trang');
-                for (const scenario of activeCurrentScenarios) {
-                    await floodScenarioRepo.update(scenario.id, { isActive: false });
-                }
+                // Mốc tự động có mưa nhưng xác suất <= 50%: chỉ tắt các kịch bản hiện trạng đang hoạt động
+                await floodScenarioRepo.deactivateAllActive({ types: ['hien_trang'] });
 
                 await floodForecastRepo.updateScheduleSlot(slot.id, {
                     status: 'SKIPPED',
@@ -186,6 +190,39 @@ async function applyManualOverride({ hour, date, rainfall, tide = null, scenario
     const hourStr = hour || new Date().toTimeString().slice(0, 5);
     const rainVal = Number(rainfall) || 0;
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
+
+    if (rainVal === 0) {
+        // Tắt toàn bộ kịch bản đang kích hoạt (cả 3 nhóm: hiện trạng, cải tạo, quy hoạch)
+        const deactivatedScenarios = await floodScenarioRepo.deactivateAllActive();
+
+        // Cập nhật slot trong bảng lịch trình thành MANUAL với scenarioId = null
+        const slot = await floodForecastRepo.setSlotManualOverride({
+            forecastDate,
+            hourStr,
+            rainfall: 0,
+            scenarioId: null,
+        });
+
+        systemLogger.logInfo(
+            'forecast_auto_scenario',
+            `Người dùng thiết lập thủ công tắt kịch bản cho mốc ${hourStr} (${forecastDate}): 0 mm, đã tắt ${deactivatedScenarios.length} kịch bản`,
+            {
+                forecastDate,
+                hourStr,
+                rainfall: 0,
+                deactivatedCount: deactivatedScenarios.length,
+            },
+        );
+
+        return {
+            success: true,
+            action: 'deactivated',
+            deactivatedCount: deactivatedScenarios.length,
+            deactivatedIds: deactivatedScenarios.map((s) => s.id),
+            slot,
+            scenario: null,
+        };
+    }
 
     let targetScenario = null;
     if (scenarioId) {

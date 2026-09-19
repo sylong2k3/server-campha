@@ -806,6 +806,34 @@ async function simulateFlood({ rainfall, tide }, actor) {
 
     // Hardcoded fallback logic if no scenario DB match
     if (!targetLayerCode) {
+        if (rainVal <= 0) {
+            return {
+                id: 'no_rain',
+                code: 'no_rain',
+                nameVi: 'Không có ngập lụt (Lượng mưa 0 mm/h)',
+                status: 'no_rain',
+                category: 'flood',
+                categoryName: 'Ngập lụt',
+                geometryType: 'RASTER',
+                storageKind: 'none',
+                geoserverLayer: null,
+                styleName: null,
+                minZoom: 10,
+                maxZoom: 18,
+                legend: null,
+                isPublic: true,
+                isEnableDefault: false,
+                simulationParams: {
+                    rainfall: 0,
+                    tide: tideVal,
+                    scenarioId: null,
+                    scenarioCode: 'no_rain',
+                    scenarioName: 'Không có ngập lụt',
+                    matchedLayerCode: null,
+                },
+            };
+        }
+
         const SCENARIO_YEARS = [2015, 2018, 2020, 2022, 2024];
         const rainfallScenarioIndex = rainVal >= 300
             ? 4

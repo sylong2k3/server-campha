@@ -103,6 +103,7 @@ adminRouter.delete(
 adminRouter.post(
     '/scenarios/manual-override',
     requirePermission('flood', 'run'),
+    strict(validator.manualOverrideSchema, 'body'),
     asyncHandler(controller.manualOverrideScenario),
 );
 adminRouter.post(

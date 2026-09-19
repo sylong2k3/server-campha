@@ -234,7 +234,45 @@ async function listAll({
     };
 }
 
+async function deactivateAllActive({ types = null } = {}, client = db) {
+    if (Array.isArray(types) && types.length > 0) {
+        const activeRes = await client.query(
+            `SELECT ${SCENARIO_COLUMNS}
+             FROM gis.flood_scenarios
+             WHERE is_active = true`,
+        );
+        const matched = activeRes.rows.map(serialize).filter((s) => types.includes(s.type));
+        if (matched.length === 0) {
+            return [];
+        }
+        const ids = matched.map((s) => s.id);
+        const res = await client.query(
+            `UPDATE gis.flood_scenarios
+             SET is_active = false,
+                 updated_at = NOW()
+             WHERE id = ANY($1::int[])
+             RETURNING ${SCENARIO_COLUMNS}`,
+            [ids],
+        );
+        return res.rows.map(serialize);
+    }
+
+    const res = await client.query(
+        `UPDATE gis.flood_scenarios
+         SET is_active = false,
+             updated_at = NOW()
+         WHERE is_active = true
+         RETURNING ${SCENARIO_COLUMNS}`,
+    );
+    return res.rows.map(serialize);
+}
+
 async function findMatchingScenario(rainfall, tide = null, client = db, { type = null } = {}) {
+    const rainVal = Number(rainfall);
+    if (!Number.isFinite(rainVal) || rainVal <= 0) {
+        return null;
+    }
+
     // Match by rainfall + tide (no is_active filter — simulation finds the best scenario regardless)
     const res = await client.query(
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
@@ -248,7 +286,7 @@ async function findMatchingScenario(rainfall, tide = null, client = db, { type =
              (max_tide IS NULL OR $2::numeric <= max_tide)
            )
          ORDER BY min_rainfall DESC, min_tide DESC NULLS LAST`,
-        [rainfall, tide],
+        [rainVal, tide],
     );
 
     const matches = res.rows.map(serialize).filter((item) => !type || item.type === type);
@@ -264,7 +302,7 @@ async function findMatchingScenario(rainfall, tide = null, client = db, { type =
          WHERE $1 >= min_rainfall
            AND (max_rainfall IS NULL OR $1 <= max_rainfall)
          ORDER BY min_rainfall DESC`,
-        [rainfall],
+        [rainVal],
     );
 
     const fallbackMatches = fallbackRes.rows.map(serialize).filter((item) => !type || item.type === type);
@@ -295,4 +333,5 @@ module.exports = {
     deleteScenario,
     listAll,
     findMatchingScenario,
+    deactivateAllActive,
 };

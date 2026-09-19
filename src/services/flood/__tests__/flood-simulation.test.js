@@ -114,5 +114,22 @@ describe('Flood Simulation Service & Validator', () => {
                 },
             });
         });
+        test('returns no_rain status and avoids layer fallback when rainfall is 0', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue(null);
+
+            const result = await analysisService.simulateFlood({ rainfall: 0, tide: 0.8 });
+            expect(result.status).toBe('no_rain');
+            expect(result.code).toBe('no_rain');
+            expect(result.geoserverLayer).toBeNull();
+            expect(result.isEnableDefault).toBe(false);
+            expect(result.simulationParams).toEqual({
+                rainfall: 0,
+                tide: 0.8,
+                scenarioId: null,
+                scenarioCode: 'no_rain',
+                scenarioName: 'Không có ngập lụt',
+                matchedLayerCode: null,
+            });
+        });
     });
 });

@@ -215,7 +215,10 @@ const manualOverrideScenario = async (req, res) => {
         userAgent: actor?.userAgent,
         metadata: { hour: req.body?.hour, rainfall: req.body?.rainfall, scenarioId: req.body?.scenarioId },
     });
-    return OK(res, 'Đã áp dụng kịch bản thủ công cho khung giờ', result);
+    const message = result.action === 'deactivated'
+        ? `Đã tắt ${result.deactivatedCount || 0} kịch bản ngập cho khung giờ (lượng mưa 0 mm)`
+        : 'Đã áp dụng kịch bản thủ công cho khung giờ';
+    return OK(res, message, result);
 };
 
 const resetScenarioToAuto = async (req, res) => {

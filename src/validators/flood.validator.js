@@ -151,6 +151,19 @@ const updateLegendSchema = Joi.object({
     max: Joi.number(),
 }).unknown(false).min(1);
 
+const manualOverrideSchema = Joi.object({
+    hour: Joi.string().trim().max(10).required().messages({
+        'any.required': 'Khung giờ (hour) là bắt buộc',
+    }),
+    date: Joi.string().trim().max(20).optional().allow(null, ''),
+    rainfall: Joi.number().min(0).required().messages({
+        'any.required': 'Lượng mưa (rainfall) là bắt buộc',
+        'number.min': 'Lượng mưa không được âm',
+    }),
+    tide: Joi.number().optional().allow(null, '').default(null),
+    scenarioId: Joi.alternatives().try(Joi.number().integer().positive(), Joi.string()).optional().allow(null),
+}).unknown(false);
+
 module.exports = {
     listSchema,
     publicListSchema,
@@ -164,5 +177,6 @@ module.exports = {
     legendQuerySchema,
     legendCodeParamsSchema,
     updateLegendSchema,
+    manualOverrideSchema,
 };
 
