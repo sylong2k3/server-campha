@@ -151,6 +151,17 @@ const deleteCategory = async (req, res) => {
         await layerCategoryService.deleteCategory(req.params.key, buildActor(req)),
     );
 };
+const updateCategoryVisibility = async (req, res) => {
+    OK(
+        res,
+        'Cập nhật trạng thái hiển thị danh mục thành công',
+        await layerCategoryService.updateCategoryVisibility(
+            req.params.key,
+            req.body.isVisible,
+            buildActor(req),
+        ),
+    );
+};
 
 module.exports = {
     enqueueShapefile,
@@ -171,4 +182,5 @@ module.exports = {
     listCategories,
     createCategory,
     deleteCategory,
+    updateCategoryVisibility,
 };

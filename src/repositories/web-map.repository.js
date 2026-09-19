@@ -23,6 +23,7 @@ const catalog = async (actor, { category, search } = {}) => {
         "l.publish_status = 'published'",
         '(l.is_public = true OR COALESCE(lp.can_view, false) = true)',
         "COALESCE(l.metadata->'timeSeries'->>'enabled', 'false') <> 'true'",
+        'COALESCE(lc.is_visible, true) = true',
     ];
     if (category) {
         params.push(category);
@@ -42,6 +43,7 @@ const catalog = async (actor, { category, search } = {}) => {
                 l.storage_kind, l.table_name, l.geoserver_layer, l.style_name,
                 l.min_zoom, l.max_zoom, l.legend_config, l.is_public, l.is_enable_default, l.metadata,
                 COALESCE(lp.can_edit, false) AS role_can_edit,
+                COALESCE(lc.is_visible, true) AS category_is_visible,
                 (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
                                           'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') ORDER BY times.acquired_at,times.id)
                  FROM raster.satellite_images times
@@ -57,6 +59,7 @@ const catalog = async (actor, { category, search } = {}) => {
                  WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_series_members
          FROM gis.layers l
          LEFT JOIN gis.layer_permissions lp ON lp.layer_id = l.id AND lp.role_code = $1
+         LEFT JOIN gis.layer_categories lc ON lc.key = l.category
          WHERE ${where.join(' AND ')}
          ORDER BY l.category NULLS LAST, l.name_vi, l.id`,
         params,

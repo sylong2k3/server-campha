@@ -63,6 +63,13 @@ router.delete(
     requirePermission('layers', 'delete'),
     asyncHandler(controller.deleteCategory),
 );
+router.patch(
+    '/categories/:key/visibility',
+    requirePermission('layers', 'update'),
+    validate(validator.categoryKeyParamsSchema, 'params'),
+    strict(validator.updateCategoryVisibilitySchema),
+    asyncHandler(controller.updateCategoryVisibility),
+);
 router.get(
     '/:layerId/standard-metadata.xml',
     requirePermission('layers', 'read'),

@@ -169,7 +169,7 @@ describe('layer-category service', () => {
             status: 422,
             errors: ['SYSTEM_CATEGORY_IMMUTABLE'],
         });
-        await expect(service.deleteCategory('land_cover', actor)).rejects.toMatchObject({
+        await expect(service.deleteCategory('hanh_chinh', actor)).rejects.toMatchObject({
             status: 422,
             errors: ['SYSTEM_CATEGORY_IMMUTABLE'],
         });
@@ -222,5 +222,36 @@ describe('layer-category service', () => {
                 nameVi: 'Du lịch cũ',
             }),
         );
+    });
+
+    test('updateCategoryVisibility validates permission and updates visibility', async () => {
+        await expect(
+            service.updateCategoryVisibility('giao_thong', false, {
+                ...actor,
+                permissions: { layers: { update: false } },
+            }),
+        ).rejects.toMatchObject({ status: 403 });
+
+        categoryRepository.findByKey.mockResolvedValueOnce({
+            id: 7,
+            key: 'giao_thong',
+            name: 'Giao thông',
+            isVisible: true,
+        });
+        categoryRepository.updateVisibility.mockResolvedValueOnce({
+            id: 7,
+            key: 'giao_thong',
+            name: 'Giao thông',
+            isVisible: false,
+        });
+
+        const res = await service.updateCategoryVisibility('giao_thong', false, actor);
+        expect(res).toEqual(
+            expect.objectContaining({
+                key: 'giao_thong',
+                isVisible: false,
+            }),
+        );
+        expect(categoryRepository.updateVisibility).toHaveBeenCalledWith('giao_thong', false);
     });
 });

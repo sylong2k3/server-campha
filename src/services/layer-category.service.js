@@ -5,12 +5,8 @@ const systemLogger = require('../utils/systemLogger.util');
 const { Api403Error, Api404Error, Api409Error, Api422Error } = require('../core/error.response');
 
 const SYSTEM_CATEGORY_KEYS = new Set([
-    'land_cover',
     'flood',
-    'remote_sensing',
-    'forest_district',
     'hanh_chinh',
-    'thuy_van',
     'giao_thong',
     'other',
 ]);
@@ -144,9 +140,35 @@ const deleteCategory = async (key, actor) => {
     return { key: safeKey, name: existing.name };
 };
 
+const updateCategoryVisibility = async (key, isVisible, actor) => {
+    assertPermission(actor, 'update');
+    const safeKey = String(key || '').trim();
+    if (!safeKey) {
+        throw new Api422Error('Mã danh mục không hợp lệ', ['INVALID_CATEGORY_KEY']);
+    }
+
+    const existing = await categoryRepository.findByKey(safeKey);
+    if (!existing) {
+        throw new Api404Error('Không tìm thấy danh mục');
+    }
+
+    const updated = await categoryRepository.updateVisibility(safeKey, Boolean(isVisible));
+
+    systemLogger.logInfo('layers', 'layer_category_visibility_updated', {
+        actorId: actor?.id,
+        role: actor?.role,
+        orgId: actor?.orgId,
+        key: safeKey,
+        isVisible: Boolean(isVisible),
+    });
+
+    return updated;
+};
+
 module.exports = {
     toCategorySlug,
     listCategories,
     createCategory,
     deleteCategory,
+    updateCategoryVisibility,
 };

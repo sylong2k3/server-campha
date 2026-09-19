@@ -308,6 +308,14 @@ const createCategorySchema = Joi.object({
     name: Joi.string().trim().min(2).max(120).required(),
 });
 
+const updateCategoryVisibilitySchema = Joi.object({
+    isVisible: Joi.boolean().required(),
+});
+
+const categoryKeyParamsSchema = Joi.object({
+    key: Joi.string().trim().min(1).max(50).required(),
+});
+
 module.exports = {
     shapefileImportSchema,
     excelImportSchema,
@@ -323,4 +331,6 @@ module.exports = {
     deleteLayerSchema,
     cleanupRequestSchema,
     createCategorySchema,
+    updateCategoryVisibilitySchema,
+    categoryKeyParamsSchema,
 };

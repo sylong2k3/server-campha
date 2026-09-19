@@ -108,9 +108,8 @@ describe('notification-events.service', () => {
             const [, message] = notificationService.broadcastToRoles.mock.calls[0];
             expect(message.eventKey).toMatch(/^hydro_scenario:5:220:\d{4}-\d{2}-\d{2}T\d{2}$/);
             expect(message.type).toBe('hydro_scenario_triggered');
-            expect(message.title).toContain('Kịch bản ngập mưa lớn 200mm');
-            expect(message.body).toContain('220 mm');
-            expect(message.body).toContain('200 mm');
+            expect(message.title).toBe('Cảnh báo kịch bản thủy văn:');
+            expect(message.body).toBe('Kịch bản ngập mưa lớn 200mm\nLượng mưa 1h qua: 220 mm/h');
             expect(message.data.channel).toBe('flood');
         });
 

@@ -64,6 +64,7 @@ const serializeLayer = (layer, actor) => {
         nameVi: layer.name_vi,
         category: layer.category,
         categoryName: layer.category_name || null,
+        categoryIsVisible: layer.category_is_visible !== false,
         geometryType: layer.geometry_type,
         storageKind: layer.storage_kind,
         srid: layer.srid,
