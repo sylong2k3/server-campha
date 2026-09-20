@@ -94,6 +94,12 @@ const updateMe = async (req, res) => {
     OK(res, t('profile_updated', req.lang), user);
 };
 
+const deleteMe = async (req, res) => {
+    const context = getRequestContext(req);
+    const result = await authService.deleteMe(req.user.id, context);
+    OK(res, result.message);
+};
+
 const googleCallback = async (req, res) => {
     const context = getRequestContext(req);
     const result = await authService.googleAuthCallback(req.user, context);
@@ -148,6 +154,7 @@ module.exports = {
     resendVerification,
     getMe,
     updateMe,
+    deleteMe,
     googleCallback,
     oauthExchange,
     googleMobileLogin,
