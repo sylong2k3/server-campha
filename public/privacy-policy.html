@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chính sách bảo mật | Privacy Policy - GIS Cẩm Phả</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0284c7;
+            --primary-dark: #0369a1;
+            --primary-light: #e0f2fe;
+            --accent: #0ea5e9;
+            --surface: #ffffff;
+            --background: #f8fafc;
+            --card-border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --text-subtle: #64748b;
+            --success: #16a34a;
+            --warning: #ca8a04;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.07);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            line-height: 1.65;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            background: linear-gradient(135deg, #075985 0%, #0369a1 50%, #0284c7 100%);
+            color: #ffffff;
+            padding: 2.5rem 1.5rem 3rem;
+            position: relative;
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-inner {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .top-links {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-link {
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        .lang-switch {
+            display: inline-flex;
+            background: rgba(15, 23, 42, 0.25);
+            border-radius: 999px;
+            padding: 3px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .lang-btn {
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.35rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active {
+            background: #ffffff;
+            color: var(--primary-dark);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+        }
+
+        .header-subtitle {
+            font-size: 1.05rem;
+            color: rgba(255, 255, 255, 0.9);
+            max-width: 720px;
+        }
+
+        .effective-date {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.85);
+            margin-top: 0.25rem;
+        }
+
+        main {
+            max-width: 900px;
+            margin: -1.5rem auto 3rem;
+            padding: 0 1.25rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-light);
+        }
+
+        .section-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            border-radius: var(--radius-sm);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        p {
+            margin-bottom: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        li::before {
+            content: "•";
+            position: absolute;
+            left: 0.35rem;
+            top: 0;
+            color: var(--primary);
+            font-weight: bold;
+            font-size: 1.2rem;
+            line-height: 1.4;
+        }
+
+        .highlight-box {
+            background: #f0f9ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            padding: 1rem 1.25rem;
+            margin: 1rem 0;
+        }
+
+        .highlight-box p {
+            color: #0369a1;
+            margin-bottom: 0;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+        }
+
+        .data-table th, .data-table td {
+            padding: 0.85rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 0.92rem;
+        }
+
+        .data-table th {
+            background: #f1f5f9;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-req {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .badge-opt {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .contact-box {
+            background: #fafafa;
+            border-radius: var(--radius-md);
+            border: 1px dashed var(--card-border);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .contact-row {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+        }
+
+        .contact-row strong {
+            color: var(--text-main);
+            min-width: 140px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1.25rem;
+            color: var(--text-subtle);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--card-border);
+            background: #ffffff;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .card {
+                padding: 1.25rem;
+            }
+            .contact-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.2rem;
+            }
+            .contact-row strong {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-inner">
+            <div class="header-top">
+                <div class="brand-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+                        <line x1="8" y1="2" x2="8" y2="18"></line>
+                        <line x1="16" y1="6" x2="16" y2="22"></line>
+                    </svg>
+                    <span>GIS CẨM PHẢ · HYDROMAP</span>
+                </div>
+                <div class="top-links">
+                    <a href="/terms" class="nav-link" id="nav-terms-link">Điều khoản sử dụng</a>
+                    <div class="lang-switch">
+                        <button id="btn-vi" class="lang-btn active" onclick="setLanguage('vi')">Tiếng Việt</button>
+                        <button id="btn-en" class="lang-btn" onclick="setLanguage('en')">English</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vietnamese Header -->
+            <div id="header-vi">
+                <h1>Chính sách Quyền riêng tư & Bảo vệ Dữ liệu</h1>
+                <p class="header-subtitle">Quy định về việc thu thập, lưu trữ, xử lý và bảo vệ thông tin người dùng trên ứng dụng di động GIS Cẩm Phả (MobileGIS & HydroMap).</p>
+                <div class="effective-date">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Có hiệu lực từ: 20/09/2026 · Cập nhật mới nhất</span>
+                </div>
+            </div>
+
+            <!-- English Header -->
+            <div id="header-en" class="hidden">
+                <h1>Privacy Policy & Data Protection</h1>
+                <p class="header-subtitle">Guidelines on the collection, storage, use, and protection of user information on the Cam Pha GIS Mobile Application (MobileGIS & HydroMap).</p>
+                <div class="effective-date">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Effective Date: September 20, 2026 · Latest Version</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ================= VIETNAMESE CONTENT ================= -->
+        <div id="content-vi">
+            <!-- 1. Giới thiệu -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">1</span>
+                    Giới thiệu & Phạm vi áp dụng
+                </h2>
+                <p>Hệ thống Thông tin Địa lý và Quản lý Hiện trường thành phố Cẩm Phả (sau đây gọi tắt là <strong>"GIS Cẩm Phả"</strong>) được phát triển nhằm phục vụ công tác giám sát hạ tầng đô thị, bản đồ số, cảnh báo ngập lụt, quy hoạch và tiếp nhận các phản ánh hiện trường từ công dân.</p>
+                <p>Chính sách bảo mật này giải thích rõ cách thức chúng tôi thu thập, sử dụng và bảo vệ thông tin khi bạn sử dụng ứng dụng di động GIS Cẩm Phả trên các nền tảng iOS (Apple App Store) và Android.</p>
+                <div class="highlight-box">
+                    <p>✓ Chúng tôi cam kết tôn trọng quyền riêng tư, bảo vệ thông tin cá nhân và tuân thủ nghiêm ngặt các quy định của pháp luật Việt Nam cũng như Hướng dẫn Đánh giá của Apple App Store (Guideline 5.1.1).</p>
+                </div>
+            </section>
+
+            <!-- 2. Dữ liệu thu thập -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">2</span>
+                    Dữ liệu thu thập & Cách thức thu thập
+                </h2>
+                <p>Để cung cấp đầy đủ các tính năng phục vụ công tác đô thị và hiện trường, ứng dụng thu thập các dữ liệu cụ thể sau:</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Loại dữ liệu</th>
+                            <th>Tính chất</th>
+                            <th>Mục đích sử dụng</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Vị trí GPS chính xác (Location)</strong></td>
+                            <td><span class="badge badge-req">Cần cấp quyền</span></td>
+                            <td>Xác định toạ độ hiện trường sự cố khi người dân gửi phản ánh; hiển thị vị trí trên bản đồ GIS; hỗ trợ công cụ đo khoảng cách/diện tích.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hình ảnh / Camera / Thư viện ảnh</strong></td>
+                            <td><span class="badge badge-req">Cần cấp quyền</span></td>
+                            <td>Người dùng chụp hoặc đính kèm ảnh chụp hiện trường (ngập lụt, sạt lở, hạ tầng hư hại) để cán bộ chức năng xác minh thực địa.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Họ và tên</strong></td>
+                            <td><span class="badge badge-req">Khi đăng ký</span></td>
+                            <td>Định danh công dân gửi phản ánh, phục vụ công tác quản lý và xác thực phản ánh chính chủ.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Địa chỉ Email</strong></td>
+                            <td><span class="badge badge-req">Khi đăng ký</span></td>
+                            <td>Tài khoản đăng nhập, xác minh tài khoản, nhận thông báo kết quả giải quyết phản ánh và khôi phục mật khẩu.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Số điện thoại</strong></td>
+                            <td><span class="badge badge-opt">Tùy chọn</span></td>
+                            <td>Cán bộ tiếp nhận liên hệ khi cần làm rõ thông tin khẩn cấp tại hiện trường phản ánh.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mã thông báo thiết bị (FCM Token)</strong></td>
+                            <td><span class="badge badge-opt">Tự động</span></td>
+                            <td>Gửi thông báo đẩy về trạng thái xử lý phản ánh và các cảnh báo thời tiết/ngập lụt tại Cẩm Phả.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nhật ký sự cố kỹ thuật (Crash Logs)</strong></td>
+                            <td><span class="badge badge-opt">Ẩn danh</span></td>
+                            <td>Thông qua Firebase Crashlytics để phát hiện và khắc phục các lỗi gián đoạn ứng dụng, nâng cao trải nghiệm.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><em>Lưu ý: Ứng dụng chỉ truy cập Vị trí, Máy ảnh và Thư viện ảnh khi bạn chủ động thao tác và cấp quyền trên thiết bị. Bạn có thể thu hồi các quyền này bất cứ lúc nào trong Cài đặt hệ thống (Settings).</em></p>
+            </section>
+
+            <!-- 3. Mục đích xử lý & Không theo dõi -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">3</span>
+                    Mục đích sử dụng & Cam kết không theo dõi
+                </h2>
+                <p>Thông tin thu thập được sử dụng duy nhất cho các mục đích công ích và vận hành sau:</p>
+                <ul>
+                    <li>Tiếp nhận, phân loại và phân công xử lý các sự cố hạ tầng đô thị trên địa bàn thành phố Cẩm Phả.</li>
+                    <li>Cập nhật tiến độ giải quyết phản ánh cho người dân minh bạch, kịp thời.</li>
+                    <li>Hiển thị các lớp bản đồ chuyên đề (thủy văn, ngập lụt, quy hoạch, viễn thám vệ tinh).</li>
+                    <li>Xác thực tài khoản và bảo vệ tính toàn vẹn của hệ thống.</li>
+                </ul>
+                <div class="highlight-box">
+                    <p>🚫 <strong>Cam kết:</strong> Ứng dụng KHÔNG theo dõi người dùng qua các ứng dụng/trang web khác (Tracking = False), KHÔNG tích hợp bất kỳ SDK quảng cáo nào và KHÔNG chia sẻ/bán dữ liệu cá nhân cho bất kỳ bên thứ ba nào vì mục đích thương mại.</p>
+                </div>
+            </section>
+
+            <!-- 4. Quyền của người dùng & Xóa tài khoản -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">4</span>
+                    Quyền của người dùng & Xóa tài khoản (Account Deletion)
+                </h2>
+                <p>Theo quy định của Apple App Store (Guideline 5.1.1(v)) và pháp luật về bảo vệ dữ liệu cá nhân, bạn có toàn quyền đối với dữ liệu của mình:</p>
+                <ul>
+                    <li><strong>Quyền xem & chỉnh sửa:</strong> Bạn có thể xem và cập nhật thông tin cá nhân trong mục Thông tin tài khoản.</li>
+                    <li><strong>Quyền xóa tài khoản & toàn bộ dữ liệu:</strong> Bạn có thể yêu cầu xóa vĩnh viễn tài khoản và toàn bộ dữ liệu liên quan bất cứ lúc nào bằng 2 cách:
+                        <ul>
+                            <li><strong>Thực hiện trực tiếp trong ứng dụng:</strong> Vào mục <em>Cá nhân (Profile)</em> → chọn <em>Xóa tài khoản (Delete Account)</em> → Xác nhận đồng ý. Toàn bộ thông tin cá nhân sẽ được xóa vĩnh viễn khỏi hệ thống máy chủ.</li>
+                            <li><strong>Gửi yêu cầu qua Email:</strong> Gửi thư điện tử đến <a href="mailto:hotro.giscampha@gmail.com">hotro.giscampha@gmail.com</a> với tiêu đề <em>"Yêu cầu xóa tài khoản GIS Cẩm Phả"</em>. Ban quản trị sẽ xử lý và phản hồi trong vòng tối đa 48 giờ làm việc.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 5. Bảo mật & Lưu trữ -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">5</span>
+                    Bảo mật & Lưu trữ Dữ liệu
+                </h2>
+                <p>Chúng tôi áp dụng các tiêu chuẩn an toàn thông tin hiện đại để bảo vệ dữ liệu người dùng:</p>
+                <ul>
+                    <li>Toàn bộ thông tin truyền tải giữa ứng dụng và máy chủ đều được mã hóa bằng giao thức bảo mật <strong>HTTPS / TLS 1.3</strong>.</li>
+                    <li>Mật khẩu người dùng được băm mã hóa một chiều bằng thuật toán an toàn (Bcrypt).</li>
+                    <li>Dữ liệu ảnh hiện trường được lưu trữ trên cụm máy chủ chuyên dụng (MinIO Object Storage) với phân quyền kiểm soát truy cập nghiêm ngặt.</li>
+                    <li>Hệ thống máy chủ được đặt tại trung tâm dữ liệu bảo đảm an ninh mạng và sao lưu định kỳ.</li>
+                </ul>
+            </section>
+
+            <!-- 6. Dịch vụ bên thứ ba -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">6</span>
+                    Dịch vụ bên thứ ba
+                </h2>
+                <p>Ứng dụng tích hợp các nền tảng kỹ thuật uy tín phục vụ chức năng cốt lõi:</p>
+                <ul>
+                    <li><strong>Mapbox SDK:</strong> Cung cấp dịch vụ hiển thị bản đồ nền vector và vệ tinh. Mapbox xử lý dữ liệu toạ độ theo <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener">Chính sách quyền riêng tư Mapbox</a>.</li>
+                    <li><strong>Google Firebase:</strong> Cung cấp dịch vụ gửi thông báo đẩy (Firebase Cloud Messaging) và nhật ký sự cố ứng dụng (Crashlytics). Xem <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Chính sách bảo mật Firebase</a>.</li>
+                </ul>
+            </section>
+
+            <!-- 7. Thông tin liên hệ -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">7</span>
+                    Thông tin liên hệ & Cơ quan chủ quản
+                </h2>
+                <p>Nếu bạn có bất kỳ câu hỏi, thắc mắc hoặc yêu cầu nào liên quan đến Chính sách bảo mật này, xin vui lòng liên hệ:</p>
+                <div class="contact-box">
+                    <div class="contact-row">
+                        <strong>Cơ quan chủ quản:</strong>
+                        <span>Hệ thống GIS & Đô thị Thông minh Cẩm Phả</span>
+                    </div>
+                    <div class="contact-row">
+                        <strong>Địa bàn:</strong>
+                        <span>Thành phố Cẩm Phả, Tỉnh Quảng Ninh, Việt Nam</span>
+                    </div>
+                    <div class="contact-row">
+                        <strong>Email hỗ trợ:</strong>
+                        <span><a href="mailto:hotro.giscampha@gmail.com">hotro.giscampha@gmail.com</a></span>
+                    </div>
+                    <div class="contact-row">
+                        <strong>Cổng thông tin API:</strong>
+                        <span><a href="https://apicampha.tourismpj.pro.vn">https://apicampha.tourismpj.pro.vn</a></span>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ================= ENGLISH CONTENT ================= -->
+        <div id="content-en" class="hidden">
+            <!-- 1. Introduction -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">1</span>
+                    Introduction & Scope
+                </h2>
+                <p>The Cam Pha Geographic Information System & Field Incident Management Platform (hereinafter referred to as <strong>"Cam Pha GIS"</strong>) is developed to assist in urban infrastructure monitoring, digital mapping, flood warnings, urban planning, and collecting field incident reports from citizens.</p>
+                <p>This Privacy Policy clearly outlines how we collect, utilize, and protect your information when using the Cam Pha GIS mobile application on iOS (Apple App Store) and Android.</p>
+                <div class="highlight-box">
+                    <p>✓ We are fully committed to protecting your privacy and complying with all applicable data protection laws and Apple App Store Review Guidelines (Guideline 5.1.1).</p>
+                </div>
+            </section>
+
+            <!-- 2. Data Collected -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">2</span>
+                    Data We Collect & Collection Methods
+                </h2>
+                <p>To enable urban management and field reporting capabilities, the application collects the following specific data types:</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Data Type</th>
+                            <th>Requirement</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Precise Location (GPS)</strong></td>
+                            <td><span class="badge badge-req">Permission Required</span></td>
+                            <td>Determine accurate coordinates of field incident reports; display user position on GIS maps; support spatial distance/area measurement.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Photos / Camera / Photo Library</strong></td>
+                            <td><span class="badge badge-req">Permission Required</span></td>
+                            <td>Users take or attach evidence photos of incidents (flooding, landslides, damaged infrastructure) for municipal verification.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Full Name</strong></td>
+                            <td><span class="badge badge-req">At Registration</span></td>
+                            <td>Identify the citizen submitting the report and prevent counterfeit submissions.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email Address</strong></td>
+                            <td><span class="badge badge-req">At Registration</span></td>
+                            <td>Account authentication, verification, notifications regarding incident resolution progress, and password recovery.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Phone Number</strong></td>
+                            <td><span class="badge badge-opt">Optional</span></td>
+                            <td>Contact the citizen when urgent on-site clarification is required.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Push Notification Token (FCM)</strong></td>
+                            <td><span class="badge badge-opt">Automated</span></td>
+                            <td>Deliver real-time push notifications regarding incident resolution status and weather/flood alerts.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Technical Diagnostics (Crash Logs)</strong></td>
+                            <td><span class="badge badge-opt">Anonymous</span></td>
+                            <td>Collected anonymously via Firebase Crashlytics to monitor application stability and resolve bugs.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><em>Note: The application only accesses Location, Camera, and Photo Library when explicitly authorized by you. You can revoke these permissions at any time via your device's System Settings.</em></p>
+            </section>
+
+            <!-- 3. Purpose & No Tracking -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">3</span>
+                    Data Purpose & No-Tracking Policy
+                </h2>
+                <p>Collected information is used strictly for public service and municipal operations:</p>
+                <ul>
+                    <li>Receiving, classifying, and dispatching urban infrastructure incident handling in Cam Pha City.</li>
+                    <li>Updating resolution status to citizens transparently and promptly.</li>
+                    <li>Displaying specialized GIS map layers (hydrology, flood levels, urban planning, satellite remote sensing).</li>
+                    <li>User authentication and system integrity security.</li>
+                </ul>
+                <div class="highlight-box">
+                    <p>🚫 <strong>Our Promise:</strong> This application does NOT track users across third-party apps or websites (Tracking = False), does NOT include advertising SDKs, and will NEVER sell or license your personal data to third parties for commercial advertising.</p>
+                </div>
+            </section>
+
+            <!-- 4. User Rights & Account Deletion -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">4</span>
+                    User Rights & Account Deletion (Apple Guideline 5.1.1(v))
+                </h2>
+                <p>In full compliance with Apple App Store Review Guideline 5.1.1(v) and privacy regulations, you retain complete authority over your data:</p>
+                <ul>
+                    <li><strong>Right to View & Edit:</strong> You can view and update your profile information within your profile settings.</li>
+                    <li><strong>Right to Permanently Delete Account & Data:</strong> You may request permanent deletion of your account and all associated personal data anytime using either of the following methods:
+                        <ul>
+                            <li><strong>Directly In-App:</strong> Open <em>Profile</em> → Select <em>Delete Account</em> → Confirm deletion. All personal details and account records are immediately and permanently removed from our server.</li>
+                            <li><strong>Via Email Request:</strong> Send an email to <a href="mailto:hotro.giscampha@gmail.com">hotro.giscampha@gmail.com</a> with the subject <em>"Account Deletion Request - Cam Pha GIS"</em>. Our team will fulfill the deletion within 48 business hours.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 5. Security & Storage -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">5</span>
+                    Data Storage & Security Standards
+                </h2>
+                <p>We deploy robust enterprise-grade security mechanisms to safeguard your data:</p>
+                <ul>
+                    <li>All network traffic between the mobile application and our backend is encrypted using <strong>HTTPS / TLS 1.3</strong>.</li>
+                    <li>User passwords are non-reversibly hashed using standard cryptographic algorithms (Bcrypt).</li>
+                    <li>Uploaded field photos are stored on dedicated high-security object storage (MinIO) protected by access control policies.</li>
+                    <li>Server infrastructure is hosted within secure data center facilities with automated redundancy and backups.</li>
+                </ul>
+            </section>
+
+            <!-- 6. Third Parties -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">6</span>
+                    Third-Party Service Providers
+                </h2>
+                <p>The application integrates reputable enterprise SDKs to deliver core functionality:</p>
+                <ul>
+                    <li><strong>Mapbox SDK:</strong> Provides interactive vector and satellite map rendering. Refer to the <a href="https://www.mapbox.com/legal/privacy" target="_blank" rel="noopener">Mapbox Privacy Policy</a>.</li>
+                    <li><strong>Google Firebase:</strong> Provides push notifications (Firebase Cloud Messaging) and crash diagnostics (Crashlytics). Refer to the <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener">Firebase Privacy Policy</a>.</li>
+                </ul>
+            </section>
+
+            <!-- 7. Contact -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="section-icon">7</span>
+                    Contact Information & Governing Authority
+                </h2>
+                <p>For any questions, feedback, or requests regarding this Privacy Policy or your data, please contact:</p>
+                <div class="contact-box">
+                    <div class="contact-row">
+                        <strong>Governing Authority:</strong>
+                        <span>Cam Pha City GIS & Smart Urban Project</span>
+                    </div>
+                    <div class="contact-row">
+                        <strong>Location:</strong>
+                        <span>Cam Pha City, Quang Ninh Province, Vietnam</span>
+                    </div>
+                    <div class="contact-row">
+                        <strong>Support Email:</strong>
+                        <span><a href="mailto:hotro.giscampha@gmail.com">hotro.giscampha@gmail.com</a></span>
+                    </div>
+                    <div class="contact-row">
+                        <strong>Official API Portal:</strong>
+                        <span><a href="https://apicampha.tourismpj.pro.vn">https://apicampha.tourismpj.pro.vn</a></span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Hệ thống GIS & Quản lý Hiện trường TP Cẩm Phả. Bảo lưu mọi quyền.</p>
+        <p style="margin-top: 0.25rem; font-size: 0.8rem;">Cam Pha City GIS Platform · Apple App Store Compliant (Guideline 5.1.1)</p>
+    </footer>
+
+    <script>
+        function setLanguage(lang) {
+            const viHeader = document.getElementById('header-vi');
+            const enHeader = document.getElementById('header-en');
+            const viContent = document.getElementById('content-vi');
+            const enContent = document.getElementById('content-en');
+            const btnVi = document.getElementById('btn-vi');
+            const btnEn = document.getElementById('btn-en');
+            const navLink = document.getElementById('nav-terms-link');
+
+            if (lang === 'en') {
+                viHeader.classList.add('hidden');
+                viContent.classList.add('hidden');
+                enHeader.classList.remove('hidden');
+                enContent.classList.remove('hidden');
+                btnEn.classList.add('active');
+                btnVi.classList.remove('active');
+                document.documentElement.lang = 'en';
+                if (navLink) navLink.textContent = 'Terms of Service';
+            } else {
+                enHeader.classList.add('hidden');
+                enContent.classList.add('hidden');
+                viHeader.classList.remove('hidden');
+                viContent.classList.remove('hidden');
+                btnVi.classList.add('active');
+                btnEn.classList.remove('active');
+                document.documentElement.lang = 'vi';
+                if (navLink) navLink.textContent = 'Điều khoản sử dụng';
+            }
+        }
+
+        // Tự động chọn English nếu trình duyệt của reviewer dùng ngôn ngữ khác tiếng Việt
+        try {
+            const userLang = navigator.language || navigator.userLanguage;
+            if (userLang && !userLang.toLowerCase().startsWith('vi')) {
+                setLanguage('en');
+            }
+        } catch (e) {}
+    </script>
+</body>
+</html>
