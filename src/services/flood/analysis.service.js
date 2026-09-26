@@ -806,11 +806,13 @@ async function simulateFlood({ rainfall, tide }, actor) {
 
     // Hardcoded fallback logic if no scenario DB match
     if (!targetLayerCode) {
-        if (rainVal <= 0) {
+        if (rainVal < 29.10) {
             return {
                 id: 'no_rain',
                 code: 'no_rain',
-                nameVi: 'Không có ngập lụt (Lượng mưa 0 mm/h)',
+                nameVi: rainVal <= 0
+                    ? 'Không có ngập lụt (Lượng mưa 0 mm/h)'
+                    : `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
                 status: 'no_rain',
                 category: 'flood',
                 categoryName: 'Ngập lụt',
@@ -824,11 +826,13 @@ async function simulateFlood({ rainfall, tide }, actor) {
                 isPublic: true,
                 isEnableDefault: false,
                 simulationParams: {
-                    rainfall: 0,
+                    rainfall: rainVal,
                     tide: tideVal,
                     scenarioId: null,
                     scenarioCode: 'no_rain',
-                    scenarioName: 'Không có ngập lụt',
+                    scenarioName: rainVal <= 0
+                        ? 'Không có ngập lụt'
+                        : `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
                     matchedLayerCode: null,
                 },
             };

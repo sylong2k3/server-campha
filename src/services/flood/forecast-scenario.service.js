@@ -130,11 +130,27 @@ async function processDueScheduleSlots({ targetTime = new Date() } = {}) {
 
                     applied++;
                 } else {
-                    // Không tìm thấy kịch bản hiện trạng phù hợp
+                    // Lượng mưa nhỏ dưới ngưỡng gây ngập (ví dụ 0.35 mm/h < 29.10 mm/h)
+                    // Tắt các kịch bản hiện trạng nếu đang bật vì thời tiết an toàn
+                    const allActive = await floodScenarioRepo.listAll({ activeOnly: true, limit: 100 });
+                    const activeHienTrang = (allActive?.items || []).filter((s) => s.type === 'hien_trang');
+                    for (const s of activeHienTrang) {
+                        await floodScenarioRepo.update(s.id, { isActive: false });
+                    }
+
                     await floodForecastRepo.updateScheduleSlot(slot.id, {
                         status: 'SKIPPED',
                         appliedScenarioId: null,
                     });
+                    systemLogger.logInfo(
+                        'forecast_auto_scenario',
+                        `Mốc ${slot.hour_str} có lượng mưa dự báo ${precipMm} mm/h (tỉ lệ ${chanceOfRain}%), dưới ngưỡng ngập lụt tối thiểu (29.10 mm/h) -> An toàn, bỏ qua kích hoạt kịch bản ngập`,
+                        {
+                            slotId: slot.id,
+                            precipMm,
+                            chanceOfRain,
+                        },
+                    );
                     skipped++;
                 }
             } else if (precipMm === 0) {

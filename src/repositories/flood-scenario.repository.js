@@ -310,16 +310,24 @@ async function findMatchingScenario(rainfall, tide = null, client = db, { type =
         return fallbackMatches[0];
     }
 
-    // Final fallback: return scenario with lowest rainfall threshold
-    const lowestRes = await client.query(
+    // Fallback: nếu lượng mưa vượt ngưỡng cao nhất, lấy kịch bản có min_rainfall cao nhất
+    const highestRes = await client.query(
         `SELECT id, code, name_vi, min_rainfall, max_rainfall, min_tide, max_tide,
                 layer_code, description, is_active
          FROM gis.flood_scenarios
-         ORDER BY min_rainfall ASC`,
+         WHERE $1 > min_rainfall
+         ORDER BY min_rainfall DESC`,
+        [rainVal],
     );
 
-    const lowestMatches = lowestRes.rows.map(serialize).filter((item) => !type || item.type === type);
-    return lowestMatches[0] || null;
+    const highestMatches = highestRes.rows.map(serialize).filter((item) => !type || item.type === type);
+    if (highestMatches.length > 0) {
+        return highestMatches[0];
+    }
+
+    // Nếu lượng mưa nhỏ hơn ngưỡng tối thiểu của tất cả kịch bản (ví dụ < 29.10 mm),
+    // lượng mưa là an toàn, không có kịch bản ngập nào phù hợp.
+    return null;
 }
 
 module.exports = {

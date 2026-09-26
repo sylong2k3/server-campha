@@ -48,6 +48,15 @@ describe('flood-scenario.repository', () => {
             expect(result.type).toBe('cai_tao');
             expect(db.query).toHaveBeenCalledTimes(1);
         });
+
+        test('returns null when rainfall is positive but below all min_rainfall thresholds (e.g. 0.38 mm)', async () => {
+            db.query.mockResolvedValueOnce({ rows: [] }); // query 1 (rainfall + tide)
+            db.query.mockResolvedValueOnce({ rows: [] }); // query 2 (rainfall range)
+            db.query.mockResolvedValueOnce({ rows: [] }); // query 3 (highest fallback)
+
+            const result = await repo.findMatchingScenario(0.38, 0.5);
+            expect(result).toBeNull();
+        });
     });
 
     describe('deactivateAllActive', () => {
