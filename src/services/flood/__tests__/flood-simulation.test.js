@@ -131,5 +131,21 @@ describe('Flood Simulation Service & Validator', () => {
                 matchedLayerCode: null,
             });
         });
+
+        test('returns no_rain status when rainfall is positive but below 29.10 mm/h threshold (e.g. 0.01 mm)', async () => {
+            const result = await analysisService.simulateFlood({ rainfall: 0.01, tide: 0.8 });
+            expect(result.status).toBe('no_rain');
+            expect(result.code).toBe('no_rain');
+            expect(result.geoserverLayer).toBeNull();
+            expect(result.isEnableDefault).toBe(false);
+            expect(result.simulationParams).toEqual({
+                rainfall: 0.01,
+                tide: 0.8,
+                scenarioId: null,
+                scenarioCode: 'no_rain',
+                scenarioName: 'Lượng mưa an toàn (0.01 mm/h — Dưới ngưỡng gây ngập)',
+                matchedLayerCode: null,
+            });
+        });
     });
 });
