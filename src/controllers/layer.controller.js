@@ -48,6 +48,13 @@ const getLayer = async (req, res) => {
         await layerService.getLayer(Number(req.params.layerId), buildActor(req)),
     );
 };
+const getFields = async (req, res) => {
+    OK(
+        res,
+        'Lấy danh sách cột lớp thành công',
+        await layerService.getFields(Number(req.params.layerId), buildActor(req)),
+    );
+};
 const getStandardMetadata = async (req, res) => {
     const result = await layerService.standardMetadata(Number(req.params.layerId), buildActor(req));
     OK(res, 'Lấy siêu dữ liệu chuẩn thành công', result.profile);
@@ -170,6 +177,7 @@ module.exports = {
     listImportErrors,
     listLayers,
     getLayer,
+    getFields,
     getStandardMetadata,
     updateStandardMetadata,
     getStandardMetadataXml,

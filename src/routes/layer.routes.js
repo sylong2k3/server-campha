@@ -105,6 +105,12 @@ router.post(
     asyncHandler(controller.retryCleanup),
 );
 router.get(
+    '/:layerId/fields',
+    requirePermission('layers', 'read'),
+    validate(validator.layerIdParamsSchema, 'params'),
+    asyncHandler(controller.getFields),
+);
+router.get(
     '/:layerId',
     requirePermission('layers', 'read'),
     validate(validator.layerIdParamsSchema, 'params'),

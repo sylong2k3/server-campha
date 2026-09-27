@@ -396,6 +396,16 @@ const setPublishState = async (id, publishStatus, geoserverLayer = null) => {
     return row || null;
 };
 
+const getTableColumns = async (tableName) => {
+    if (!tableName) return [];
+    const { rows } = await db.query(
+        `SELECT column_name FROM information_schema.columns WHERE table_schema='gis' AND table_name=$1 ORDER BY ordinal_position`,
+        [tableName],
+    );
+    const blocked = new Set(['geom', 'source', 'target', 'cost', 'reverse_cost']);
+    return rows.map((r) => r.column_name).filter((c) => !blocked.has(c.toLowerCase()));
+};
+
 module.exports = {
     list,
     findById,
@@ -411,4 +421,6 @@ module.exports = {
     findRasterIngestArtifact,
     findImageMosaicArtifact,
     setPublishState,
+    getTableColumns,
 };
+

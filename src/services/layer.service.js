@@ -284,12 +284,29 @@ const retryPublish = async (id, actor) => {
     }
 };
 
+const getFields = async (id, actor) => {
+    assertPermission(actor, 'read');
+    const layer = await layerRepository.findById(id);
+    if (!layer) {
+        throw new Api404Error('Không tìm thấy lớp dữ liệu');
+    }
+    const cols = await layerRepository.getTableColumns(layer.table_name);
+    return {
+        layerId: layer.id,
+        tableName: layer.table_name,
+        availableColumns: cols,
+        displayFields: Array.isArray(layer.metadata?.displayFields) ? layer.metadata.displayFields : [],
+        searchFields: Array.isArray(layer.metadata?.searchFields) ? layer.metadata.searchFields : [],
+    };
+};
+
 module.exports = {
     enqueueImport,
     getImport,
     listImportErrors,
     listLayers,
     getLayer,
+    getFields,
     standardMetadata,
     updateStandardMetadata,
     standardMetadataXml,
@@ -300,3 +317,4 @@ module.exports = {
     retryCleanup,
     retryPublish,
 };
+
