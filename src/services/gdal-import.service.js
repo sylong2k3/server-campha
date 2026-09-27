@@ -480,10 +480,13 @@ const promoteStaging = async (job, workerId, stagingTable, summary) => {
             `INSERT INTO gis.layer_permissions
                 (layer_id, role_code, can_view, can_export, can_edit, can_delete)
              SELECT $1, code,
-                    CASE WHEN code = 'so_tnmt' THEN true ELSE $2 END,
-                    CASE WHEN code = 'so_tnmt' THEN true ELSE false END,
-                    code = 'so_tnmt', code = 'so_tnmt'
-             FROM auth.roles WHERE is_active = true`,
+                    CASE WHEN code IN ('system_admin', 'so_tnmt') THEN true ELSE $2 END,
+                    code IN ('system_admin', 'so_tnmt'),
+                    code IN ('system_admin', 'so_tnmt'), code IN ('system_admin', 'so_tnmt')
+             FROM auth.roles WHERE is_active = true
+             ON CONFLICT (layer_id, role_code) DO UPDATE
+             SET can_view = EXCLUDED.can_view, can_export = EXCLUDED.can_export,
+                 can_edit = EXCLUDED.can_edit, can_delete = EXCLUDED.can_delete`,
             [layer.id, input.isPublic],
         );
         const completed = await client.query(

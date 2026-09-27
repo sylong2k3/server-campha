@@ -47,6 +47,15 @@ describe('user service organization scope', () => {
         expect(result.total).toBe(1);
     });
 
+    test('system_admin lists all organizations even without org_id', async () => {
+        userRepository.findAll.mockResolvedValue({ items: [citizen], total: 1 });
+        await userService.listUsers(
+            { roleCode: 'citizen' },
+            { ...actor, role: 'system_admin', orgId: null },
+        );
+        expect(userRepository.findAll).toHaveBeenCalledWith({ roleCode: 'citizen' });
+    });
+
     test('từ chối actor không có tổ chức', async () => {
         await expect(userService.listUsers({}, { ...actor, orgId: null })).rejects.toBeInstanceOf(
             Api403Error,

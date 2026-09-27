@@ -54,7 +54,7 @@ A.1-9,Hiệu chỉnh và kiểm định mô hình,hydro,calibrate,0,0,0,1,1,1,
 A.1-9,Lưu sao chép so sánh khôi phục bộ tham số,hydro,version,0,0,0,1,1,1,
 A.1-9,Nhập xuất bộ tham số JSON XML CSV,hydro,import_export,0,0,0,1,1,1,
 A.1-9,Thiết lập ngưỡng cảnh báo ngập,hydro,set_threshold,0,0,0,1,1,1,
-A.1-9,Tạo và ban hành kịch bản chính thức,hydro,publish_scenario,0,0,0,1,0,0,Chỉ TNMT — QT được cấp theo API; không dùng G2 làm nhãn nghiệp vụ
+A.1-9,Tạo và ban hành kịch bản chính thức,hydro,publish_scenario,0,0,0,1,0,1,TNMT và QT/system_admin; QT toàn quyền theo migration 122
 A.1-9,Xem bộ tham số và kết quả kiểm định,hydro,read,0,0,1,1,1,1,UB chỉ xem
 A.1-10,Khai báo nguồn dữ liệu KTTV,kttv,create_source,0,0,0,1,1,1,
 A.1-10,Kiểm tra kết nối xem trước dữ liệu,kttv,test_source,0,0,0,1,1,1,
@@ -64,9 +64,9 @@ A.1-10,Chọn biến và hệ số quy đổi,kttv,config_variables,0,0,0,1,1,1,
 A.1-10,Quản lý danh mục trạm quan trắc,kttv,manage_stations,0,0,0,1,1,1,
 A.1-10,Lập lịch thu thập tự động,kttv,schedule,0,0,0,1,1,1,
 A.1-10,Nhập dữ liệu KTTV thủ công,kttv,manual_input,0,0,0,1,1,1,Ghi người nhập thời điểm và dữ liệu gốc
-A.1-10,Chuẩn bị và khớp kịch bản theo dữ liệu KTTV,kttv,match_scenario,0,0,0,1,1,1,Chỉ TNMT được ban hành hoặc kích hoạt kịch bản chính thức
-A.1-10,Cấu hình hiển thị lớp dữ liệu,kttv,display_config,0,0,0,1,0,0,Chỉ TNMT — QT được cấp theo API; không dùng G2 làm nhãn nghiệp vụ
-A.1-10,Thiết lập ngưỡng cảnh báo và cấp báo động,kttv,alarm_threshold,0,0,1,1,0,0,TNMT và UB
+A.1-10,Chuẩn bị và khớp kịch bản theo dữ liệu KTTV,kttv,match_scenario,0,0,0,1,1,1,TNMT và QT/system_admin được ban hành hoặc kích hoạt kịch bản chính thức
+A.1-10,Cấu hình hiển thị lớp dữ liệu,kttv,display_config,0,0,0,1,0,1,TNMT và QT/system_admin
+A.1-10,Thiết lập ngưỡng cảnh báo và cấp báo động,kttv,alarm_threshold,0,0,1,1,0,1,TNMT và UB và QT/system_admin
 A.1-10,Xem trạng thái kết nối và nhật ký thu thập,kttv,read,0,0,1,1,1,1,
 A.2-1,Bật tắt lớp dữ liệu bản đồ,map,view,1,1,1,1,1,1,KH và ND chỉ đọc
 A.2-1,Phóng to thu nhỏ bản đồ,map,view,1,1,1,1,1,1,
@@ -110,7 +110,7 @@ B-1,Tìm đường đi ngắn nhất giữa 2 điểm,map,route,1,1,1,1,1,1,
 B-1,Đo đạc chiều dài diện tích,map,measure,1,1,1,1,1,1,
 B-1,Xem thông tin thời tiết,weather,read,1,1,1,1,1,1,
 B-1,Vẽ điểm đường vùng,map,draw,0,1,1,1,1,1,
-B-1,Cập nhật thuộc tính và không gian đối tượng,map_feature,update,0,0,0,1,0,0,Chỉ TNMT — endpoint nguy hiểm nhất hệ thống
+B-1,Cập nhật thuộc tính và không gian đối tượng,map_feature,update,0,0,0,1,0,1,TNMT và QT/system_admin; vẫn kiểm tra dữ liệu và phiên bản khi sửa
 B-2,Chụp ảnh hiện trạng lấn chiếm,field_report,create,0,1,1,1,1,1,QT được cấp theo API; thao tác vẫn chịu permission và ACL
 B-2,Đo đạc tương đối khu vực lấn chiếm,field_report,measure,0,1,1,1,1,1,QT được cấp theo API; thao tác vẫn chịu permission và ACL
 B-3,Đăng nhập mobile,auth,login,1,1,1,1,1,1,
@@ -124,7 +124,7 @@ A.1-3,Quản lý vòng đời nhật ký hệ thống,system_logs,manage,0,0,0,0
 A.1-8,Gửi thông báo quản trị,notifications,send,0,0,0,1,0,1,Gửi thông báo diện rộng; bắt buộc audit.
 A.1-1,Quản lý publish ảnh vệ tinh,satellite,manage,0,0,1,1,0,1,Khớp migration 087 và route satellite publish.
 A.1-2,Nạp raster thành lớp bản đồ,map_layers,ingest_raster,0,0,1,1,0,1,Khớp route publish raster; phải kiểm tra ACL và audit.
-B-1,Đọc đối tượng bản đồ trước khi cập nhật,map_feature,read,0,0,0,1,0,0,Bổ sung để không tồn tại update-without-read; đọc qua map.view_attributes trong UI.
+B-1,Đọc đối tượng bản đồ trước khi cập nhật,map_feature,read,0,0,0,1,0,1,TNMT và QT/system_admin; đọc qua map.view_attributes trong UI
 A.2-4,Đọc dữ liệu đầu vào phân tích không gian,spatial,read,0,1,1,1,1,1,Phân tích là read-only; bổ sung action đọc để policy rõ ràng.
 A.1-1,Xem danh sách và chi tiết bộ sưu tập GeoTIFF Time Series,raster,read,0,0,1,1,1,1,Quản trị Time Series đọc raster metadata
 A.1-1,Tải lên và tạo ảnh thành viên GeoTIFF Time Series,raster,create,0,0,1,1,1,1,Upload các mốc GeoTIFF theo coverage_key

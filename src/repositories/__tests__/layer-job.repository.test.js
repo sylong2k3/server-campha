@@ -7,6 +7,22 @@ jest.mock('../../configs/database', () => ({
 const db = require('../../configs/database');
 const repository = require('../layer-job.repository');
 
+describe('layer-job import access', () => {
+    test.each([
+        ['system_admin', true],
+        ['so_tnmt', true],
+        ['so_xd', false],
+        ['citizen', false],
+    ])('%s import management scope', async (role, canManage) => {
+        db.query.mockResolvedValue({ rows: [] });
+        const actor = { id: 7, role };
+        await repository.findImportById(9, actor);
+        expect(db.query).toHaveBeenLastCalledWith(expect.any(String), [9, canManage, 7]);
+        await repository.listImportErrors(9, actor, 1, 20);
+        expect(db.query).toHaveBeenLastCalledWith(expect.any(String), [9, canManage, 7, 20, 0]);
+    });
+});
+
 describe('layer-job repository cleanup completion', () => {
     test('detaches Time Series members only after lease-safe job completion', async () => {
         const client = {

@@ -211,7 +211,7 @@ describe('storage quarantine workflow', () => {
     test('stream without ticket uses owner lookup or a public DB reference', async () => {
         repo.findAccessibleById.mockResolvedValue(null);
         await expect(service.streamFile(11, null, actor)).rejects.toMatchObject({ status: 404 });
-        expect(repo.findAccessibleById).toHaveBeenCalledWith(11, actor.id);
+        expect(repo.findAccessibleById).toHaveBeenCalledWith(11, actor.id, actor.role);
         expect(repo.findById).not.toHaveBeenCalled();
 
         repo.findPublicById.mockResolvedValue({
@@ -230,6 +230,34 @@ describe('storage quarantine workflow', () => {
             mimeType: 'image/png',
         });
         expect(repo.findPublicById).toHaveBeenCalledWith(11);
+    });
+    test('admin can download and delete across owners without bypassing file safety', async () => {
+        const admin = { ...actor, role: 'system_admin' };
+        const record = {
+            id: 11,
+            owner_user_id: 99,
+            lifecycle_status: 'ready',
+            scan_status: 'clean',
+            object_key: 'o',
+            category: 'documents',
+            size_bytes: 5,
+        };
+        repo.findAccessibleById.mockResolvedValue(record);
+        minio.getPresignedDownloadUrl.mockResolvedValue({ url: 'download' });
+        minio.getObjectStream.mockResolvedValue(stream());
+        await expect(service.getDownloadUrl(11, 900, admin)).resolves.toEqual({ url: 'download' });
+        await expect(service.streamFile(11, null, admin)).resolves.toMatchObject({
+            access: 'admin',
+        });
+        expect(repo.findAccessibleById).toHaveBeenCalledWith(11, admin.id, 'system_admin');
+        repo.enqueueDelete.mockResolvedValue({
+            conflict: 'FILE_STILL_IN_USE',
+            references: ['cms_document'],
+        });
+        await expect(service.deleteObject(11, admin)).rejects.toMatchObject({ status: 409 });
+        expect(repo.enqueueDelete).toHaveBeenCalledWith(11, admin.id, 'system_admin');
+        repo.findAccessibleById.mockResolvedValue({ ...record, scan_status: 'infected' });
+        await expect(service.streamFile(11, null, admin)).rejects.toMatchObject({ status: 404 });
     });
     test('valid ticket streams its bound ready object and invalid ticket is rejected', async () => {
         const jwt = require('jsonwebtoken');

@@ -225,7 +225,7 @@ const directUpload = async (
 };
 
 const getDownloadUrl = async (id, expireSeconds, actor) => {
-    const record = await storageRepository.findAccessibleById(id, actor.id);
+    const record = await storageRepository.findAccessibleById(id, actor.id, actor.role);
     if (!record || record.lifecycle_status !== 'ready') {
         throw new Api404Error('Không tìm thấy file');
     }
@@ -258,9 +258,9 @@ const streamFile = async (id, ticket, actor) => {
         }
         record = await storageRepository.findById(id);
     } else if (actor?.id) {
-        record = await storageRepository.findAccessibleById(id, actor.id);
+        record = await storageRepository.findAccessibleById(id, actor.id, actor.role);
         if (record) {
-            access = 'owner';
+            access = actor.role === 'system_admin' ? 'admin' : 'owner';
         } else {
             record = await storageRepository.findPublicById(id);
             access = 'public';
@@ -298,7 +298,7 @@ const streamFile = async (id, ticket, actor) => {
 };
 
 const deleteObject = async (id, actor) => {
-    const queued = await storageRepository.enqueueDelete(id, actor.id);
+    const queued = await storageRepository.enqueueDelete(id, actor.id, actor.role);
     if (queued?.conflict === 'FILE_STILL_IN_USE') {
         throw new Api409Error('File vẫn đang được dữ liệu khác sử dụng', [
             'FILE_STILL_IN_USE',

@@ -19,7 +19,7 @@ const createImport = async ({ importType, fileObjectId, ownerUserId, orgId, inpu
 };
 
 const findImportById = async (id, actor) => {
-    const canManage = actor.role === 'so_tnmt';
+    const canManage = ['system_admin', 'so_tnmt'].includes(actor.role);
     const {
         rows: [row],
     } = await db.query(
@@ -37,7 +37,7 @@ const findImportById = async (id, actor) => {
 };
 
 const listImportErrors = async (jobId, actor, page, limit) => {
-    const canManage = actor.role === 'so_tnmt';
+    const canManage = ['system_admin', 'so_tnmt'].includes(actor.role);
     const offset = (page - 1) * limit;
     const { rows } = await db.query(
         `SELECT e.*, COUNT(*) OVER()::int AS total_count

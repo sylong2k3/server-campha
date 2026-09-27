@@ -37,13 +37,13 @@ const createQuarantine = async ({
     return row;
 };
 
-const findAccessibleById = async (id, actorId) => {
+const findAccessibleById = async (id, actorId, actorRole = null) => {
     const {
         rows: [row],
     } = await db.query(
         `SELECT * FROM core.file_objects
-         WHERE id = $1 AND owner_user_id = $2 AND deleted_at IS NULL`,
-        [id, actorId],
+         WHERE id = $1 AND (owner_user_id = $2 OR $3::text = 'system_admin') AND deleted_at IS NULL`,
+        [id, actorId, actorRole],
     );
     return row || null;
 };
@@ -153,7 +153,7 @@ const resetPending = async (id) => {
     );
 };
 
-const enqueueDelete = async (id, actorId) => {
+const enqueueDelete = async (id, actorId, actorRole = null) => {
     const client = await db.getClient();
     try {
         await client.query('BEGIN');
@@ -161,9 +161,10 @@ const enqueueDelete = async (id, actorId) => {
             rows: [file],
         } = await client.query(
             `SELECT id FROM core.file_objects
-             WHERE id=$1 AND owner_user_id=$2 AND lifecycle_status='ready' AND deleted_at IS NULL
+             WHERE id=$1 AND (owner_user_id=$2 OR $3::text='system_admin')
+               AND lifecycle_status='ready' AND deleted_at IS NULL
              FOR UPDATE`,
-            [id, actorId],
+            [id, actorId, actorRole],
         );
         if (!file) {
             await client.query('ROLLBACK');

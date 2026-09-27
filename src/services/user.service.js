@@ -82,7 +82,7 @@ const _logAdminActivity = (actor, action, targetUserId, metadata = {}) =>
     });
 
 const listUsers = async (filter, actor) => {
-    if (!actor.orgId) {
+    if (!actor.orgId && actor.role !== 'system_admin') {
         throw new Api403Error(
             t('no_permission_resource', actor.lang, { resource: 'users', action: 'list' }),
         );

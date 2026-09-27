@@ -21,6 +21,57 @@ const derivedLayer = {
     },
 };
 
+describe('layer ACL admin invariant', () => {
+    test.each([false, true])(
+        'replacement preserves admin even with explicit deny=%s',
+        async (denyAdmin) => {
+            const citizenAcl = {
+                roleCode: 'citizen',
+                canView: true,
+                canExport: false,
+                canEdit: false,
+                canDelete: false,
+            };
+            const permissions = [citizenAcl];
+            if (denyAdmin) {
+                permissions.push({
+                    roleCode: 'system_admin',
+                    canView: false,
+                    canExport: false,
+                    canEdit: false,
+                    canDelete: false,
+                });
+            }
+            const client = {
+                query: jest.fn(async (sql) => {
+                    if (sql.startsWith('SELECT id')) {
+                        return { rowCount: 1 };
+                    }
+                    if (sql.startsWith('UPDATE gis.layers')) {
+                        return { rows: [{ updated_at: '2026-09-27', version: 2 }] };
+                    }
+                    if (sql.includes('SELECT l.*')) {
+                        return { rows: [{ id: 9 }] };
+                    }
+                    return { rows: [] };
+                }),
+                release: jest.fn(),
+            };
+            db.getClient.mockResolvedValue(client);
+            await repository.replacePermissions(9, permissions);
+            const inserts = client.query.mock.calls.filter(([sql]) =>
+                sql.includes('INSERT INTO gis.layer_permissions'),
+            );
+            expect(inserts.map(([, params]) => params)).toEqual([
+                [9, 'citizen', true, false, false, false],
+                [9, 'system_admin', true, true, true, true],
+            ]);
+            expect(client.query).toHaveBeenLastCalledWith('COMMIT');
+            expect(permissions).toHaveLength(denyAdmin ? 2 : 1);
+        },
+    );
+});
+
 describe('layer repository raster artifact lookup', () => {
     beforeEach(() => {
         jest.clearAllMocks();
