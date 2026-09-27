@@ -39,6 +39,19 @@ const list = async (filter) => {
         params.push(filter.isPublic);
         where.push(`l.is_public = $${params.length}`);
     }
+    const isShareable = filter.isShareable ?? filter.shareable;
+    if (isShareable !== undefined) {
+        const val = isShareable === true || isShareable === 'true';
+        if (val) {
+            where.push(
+                `(l.storage_kind = 'postgis' AND l.publish_status = 'published' AND jsonb_array_length(COALESCE(l.metadata->'displayFields', l.metadata->'display_fields', '[]'::jsonb)) > 0)`,
+            );
+        } else {
+            where.push(
+                `(l.storage_kind != 'postgis' OR l.publish_status != 'published' OR l.metadata IS NULL OR jsonb_array_length(COALESCE(l.metadata->'displayFields', l.metadata->'display_fields', '[]'::jsonb)) = 0)`,
+            );
+        }
+    }
     const sort = SORT_COLUMNS[filter.sortBy] || SORT_COLUMNS.updated_at;
     const order = filter.sortOrder === 'ASC' ? 'ASC' : 'DESC';
     params.push(filter.limit, (filter.page - 1) * filter.limit);

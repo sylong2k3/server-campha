@@ -274,5 +274,15 @@ describe('layer validator', () => {
         });
         expect(emptyResult.error).toBeUndefined();
     });
+
+    test('listLayersSchema accepts isShareable and shareable boolean filter', () => {
+        const res1 = validate(validator.listLayersSchema, { isShareable: true });
+        expect(res1.error).toBeUndefined();
+        expect(res1.value.isShareable).toBe(true);
+
+        const res2 = validate(validator.listLayersSchema, { shareable: false });
+        expect(res2.error).toBeUndefined();
+        expect(res2.value.shareable).toBe(false);
+    });
 });
 

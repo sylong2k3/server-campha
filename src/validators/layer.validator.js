@@ -59,6 +59,8 @@ const listLayersSchema = paginationSchema.keys({
         )
         .optional(),
     isPublic: Joi.boolean().optional(),
+    isShareable: Joi.boolean().optional(),
+    shareable: Joi.boolean().optional(),
     sortBy: Joi.string()
         .valid('created_at', 'updated_at', 'name_vi', 'code', 'category')
         .default('updated_at'),
