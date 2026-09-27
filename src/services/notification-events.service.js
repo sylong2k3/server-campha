@@ -76,13 +76,12 @@ const notifyForestSnapshotFailed = async (snapshot, { seasonContext, error } = {
 };
 
 const notifyFloodRunCompleted = async (run, { floodAreaHa, floodPercentage, warnings } = {}) => {
-    const mod = String(run.module || 'event').toUpperCase();
     const areaStr = floodAreaHa !== null && floodAreaHa !== undefined ? `${Number(floodAreaHa).toFixed(1)} ha` : 'N/A';
     const pctStr = floodPercentage !== null && floodPercentage !== undefined ? ` (tỉ lệ ${Number(floodPercentage).toFixed(2)}%)` : '';
     const eventKey = `flood_run:${run.id}:succeeded`;
     const message = {
         type: 'flood_run_succeeded',
-        title: `Cảnh báo ngập lụt: Phân tích hoàn tất (${mod})`,
+        title: `Cảnh báo ngập lụt: Phân tích hoàn tất`,
         body: `Phân tích ngập lụt #${run.id} (${run.module}) thành công. Diện tích ngập: ${areaStr}${pctStr}. Đã cập nhật bản đồ.`,
         data: {
             channel: 'flood',
@@ -97,13 +96,12 @@ const notifyFloodRunCompleted = async (run, { floodAreaHa, floodPercentage, warn
 };
 
 const notifyFloodRunFailed = async (run, error) => {
-    const mod = String(run.module || 'event').toUpperCase();
     const attempt = run.attempt_no || 1;
     const eventKey = `flood_run:${run.id}:failed:${attempt}`;
     const message = {
         type: 'flood_run_failed',
         title: `Cảnh báo ngập lụt: Phân tích #${run.id} thất bại`,
-        body: `Phân tích ngập lụt #${run.id} (${mod}) thất bại: ${error?.message || 'Lỗi xử lý'}`,
+        body: `Phân tích ngập lụt #${run.id} thất bại: ${error?.message || 'Lỗi xử lý'}`,
         data: {
             channel: 'flood',
             runId: run.id,
@@ -161,10 +159,23 @@ const notifyHydroScenarioTriggered = async ({
         ? (numRain % 1 === 0 ? String(Math.round(numRain)) : String(Number(numRain.toFixed(2))))
         : '0';
 
+    const formatScenarioAlertLevel = (name) => {
+        if (!name) return 'cảnh báo có thể ngập nhẹ';
+        const lower = name.toLowerCase();
+        if (lower.includes('ngập nhẹ')) return 'cảnh báo có thể ngập nhẹ';
+        if (lower.includes('ngập vừa')) return 'cảnh báo có thể ngập vừa';
+        if (lower.includes('ngập nặng')) return 'cảnh báo có thể ngập nặng';
+        if (lower.includes('ngập sâu')) return 'cảnh báo có thể ngập sâu';
+        if (lower.startsWith('cảnh báo có thể')) return lower;
+        return `cảnh báo có thể ${lower.replace(/^kịch bản\s+/i, '')}`;
+    };
+
+    const alertLevel = formatScenarioAlertLevel(scenarioName);
+
     const message = {
         type: 'hydro_scenario_triggered',
         title: 'Cảnh báo kịch bản thủy văn:',
-        body: `${scenarioName}\nLượng mưa 1h qua: ${formattedRain} mm/h`,
+        body: `${alertLevel}\ndự báo lượng mưa: ${formattedRain} mm/h`,
         data: {
             channel: 'flood',
             scenarioId: scenario?.id || null,
@@ -174,6 +185,7 @@ const notifyHydroScenarioTriggered = async ({
             tide: tideVal,
             source,
             hourBucket,
+            url: 'https://admincampha.tourismpj.pro.vn/flood',
         },
     };
     return safeDispatch(eventKey, message);

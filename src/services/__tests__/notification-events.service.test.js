@@ -109,8 +109,9 @@ describe('notification-events.service', () => {
             expect(message.eventKey).toMatch(/^hydro_scenario:5:220:\d{4}-\d{2}-\d{2}T\d{2}$/);
             expect(message.type).toBe('hydro_scenario_triggered');
             expect(message.title).toBe('Cảnh báo kịch bản thủy văn:');
-            expect(message.body).toBe('Kịch bản ngập mưa lớn 200mm\nLượng mưa 1h qua: 220 mm/h');
+            expect(message.body).toBe('cảnh báo có thể ngập mưa lớn 200mm\ndự báo lượng mưa: 220 mm/h');
             expect(message.data.channel).toBe('flood');
+            expect(message.data.url).toBe('https://admincampha.tourismpj.pro.vn/flood');
         });
 
         test('skips notification when scenario type is cai_tao or quy_hoach', async () => {
