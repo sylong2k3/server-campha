@@ -150,10 +150,13 @@ const replacePermissions = async (id, input, actor) => {
     if (active.length !== new Set(roleCodes).size) {
         throw new Api422Error('ACL chứa vai trò không tồn tại hoặc đã bị khóa', ['INVALID_ROLE']);
     }
-    // Role contracts are an upper bound: only TNMT can edit/delete. Public/cross-agency roles are read/export only.
+    // Role contracts are an upper bound: admin/TNMT can edit/delete; other roles are read/export only.
     for (const permission of input.permissions) {
-        if (permission.roleCode !== 'so_tnmt' && (permission.canEdit || permission.canDelete)) {
-            throw new Api422Error('Chỉ vai trò so_tnmt được cấp edit/delete', [
+        if (
+            !['system_admin', 'so_tnmt'].includes(permission.roleCode) &&
+            (permission.canEdit || permission.canDelete)
+        ) {
+            throw new Api422Error('Chỉ system_admin và so_tnmt được cấp edit/delete', [
                 'ACL_EXCEEDS_ROLE_CONTRACT',
             ]);
         }

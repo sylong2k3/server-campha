@@ -63,7 +63,25 @@ describe('layer service', () => {
         ).rejects.toMatchObject({ status: 409, errors: ['OPTIMISTIC_LOCK_CONFLICT'] });
     });
 
-    test('ACL cannot grant edit/delete outside TNMT role contract', async () => {
+    test('ACL accepts full system_admin access', async () => {
+        const permissions = [
+            {
+                roleCode: 'system_admin',
+                canView: true,
+                canExport: true,
+                canEdit: true,
+                canDelete: true,
+            },
+        ];
+        layerRepository.activeRoleCodes.mockResolvedValue(['system_admin']);
+        layerRepository.replacePermissions.mockResolvedValue({ id: 1, permissions });
+        await expect(service.replacePermissions(1, { permissions }, actor)).resolves.toMatchObject({
+            id: 1,
+        });
+        expect(layerRepository.replacePermissions).toHaveBeenCalledWith(1, permissions);
+    });
+
+    test('ACL cannot grant edit/delete outside admin/TNMT role contract', async () => {
         layerRepository.activeRoleCodes.mockResolvedValue(['citizen']);
         await expect(
             service.replacePermissions(

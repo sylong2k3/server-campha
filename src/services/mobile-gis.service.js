@@ -43,7 +43,7 @@ const feature = async (id, featureId, actor) => {
         throw new Api404Error('Không tìm thấy đối tượng');
     }
     if (
-        actor?.role === 'so_tnmt' &&
+        ['system_admin', 'so_tnmt'].includes(actor?.role) &&
         actor.permissions?.map_feature?.update === true &&
         row.role_can_edit
     ) {

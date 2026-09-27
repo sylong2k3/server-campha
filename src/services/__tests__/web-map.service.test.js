@@ -89,26 +89,45 @@ describe('web map service', () => {
         });
         expect(result).not.toHaveProperty('metadata');
     });
-    test('TNMT receives only sanitized per-layer editable fields', async () => {
-        repository.catalog.mockResolvedValue([layer]);
-        const tnmt = {
-            role: 'so_tnmt',
-            permissions: {
-                map: { view: true },
-                map_feature: { update: true },
-            },
-        };
-        await expect(service.listLayers(undefined, tnmt)).resolves.toEqual([
-            expect.objectContaining({ canEdit: true, editableFields: ['ten'] }),
-        ]);
+    test.each(['system_admin', 'so_tnmt'])(
+        '%s receives only sanitized per-layer editable fields',
+        async (role) => {
+            repository.catalog.mockResolvedValue([layer]);
+            const tnmt = {
+                role,
+                permissions: {
+                    map: { view: true },
+                    map_feature: { update: true },
+                },
+            };
+            await expect(service.listLayers(undefined, tnmt)).resolves.toEqual([
+                expect.objectContaining({ canEdit: true, editableFields: ['ten'] }),
+            ]);
 
-        repository.catalog.mockResolvedValue([
-            { ...layer, metadata: { ...layer.metadata, editableFields: [] } },
-        ]);
-        await expect(service.listLayers(undefined, tnmt)).resolves.toEqual([
-            expect.objectContaining({ canEdit: true, editableFields: [] }),
-        ]);
-    });
+            repository.catalog.mockResolvedValue([
+                { ...layer, metadata: { ...layer.metadata, editableFields: [] } },
+            ]);
+            await expect(service.listLayers(undefined, tnmt)).resolves.toEqual([
+                expect.objectContaining({ canEdit: true, editableFields: [] }),
+            ]);
+        },
+    );
+
+    test.each([{ role_can_edit: false }, { storage_kind: 'geotiff_minio', table_name: null }])(
+        'admin cannot edit denied ACL or raster %#',
+        async (overrides) => {
+            repository.catalog.mockResolvedValue([{ ...layer, ...overrides }]);
+            await expect(
+                service.listLayers(
+                    {},
+                    {
+                        role: 'system_admin',
+                        permissions: { map: { view: true }, map_feature: { update: true } },
+                    },
+                ),
+            ).resolves.toEqual([expect.objectContaining({ canEdit: false, editableFields: [] })]);
+        },
+    );
 
     test('feature query is ACL-filtered and rejects raster', async () => {
         repository.accessibleLayer.mockResolvedValue(layer);

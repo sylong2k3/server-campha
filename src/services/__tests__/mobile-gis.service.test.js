@@ -41,39 +41,42 @@ describe('mobile GIS service', () => {
         );
         expect(webMap.accessibleLayer).toHaveBeenCalledTimes(2);
     });
-    test('TNMT feature detail returns authoritative snapshot and version', async () => {
-        webMap.accessibleLayer.mockResolvedValue({
-            id: 1,
-            storage_kind: 'postgis',
-            table_name: 'roads',
-            publish_status: 'published',
-            role_can_edit: true,
-        });
-        webMap.featureById.mockResolvedValue({ source_fid: '7', name: 'display' });
-        editRepository.snapshot.mockResolvedValue({
-            feature_id: '7',
-            attributes: { name: 'editable' },
-            geometry: { type: 'Point', coordinates: [107.3, 21] },
-        });
-        editRepository.state.mockResolvedValue({ version: 4 });
-        const tnmt = {
-            ...actor,
-            role: 'so_tnmt',
-            permissions: {
-                ...actor.permissions,
-                map_feature: { update: true },
-            },
-        };
-        await expect(service.feature(1, '7', tnmt)).resolves.toEqual({
-            layerId: 1,
-            feature: {
-                source_fid: '7',
-                name: 'editable',
+    test.each(['system_admin', 'so_tnmt'])(
+        '%s feature detail returns authoritative snapshot and version',
+        async (role) => {
+            webMap.accessibleLayer.mockResolvedValue({
+                id: 1,
+                storage_kind: 'postgis',
+                table_name: 'roads',
+                publish_status: 'published',
+                role_can_edit: true,
+            });
+            webMap.featureById.mockResolvedValue({ source_fid: '7', name: 'display' });
+            editRepository.snapshot.mockResolvedValue({
+                feature_id: '7',
+                attributes: { name: 'editable' },
                 geometry: { type: 'Point', coordinates: [107.3, 21] },
-                version: 4,
-            },
-        });
-    });
+            });
+            editRepository.state.mockResolvedValue({ version: 4 });
+            const tnmt = {
+                ...actor,
+                role,
+                permissions: {
+                    ...actor.permissions,
+                    map_feature: { update: true },
+                },
+            };
+            await expect(service.feature(1, '7', tnmt)).resolves.toEqual({
+                layerId: 1,
+                feature: {
+                    source_fid: '7',
+                    name: 'editable',
+                    geometry: { type: 'Point', coordinates: [107.3, 21] },
+                    version: 4,
+                },
+            });
+        },
+    );
     test('blocks permission and hides other owner draft', async () => {
         await expect(
             service.measure({ geometry: {} }, { ...actor, permissions: { map: {} } }),

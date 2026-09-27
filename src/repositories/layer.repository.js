@@ -230,7 +230,17 @@ const replacePermissions = async (layerId, permissions) => {
             return null;
         }
         await client.query('DELETE FROM gis.layer_permissions WHERE layer_id = $1', [layerId]);
-        for (const item of permissions) {
+        const effectivePermissions = [
+            ...permissions.filter((item) => item.roleCode !== 'system_admin'),
+            {
+                roleCode: 'system_admin',
+                canView: true,
+                canExport: true,
+                canEdit: true,
+                canDelete: true,
+            },
+        ];
+        for (const item of effectivePermissions) {
             await client.query(
                 `INSERT INTO gis.layer_permissions
                     (layer_id, role_code, can_view, can_export, can_edit, can_delete)

@@ -22,8 +22,10 @@ const getAccessible = async (id, actor, options) => {
 };
 
 const canEditLayer = (layer, actor) =>
-    actor?.role === 'so_tnmt' &&
+    ['system_admin', 'so_tnmt'].includes(actor?.role) &&
     actor.permissions?.map_feature?.update === true &&
+    layer.storage_kind === 'postgis' &&
+    Boolean(layer.table_name) &&
     layer.role_can_edit === true;
 const safeEditableFields = (layer, actor) => {
     if (!canEditLayer(layer, actor)) {
