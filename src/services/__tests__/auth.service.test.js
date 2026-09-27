@@ -696,6 +696,33 @@ describe('getMe / updateMe', () => {
     });
 });
 
+describe('deleteMe', () => {
+    test('deleteMe: user không tồn tại → 404', async () => {
+        userRepository.findById.mockResolvedValue(null);
+        await expect(authService.deleteMe(1, context)).rejects.toBeInstanceOf(Api404Error);
+    });
+
+    test('deleteMe: là system_admin duy nhất còn hoạt động → 400', async () => {
+        userRepository.findById.mockResolvedValue({ ...baseUser, role: 'system_admin' });
+        userRepository.countActiveUsersByRole.mockResolvedValue(1);
+        await expect(authService.deleteMe(1, context)).rejects.toBeInstanceOf(Api400Error);
+    });
+
+    test('deleteMe: thành công → softDelete, thu hồi token và ghi log', async () => {
+        userRepository.findById.mockResolvedValue(baseUser);
+        userRepository.softDelete.mockResolvedValue({ id: 1, email: baseUser.email });
+        userRepository.incrementTokenVersion.mockResolvedValue(true);
+        tokenRepository.deleteAllUserTokens.mockResolvedValue(true);
+
+        const result = await authService.deleteMe(1, context);
+
+        expect(userRepository.softDelete).toHaveBeenCalledWith(1);
+        expect(userRepository.incrementTokenVersion).toHaveBeenCalledWith(1);
+        expect(tokenRepository.deleteAllUserTokens).toHaveBeenCalledWith(1);
+        expect(result).toHaveProperty('message');
+    });
+});
+
 describe('googleMobileLogin', () => {
     const validPayload = {
         aud: 'client-id-1',

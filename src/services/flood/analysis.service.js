@@ -6,6 +6,7 @@ const artifactRepo = require('../../repositories/flood-artifact.repository');
 const ingestRepo = require('../../repositories/raster-ingest.repository');
 const layerRepo = require('../../repositories/layer.repository');
 const floodScenarioRepo = require('../../repositories/flood-scenario.repository');
+const db = require('../../configs/database');
 const webMapService = require('../web-map.service');
 const orchestrator = require('./orchestrator.service');
 const geeAdapter = require('../gee-earth-engine.adapter');
@@ -715,11 +716,20 @@ async function updateScenario(id, data, actor = null) {
     }
 
     const updated = await floodScenarioRepo.update(id, data);
-    try {
-        const notificationEvents = require('../notification-events.service');
-        await notificationEvents.notifyHydroScenarioUpdated(updated);
-    } catch {
-        // non-fatal
+    const isNewlyActivated = !scenario.is_active && Boolean(updated?.is_active);
+    if (isNewlyActivated && updated?.type === 'hien_trang') {
+        try {
+            const notificationEvents = require('../notification-events.service');
+            await notificationEvents.notifyHydroScenarioTriggered({
+                scenario: updated,
+                layerCode: updated.layer_code,
+                rainVal: updated.current_rainfall ?? updated.min_rainfall ?? 0,
+                tideVal: updated.current_tide ?? null,
+                source: updated.rainfall_source || 'MANUAL',
+            });
+        } catch {
+            // non-fatal
+        }
     }
     return attachLayerToScenario(updated, actor);
 }
@@ -732,11 +742,98 @@ async function deleteScenario(id) {
     return floodScenarioRepo.deleteScenario(id);
 }
 
+function scenarioCodeFromLayer(layerCode, type, rcp) {
+    const suffix = type === 'quy_hoach' && rcp ? `_${rcp}` : '';
+    return `scenario_${type}_${layerCode}${suffix}`.toLowerCase().replace(/[^a-z0-9_]/g, '_').slice(0, 100);
+}
+
+async function convertLayersToScenarios(data, actor = null) {
+    const uniqueCodes = [...new Set(data.layerCodes)];
+    const client = await db.getClient();
+    try {
+        await client.query('BEGIN');
+        const layers = await layerRepo.findByCodes(uniqueCodes, client);
+        const foundCodes = new Set(layers.map((layer) => layer.code));
+        const missingLayerCodes = uniqueCodes.filter((code) => !foundCodes.has(code));
+        const created = [];
+        const skipped = [];
+
+        for (const layer of layers) {
+            const code = scenarioCodeFromLayer(layer.code, data.type, data.rcp);
+            const existing = await floodScenarioRepo.findByCode(code, client);
+            if (existing) {
+                skipped.push(existing);
+                continue;
+            }
+            const scenario = await floodScenarioRepo.create({
+                code,
+                nameVi: layer.name_vi || layer.code,
+                type: data.type,
+                rcp: data.rcp,
+                minRainfall: data.minRainfall,
+                maxRainfall: data.maxRainfall,
+                minTide: data.minTide,
+                maxTide: data.maxTide,
+                layerCode: layer.code,
+                description: `Tạo từ lớp bản đồ ${layer.name_vi || layer.code}`,
+                isActive: data.isActive,
+            }, client);
+            created.push(scenario);
+        }
+
+        await client.query('COMMIT');
+        return {
+            created: await Promise.all(created.map((scenario) => attachLayerToScenario(scenario, actor))),
+            skipped,
+            missingLayerCodes,
+        };
+    } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+    } finally {
+        client.release();
+    }
+}
+
 async function simulateFlood({ rainfall, tide }, actor) {
     const rainVal = Number(rainfall);
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
 
-    const matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal);
+    if (rainVal < 29.10) {
+        return {
+            id: 'no_rain',
+            code: 'no_rain',
+            nameVi: rainVal <= 0
+                ? 'Không có ngập lụt (Lượng mưa 0 mm/h)'
+                : `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
+            status: 'no_rain',
+            category: 'flood',
+            categoryName: 'Ngập lụt',
+            geometryType: 'RASTER',
+            storageKind: 'none',
+            geoserverLayer: null,
+            styleName: null,
+            minZoom: 10,
+            maxZoom: 18,
+            legend: null,
+            isPublic: true,
+            isEnableDefault: false,
+            simulationParams: {
+                rainfall: rainVal,
+                tide: tideVal,
+                scenarioId: null,
+                scenarioCode: 'no_rain',
+                scenarioName: rainVal <= 0
+                    ? 'Không có ngập lụt'
+                    : `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
+                matchedLayerCode: null,
+            },
+        };
+    }
+
+    const matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal, undefined, {
+        type: 'hien_trang',
+    });
     let targetLayerCode = matchedScenario?.layer_code;
 
     // Hardcoded fallback logic if no scenario DB match
@@ -767,20 +864,6 @@ async function simulateFlood({ rainfall, tide }, actor) {
 
     const serialized = webMapService.serializeLayer(layer, actor);
     serialized.isEnableDefault = true;
-
-    if (rainVal > 0) {
-        try {
-            const notificationEvents = require('../notification-events.service');
-            await notificationEvents.notifyHydroScenarioTriggered({
-                scenario: matchedScenario,
-                layerCode: targetLayerCode,
-                rainVal,
-                tideVal,
-            });
-        } catch {
-            // non-fatal
-        }
-    }
 
     return {
         ...serialized,
@@ -819,6 +902,7 @@ module.exports = {
     createScenario,
     updateScenario,
     deleteScenario,
+    convertLayersToScenarios,
     getLegends: buildAllLegends,
     getAdminLegends: buildAllAdminLegends,
     updateLegend(artifactCode, patch) {

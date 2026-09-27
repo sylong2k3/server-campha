@@ -54,10 +54,26 @@ publicRouter.get(
 const adminRouter = Router();
 adminRouter.use(verifyToken, enforcePasswordChange);
 adminRouter.get(
+    '/weather/forecast',
+    requirePermission('flood', 'read'),
+    asyncHandler(controller.getWeatherForecast),
+);
+adminRouter.post(
+    '/weather/forecast/refresh',
+    requirePermission('flood', 'run'),
+    asyncHandler(controller.refreshWeatherForecast),
+);
+adminRouter.get(
     '/scenarios',
     requirePermission('flood', 'read'),
     strict(validator.queryScenarioSchema, 'query'),
     asyncHandler(controller.listScenarios),
+);
+adminRouter.post(
+    '/scenarios/from-layers',
+    requirePermission('flood', 'run'),
+    strict(validator.convertLayerScenarioSchema, 'body'),
+    asyncHandler(controller.convertFromLayers),
 );
 adminRouter.get(
     '/scenarios/:id',
@@ -83,6 +99,22 @@ adminRouter.delete(
     requirePermission('flood', 'run'),
     strict(validator.idParamsSchema, 'params'),
     asyncHandler(controller.deleteScenario),
+);
+adminRouter.post(
+    '/scenarios/manual-override',
+    requirePermission('flood', 'run'),
+    strict(validator.manualOverrideSchema, 'body'),
+    asyncHandler(controller.manualOverrideScenario),
+);
+adminRouter.post(
+    '/scenarios/reset-auto',
+    requirePermission('flood', 'run'),
+    asyncHandler(controller.resetScenarioToAuto),
+);
+adminRouter.get(
+    '/forecast/schedule',
+    requirePermission('flood', 'read'),
+    asyncHandler(controller.getForecastSchedule),
 );
 adminRouter.get(
     '/dashboard',

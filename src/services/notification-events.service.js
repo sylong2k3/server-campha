@@ -2,6 +2,7 @@
 
 const notificationService = require('./notification.service');
 const systemLogger = require('../utils/systemLogger.util');
+const { classifyScenario } = require('../repositories/flood-scenario.repository');
 
 const MANAGER_ROLES = Object.freeze(['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd']);
 
@@ -28,10 +29,10 @@ const safeDispatch = async (eventKey, message) => {
 
 const notifyForestSnapshotCompleted = async (snapshot, { seasonContext, coverage } = {}) => {
     const label = seasonContext?.label || `Kỳ ${snapshot.year}-${String(snapshot.month).padStart(2, '0')}`;
-    const forestHa = coverage?.forestHa != null ? Number(coverage.forestHa).toFixed(1) : 'N/A';
-    const forestPercent = coverage?.forestPercent != null ? Number(coverage.forestPercent).toFixed(2) : 'N/A';
-    const mineHa = coverage?.mineHa != null ? Number(coverage.mineHa).toFixed(1) : 'N/A';
-    const minePercent = coverage?.minePercent != null ? Number(coverage.minePercent).toFixed(2) : 'N/A';
+    const forestHa = coverage?.forestHa !== null && coverage?.forestHa !== undefined ? Number(coverage.forestHa).toFixed(1) : 'N/A';
+    const forestPercent = coverage?.forestPercent !== null && coverage?.forestPercent !== undefined ? Number(coverage.forestPercent).toFixed(2) : 'N/A';
+    const mineHa = coverage?.mineHa !== null && coverage?.mineHa !== undefined ? Number(coverage.mineHa).toFixed(1) : 'N/A';
+    const minePercent = coverage?.minePercent !== null && coverage?.minePercent !== undefined ? Number(coverage.minePercent).toFixed(2) : 'N/A';
 
     const eventKey = `forest:${snapshot.year}-${String(snapshot.month).padStart(2, '0')}:completed`;
     const message = {
@@ -75,13 +76,12 @@ const notifyForestSnapshotFailed = async (snapshot, { seasonContext, error } = {
 };
 
 const notifyFloodRunCompleted = async (run, { floodAreaHa, floodPercentage, warnings } = {}) => {
-    const mod = String(run.module || 'event').toUpperCase();
-    const areaStr = floodAreaHa != null ? `${Number(floodAreaHa).toFixed(1)} ha` : 'N/A';
-    const pctStr = floodPercentage != null ? ` (tỉ lệ ${Number(floodPercentage).toFixed(2)}%)` : '';
+    const areaStr = floodAreaHa !== null && floodAreaHa !== undefined ? `${Number(floodAreaHa).toFixed(1)} ha` : 'N/A';
+    const pctStr = floodPercentage !== null && floodPercentage !== undefined ? ` (tỉ lệ ${Number(floodPercentage).toFixed(2)}%)` : '';
     const eventKey = `flood_run:${run.id}:succeeded`;
     const message = {
         type: 'flood_run_succeeded',
-        title: `Cảnh báo ngập lụt: Phân tích hoàn tất (${mod})`,
+        title: `Cảnh báo ngập lụt: Phân tích hoàn tất`,
         body: `Phân tích ngập lụt #${run.id} (${run.module}) thành công. Diện tích ngập: ${areaStr}${pctStr}. Đã cập nhật bản đồ.`,
         data: {
             channel: 'flood',
@@ -96,13 +96,12 @@ const notifyFloodRunCompleted = async (run, { floodAreaHa, floodPercentage, warn
 };
 
 const notifyFloodRunFailed = async (run, error) => {
-    const mod = String(run.module || 'event').toUpperCase();
     const attempt = run.attempt_no || 1;
     const eventKey = `flood_run:${run.id}:failed:${attempt}`;
     const message = {
         type: 'flood_run_failed',
         title: `Cảnh báo ngập lụt: Phân tích #${run.id} thất bại`,
-        body: `Phân tích ngập lụt #${run.id} (${mod}) thất bại: ${error?.message || 'Lỗi xử lý'}`,
+        body: `Phân tích ngập lụt #${run.id} thất bại: ${error?.message || 'Lỗi xử lý'}`,
         data: {
             channel: 'flood',
             runId: run.id,
@@ -114,18 +113,79 @@ const notifyFloodRunFailed = async (run, error) => {
     return safeDispatch(eventKey, message);
 };
 
-const notifyHydroScenarioTriggered = async ({ scenario, layerCode, rainVal, tideVal } = {}) => {
+const resolveScenarioType = (scenario, layerCode) => {
+    if (scenario?.type) {
+        return scenario.type;
+    }
+    if (scenario) {
+        return classifyScenario(scenario).type;
+    }
+    if (layerCode) {
+        return classifyScenario({ layer_code: layerCode }).type;
+    }
+    return 'hien_trang';
+};
+
+const notifyHydroScenarioTriggered = async ({
+    scenario,
+    layerCode,
+    rainVal,
+    tideVal,
+    eventHour,
+    source = 'MANUAL',
+} = {}) => {
+    const scenarioType = resolveScenarioType(scenario, layerCode);
+    if (scenarioType !== 'hien_trang') {
+        systemLogger.logInfo(
+            'notification_events',
+            `Bỏ qua thông báo kích hoạt kịch bản: loại '${scenarioType}' không thuộc hiện trạng ngập lụt`,
+            {
+                scenarioId: scenario?.id,
+                scenarioCode: scenario?.code,
+                layerCode,
+                type: scenarioType,
+            },
+        );
+        return null;
+    }
+
     const scenarioName = scenario?.name_vi || layerCode || 'Kịch bản thủy văn';
-    const minRain = scenario?.min_rainfall ?? 0;
-    const tideStr = tideVal != null ? `, triều ${tideVal} m` : '';
-    const hourBucket = new Date().toISOString().slice(0, 13);
+    const hourBucket = eventHour || new Date().toISOString().slice(0, 13);
     const identifier = scenario?.id || scenario?.code || layerCode || 'unknown';
     const eventKey = `hydro_scenario:${identifier}:${Math.round(rainVal)}:${hourBucket}`;
 
+    const numRain = Number(rainVal);
+    const formattedRain = Number.isFinite(numRain)
+        ? (numRain % 1 === 0 ? String(Math.round(numRain)) : String(Number(numRain.toFixed(2))))
+        : '0';
+
+    const formatScenarioAlertLevel = (name) => {
+        if (!name) {
+            return 'cảnh báo có thể ngập nhẹ';
+        }
+        const lower = name.toLowerCase();
+        if (lower.includes('ngập nhẹ')) {
+            return 'cảnh báo có thể ngập nhẹ';
+        }
+        if (lower.includes('ngập vừa')) {
+            return 'cảnh báo có thể ngập vừa';
+        }
+        if (lower.includes('ngập nặng')) {
+            return 'cảnh báo có thể ngập nặng';
+        }
+        if (lower.includes('ngập sâu')) {
+            return 'cảnh báo có thể ngập sâu';
+        }
+        if (lower.startsWith('cảnh báo có thể')) {return lower;}
+        return `cảnh báo có thể ${lower.replace(/^kịch bản\s+/i, '')}`;
+    };
+
+    const alertLevel = formatScenarioAlertLevel(scenarioName);
+
     const message = {
         type: 'hydro_scenario_triggered',
-        title: `Cảnh báo kịch bản thủy văn: ${scenarioName}`,
-        body: `Mô phỏng lượng mưa ${rainVal} mm${tideStr} kích hoạt kịch bản '${scenarioName}' (ngưỡng tối thiểu ${minRain} mm). Lớp dữ liệu: ${scenario?.layer_code || layerCode}.`,
+        title: 'Cảnh báo kịch bản thủy văn:',
+        body: `${alertLevel}\ndự báo lượng mưa: ${formattedRain} mm/h`,
         data: {
             channel: 'flood',
             scenarioId: scenario?.id || null,
@@ -133,32 +193,26 @@ const notifyHydroScenarioTriggered = async ({ scenario, layerCode, rainVal, tide
             layerCode: scenario?.layer_code || layerCode,
             rainfall: rainVal,
             tide: tideVal,
+            source,
+            hourBucket,
+            url: 'https://admincampha.tourismpj.pro.vn/flood',
         },
     };
     return safeDispatch(eventKey, message);
 };
 
 const notifyHydroScenarioUpdated = async (scenario) => {
-    if (!scenario?.id) {
-        return null;
-    }
-    const name = scenario.name_vi || scenario.code;
-    const eventKey = `hydro_scenario:${scenario.id}:updated:${Date.now()}`;
-    const rangeStr = scenario.max_rainfall != null
-        ? `${scenario.min_rainfall} - ${scenario.max_rainfall} mm`
-        : `≥ ${scenario.min_rainfall} mm`;
-
-    const message = {
-        type: 'hydro_scenario_updated',
-        title: `Cập nhật kịch bản thủy văn: ${name}`,
-        body: `Kịch bản ${name} (${scenario.code}) đã cập nhật thông số ngưỡng (Mưa: ${rangeStr}).`,
-        data: {
-            channel: 'flood',
-            scenarioId: scenario.id,
-            code: scenario.code,
+    // Theo quy định: chỉ phát thông báo khi kịch bản hiện trạng chuyển trạng thái kích hoạt,
+    // thay đổi tham số kịch bản không phát thông báo.
+    systemLogger.logInfo(
+        'notification_events',
+        `Bỏ qua thông báo cập nhật tham số kịch bản: chỉ thông báo khi kích hoạt kịch bản hiện trạng`,
+        {
+            scenarioId: scenario?.id,
+            scenarioCode: scenario?.code,
         },
-    };
-    return safeDispatch(eventKey, message);
+    );
+    return null;
 };
 
 module.exports = {

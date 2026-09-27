@@ -25,9 +25,11 @@ const list = async (filter) => {
               OR unaccent(COALESCE(l.category_name, '')) ILIKE ${term})`,
         );
     }
-    if (filter.category) {
-        params.push(filter.category);
-        where.push(`l.category = $${params.length}`);
+    if (filter.category && filter.category !== 'all') {
+        params.push(filter.category.trim());
+        where.push(
+            `(LOWER(TRIM(l.category)) = LOWER(TRIM($${params.length})) OR LOWER(TRIM(COALESCE(l.category_name, ''))) = LOWER(TRIM($${params.length})))`,
+        );
     }
     if (filter.geometryType) {
         params.push(filter.geometryType);
@@ -82,6 +84,16 @@ const findByCode = async (code, client = db) => {
         [code],
     );
     return rows[0] || null;
+};
+
+const findByCodes = async (codes, client = db) => {
+    const { rows } = await client.query(
+        `SELECT * FROM gis.layers
+         WHERE code = ANY($1::varchar[]) AND deleted_at IS NULL
+         ORDER BY id ASC`,
+        [codes],
+    );
+    return rows;
 };
 
 const upsertLayerByCode = async (client, payload) => {
@@ -388,6 +400,7 @@ module.exports = {
     list,
     findById,
     findByCode,
+    findByCodes,
     upsertLayerByCode,
     updatePublishedMetadata,
     updateMetadata,

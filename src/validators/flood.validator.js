@@ -59,6 +59,9 @@ const simulationSchema = Joi.object({
     }),
 }).unknown(true);
 
+const scenarioType = Joi.string().valid('hien_trang', 'cai_tao', 'quy_hoach');
+const scenarioRcp = Joi.string().valid('rcp45', 'rcp85');
+
 const createScenarioSchema = Joi.object({
     code: Joi.string().trim().max(100).required().messages({
         'any.required': 'Mã kịch bản là bắt buộc',
@@ -68,6 +71,8 @@ const createScenarioSchema = Joi.object({
         'any.required': 'Tên kịch bản là bắt buộc',
         'string.empty': 'Tên kịch bản không được để trống',
     }),
+    type: scenarioType.default('hien_trang'),
+    rcp: scenarioRcp.allow(null).default(null),
     minRainfall: Joi.number().min(0).default(0.0),
     maxRainfall: Joi.number().min(0).allow(null),
     minTide: Joi.number().allow(null),
@@ -87,6 +92,8 @@ const createScenarioSchema = Joi.object({
 const updateScenarioSchema = Joi.object({
     code: Joi.string().trim().max(100),
     nameVi: Joi.string().trim().max(255),
+    type: scenarioType,
+    rcp: scenarioRcp.allow(null),
     minRainfall: Joi.number().min(0),
     maxRainfall: Joi.number().min(0).allow(null),
     minTide: Joi.number().allow(null),
@@ -102,9 +109,22 @@ const updateScenarioSchema = Joi.object({
 
 const queryScenarioSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(20),
+    limit: Joi.number().integer().min(1).max(200).default(20),
     activeOnly: Joi.boolean().default(false),
     search: Joi.string().allow('', null),
+    type: scenarioType.allow('', null),
+    rcp: scenarioRcp.allow('', null),
+}).unknown(false);
+
+const convertLayerScenarioSchema = Joi.object({
+    layerCodes: Joi.array().items(Joi.string().trim().max(120).required()).min(1).max(100).required(),
+    type: scenarioType.required(),
+    rcp: scenarioRcp.allow(null).default(null),
+    minRainfall: Joi.number().min(0).default(0),
+    maxRainfall: Joi.number().min(0).allow(null).default(null),
+    minTide: Joi.number().allow(null).default(null),
+    maxTide: Joi.number().allow(null).default(null),
+    isActive: Joi.boolean().default(true),
 }).unknown(false);
 
 const legendModuleName = Joi.string().valid('event', 'hand', 'rain', 'impact', 'trend');
@@ -131,6 +151,19 @@ const updateLegendSchema = Joi.object({
     max: Joi.number(),
 }).unknown(false).min(1);
 
+const manualOverrideSchema = Joi.object({
+    hour: Joi.string().trim().max(10).required().messages({
+        'any.required': 'Khung giờ (hour) là bắt buộc',
+    }),
+    date: Joi.string().trim().max(20).optional().allow(null, ''),
+    rainfall: Joi.number().min(0).required().messages({
+        'any.required': 'Lượng mưa (rainfall) là bắt buộc',
+        'number.min': 'Lượng mưa không được âm',
+    }),
+    tide: Joi.number().optional().allow(null, '').default(null),
+    scenarioId: Joi.alternatives().try(Joi.number().integer().positive(), Joi.string()).optional().allow(null),
+}).unknown(false);
+
 module.exports = {
     listSchema,
     publicListSchema,
@@ -140,8 +173,10 @@ module.exports = {
     createScenarioSchema,
     updateScenarioSchema,
     queryScenarioSchema,
+    convertLayerScenarioSchema,
     legendQuerySchema,
     legendCodeParamsSchema,
     updateLegendSchema,
+    manualOverrideSchema,
 };
 

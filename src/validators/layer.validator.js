@@ -46,7 +46,7 @@ const paginationSchema = Joi.object({
 const listLayersSchema = paginationSchema.keys({
     q: Joi.string().trim().max(200).allow('').optional(),
     search: Joi.string().trim().max(200).allow('').optional(),
-    category: Joi.string().trim().max(50).optional(),
+    category: Joi.string().trim().max(120).allow('').optional(),
     geometryType: Joi.string()
         .valid(
             'POINT',
@@ -304,6 +304,18 @@ const deleteLayerSchema = Joi.object({
 
 const cleanupRequestSchema = Joi.object({}).default({});
 
+const createCategorySchema = Joi.object({
+    name: Joi.string().trim().min(2).max(120).required(),
+});
+
+const updateCategoryVisibilitySchema = Joi.object({
+    isVisible: Joi.boolean().required(),
+});
+
+const categoryKeyParamsSchema = Joi.object({
+    key: Joi.string().trim().min(1).max(50).required(),
+});
+
 module.exports = {
     shapefileImportSchema,
     excelImportSchema,
@@ -318,4 +330,7 @@ module.exports = {
     permissionsSchema,
     deleteLayerSchema,
     cleanupRequestSchema,
+    createCategorySchema,
+    updateCategoryVisibilitySchema,
+    categoryKeyParamsSchema,
 };

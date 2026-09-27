@@ -28,15 +28,25 @@ const WIND_GRID_MAX = parseInt(process.env.WEATHER_WIND_GRID_MAX, 10) || 16;
 // OpenWeather cần API key; Open-Meteo (wind grid) thì không.
 const isOpenWeatherConfigured = () => Boolean(OPENWEATHER_API_KEY);
 
+const WEATHERAPI_API_KEY =
+    process.env.VITE_WEATHERAPI_API_KEY || process.env.WEATHERAPI_API_KEY || '';
+const WEATHERAPI_URL_BASE =
+    process.env.VITE_WEATHERAPI_URL_BASE || process.env.WEATHERAPI_URL_BASE || 'https://api.weatherapi.com/v1';
+
+const isWeatherApiConfigured = () => Boolean(WEATHERAPI_API_KEY);
+
 module.exports = {
     OPENWEATHER_API_KEY,
     OPENWEATHER_BASE_URL,
     OPENWEATHER_TILE_URL,
     OPEN_METEO_URL,
+    WEATHERAPI_API_KEY,
+    WEATHERAPI_URL_BASE,
     HTTP_TIMEOUT_MS,
     UNITS,
     LANG,
     WIND_GRID_SIZE,
     WIND_GRID_MAX,
     isOpenWeatherConfigured,
+    isWeatherApiConfigured,
 };

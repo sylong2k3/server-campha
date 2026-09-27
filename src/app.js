@@ -72,7 +72,7 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-                'style-src': ["'self'", 'https://fonts.googleapis.com'],
+                'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
                 'font-src': ["'self'", 'https://fonts.gstatic.com'],
                 'frame-ancestors': ["'self'", ...allowedOrigins],
             },
@@ -156,6 +156,8 @@ app.use((req, res, next) =>
     isDirectStorageUpload(req) ? next() : urlencodedParser(req, res, next),
 );
 app.use('/uploads', express.static('public/uploads'));
+app.use('/static', express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 if (process.env.NODE_ENV !== 'production') {
     const acceptanceDir = path.join(__dirname, '..', 'public', 'acceptance');
     app.get('/acceptance/fixtures.json', (req, res) => {
@@ -203,6 +205,22 @@ app.use('/api/', limiter);
 
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+app.get(['/privacy-policy', '/privacy-policy.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'privacy-policy.html'));
+});
+
+app.get('/chinh-sach-bao-mat', (req, res) => {
+    res.redirect(301, '/privacy-policy');
+});
+
+app.get(['/terms', '/terms.html'], (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'public', 'terms.html'));
+});
+
+app.get('/dieu-khoan-su-dung', (req, res) => {
+    res.redirect(301, '/terms');
 });
 
 app.use('/api/v1', routes);

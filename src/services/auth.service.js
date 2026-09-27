@@ -632,6 +632,30 @@ const updateMe = async (userId, data, file, context = {}) => {
     return _sanitizeUser(updated, context.lang);
 };
 
+const deleteMe = async (userId, context = {}) => {
+    const user = await userRepository.findById(userId);
+    if (!user) {
+        throw new Api404Error(t('user_not_found', context.lang));
+    }
+
+    if (user.role === 'system_admin') {
+        const activeSystemAdmins = await userRepository.countActiveUsersByRole('system_admin');
+        if (activeSystemAdmins <= 1) {
+            throw new Api400Error(t('invalid_data', context.lang), [
+                t('cannot_modify_last_admin', context.lang),
+            ]);
+        }
+    }
+
+    await userRepository.softDelete(userId);
+    await Promise.all([
+        userRepository.incrementTokenVersion(userId),
+        tokenRepository.deleteAllUserTokens(userId),
+    ]);
+    await _logActivity(userId, 'delete_account', 'success', context);
+    return { message: t('user_deleted_success', context.lang) };
+};
+
 const _sanitizeUser = (user, lang = 'vi') => {
     const roleName = lang === 'en' ? user.role_name_en || user.role_name_vi : user.role_name_vi;
 
@@ -767,5 +791,6 @@ module.exports = {
     googleMobileLogin,
     getMe,
     updateMe,
+    deleteMe,
     invalidateSessions,
 };

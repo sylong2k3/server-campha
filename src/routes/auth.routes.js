@@ -128,6 +128,7 @@ router.patch(
     validate(updateProfileSchema),
     asyncHandler(authController.updateMe),
 );
+router.delete('/me', verifyToken, asyncHandler(authController.deleteMe));
 router.get('/sessions', verifyToken, asyncHandler(authController.getSessions));
 router.delete(
     '/sessions/:id',

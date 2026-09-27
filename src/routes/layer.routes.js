@@ -48,6 +48,29 @@ router.get(
     asyncHandler(controller.listLayers),
 );
 router.get(
+    '/categories',
+    requirePermission('layers', 'read'),
+    asyncHandler(controller.listCategories),
+);
+router.post(
+    '/categories',
+    requirePermission('layers', 'create'),
+    strict(validator.createCategorySchema),
+    asyncHandler(controller.createCategory),
+);
+router.delete(
+    '/categories/:key',
+    requirePermission('layers', 'delete'),
+    asyncHandler(controller.deleteCategory),
+);
+router.patch(
+    '/categories/:key/visibility',
+    requirePermission('layers', 'update'),
+    validate(validator.categoryKeyParamsSchema, 'params'),
+    strict(validator.updateCategoryVisibilitySchema),
+    asyncHandler(controller.updateCategoryVisibility),
+);
+router.get(
     '/:layerId/standard-metadata.xml',
     requirePermission('layers', 'read'),
     validate(validator.layerIdParamsSchema, 'params'),
