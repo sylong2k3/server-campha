@@ -56,7 +56,11 @@ const fields = async (input, layer) => {
         editable = new Set(
             Array.isArray(layer.metadata?.editableFields) ? layer.metadata.editableFields : [],
         ),
-        search = new Set(webMap.searchFields(layer));
+        search = new Set(
+            webMap.searchFields(layer).length
+                ? [...webMap.searchFields(layer), ...display]
+                : display,
+        );
     if (
         input.readFields.some((x) => !display.has(x)) ||
         input.writeFields.some((x) => !editable.has(x)) ||

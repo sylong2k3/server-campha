@@ -799,13 +799,11 @@ async function simulateFlood({ rainfall, tide }, actor) {
     const rainVal = Number(rainfall);
     const tideVal = tide !== null && tide !== undefined && tide !== '' ? Number(tide) : null;
 
-    if (rainVal < 29.10) {
+    if (rainVal <= 0) {
         return {
             id: 'no_rain',
             code: 'no_rain',
-            nameVi: rainVal <= 0
-                ? 'Không có ngập lụt (Lượng mưa 0 mm/h)'
-                : `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
+            nameVi: 'Không có ngập lụt (Lượng mưa 0 mm/h)',
             status: 'no_rain',
             category: 'flood',
             categoryName: 'Ngập lụt',
@@ -823,9 +821,7 @@ async function simulateFlood({ rainfall, tide }, actor) {
                 tide: tideVal,
                 scenarioId: null,
                 scenarioCode: 'no_rain',
-                scenarioName: rainVal <= 0
-                    ? 'Không có ngập lụt'
-                    : `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
+                scenarioName: 'Không có ngập lụt',
                 matchedLayerCode: null,
             },
         };
@@ -834,25 +830,40 @@ async function simulateFlood({ rainfall, tide }, actor) {
     const matchedScenario = await floodScenarioRepo.findMatchingScenario(rainVal, tideVal, undefined, {
         type: 'hien_trang',
     });
-    let targetLayerCode = matchedScenario?.layer_code;
 
-    // Hardcoded fallback logic if no scenario DB match
+    if (!matchedScenario) {
+        return {
+            id: 'no_rain',
+            code: 'no_rain',
+            nameVi: `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
+            status: 'no_rain',
+            category: 'flood',
+            categoryName: 'Ngập lụt',
+            geometryType: 'RASTER',
+            storageKind: 'none',
+            geoserverLayer: null,
+            styleName: null,
+            minZoom: 10,
+            maxZoom: 18,
+            legend: null,
+            isPublic: true,
+            isEnableDefault: false,
+            simulationParams: {
+                rainfall: rainVal,
+                tide: tideVal,
+                scenarioId: null,
+                scenarioCode: 'no_rain',
+                scenarioName: `Lượng mưa an toàn (${rainVal} mm/h — Dưới ngưỡng gây ngập)`,
+                matchedLayerCode: null,
+            },
+        };
+    }
+
+    const targetLayerCode = matchedScenario.layer_code;
     if (!targetLayerCode) {
-        const SCENARIO_YEARS = [2015, 2018, 2020, 2022, 2024];
-        const rainfallScenarioIndex = rainVal >= 300
-            ? 4
-            : rainVal >= 200
-                ? 3
-                : rainVal >= 100
-                    ? 2
-                    : rainVal >= 50
-                        ? 1
-                        : 0;
-        const scenarioIndex = tideVal !== null && tideVal >= 2.0
-            ? Math.min(SCENARIO_YEARS.length - 1, rainfallScenarioIndex + 1)
-            : rainfallScenarioIndex;
-
-        targetLayerCode = `lop_phu_sau_ngap_${SCENARIO_YEARS[scenarioIndex]}`;
+        throw new Api404Error(`Kịch bản ${matchedScenario.name_vi} chưa được cấu hình lớp bản đồ`, [
+            'SCENARIO_LAYER_NOT_FOUND',
+        ]);
     }
 
     const layer = await layerRepo.findByCode(targetLayerCode);

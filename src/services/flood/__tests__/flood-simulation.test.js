@@ -78,13 +78,22 @@ describe('Flood Simulation Service & Validator', () => {
             expect(result.simulationParams.scenarioCode).toBe('scenario_light');
         });
 
-        test('falls back to hardcoded thresholds if DB returns no scenario', async () => {
+        test('returns no_rain status when DB returns no matching scenario (rainfall below threshold)', async () => {
             jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue(null);
 
-            const result = await analysisService.simulateFlood({ rainfall: 350, tide: 3.0 });
-            expect(result.code).toBe('lop_phu_sau_ngap_2024');
-            expect(result.isEnableDefault).toBe(true);
-            expect(result.simulationParams.matchedLayerCode).toBe('lop_phu_sau_ngap_2024');
+            const result = await analysisService.simulateFlood({ rainfall: 15, tide: 0.5 });
+            expect(result.status).toBe('no_rain');
+            expect(result.code).toBe('no_rain');
+            expect(result.geoserverLayer).toBeNull();
+            expect(result.isEnableDefault).toBe(false);
+            expect(result.simulationParams).toEqual({
+                rainfall: 15,
+                tide: 0.5,
+                scenarioId: null,
+                scenarioCode: 'no_rain',
+                scenarioName: 'Lượng mưa an toàn (15 mm/h — Dưới ngưỡng gây ngập)',
+                matchedLayerCode: null,
+            });
         });
 
         test('returns layer map structure with isEnableDefault = true', async () => {
@@ -132,7 +141,9 @@ describe('Flood Simulation Service & Validator', () => {
             });
         });
 
-        test('returns no_rain status when rainfall is positive but below 29.10 mm/h threshold (e.g. 0.01 mm)', async () => {
+        test('returns no_rain status when rainfall is positive but below scenario threshold (e.g. 0.01 mm)', async () => {
+            jest.spyOn(floodScenarioRepo, 'findMatchingScenario').mockResolvedValue(null);
+
             const result = await analysisService.simulateFlood({ rainfall: 0.01, tide: 0.8 });
             expect(result.status).toBe('no_rain');
             expect(result.code).toBe('no_rain');

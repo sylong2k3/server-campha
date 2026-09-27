@@ -130,7 +130,7 @@ async function processDueScheduleSlots({ targetTime = new Date() } = {}) {
 
                     applied++;
                 } else {
-                    // Lượng mưa nhỏ dưới ngưỡng gây ngập (ví dụ 0.35 mm/h < 29.10 mm/h)
+                    // Lượng mưa nhỏ dưới ngưỡng gây ngập của tất cả kịch bản trong CSDL
                     // Tắt các kịch bản hiện trạng nếu đang bật vì thời tiết an toàn
                     const allActive = await floodScenarioRepo.listAll({ activeOnly: true, limit: 100 });
                     const activeHienTrang = (allActive?.items || []).filter((s) => s.type === 'hien_trang');
@@ -144,7 +144,7 @@ async function processDueScheduleSlots({ targetTime = new Date() } = {}) {
                     });
                     systemLogger.logInfo(
                         'forecast_auto_scenario',
-                        `Mốc ${slot.hour_str} có lượng mưa dự báo ${precipMm} mm/h (tỉ lệ ${chanceOfRain}%), dưới ngưỡng ngập lụt tối thiểu (29.10 mm/h) -> An toàn, bỏ qua kích hoạt kịch bản ngập`,
+                        `Mốc ${slot.hour_str} có lượng mưa dự báo ${precipMm} mm/h (tỉ lệ ${chanceOfRain}%), dưới ngưỡng ngập lụt tối thiểu cấu hình trong kịch bản -> An toàn, bỏ qua kích hoạt kịch bản ngập`,
                         {
                             slotId: slot.id,
                             precipMm,
