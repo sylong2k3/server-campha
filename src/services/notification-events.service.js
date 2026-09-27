@@ -160,13 +160,23 @@ const notifyHydroScenarioTriggered = async ({
         : '0';
 
     const formatScenarioAlertLevel = (name) => {
-        if (!name) return 'cảnh báo có thể ngập nhẹ';
+        if (!name) {
+            return 'cảnh báo có thể ngập nhẹ';
+        }
         const lower = name.toLowerCase();
-        if (lower.includes('ngập nhẹ')) return 'cảnh báo có thể ngập nhẹ';
-        if (lower.includes('ngập vừa')) return 'cảnh báo có thể ngập vừa';
-        if (lower.includes('ngập nặng')) return 'cảnh báo có thể ngập nặng';
-        if (lower.includes('ngập sâu')) return 'cảnh báo có thể ngập sâu';
-        if (lower.startsWith('cảnh báo có thể')) return lower;
+        if (lower.includes('ngập nhẹ')) {
+            return 'cảnh báo có thể ngập nhẹ';
+        }
+        if (lower.includes('ngập vừa')) {
+            return 'cảnh báo có thể ngập vừa';
+        }
+        if (lower.includes('ngập nặng')) {
+            return 'cảnh báo có thể ngập nặng';
+        }
+        if (lower.includes('ngập sâu')) {
+            return 'cảnh báo có thể ngập sâu';
+        }
+        if (lower.startsWith('cảnh báo có thể')) {return lower;}
         return `cảnh báo có thể ${lower.replace(/^kịch bản\s+/i, '')}`;
     };
 
