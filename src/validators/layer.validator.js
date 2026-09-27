@@ -41,7 +41,7 @@ const jobIdParamsSchema = Joi.object({ jobId: Joi.number().integer().positive().
 const layerIdParamsSchema = Joi.object({ layerId: Joi.number().integer().positive().required() });
 const paginationSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().valid(10, 20, 50, 100).default(20),
+    limit: Joi.number().integer().valid(10, 20, 50, 100, 200, 500, 1000).default(20),
 });
 const listLayersSchema = paginationSchema.keys({
     q: Joi.string().trim().max(200).allow('').optional(),
