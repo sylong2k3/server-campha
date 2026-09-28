@@ -161,23 +161,23 @@ const notifyHydroScenarioTriggered = async ({
 
     const formatScenarioAlertLevel = (name) => {
         if (!name) {
-            return 'cảnh báo có thể ngập nhẹ';
+            return 'Cảnh báo có thể ngập nhẹ';
         }
         const lower = name.toLowerCase();
         if (lower.includes('ngập nhẹ')) {
-            return 'cảnh báo có thể ngập nhẹ';
+            return 'Cảnh báo có thể ngập nhẹ';
         }
         if (lower.includes('ngập vừa')) {
-            return 'cảnh báo có thể ngập vừa';
+            return 'Cảnh báo có thể ngập vừa';
         }
         if (lower.includes('ngập nặng')) {
-            return 'cảnh báo có thể ngập nặng';
+            return 'Cảnh báo có thể ngập nặng';
         }
         if (lower.includes('ngập sâu')) {
-            return 'cảnh báo có thể ngập sâu';
+            return 'Cảnh báo có thể ngập sâu';
         }
-        if (lower.startsWith('cảnh báo có thể')) {return lower;}
-        return `cảnh báo có thể ${lower.replace(/^kịch bản\s+/i, '')}`;
+        if (lower.startsWith('Cảnh báo có thể')) {return lower;}
+        return `Cảnh báo có thể ${lower.replace(/^kịch bản\s+/i, '')}`;
     };
 
     const alertLevel = formatScenarioAlertLevel(scenarioName);
@@ -185,7 +185,7 @@ const notifyHydroScenarioTriggered = async ({
     const message = {
         type: 'hydro_scenario_triggered',
         title: 'Cảnh báo kịch bản thủy văn:',
-        body: `${alertLevel}\ndự báo lượng mưa: ${formattedRain} mm/h`,
+        body: `${alertLevel}\nDự báo lượng mưa: ${formattedRain} mm/h`,
         data: {
             channel: 'flood',
             scenarioId: scenario?.id || null,
