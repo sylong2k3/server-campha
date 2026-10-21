@@ -195,7 +195,7 @@ const notifyHydroScenarioTriggered = async ({
             tide: tideVal,
             source,
             hourBucket,
-            url: 'https://admincampha.tourismpj.pro.vn/flood',
+            url: 'https://admincampha.tourismpj.pro.vn/kttv-scenarios',
         },
     };
     return safeDispatch(eventKey, message);

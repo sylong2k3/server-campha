@@ -111,14 +111,21 @@ async function setSlotManualOverride({ forecastDate, hourStr, rainfall, scenario
  */
 async function resetSlotToAuto({ forecastDate, hourStr }, client = db) {
     const res = await client.query(
-        `UPDATE gis.flood_forecast_schedule
+        `UPDATE gis.flood_forecast_schedule AS schedule
          SET status = 'PENDING',
              is_manual_override = false,
              manual_rainfall = NULL,
              manual_updated_at = NULL,
+             precip_mm = (forecast_hour->>'precipMm')::numeric,
+             chance_of_rain = ROUND((forecast_hour->>'chanceOfRain')::numeric),
+             applied_scenario_id = NULL,
              updated_at = NOW()
-         WHERE forecast_date = $1 AND hour_str = $2
-         RETURNING *`,
+         FROM gis.flood_forecast_snapshots AS snapshot
+         CROSS JOIN LATERAL jsonb_array_elements(snapshot.hourly_data) AS forecast_hour
+         WHERE schedule.forecast_date = $1 AND schedule.hour_str = $2
+           AND snapshot.id = schedule.snapshot_id
+           AND forecast_hour->>'hour' = schedule.hour_str
+         RETURNING schedule.*`,
         [forecastDate, hourStr],
     );
     return res.rows[0] || null;

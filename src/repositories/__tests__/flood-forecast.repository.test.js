@@ -135,7 +135,19 @@ describe('flood-forecast.repository', () => {
         const [sql, params] = db.query.mock.calls[0];
         expect(sql).toContain("SET status = 'PENDING'");
         expect(sql).toContain('is_manual_override = false');
+        expect(sql).toContain('FROM gis.flood_forecast_snapshots AS snapshot');
+        expect(sql).toContain('jsonb_array_elements(snapshot.hourly_data)');
+        expect(sql).toContain("precip_mm = (forecast_hour->>'precipMm')::numeric");
+        expect(sql).toContain("chance_of_rain = ROUND((forecast_hour->>'chanceOfRain')::numeric)");
+        expect(sql).toContain('applied_scenario_id = NULL');
+        expect(sql).toContain('snapshot.id = schedule.snapshot_id');
+        expect(sql).toContain("forecast_hour->>'hour' = schedule.hour_str");
         expect(params[0]).toBe('2026-09-18');
         expect(params[1]).toBe('14:00');
+    });
+
+    test('resetSlotToAuto returns null when the original forecast hour is unavailable', async () => {
+        db.query.mockResolvedValue({ rows: [] });
+        await expect(repo.resetSlotToAuto({ forecastDate: '2026-09-18', hourStr: '14:00' })).resolves.toBeNull();
     });
 });
