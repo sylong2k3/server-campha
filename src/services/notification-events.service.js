@@ -76,13 +76,15 @@ const notifyForestSnapshotFailed = async (snapshot, { seasonContext, error } = {
 };
 
 const notifyFloodRunCompleted = async (run, { floodAreaHa, floodPercentage, warnings } = {}) => {
+    console.log(floodAreaHa, floodPercentage, warnings);
+    
     const areaStr = floodAreaHa !== null && floodAreaHa !== undefined ? `${Number(floodAreaHa).toFixed(1)} ha` : 'N/A';
     const pctStr = floodPercentage !== null && floodPercentage !== undefined ? ` (tỉ lệ ${Number(floodPercentage).toFixed(2)}%)` : '';
     const eventKey = `flood_run:${run.id}:succeeded`;
     const message = {
         type: 'flood_run_succeeded',
         title: `Cảnh báo ngập lụt: Phân tích hoàn tất`,
-        body: `Phân tích ngập lụt #${run.id} (${run.module}) thành công. Diện tích ngập: ${areaStr}${pctStr}. Đã cập nhật bản đồ.`,
+        body: `Phân tích ngập lụt #${run.id} thành công. Diện tích ngập: ${areaStr}${pctStr}. Đã cập nhật bản đồ.`,
         data: {
             channel: 'flood',
             runId: run.id,
