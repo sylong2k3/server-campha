@@ -3,6 +3,7 @@
 const notificationService = require('./notification.service');
 const systemLogger = require('../utils/systemLogger.util');
 const { classifyScenario } = require('../repositories/flood-scenario.repository');
+const { notificationMetric } = require('../utils/notification-metric.util');
 
 const MANAGER_ROLES = Object.freeze(['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd']);
 
@@ -29,25 +30,34 @@ const safeDispatch = async (eventKey, message) => {
 
 const notifyForestSnapshotCompleted = async (snapshot, { seasonContext, coverage } = {}) => {
     const label = seasonContext?.label || `Kỳ ${snapshot.year}-${String(snapshot.month).padStart(2, '0')}`;
-    const forestHa = coverage?.forestHa !== null && coverage?.forestHa !== undefined ? Number(coverage.forestHa).toFixed(1) : 'N/A';
-    const forestPercent = coverage?.forestPercent !== null && coverage?.forestPercent !== undefined ? Number(coverage.forestPercent).toFixed(2) : 'N/A';
-    const mineHa = coverage?.mineHa !== null && coverage?.mineHa !== undefined ? Number(coverage.mineHa).toFixed(1) : 'N/A';
-    const minePercent = coverage?.minePercent !== null && coverage?.minePercent !== undefined ? Number(coverage.minePercent).toFixed(2) : 'N/A';
+    const forestHa = notificationMetric(coverage?.forestHa);
+    const forestPercent = notificationMetric(coverage?.forestPercent);
+    const mineHa = notificationMetric(coverage?.mineHa);
+    const minePercent = notificationMetric(coverage?.minePercent);
+    const coverageText = (percent, ha) => {
+        if (percent !== null && ha !== null) {
+            return `${percent.toFixed(2)}% (${ha.toFixed(1)} ha)`;
+        }
+        if (percent !== null) {
+            return `${percent.toFixed(2)}%`;
+        }
+        return ha !== null ? `${ha.toFixed(1)} ha` : 'chưa có số liệu';
+    };
 
     const eventKey = `forest:${snapshot.year}-${String(snapshot.month).padStart(2, '0')}:completed`;
     const message = {
         type: 'forest_snapshot_completed',
         title: `Phân loại rừng: ${label}`,
-        body: `Phân loại rừng ${label} hoàn tất. Tỉ lệ che phủ rừng: ${forestPercent}% (${forestHa} ha), bãi than: ${minePercent}% (${mineHa} ha).`,
+        body: `Phân loại rừng ${label} hoàn tất. Tỉ lệ che phủ rừng: ${coverageText(forestPercent, forestHa)}, bãi than: ${coverageText(minePercent, mineHa)}.`,
         data: {
             channel: 'forest',
             year: snapshot.year,
             month: snapshot.month,
             snapshotId: snapshot.id,
-            forestPercent: coverage?.forestPercent,
-            forestHa: coverage?.forestHa,
-            minePercent: coverage?.minePercent,
-            mineHa: coverage?.mineHa,
+            forestPercent,
+            forestHa,
+            minePercent,
+            mineHa,
             label,
         },
     };
@@ -76,15 +86,16 @@ const notifyForestSnapshotFailed = async (snapshot, { seasonContext, error } = {
 };
 
 const notifyFloodRunCompleted = async (run, { floodAreaHa, floodPercentage, warnings } = {}) => {
-    console.log(floodAreaHa, floodPercentage, warnings);
-    
-    const areaStr = floodAreaHa !== null && floodAreaHa !== undefined ? `${Number(floodAreaHa).toFixed(1)} ha` : 'N/A';
-    const pctStr = floodPercentage !== null && floodPercentage !== undefined ? ` (tỉ lệ ${Number(floodPercentage).toFixed(2)}%)` : '';
+    floodAreaHa = notificationMetric(floodAreaHa);
+    floodPercentage = notificationMetric(floodPercentage);
+    const areaStr = floodAreaHa !== null
+        ? `Diện tích ngập: ${floodAreaHa.toFixed(1)} ha`
+        : 'Chưa có số liệu diện tích ngập';
     const eventKey = `flood_run:${run.id}:succeeded`;
     const message = {
         type: 'flood_run_succeeded',
         title: `Cảnh báo ngập lụt: Phân tích hoàn tất`,
-        body: `Phân tích ngập lụt #${run.id} thành công. Diện tích ngập: ${areaStr}${pctStr}. Đã cập nhật bản đồ.`,
+        body: `Phân tích ngập lụt #${run.id} thành công. ${areaStr}.`,
         data: {
             channel: 'flood',
             runId: run.id,
@@ -154,12 +165,11 @@ const notifyHydroScenarioTriggered = async ({
     const scenarioName = scenario?.name_vi || layerCode || 'Kịch bản thủy văn';
     const hourBucket = eventHour || new Date().toISOString().slice(0, 13);
     const identifier = scenario?.id || scenario?.code || layerCode || 'unknown';
-    const eventKey = `hydro_scenario:${identifier}:${Math.round(rainVal)}:${hourBucket}`;
-
-    const numRain = Number(rainVal);
-    const formattedRain = Number.isFinite(numRain)
-        ? (numRain % 1 === 0 ? String(Math.round(numRain)) : String(Number(numRain.toFixed(2))))
-        : '0';
+    const numRain = notificationMetric(rainVal);
+    const eventKey = `hydro_scenario:${identifier}:${numRain === null ? 'unknown' : Math.round(numRain)}:${hourBucket}`;
+    const rainText = numRain === null
+        ? 'Chưa có số liệu lượng mưa'
+        : `Dự báo lượng mưa: ${Number(numRain.toFixed(2))} mm/h`;
 
     const formatScenarioAlertLevel = (name) => {
         if (!name) {
@@ -187,13 +197,13 @@ const notifyHydroScenarioTriggered = async ({
     const message = {
         type: 'hydro_scenario_triggered',
         title: 'Cảnh báo kịch bản thủy văn:',
-        body: `${alertLevel}\nDự báo lượng mưa: ${formattedRain} mm/h`,
+        body: `${alertLevel}\n${rainText}`,
         data: {
             channel: 'flood',
             scenarioId: scenario?.id || null,
             scenarioCode: scenario?.code || null,
             layerCode: scenario?.layer_code || layerCode,
-            rainfall: rainVal,
+            rainfall: numRain,
             tide: tideVal,
             source,
             hourBucket,

@@ -206,6 +206,13 @@ const _stringifyData = (data) => {
     const out = {};
     Object.keys(data || {}).forEach((key) => {
         const value = data[key];
+        if (
+            value === null ||
+            value === undefined ||
+            (typeof value === 'number' && !Number.isFinite(value))
+        ) {
+            return;
+        }
         out[key] = typeof value === 'string' ? value : JSON.stringify(value);
     });
     return out;

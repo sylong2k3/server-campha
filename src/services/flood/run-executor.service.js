@@ -15,6 +15,7 @@ const rasterIngest = require('../raster-ingest.service');
 const geometry = require('./common/geometry');
 const { ANALYSIS_CRS, ANALYSIS_SCALE_M, TREND_ANALYSIS_SCALE_M } = require('./common/projection');
 const debug = require('./debug.util');
+const { notificationMetric } = require('../../utils/notification-metric.util');
 
 const INGEST_TERMINAL_FAILURES = new Set(['failed', 'url_expired', 'dlq']);
 
@@ -471,8 +472,13 @@ async function executePersistedRun({ runId } = {}) {
         });
         try {
             const notificationEvents = require('../notification-events.service');
-            const floodAreaHa = science.metadata?.mainAreaHa ?? science.metadata?.floodAreaHa ?? null;
-            const floodPercentage = floodAreaHa != null ? (Number(floodAreaHa) / 33584) * 100 : null;
+            const floodAreaHa = notificationMetric(
+                science.metadata?.areaStats?.floodExtentAreaHa
+                ?? science.metadata?.mainAreaHa
+                ?? science.metadata?.floodAreaHa
+                ?? science.metadata?.scenarioAreaHa,
+            );
+            const floodPercentage = floodAreaHa !== null ? (Number(floodAreaHa) / 33584) * 100 : null;
             await notificationEvents.notifyFloodRunCompleted(run, {
                 floodAreaHa,
                 floodPercentage,

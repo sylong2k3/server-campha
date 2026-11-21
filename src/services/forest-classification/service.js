@@ -7,6 +7,7 @@ const { queueSnapshotArchive } = require('./archive');
 const { CAM_PHA_GEOMETRY } = require('../satellite/geometry');
 const { buildLegend, summariseCoverage } = require('./pipeline');
 const debug = require('./debug.util');
+const { notificationMetric } = require('../../utils/notification-metric.util');
 
 const activeStatuses = new Set(['pending', 'computing', 'exporting']);
 
@@ -111,7 +112,20 @@ async function executeRun(snapshot, deps = {}) {
             durationMs,
             computedAt: new Date(),
         });
-        const coverage = summariseCoverage(result.stats?.areaByClass || {}, Number(result.stats?.totalHa) || 0);
+        // Missing statistics are not a successful zero-area classification.
+        const areaByClass = result.stats?.areaByClass;
+        const totalHa = notificationMetric(result.stats?.totalHa);
+        const hasAreaStats = areaByClass && typeof areaByClass === 'object'
+            && !Array.isArray(areaByClass)
+            && (Object.keys(areaByClass).length > 0 || totalHa === 0)
+            && Object.values(areaByClass).every((value) => notificationMetric(value) !== null);
+        const coverage = hasAreaStats
+            ? summariseCoverage(areaByClass, totalHa ?? 0)
+            : {};
+        if (totalHa === null || totalHa === 0) {
+            coverage.forestPercent = null;
+            coverage.minePercent = null;
+        }
         const notificationEvents = deps.notificationEvents || require('../notification-events.service');
         try {
             await notificationEvents.notifyForestSnapshotCompleted(updatedSnapshot || snapshot, {

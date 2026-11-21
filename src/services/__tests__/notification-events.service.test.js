@@ -1,6 +1,9 @@
 'use strict';
 
 jest.mock('../notification.service');
+jest.mock('../../repositories/flood-scenario.repository', () => ({
+    classifyScenario: jest.fn(() => ({ type: 'hien_trang' })),
+}));
 jest.mock('../../utils/systemLogger.util', () => ({
     logInfo: jest.fn(),
     logError: jest.fn(),
@@ -73,8 +76,47 @@ describe('notification-events.service', () => {
             expect(message.eventKey).toBe('flood_run:128:succeeded');
             expect(message.type).toBe('flood_run_succeeded');
             expect(message.body).toContain('1520.5 ha');
-            expect(message.body).toContain('4.53%');
+            expect(message.data.floodPercentage).toBe(4.53);
             expect(message.data.channel).toBe('flood');
+        });
+
+        test('renders trend area and preserves warnings', async () => {
+            const warnings = ['NON_COMMERCIAL_DTM_FABDEM'];
+            await eventsService.notifyFloodRunCompleted({ id: '14', module: 'trend' }, {
+                floodAreaHa: 665.4,
+                floodPercentage: (665.4 / 33584) * 100,
+                warnings,
+            });
+
+            const [, message] = notificationService.broadcastToRoles.mock.calls[0];
+            expect(message.eventKey).toBe('flood_run:14:succeeded');
+            expect(message.body).toContain('665.4 ha');
+            expect(message.data.floodPercentage).toBeCloseTo(1.98, 2);
+            expect(message.data.floodAreaHa).toBe(665.4);
+            expect(message.data.warnings).toEqual(warnings);
+        });
+
+        test.each([null, undefined])('omits missing percentage (%s) without inventing zero', async (floodPercentage) => {
+            await eventsService.notifyFloodRunCompleted({ id: '14', module: 'trend' }, {
+                floodAreaHa: null,
+                floodPercentage,
+            });
+
+            const [, message] = notificationService.broadcastToRoles.mock.calls[0];
+            expect(message.body).toContain('Chưa có số liệu diện tích ngập');
+            expect(message.body).not.toContain('%');
+        });
+
+        test('preserves zero area and percentage', async () => {
+            await eventsService.notifyFloodRunCompleted({ id: '14', module: 'trend' }, {
+                floodAreaHa: 0,
+                floodPercentage: 0,
+            });
+
+            const [, message] = notificationService.broadcastToRoles.mock.calls[0];
+            expect(message.body).toContain('0.0 ha');
+            expect(message.data.floodPercentage).toBe(0);
+            expect(message.data.floodAreaHa).toBe(0);
         });
     });
 
@@ -109,9 +151,9 @@ describe('notification-events.service', () => {
             expect(message.eventKey).toMatch(/^hydro_scenario:5:220:\d{4}-\d{2}-\d{2}T\d{2}$/);
             expect(message.type).toBe('hydro_scenario_triggered');
             expect(message.title).toBe('Cảnh báo kịch bản thủy văn:');
-            expect(message.body).toBe('cảnh báo có thể ngập mưa lớn 200mm\ndự báo lượng mưa: 220 mm/h');
+            expect(message.body).toBe('Cảnh báo có thể ngập mưa lớn 200mm\nDự báo lượng mưa: 220 mm/h');
             expect(message.data.channel).toBe('flood');
-            expect(message.data.url).toBe('https://admincampha.tourismpj.pro.vn/flood');
+            expect(message.data.url).toBe('https://admincampha.tourismpj.pro.vn/kttv-scenarios');
         });
 
         test('skips notification when scenario type is cai_tao or quy_hoach', async () => {
@@ -135,6 +177,61 @@ describe('notification-events.service', () => {
 
             expect(res).toBeNull();
             expect(notificationService.broadcastToRoles).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('missing and malformed metrics', () => {
+        const invalid = [null, undefined, '', '   ', 'invalid', NaN, Infinity, -Infinity, -1, false, [], {}];
+        test.each(invalid)('does not render invalid metric %p as data', async (value) => {
+            await eventsService.notifyForestSnapshotCompleted({ id: 1, year: 2026, month: 9 }, {
+                coverage: { forestHa: value, forestPercent: value, mineHa: value, minePercent: value },
+            });
+            await eventsService.notifyFloodRunCompleted({ id: 14, module: 'trend' }, {
+                floodAreaHa: value, floodPercentage: value,
+            });
+            await eventsService.notifyHydroScenarioTriggered({
+                scenario: { id: 5, type: 'hien_trang', name_vi: 'Kịch bản ngập nhẹ' }, rainVal: value,
+            });
+            for (const [, message] of notificationService.broadcastToRoles.mock.calls) {
+                expect(message.body).not.toMatch(/N\/A|NaN|Infinity|undefined|\bnull\b/);
+                expect(message.body.toLowerCase()).toContain('chưa có số liệu');
+                expect(message.body).not.toMatch(/0(?:\.0+)? (ha|mm\/h)|0(?:\.0+)?%/);
+            }
+            const hydro = notificationService.broadcastToRoles.mock.calls[2][1];
+            expect(hydro.eventKey).toContain(':unknown:');
+            expect(hydro.data.rainfall).toBeNull();
+        });
+
+        test('accepts numeric strings and keeps real zero rainfall and coverage', async () => {
+            await eventsService.notifyForestSnapshotCompleted({ id: 1, year: 2026, month: 9 }, {
+                coverage: { forestHa: '0', forestPercent: '0', mineHa: '12.5', minePercent: '1.25' },
+            });
+            await eventsService.notifyHydroScenarioTriggered({
+                scenario: { id: 5, type: 'hien_trang' }, rainVal: 0,
+            });
+            const forest = notificationService.broadcastToRoles.mock.calls[0][1];
+            const hydro = notificationService.broadcastToRoles.mock.calls[1][1];
+            expect(forest.body).toContain('0.00% (0.0 ha)');
+            expect(forest.body).toContain('1.25% (12.5 ha)');
+            expect(hydro.body).toContain('0 mm/h');
+            expect(hydro.eventKey).toContain(':0:');
+        });
+
+        test('renders partial forest statistics without invented area or percent', async () => {
+            await eventsService.notifyForestSnapshotCompleted({ id: 1, year: 2026, month: 9 }, {
+                coverage: { forestHa: 123.4, minePercent: 2.5 },
+            });
+            const [, message] = notificationService.broadcastToRoles.mock.calls[0];
+            expect(message.body).toContain('123.4 ha');
+            expect(message.body).toContain('2.50%');
+            expect(message.body).not.toMatch(/N\/A|undefined|null|NaN/);
+        });
+
+        test('failure notifications use meaningful defaults when no error is supplied', async () => {
+            await eventsService.notifyForestSnapshotFailed({ id: 1, year: 2026, month: 9 });
+            await eventsService.notifyFloodRunFailed({ id: 14, module: 'trend' });
+            expect(notificationService.broadcastToRoles.mock.calls[0][1].body).toContain('Lỗi không xác định');
+            expect(notificationService.broadcastToRoles.mock.calls[1][1].body).toContain('Lỗi xử lý');
         });
     });
 

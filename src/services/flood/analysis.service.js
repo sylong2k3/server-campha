@@ -723,7 +723,7 @@ async function updateScenario(id, data, actor = null) {
             await notificationEvents.notifyHydroScenarioTriggered({
                 scenario: updated,
                 layerCode: updated.layer_code,
-                rainVal: updated.current_rainfall ?? updated.min_rainfall ?? 0,
+                rainVal: updated.current_rainfall ?? null,
                 tideVal: updated.current_tide ?? null,
                 source: updated.rainfall_source || 'MANUAL',
             });

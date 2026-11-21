@@ -136,6 +136,22 @@ describe('Flood Scenario Management CRUD', () => {
             ).rejects.toThrow("Không tìm thấy lớp bản đồ liên kết 'non_existent_layer'");
         });
 
+        test.each([null, undefined, 0, 220])('activation uses current rainfall %p, never the scenario threshold', async (currentRainfall) => {
+            jest.spyOn(floodScenarioRepo, 'findById').mockResolvedValue({ ...mockScenario, is_active: false });
+            jest.spyOn(floodScenarioRepo, 'update').mockResolvedValue({
+                ...mockScenario, type: 'hien_trang', is_active: true,
+                min_rainfall: 200, current_rainfall: currentRainfall,
+            });
+            const notificationEvents = require('../../notification-events.service');
+            const notifySpy = jest.spyOn(notificationEvents, 'notifyHydroScenarioTriggered').mockResolvedValue({});
+
+            await analysisService.updateScenario(1, { isActive: true });
+
+            expect(notifySpy).toHaveBeenCalledWith(expect.objectContaining({
+                rainVal: currentRainfall ?? null,
+            }));
+        });
+
         test('deleteScenario throws 404 if scenario does not exist', async () => {
             jest.spyOn(floodScenarioRepo, 'findById').mockResolvedValue(null);
 

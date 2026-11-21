@@ -71,6 +71,29 @@ describe('forest-classification service', () => {
         );
     });
 
+    test.each([
+        ['missing stats', {}, { forestPercent: null, minePercent: null }],
+        ['empty stats without total', { areaByClass: {} }, { forestPercent: null, minePercent: null }],
+        ['zero classified area', { areaByClass: {}, totalHa: 0 }, { forestHa: 0, mineHa: 0, forestPercent: null, minePercent: null }],
+        ['missing total', { areaByClass: { 1: 20, 4: 5 } }, { forestHa: 20, mineHa: 5, forestPercent: null, minePercent: null }],
+        ['valid stats', { areaByClass: { 1: 20, 4: 5 }, totalHa: 100 }, { forestHa: 20, mineHa: 5, forestPercent: 20, minePercent: 5 }],
+        ['real zero class', { areaByClass: { 1: 0, 4: 0 }, totalHa: 100 }, { forestHa: 0, mineHa: 0, forestPercent: 0, minePercent: 0 }],
+        ['malformed stats', { areaByClass: { 1: 'invalid' }, totalHa: 100 }, {}],
+    ])('passes honest notification coverage for %s', async (_label, stats, coverage) => {
+        const notificationEvents = {
+            notifyForestSnapshotCompleted: jest.fn(), notifyForestSnapshotFailed: jest.fn(),
+        };
+        await executeRun(snapshot, {
+            repository: { updateRun: jest.fn().mockResolvedValue(snapshot) },
+            satellite: { getClassified: jest.fn().mockResolvedValue({ stats }) },
+            queueArchive: jest.fn().mockResolvedValue(null),
+            notificationEvents,
+        });
+        expect(notificationEvents.notifyForestSnapshotCompleted).toHaveBeenCalledWith(
+            snapshot, expect.objectContaining({ coverage }),
+        );
+    });
+
     test('enqueues a durable, per-period GEE task once', async () => {
         const repository = {
             createRun: jest.fn().mockResolvedValue({ snapshot, deduplicated: false }),

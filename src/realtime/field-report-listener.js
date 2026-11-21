@@ -67,11 +67,16 @@ const handle = async (raw) => {
         status,
         actorRole: row.actor_role || null,
     };
+    const reference = row.reference_code;
+    const referenceSegment =
+        reference === null || reference === undefined || String(reference).trim() === ''
+            ? ''
+            : ` ${reference}`;
     if (payload.event === 'status_changed') {
         await notificationService.notifyUsersAndRoles([row.sender_user_id], MANAGER_ROLES, {
             type: 'field_report_status_changed',
             title: 'Cập nhật phản ánh Cẩm Phả',
-            body: `Phản ánh ${row.reference_code}: ${STATUS_LABELS[status] || status}`,
+            body: `Phản ánh${referenceSegment}: ${STATUS_LABELS[status] || status}`,
             data: notificationData,
             eventKey: row.history_id
                 ? `field_report:${row.id}:history:${row.history_id}`
@@ -82,7 +87,7 @@ const handle = async (raw) => {
         await notificationService.broadcastToRoles(MANAGER_ROLES, {
             type: 'field_report_created',
             title: 'Phản ánh Cẩm Phả mới',
-            body: `Có phản ánh mới ${row.reference_code} cần xử lý`,
+            body: `Có phản ánh mới${referenceSegment} cần xử lý`,
             data: notificationData,
             eventKey: `field_report:${row.id}:created`,
         });

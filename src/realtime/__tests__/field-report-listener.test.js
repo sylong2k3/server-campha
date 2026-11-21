@@ -78,6 +78,7 @@ describe('field report notification delivery', () => {
         expect(notificationService.broadcastToRoles).toHaveBeenCalledWith(
             ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'],
             expect.objectContaining({
+                body: 'Có phản ánh mới CP-4 cần xử lý',
                 data: {
                     reportId: 4,
                     referenceCode: 'CP-4',
@@ -89,4 +90,59 @@ describe('field report notification delivery', () => {
         );
         expect(notificationService.notifyUsersAndRoles).not.toHaveBeenCalled();
     });
+
+    test.each([null, undefined, '', '   '])(
+        'omits missing reference %p from created and status notification bodies only',
+        async (referenceCode) => {
+            repo.eventSummary.mockResolvedValue({
+                id: 5,
+                reference_code: referenceCode,
+                sender_user_id: 10,
+                status: 'approved',
+                actor_role: 'ubnd_tp',
+                created_at: 'c',
+                updated_at: 'u',
+            });
+
+            await listener.handle(
+                JSON.stringify({ reportId: 5, event: 'created', status: 'pending' }),
+            );
+            await listener.handle(
+                JSON.stringify({ reportId: 5, event: 'status_changed', status: 'approved' }),
+            );
+
+            expect(notificationService.broadcastToRoles).toHaveBeenCalledWith(
+                ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'],
+                expect.objectContaining({
+                    body: 'Có phản ánh mới cần xử lý',
+                    data: {
+                        reportId: 5,
+                        referenceCode,
+                        status: 'pending',
+                        actorRole: 'ubnd_tp',
+                    },
+                    eventKey: 'field_report:5:created',
+                }),
+            );
+            expect(notificationService.notifyUsersAndRoles).toHaveBeenCalledWith(
+                [10],
+                ['system_admin', 'ubnd_tp', 'so_tnmt', 'so_xd'],
+                expect.objectContaining({
+                    body: 'Phản ánh: Đã phê duyệt',
+                    data: {
+                        reportId: 5,
+                        referenceCode,
+                        status: 'approved',
+                        actorRole: 'ubnd_tp',
+                    },
+                    eventKey: 'field_report:5:status:approved',
+                }),
+            );
+            expect(ws.notifyUser).toHaveBeenLastCalledWith(
+                10,
+                'field_report',
+                expect.objectContaining({ referenceCode, status: 'approved' }),
+            );
+        },
+    );
 });
