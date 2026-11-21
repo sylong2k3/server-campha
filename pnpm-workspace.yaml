@@ -2,8 +2,15 @@ overrides:
   js-yaml: 3.15.1
   uuid: 11.1.1
 
+nodeLinker: hoisted
+
 allowBuilds:
-  '@firebase/util': true
   bcrypt: true
+  sharp: true
+  esbuild: true
+  "@swc/core": true
+  "@firebase/util": true
   protobufjs: true
   unrs-resolver: true
+  core-js: false
+  msw: false

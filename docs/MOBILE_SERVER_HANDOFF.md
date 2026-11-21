@@ -42,8 +42,8 @@ Chạy từ backend:
 ```powershell
 $env:API_BASE_URL='http://127.0.0.1:3006'
 $env:API_TEST_PASSWORD='<secret nội bộ>'
-npm run seed:mobile-test
-npm run acceptance:verify
+pnpm run seed:mobile-test
+pnpm run acceptance:verify
 ```
 
 Chạy từ workspace mobile:
@@ -51,8 +51,8 @@ Chạy từ workspace mobile:
 ```powershell
 $env:API_BASE_URL='http://127.0.0.1:3006'
 $env:API_TEST_PASSWORD='<secret nội bộ>'
-npm --prefix '..\server-campha' run seed:mobile-test
-npm --prefix '..\server-campha' run acceptance:verify
+pnpm --dir '..\server-campha' run seed:mobile-test
+pnpm --dir '..\server-campha' run acceptance:verify
 ```
 
 Runner idempotent theo `API_FIXTURE_PREFIX`, mặc định `MOBACC`. Không dùng `reset-and-seed.js`; script đó xóa dữ liệu.

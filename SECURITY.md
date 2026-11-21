@@ -31,9 +31,9 @@ Mục tiêu phản hồi: Critical 4 giờ, High 1 ngày làm việc, Medium 3 n
 ## Quét định kỳ
 
 ```bash
-npm run lint
-npm test -- --runInBand
-npm run security:audit
+pnpm run lint
+pnpm test --runInBand
+pnpm run security:audit
 ```
 
 Semgrep và gitleaks chạy trong CI. Advisory không có bản vá upstream phải được ghi nhận, đánh giá bề mặt khai thác và theo dõi nâng cấp.

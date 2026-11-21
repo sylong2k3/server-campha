@@ -17,7 +17,7 @@ Cài **Node.js 24 LTS** từ repository chính thức đã xác minh.
 
 ```bash
 node --version
-npm --version
+pnpm --version
 psql --version
 pg_dump --version
 ogr2ogr --version
@@ -62,9 +62,9 @@ Không đưa secret vào Git, shell history, log hoặc chat.
 ```bash
 sudo -u campha-api git clone <REPOSITORY_URL> /opt/campha/server
 cd /opt/campha/server
-sudo -u campha-api npm ci --omit=dev
-sudo -u campha-api npm run migrate:status
-sudo -u campha-api npm run security:audit
+sudo -u campha-api pnpm install --prod --frozen-lockfile
+sudo -u campha-api pnpm run migrate:status
+sudo -u campha-api pnpm run security:audit
 ```
 
 Không chạy seed production. Năm seed account cũ đã bị vô hiệu hóa; tạo/rotate admin thật theo quy trình riêng.
@@ -189,8 +189,8 @@ Sau backup:
 
 ```bash
 cd /opt/campha/server
-sudo -u campha-api npm run migrate
-sudo -u campha-api npm run migrate:status
+sudo -u campha-api pnpm run migrate
+sudo -u campha-api pnpm run migrate:status
 ```
 
 ## 7. GDAL/OGR, PROJ, GEOS — Sprint 3
@@ -378,7 +378,7 @@ Backup phải được đồng bộ ra nơi độc lập với VPS. Phải test 
 ## 15. Checklist nghiệm thu
 
 ```text
-[ ] Node.js 24 + npm
+[ ] Node.js 24 + pnpm 11.9.0
 [ ] Git, curl, jq, ca-certificates
 [ ] Nginx + HTTPS + Certbot renewal
 [ ] systemd `campha-api` chạy non-root
@@ -399,9 +399,9 @@ Backup phải được đồng bộ ra nơi độc lập với VPS. Phải test 
 [ ] Server timeout env: request 30s, headers 15s, keep-alive 5s, shutdown 10s
 [ ] k6 500 VU chỉ staging; p95 < 800 ms, lỗi < 1%
 [ ] Logrotate + health monitoring
-[ ] `npm ci --omit=dev`
-[ ] `npm run migrate:status`
-[ ] `npm run security:audit` → 0 production vulnerabilities
+[ ] `pnpm install --prod --frozen-lockfile`
+[ ] `pnpm run migrate:status`
+[ ] `pnpm run security:audit` → 0 production vulnerabilities
 [ ] `API_BASE_URL` sinh URL `/api/v1/storage/objects/:id/file?ticket=...`
 [ ] CMS PDF download: 200, `application/pdf`, magic `%PDF-`; ticket sai trả 403
 [ ] Postman active route audit: 152/152; KTTV chỉ nằm folder Legacy

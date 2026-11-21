@@ -49,10 +49,10 @@ Secret dịch vụ phải nằm ngoài mã nguồn và không dùng chung giữa
 ## Chạy dự án
 
 ```bash
-npm install
-npm run migrate
-npm run seed:users
-npm run dev
+pnpm install --frozen-lockfile
+pnpm run migrate
+pnpm run seed:users
+pnpm run dev
 ```
 
 `seed:users` chỉ dành cho local/dev. Production phải cấp tài khoản và mật khẩu qua quy trình quản trị an toàn.
