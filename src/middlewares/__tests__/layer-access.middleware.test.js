@@ -2,8 +2,8 @@ process.env.JWT_SECRET ||= 'test-layer-access-ticket-secret-at-least-32-characte
 jest.mock('../../configs/database', () => ({ query: jest.fn() }));
 
 const db = require('../../configs/database');
-const { Api401Error, Api403Error } = require('../../core/error.response');
-const { requireLayerAccess } = require('../layer-access.middleware');
+const { Api401Error, Api403Error, Api404Error } = require('../../core/error.response');
+const { requireLayerAccess, clearLayerAccessCache } = require('../layer-access.middleware');
 const { signTileTicket } = require('../../utils/map-tile-ticket.util');
 
 const invoke = async (access, req) => {
@@ -13,7 +13,10 @@ const invoke = async (access, req) => {
 };
 
 describe('requireLayerAccess', () => {
-    beforeEach(() => jest.clearAllMocks());
+    beforeEach(() => {
+        jest.clearAllMocks();
+        clearLayerAccessCache();
+    });
 
     test('cho khách xem lớp public', async () => {
         db.query.mockResolvedValue({ rows: [{ id: 1, is_public: true, allowed: false }] });
@@ -87,5 +90,70 @@ describe('requireLayerAccess', () => {
             query: { ticket: 'not-a-jwt' },
         });
         expect(error).toBeInstanceOf(Api403Error);
+    });
+
+    describe('cache ACL theo lớp', () => {
+        test('các tile liên tiếp cùng lớp và vai trò chỉ truy vấn DB một lần', async () => {
+            db.query.mockResolvedValue({ rows: [{ id: 11, is_public: true, allowed: false }] });
+
+            for (let i = 0; i < 5; i += 1) {
+                const req = { params: { layerId: '11' }, lang: 'vi' };
+                expect(await invoke('view', req)).toBeUndefined();
+                expect(req.layerAcl.id).toBe(11);
+            }
+            expect(db.query).toHaveBeenCalledTimes(1);
+        });
+
+        test('các tile đồng thời dùng chung một truy vấn đang chạy', async () => {
+            let resolveQuery;
+            db.query.mockReturnValue(
+                new Promise((resolve) => {
+                    resolveQuery = resolve;
+                }),
+            );
+            const pending = Array.from({ length: 4 }, () =>
+                invoke('view', { params: { layerId: '12' }, lang: 'vi' }),
+            );
+            resolveQuery({ rows: [{ id: 12, is_public: true, allowed: false }] });
+
+            expect(await Promise.all(pending)).toEqual([undefined, undefined, undefined, undefined]);
+            expect(db.query).toHaveBeenCalledTimes(1);
+        });
+
+        test('vai trò khác nhau được tra quyền riêng', async () => {
+            db.query
+                .mockResolvedValueOnce({ rows: [{ id: 13, is_public: false, allowed: true }] })
+                .mockResolvedValueOnce({ rows: [{ id: 13, is_public: false, allowed: false }] });
+
+            const allowedReq = { params: { layerId: '13' }, lang: 'vi', user: { role: 'so_tnmt' } };
+            expect(await invoke('view', allowedReq)).toBeUndefined();
+
+            const deniedReq = { params: { layerId: '13' }, lang: 'vi', user: { role: 'citizen' } };
+            expect(await invoke('view', deniedReq)).toBeInstanceOf(Api403Error);
+            expect(db.query).toHaveBeenCalledTimes(2);
+        });
+
+        test('không cache lớp không tìm thấy hoặc truy vấn lỗi', async () => {
+            db.query
+                .mockResolvedValueOnce({ rows: [] })
+                .mockRejectedValueOnce(new Error('db down'))
+                .mockResolvedValueOnce({ rows: [{ id: 14, is_public: true, allowed: false }] });
+
+            const req = () => ({ params: { layerId: '14' }, lang: 'vi' });
+            expect(await invoke('view', req())).toBeInstanceOf(Api404Error);
+            expect((await invoke('view', req())).message).toBe('db down');
+            expect(await invoke('view', req())).toBeUndefined();
+            expect(db.query).toHaveBeenCalledTimes(3);
+        });
+
+        test('mỗi request nhận bản sao riêng của bản ghi lớp', async () => {
+            db.query.mockResolvedValue({ rows: [{ id: 15, is_public: true, allowed: false }] });
+            const first = { params: { layerId: '15' }, lang: 'vi' };
+            const second = { params: { layerId: '15' }, lang: 'vi' };
+            await invoke('view', first);
+            first.layerAcl.code = 'mutated';
+            await invoke('view', second);
+            expect(second.layerAcl.code).toBeUndefined();
+        });
     });
 });

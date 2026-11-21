@@ -10,6 +10,72 @@ const ACCESS_COLUMNS = {
     delete: 'can_delete',
 };
 
+// Every WMS tile hits this middleware (thousands per minute while a map is
+// panned), but a layer's ACL row changes rarely. Cache it briefly per
+// (layer, role, permission) and share one in-flight query between the
+// concurrent tiles of a burst. Misses are not cached so a newly created
+// layer is visible immediately. LAYER_ACL_CACHE_TTL_MS=0 disables the cache.
+const parseTtl = (value) => {
+    const ttl = Number.parseInt(value, 10);
+    return Number.isInteger(ttl) && ttl >= 0 ? ttl : 30000;
+};
+const CACHE_TTL_MS = parseTtl(process.env.LAYER_ACL_CACHE_TTL_MS);
+const CACHE_MAX_ENTRIES = 5000;
+const aclCache = new Map();
+
+const clearLayerAccessCache = () => aclCache.clear();
+
+const queryLayerAcl = async (layerId, role, permissionColumn) => {
+    const { rows } = await db.query(
+        `SELECT l.id, l.code, l.name_vi, l.is_public, l.geoserver_layer,
+                l.style_name, l.metadata, l.category,
+                l.min_zoom, l.max_zoom,
+                COALESCE(lp.${permissionColumn}, false) AS allowed,
+                (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
+                                          'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                                  ORDER BY times.acquired_at,times.id)
+                 FROM raster.satellite_images times
+                 WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
+         FROM gis.layers l
+         LEFT JOIN gis.layer_permissions lp
+           ON lp.layer_id = l.id AND lp.role_code = $2
+         WHERE l.id = $1 AND l.deleted_at IS NULL`,
+        [layerId, role],
+    );
+    return rows[0] || null;
+};
+
+const loadLayerAcl = async (layerId, role, permissionColumn) => {
+    if (CACHE_TTL_MS === 0) {
+        return queryLayerAcl(layerId, role, permissionColumn);
+    }
+    const key = `${layerId}|${role || ''}|${permissionColumn}`;
+    const now = Date.now();
+    const cached = aclCache.get(key);
+    if (cached && cached.expiresAt > now) {
+        const layer = await cached.promise;
+        return layer && { ...layer };
+    }
+
+    const promise = queryLayerAcl(layerId, role, permissionColumn);
+    if (aclCache.size >= CACHE_MAX_ENTRIES) {
+        aclCache.delete(aclCache.keys().next().value);
+    }
+    aclCache.set(key, { promise, expiresAt: now + CACHE_TTL_MS });
+    try {
+        const layer = await promise;
+        if (!layer && aclCache.get(key)?.promise === promise) {
+            aclCache.delete(key);
+        }
+        return layer && { ...layer };
+    } catch (error) {
+        if (aclCache.get(key)?.promise === promise) {
+            aclCache.delete(key);
+        }
+        throw error;
+    }
+};
+
 const requireLayerAccess = (access) => {
     const permissionColumn = ACCESS_COLUMNS[access];
     if (!permissionColumn) {
@@ -28,23 +94,7 @@ const requireLayerAccess = (access) => {
         }
 
         try {
-            const { rows } = await db.query(
-                `SELECT l.id, l.code, l.name_vi, l.is_public, l.geoserver_layer,
-                        l.style_name, l.metadata, l.category,
-                        l.min_zoom, l.max_zoom,
-                        COALESCE(lp.${permissionColumn}, false) AS allowed,
-                        (SELECT array_agg(to_char(times.acquired_at AT TIME ZONE 'UTC',
-                                                  'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
-                                          ORDER BY times.acquired_at,times.id)
-                         FROM raster.satellite_images times
-                         WHERE times.layer_id=l.id AND times.deleted_at IS NULL) AS time_values
-                 FROM gis.layers l
-                 LEFT JOIN gis.layer_permissions lp
-                   ON lp.layer_id = l.id AND lp.role_code = $2
-                 WHERE l.id = $1 AND l.deleted_at IS NULL`,
-                [layerId, req.user?.role || null],
-            );
-            const layer = rows[0];
+            const layer = await loadLayerAcl(layerId, req.user?.role || null, permissionColumn);
             if (!layer) {
                 return next(new Api404Error(t('map_layer_not_found', req.lang)));
             }
@@ -88,4 +138,4 @@ const requireLayerAccess = (access) => {
     };
 };
 
-module.exports = { requireLayerAccess };
+module.exports = { requireLayerAccess, clearLayerAccessCache };
