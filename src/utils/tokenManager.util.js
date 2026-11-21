@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { generateUUID } = require('./cryptoHelper.util');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const isTestEnv = process.env.NODE_ENV === 'test';
 const JWT_SECRET =

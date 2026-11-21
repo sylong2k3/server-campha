@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const isEnabled = () => process.env.GEOSERVER_ENABLED === 'true';
 const RESOURCE_PATTERN = /^[a-z][a-z0-9_-]{0,79}$/;

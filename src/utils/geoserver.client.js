@@ -341,6 +341,9 @@ const truncateGwcLayer = async (
                 zoomStart,
                 zoomStop,
                 format,
+                // GeoWebCache unboxes threadCount without a null check and
+                // answers 500 when it is omitted, even for a truncate.
+                threadCount: 1,
             },
         }),
     });

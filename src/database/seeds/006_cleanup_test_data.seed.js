@@ -11,7 +11,7 @@
  */
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const db = require('../../configs/database');
 

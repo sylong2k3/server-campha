@@ -360,6 +360,11 @@ const validateProductionUrls = (value, errors) => {
             errors.push(`${name} cannot use a loopback host in production`);
         }
     }
+    // Google redirects the user's browser to this URL, so a loopback host
+    // breaks web sign-in for everyone not sitting at the server.
+    if (value.GOOGLE_CALLBACK_URL && isLoopbackUrl(value.GOOGLE_CALLBACK_URL)) {
+        errors.push('GOOGLE_CALLBACK_URL cannot use a loopback host in production');
+    }
 };
 
 const validateCors = (value, errors) => {

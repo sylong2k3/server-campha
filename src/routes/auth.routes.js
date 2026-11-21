@@ -85,14 +85,34 @@ router.get(
     '/google',
     passport.authenticate('google', { scope: ['profile', 'email'], session: false }),
 );
-router.get(
-    '/google/callback',
-    passport.authenticate('google', {
-        session: false,
-        failureRedirect: `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000'}/auth/login?error=google_auth_failed`,
-    }),
-    asyncHandler(authController.googleCallback),
-);
+const googleFailureUrl = () =>
+    `${process.env.FRONTEND_URL || process.env.APP_URL || 'http://localhost:3000'}/auth/login?error=google_auth_failed`;
+
+// The user's browser lands here from Google, so every failure must send it
+// back to the frontend login page instead of rendering an API JSON error.
+// Covers the user cancelling, token-exchange errors (expired/reused code,
+// bad client secret) and errors while creating the session (e.g. disabled
+// account).
+router.get('/google/callback', (req, res, next) => {
+    passport.authenticate('google', { session: false }, async (err, user) => {
+        if (err || !user) {
+            if (err) {
+                console.warn(`[AUTH] Google callback failed: ${err.name}: ${err.message}`);
+            }
+            return res.redirect(googleFailureUrl());
+        }
+        req.user = user;
+        try {
+            return await authController.googleCallback(req, res);
+        } catch (error) {
+            console.warn(`[AUTH] Google sign-in failed after callback: ${error.message}`);
+            if (res.headersSent) {
+                return next(error);
+            }
+            return res.redirect(googleFailureUrl());
+        }
+    })(req, res, next);
+});
 router.post(
     '/google/mobile',
     authLimiter,

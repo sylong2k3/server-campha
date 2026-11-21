@@ -8,7 +8,7 @@
  *   - Open-Meteo  : lưới gió (wind grid), không cần key.
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const OPENWEATHER_API_KEY = process.env.OPENWEATHER_API_KEY || '';
 const OPENWEATHER_BASE_URL =

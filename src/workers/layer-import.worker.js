@@ -1,7 +1,7 @@
 'use strict';
 
 process.env.TZ = process.env.TZ || 'Asia/Ho_Chi_Minh';
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const crypto = require('crypto');
 const fs = require('fs');

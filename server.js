@@ -24,7 +24,7 @@ const floodEventDailyJob = require('./src/jobs/flood-event-daily.job');
 const weatherForecastDailyJob = require('./src/jobs/weather-forecast-daily.job');
 const floodScenarioAutoJob = require('./src/jobs/flood-scenario-auto.job');
 const { recoverInterruptedRuns } = require('./src/workers/geeInterruptedRunRecovery.worker');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const PORT = process.env.PORT || 8881;
 const HOST = process.env.HOST || '0.0.0.0';
@@ -48,12 +48,17 @@ function printStartupBanner({ dbStatus, minioStatus, earthEngineStatus, geoserve
     const COL = 13;
     const row = (label, value) => `  ${label.padEnd(COL)}: ${value}`;
 
-    const isTls = /^https:/i.test(process.env.APP_URL || '');
-    const httpProtocol = isTls ? 'https' : 'http';
-    const wsProtocol = isTls ? 'wss' : 'ws';
+    // Node itself always listens on plain HTTP; TLS (if any) is terminated by
+    // the reverse proxy, so the public URL comes from API_BASE_URL.
+    const publicBase = (process.env.API_BASE_URL || '').replace(/\/+$/, '');
+    const publicWs = publicBase ? publicBase.replace(/^http/i, 'ws') + WS_PATH : null;
     const appRows = [
-        row('HTTP', `${httpProtocol}://${publicHost}:${PORT}`),
-        row('WebSocket', `${wsProtocol}://${publicHost}:${PORT}${WS_PATH}`),
+        row('Listen', `http://${publicHost}:${PORT}`),
+        ...(publicBase ? [row('Public API', publicBase)] : []),
+        row('WebSocket', publicWs || `ws://${publicHost}:${PORT}${WS_PATH}`),
+        ...(process.env.GOOGLE_CALLBACK_URL
+            ? [row('Google CB', process.env.GOOGLE_CALLBACK_URL)]
+            : []),
         row('Environment', env),
     ];
     const svcRows = [

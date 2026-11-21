@@ -7,7 +7,7 @@ const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const passport = require('passport');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const routes = require('./routes');
 const { errorHandler, notFoundHandler } = require('./middlewares/error-handler');

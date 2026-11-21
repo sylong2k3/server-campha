@@ -5,7 +5,7 @@
  *
  * Chạy: node src/database/seeds/001_users.seed.js
  */
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const db = require('../../configs/database');
 const userRepository = require('../../repositories/user.repository');
