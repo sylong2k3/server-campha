@@ -12,6 +12,18 @@ const SMTP_PASS = process.env.SMTP_PASS;
 const MAIL_FROM = process.env.MAIL_FROM || process.env.SMTP_USER;
 const APP_NAME = process.env.APP_NAME || 'App';
 
+// MAIL_FROM may be a bare address ("a@b.vn") or already carry a display
+// name ("GIS Cẩm Phả <a@b.vn>"). Wrapping the latter again in
+// `"APP_NAME" <...>` produced a broken From header ("APP_NAME>").
+const buildFromAddress = (mailFrom = MAIL_FROM, appName = APP_NAME) => {
+    const value = String(mailFrom || '').trim();
+    const match = value.match(/^\s*"?([^"<]*?)"?\s*<\s*([^<>\s]+@[^<>\s]+)\s*>\s*$/);
+    if (match) {
+        return { name: match[1].trim() || appName, address: match[2] };
+    }
+    return { name: appName, address: value };
+};
+
 if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
     transporter = nodemailer.createTransport({
         host: SMTP_HOST,
@@ -38,7 +50,7 @@ const sendMail = async ({ to, subject, html, text }) => {
         return;
     }
 
-    await transporter.sendMail({ from: `"${APP_NAME}" <${MAIL_FROM}>`, to, subject, text, html });
+    await transporter.sendMail({ from: buildFromAddress(), to, subject, text, html });
 };
 
 const sendPasswordResetEmail = async ({ to, fullName, resetUrl, expiresMinutes, lang = 'vi' }) => {
@@ -123,6 +135,7 @@ const sendVerificationEmail = async ({ to, fullName, verifyUrl, expiresMinutes, 
 
 module.exports = {
     sendMail,
+    buildFromAddress,
     sendPasswordResetEmail,
     sendVerificationEmail,
 };
